@@ -25,7 +25,7 @@
  * DAMAGE.
  */
 
-package ext.config;
+package config;
 
 import haxe.xml.Check;
 
