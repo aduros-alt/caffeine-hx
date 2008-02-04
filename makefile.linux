@@ -1,3 +1,6 @@
+dlls:
+	cd dll_src && make -f Makefile.linux
+
 clean:
 	$(RM) ext/haxelib.xml
 	$(RM) *.n

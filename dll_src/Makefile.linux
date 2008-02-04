@@ -1,0 +1,6 @@
+all: crypt
+
+crypt: dummy
+	cd crypt && make -f Makefile.linux
+
+dummy:

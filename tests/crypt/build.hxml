@@ -1,0 +1,12 @@
+-cp .
+-js crypttest.js
+-main tests.CryptTest
+
+--next
+
+-cp .
+-neko crypttest.n
+-main tests.CryptTest
+
+
+
