@@ -28,6 +28,11 @@ class HaxelibRelease {
 		neko.io.File.stdin().readLine();
 		writeFileContents();
 		zipLib();
+
+		neko.Lib.println("Success. The file "+project+".zip has been created.");
+		neko.Lib.println("Remember to test it first with the command\nhaxelib test "+project+".zip");
+		neko.Lib.println("After a successful test, it may be submitted with");
+		neko.Lib.println("haxelib submit "+project+".zip");
 	}
 
 	static function getNotes() {
@@ -68,7 +73,6 @@ class HaxelibRelease {
 		var oldDir = owd + projectRoot;
 		var newDir = owd + project;
 
-		trace("... renaming "+oldDir + " to " + newDir);
 		neko.FileSystem.rename(oldDir, newDir);
 		if(system == "Linux") {
 			cmd = "zip";
