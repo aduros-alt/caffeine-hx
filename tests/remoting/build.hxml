@@ -1,0 +1,11 @@
+-main NekoClient
+-cp ../../ext/
+-neko nekoclient.n
+
+--next
+
+-main CryptServer
+-cp ../../ext/
+-D DEBUG_PROTOCOL
+-neko cryptserver.n
+
