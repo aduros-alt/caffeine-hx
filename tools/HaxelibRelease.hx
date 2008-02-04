@@ -17,7 +17,7 @@ class HaxelibRelease {
 		}
 		if(neko.FileSystem.exists(".svn"))
 			error("Must be run from an exported version of caffeine-hx");
-		if(!neko.FileSystem.exists(projectRoot+"/ext"))
+		if(!neko.FileSystem.exists(projectRoot+"/ndll"))
 			error("Run from the root directory of caffeine-hx");
 		if(neko.FileSystem.exists(projectRoot+"/haxelib.xml"))
 			error(projectRoot + "/haxelib.xml already exists");
