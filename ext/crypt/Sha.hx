@@ -145,15 +145,3 @@ class Sha {
         private static var nsha1 = neko.Lib.load("ncrypt","nsha1",1);
 #end
 }
-
-
-
-//
-// extend Number class with a tailored hex-string method
-//   (note toString(16) is implementation-dependant, and
-//   in IE returns signed numbers when used on full words)
-//
-/*
-
-*/
-
