@@ -1,0 +1,3 @@
+clean:
+	$(RM) ext/haxelib.xml
+	$(RM) *.n
