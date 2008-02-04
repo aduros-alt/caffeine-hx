@@ -4,3 +4,6 @@ dlls:
 clean:
 	$(RM) ext/haxelib.xml
 	$(RM) *.n
+
+clean-kate:
+	find . -name "*~" -exec rm {} \;
