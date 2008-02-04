@@ -29,7 +29,7 @@ class HaxelibRelease {
 		writeFileContents();
 		zipLib();
 
-		neko.Lib.println("Success. The file "+project+".zip has been created.");
+		neko.Lib.println("\nSuccess. The file "+project+".zip has been created.");
 		neko.Lib.println("Remember to test it first with the command\nhaxelib test "+project+".zip");
 		neko.Lib.println("After a successful test, it may be submitted with");
 		neko.Lib.println("haxelib submit "+project+".zip");
