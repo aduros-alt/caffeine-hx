@@ -60,30 +60,24 @@ class Base {
 		throw "Mode not supported";
 	}
 
+	/**
+		Return the character code from a string at the given position.
+		If pos is past the end of the string, 0 (null) is returned.
+	**/
 	public static function charCodeAt(s, pos) {
 		if(pos >= s.length)
 			return 0;
 		return Std.ord(s.substr(pos,1));
 	}
 
-	// perform NULL padding with padToBytes
-	public static function intArrayToString(a: Array<Int>, ?padToBytes:Int) {
-		var sb = new StringBuf();
-		for(i in a)
-			sb.add(Std.chr(i));
-		if(padToBytes > 0) {
-			var r = padToBytes - (a.length % padToBytes);
-			for(i in 0...r) {
-				sb.add(Std.chr(0));
-			}
-		}
-		return sb.toString();
-	}
-
+	/**
+		Convert a string containing 32bit integers to an array of ints<br />
+		TODO: platform endianness
+	**/
 #if neko
-	public static function strToLongs(s : String) : Array<neko.Int32>
+	public static function strToInts(s : String) : Array<neko.Int32>
 #else true
-	public static function strToLongs(s : String) : Array<Int>
+	public static function strToInts(s : String) : Array<Int>
 #end
 	{
 		if(s.length % 4 != 0)
@@ -92,7 +86,7 @@ class Base {
 		var a = new Array();
 
 		for(i in 0...len) {
-			// note endianness is irrelevant if the same in longsToStr.
+			// note endianness is irrelevant if the same in intsToString.
 #if neko
 			var j = neko.Int32.ofInt(charCodeAt(s,i*4));
 			var k = neko.Int32.ofInt(charCodeAt(s,i*4+1)<<8);
@@ -110,16 +104,18 @@ class Base {
 		return a;
 	}
 
-	// convert array of longs back to string
+	/**
+		Convert an array of 32bit integers to a string<br />
+		TODO: platform endianness
+	**/
 #if neko
-	public static function longsToStr(l : Array<neko.Int32>) {
+	public static function intsToString(l : Array<neko.Int32>) : String {
 #else true
-	public static function longsToStr(l : Array<Int>) {
+	public static function intsToString(l : Array<Int>) : String {
 #end
 		var a = new Array<String>();
 		for(i in 0...l.length) {
 			var sb = new StringBuf();
-
 #if neko
 			sb.add(Std.chr(
 				neko.Int32.toInt(
@@ -162,5 +158,15 @@ class Base {
 			a[i] = sb.toString();
 		}
 		return a.join('');
+	}
+
+
+	public static function intsToPaddedString(a : Array<Int>, ?padTo : Int) {
+		if(padTo > 0) {
+			var r = padTo - (a.length % padTo);
+			for(i in 0...r) {
+				sb.add(Std.chr(0));
+			}
+		}
 	}
 }
