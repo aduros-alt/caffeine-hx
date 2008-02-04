@@ -44,7 +44,6 @@ class Tea extends BasePhrase {
 trace(asciitext);
 
 		// convert to array of longs
-		// algorithm doesn't work for n<2 so fudge by adding a null
 		var v = Base.strToLongs(asciitext);
 trace(v);
 		if (v.length <= 1)

@@ -80,22 +80,19 @@ class Base {
 		return sb.toString();
 	}
 
-
-	// convert string to array of longs, each containing 4 chars
-	// note chars must be within ISO-8859-1
-	// (with Unicode code-point < 256) to fit 4/long
 #if neko
 	public static function strToLongs(s : String) : Array<neko.Int32>
 #else true
 	public static function strToLongs(s : String) : Array<Int>
 #end
 	{
-		var len = Math.ceil(s.length/4);
+		if(s.length % 4 != 0)
+			throw "Invalid string length";
+		var len = Math.floor(s.length/4);
 		var a = new Array();
 
 		for(i in 0...len) {
-			// note little-endian encoding - endianness is irrelevant
-			//as long as it is the same in longsToStr()
+			// note endianness is irrelevant if the same in longsToStr.
 #if neko
 			var j = neko.Int32.ofInt(charCodeAt(s,i*4));
 			var k = neko.Int32.ofInt(charCodeAt(s,i*4+1)<<8);
@@ -110,8 +107,6 @@ class Base {
 			(charCodeAt(s,i*4+2)<<16) + (charCodeAt(s,i*4+3)<<24);
 #end
 		}
-		// note running off the end of the string generates nulls since
-		// bitwise operators treat NaN as 0
 		return a;
 	}
 
@@ -168,22 +163,4 @@ class Base {
 		}
 		return a.join('');
 	}
-
-/*
-	// escape control chars etc which might cause problems with encrypted texts
-	public static function escCtrlCh(str) {
-		var er : EReg = ~/[\0\t\n\v\f\r\xa0'"!]/g;
-		return er.replace(str,
-			function(c) {
-				return '!' + Base.charCodeAt(c,0) + '!';
-			}
-		);
-	}
-
-	// unescape potentially problematic nulls and control characters
-	public static function unescCtrlCh(str) {
-		var er : EReg = ~/!\d\d?\d?!/g;
-		return er.replace(str, function(c) { return Std.chr(c.substr(1,-1)); });
-	}
-*/
 }
