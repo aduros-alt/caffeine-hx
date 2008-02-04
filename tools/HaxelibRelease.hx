@@ -40,8 +40,8 @@ class HaxelibRelease {
 		if(n == null || neko.Sys.args().length > 1) {
 			error("Must include release notes as program argument. Did you forget to enclose them with quotes?");
 		}
-		if(n.length < 15) {
-			error("Release notes should be at least 15 characters long, no?");
+		if(n.length < 10) {
+			error("Release notes should be at least 10 characters long, no?");
 		}
 		releasenotes = n;
 	}

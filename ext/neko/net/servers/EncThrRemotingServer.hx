@@ -28,7 +28,7 @@
 package neko.net.servers;
 import crypt.Aes;
 import haxe.remoting.EncRemotingAdaptor;
-import neko.net.ThreadRemotingServer
+import neko.net.ThreadRemotingServer;
 
 class EncThrRemotingServer extends ThreadRemotingServer {
 	public function new() {

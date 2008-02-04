@@ -7,3 +7,8 @@ clean:
 
 clean-kate:
 	find . -name "*~" -exec rm {} \;
+
+clean-neko:
+	find . -name "*.n" -exec rm {} \;
+
+distclean: clean clean-kate clean-neko

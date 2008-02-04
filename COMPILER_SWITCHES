@@ -1,0 +1,2 @@
+CRYPT_DEBUG_PROTOCOL
+	Adds traces to Debug the crypt packets in haxe/remoting/EncRemotingAdaptor.hx
