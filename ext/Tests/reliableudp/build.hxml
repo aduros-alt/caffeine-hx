@@ -1,0 +1,22 @@
+-main Server
+-cp ../../
+-neko server.n
+
+--next
+
+-main ServerTwo
+-cp ../../
+-neko server2.n
+
+--next
+
+-main Client
+-cp ../../
+-neko client.n
+
+--next
+
+-main IntSock
+-cp ../../
+-neko intsock.n
+
