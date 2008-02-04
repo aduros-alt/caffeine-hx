@@ -1,0 +1,63 @@
+CTEST_PATHS:=src include/enet
+CSERV:=test_c/server
+CCLIENT:=test_c/client
+
+HXSERV:=server.n
+HXCLIENT:=client.n
+
+# for ndll
+SRC_PATHS:=src src/ndll include/enet
+SRC_ARCH:=$(foreach PATH,$(ARCH_PATHS), $(wildcard $(PATH)/*.c))
+SRCS:=$(foreach PATH,$(SRC_PATHS), $(wildcard $(PATH)/*.c)) $(SRC_ARCH)
+HEADERS:=$(foreach PATH,$(SRC_PATHS), $(wildcard $(PATH)/*.h)) $(SRC_ARCH)
+
+# for c test programs
+CSERV_SRCS:= $(foreach PATH,$(CTEST_PATHS), $(wildcard $(PATH)/*.c)) test_c/server.c $(SRC_ARCH)
+CCLIENT_SRCS:= $(foreach PATH,$(CTEST_PATHS), $(wildcard $(PATH)/*.c)) test_c/client.c test_c/common.c $(SRC_ARCH)
+
+HX_PATHS:=neko/net test
+HX_SRCS:=$(foreach PATH,$(HX_PATHS), $(wildcard $(PATH)/*.hx))
+
+
+$(NDLL): $(SRCS) $(HEADERS)
+	@echo path: $(SRC_PATHS)
+	@echo srcs: $(SRCS), headers: $(HEADERS)
+	$(CC) $(NEKO_FLAGS) $(LOCAL_FLAGS) -o $@ $(SRCS)
+
+
+tests: $(CSERV) $(CCLIENT) $(HXSERV) $(HXCLIENT)
+
+$(CSERV): $(CSERV_SRCS) $(HEADERS)
+	@echo srcs: $(CSERV_SRCS), headers: $(HEADERS)
+	$(CC) $(LOCAL_FLAGS) -o $@ $(CSERV_SRCS)
+
+$(CCLIENT): $(CCLIENT_SRCS) $(HEADERS)
+	@echo srcs: $(SRCS), headers: $(HEADERS)
+	$(CC) $(LOCAL_FLAGS) -o $@ $(CCLIENT_SRCS)
+
+$(HXSERV): $(HX_SRCS)
+	haxe build.hmxl
+
+$(HXCLIENT): $(HX_SRCS)
+	haxe build.hmxl
+
+clean:
+	$(RM) $(CSERV)
+	$(RM) $(CCLIENT)
+	$(RM) $(HXSERV)
+	$(RM) $(HXCLIENT)
+	$(RM) *.n
+	$(RM) obj/*
+	$(RM) core.*
+
+dist-clean: clean
+	$(RM) $(NDLL)
+
+doc: clean-doc
+	haxe docbuild.hxml && cd doc && haxedoc docs.xml -f neko && rm docs.xml
+
+clean-doc:
+	@rm -Rf doc/content
+	@rm -f doc/index.html
+
+dummy:

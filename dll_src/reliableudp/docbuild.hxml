@@ -1,0 +1,5 @@
+-main test.Doc
+-cp .
+-neko doc.n
+--no-output
+-xml doc/docs.xml

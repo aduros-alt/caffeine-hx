@@ -1,0 +1,22 @@
+-main test.Server
+-cp .
+-neko server.n
+
+--next
+
+-main test.ServerTwo
+-cp .
+-neko server2.n
+
+--next
+
+-main test.Client
+-cp .
+-neko client.n
+
+--next
+
+-main test.IntSock
+-cp .
+-neko intsock.n
+

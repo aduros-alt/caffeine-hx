@@ -1,0 +1,23 @@
+PROJECT:=udprsocket
+NDLL:=../../ext/ndll/Windows/$(PROJECT).ndll
+ARCH_PATHS:=src/windows
+
+CC:=i686-mingw32-gcc -Isrc -DWIN32 -DENET_DLL -DENET_BUILDING_LIB
+#NEKO_FLAGS:=-shared -L/usr/lib -lws2_32 -lwsock32 -lneko -lz
+NEKO_FLAGS:=-shared -L/usr/lib -lneko -lz -lws2_32
+#LOCAL_FLAGS:=-Iinclude -Isrc/windows -DDEBUG -DUSE_CRC32 
+LOCAL_FLAGS:=-I../include -Iinclude -Isrc/windows -DUSE_CRC32 
+
+
+#include Makefile.common
+
+all:
+	i686-mingw32-gcc -Isrc  $(LOCAL_FLAGS) -c -o obj/callbacks.o src/callbacks.c 
+	i686-mingw32-gcc -Isrc  $(LOCAL_FLAGS) -c -o obj/host.o src/host.c
+	i686-mingw32-gcc -Isrc  $(LOCAL_FLAGS) -c -o obj/list.o src/list.c
+	i686-mingw32-gcc -Isrc  $(LOCAL_FLAGS) -c -o obj/packet.o src/packet.c
+	i686-mingw32-gcc -Isrc  $(LOCAL_FLAGS) -c -o obj/peer.o src/peer.c
+	i686-mingw32-gcc -Isrc  $(LOCAL_FLAGS) -c -o obj/protocol.o src/protocol.c
+	i686-mingw32-gcc -Isrc  $(LOCAL_FLAGS) -c -o obj/udprsocket.o src/ndll/udprsocket.c
+	i686-mingw32-gcc -Isrc  $(LOCAL_FLAGS) -c -o obj/win32.o src/windows/win32.c
+	i686-mingw32-gcc -L/usr/i686-mingw32/usr/lib -shared -o ndll/Windows/udprsocket.ndll  obj/callbacks.o obj/host.o obj/list.o obj/packet.o obj/peer.o obj/protocol.o obj/udprsocket.o obj/win32.o -lneko -lgdi32 -lws2_32 -lwinmm

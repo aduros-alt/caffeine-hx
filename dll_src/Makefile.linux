@@ -1,6 +1,9 @@
-all: crypt
+all: crypt reliableudp
 
 crypt: dummy
 	cd crypt && make -f Makefile.linux
+
+reliableudp: dummy
+	cd reliableudp && make -f Makefile.linux
 
 dummy:
