@@ -1,4 +1,3 @@
-package tests;
 import crypt.Aes;
 import crypt.Sha;
 #if !neko

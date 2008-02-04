@@ -1,12 +1,12 @@
--cp .
+-cp ../../
 -js crypttest.js
--main tests.CryptTest
+-main CryptTest
 
 --next
 
--cp .
+-cp ../../
 -neko crypttest.n
--main tests.CryptTest
+-main CryptTest
 
 
 
