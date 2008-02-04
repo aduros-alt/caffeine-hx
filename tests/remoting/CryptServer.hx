@@ -28,14 +28,13 @@ class CryptServer {
 
 		ip = neko.Sys.args()[0];
 		port = Std.parseInt(neko.Sys.args()[1]);
-		var mip = neko.Sys.args()[2];
-		var mport = Std.parseInt(neko.Sys.args()[3]);
-		if(ip == null || port == 0 || mip == null || mport == 0) {
-			neko.Lib.print("usage: server ip port masterip masterport");
+		if(ip == null || port == 0) {
+			neko.Lib.print("usage: cryptserver.n ip port");
 			neko.Sys.exit(1);
 		}
 
 		initLog();
+		neko.Lib.println("CryptServer starting on "+ip+":"+Std.string(port));
 		trs.run(ip, port);
 	}
 

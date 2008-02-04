@@ -38,7 +38,7 @@ class ClientData {
 			"passw0rd",
 			"mango23"
 		];
-		if(client.name == null)
+		if(name == null)
 			throw "Error. Null username";
 
 		var valid = false;
@@ -54,8 +54,8 @@ class ClientData {
 			client.api.loginFailed();
 			return false;
 		}
-
-		trace("Client authed with pass "+hPassword );
+		client.name = name;
+		trace("Client "+name+" authed with pass "+hPassword );
 		CryptServer.clients.add(client);
 
 		// instruct client that any further message, after this one itself
