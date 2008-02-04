@@ -1,4 +1,6 @@
-
+/**
+	These are the methods available on the client that the server can call.
+**/
 interface IClientApi {
 	// login callbacks from server
 	public function loginFailed() : Void;

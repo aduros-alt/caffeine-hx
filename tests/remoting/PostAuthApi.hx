@@ -1,6 +1,8 @@
 /**
 	This is the client's available API after authentication has occurred.
 **/
+import ClientData;
+
 class PostAuthApi implements IServerApi {
 	var client : ClientData;
 
@@ -12,11 +14,17 @@ class PostAuthApi implements IServerApi {
 		throw "Already authenticated";
 	}
 
+	public function join() : Void {
+		client.join();
+	}
+
 	public function say( text : String ) : Void {
 		if(!Std.is(text, String))
 			throw "Invalid type";
 
-		for( c in CryptServer.clients )
-			c.api.userSay(client.name, text);
+		for( c in CryptServer.clients ) {
+			if(c != client && c.status == Online)
+				c.api.userSay(client.name, text);
+		}
 	}
 }

@@ -22,6 +22,8 @@ class NekoClient implements IClientApi {
 	var username : String;
 	var password : String;
 
+	static var worker : neko.vm.Thread;
+
 	public function new(host:neko.net.Host, port:Int, username:String, password:String) {
 		buf = neko.Lib.makeString(1 << 10);
 		bufpos = 0;
@@ -52,6 +54,7 @@ class NekoClient implements IClientApi {
 		trace(here.methodName);
 		authenticated = true;
 		ra.startCrypt(new Aes(128, password));
+		api.join();
 	}
 
 	public function userJoin( name : String ) : Void {
@@ -63,7 +66,7 @@ class NekoClient implements IClientApi {
 	}
 
     public function userSay( name : String, text: String) : Void {
-		print(name + "> " + text);
+		print(name + "> " + text + "\n");
 	}
 
 	function print(s:String) {
@@ -82,20 +85,38 @@ class NekoClient implements IClientApi {
 			x++;
 		}
 
+		worker = neko.vm.Thread.create(callback(workerThread, neko.vm.Thread.current()));
 		while(true) {
-			var socks = neko.net.Socket.select([sock],null,null,0);
-			for(i in socks.read) {
-				try {
-					trace("data received");
-					readResponse();
+			var l = neko.io.File.stdin().readLine();
+			api.say(l);
+		}
+	}
+
+	function workerThread(parent : neko.vm.Thread) {
+		while(true) {
+			try {
+			var socks = neko.net.Socket.select([sock],null,null,0.);
+				for(i in socks.read) {
+					try {
+#if DEBUG_PROTOCOL
+						trace("data received");
+#end
+						readResponse();
+					}
+					catch(e:Dynamic) {
+						if(Std.is(e, neko.io.Eof)) {
+							print("*** SERVER DISCONNECTED ***\n");
+						}
+						else {
+							logError(e);
+						}
+						neko.Sys.exit(0);
+						return;
+					}
 				}
-				catch(e:Dynamic) {
-					trace(e);
-					//if( !Std.is(e,neko.io.Eof) && !Std.is(e,neko.io.Error) )
-                                        //        logError(e);
-                                        //doClientDisconnected();
-					return;
-				}
+			}
+			catch(e : Dynamic) {
+				trace(e);
 			}
 		}
 	}
@@ -148,33 +169,6 @@ class NekoClient implements IClientApi {
 		return msgCount;
 	}
 
-/*
-       function readClientMessage( cnx : haxe.remoting.SocketConnection, buf : String, pos : Int, len : Int ) {
-                var msgLen = cnx.getProtocol().messageLength(buf.charCodeAt(pos),buf.charCodeAt(pos+1));
-                if( msgLen == null ) {
-                        if( buf.charCodeAt(pos) != 60 )
-                                throw "Invalid remoting message "+buf.substr(0,pos)+ " '"+buf.substr(pos,len)+"' "+pos;
-                        // XML handling
-                        var p = buf.indexOf("\\0",pos);
-                        if( p == -1 )
-                                return null;
-                        return {
-                                msg : buf.substr(pos,p-pos),
-                                bytes : p - pos + 1,
-                        };
-                }
-                if( len < msgLen )
-                        return null;
-                if( buf.charCodeAt(pos + msgLen-1) != 0 )
-                        throw "Truncated message";
-                return {
-                        msg : buf.substr(pos+2,msgLen-3),
-                        bytes : msgLen,
-                };
-        }
-*/
-
-
 	public static function main() {
 		var h = neko.Sys.args()[0];
 		var p = Std.parseInt(neko.Sys.args()[1]);
@@ -192,5 +186,10 @@ class NekoClient implements IClientApi {
 		neko.Lib.println("Valid passwords for this example are:");
 		neko.Lib.println("mypass passw0rd mango23");
 		neko.Sys.exit(1);
+	}
+
+	function logError(e : Dynamic) {
+		var estr = try Std.string(e) catch( e2 : Dynamic ) "???" + try "["+Std.string(e2)+"]" catch( e3 : Dynamic ) "";
+		print(estr+"\n");
 	}
 }

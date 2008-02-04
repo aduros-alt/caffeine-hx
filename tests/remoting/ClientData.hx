@@ -2,6 +2,15 @@ import crypt.Aes;
 import crypt.Sha;
 import haxe.remoting.EncRemotingAdaptor;
 
+enum Status {
+	Connecting;
+	Online;
+	Offline;
+}
+
+class ImplClientApi extends haxe.remoting.AsyncProxy<IClientApi> {
+}
+
 class ClientData {
 	public var api : ImplClientApi;
 	public var name : String;
@@ -10,7 +19,7 @@ class ClientData {
 	public var aes : crypt.Aes;
 
 	public var adaptor(default,null) : EncRemotingAdaptor;
-	public var status(default,null) : String;
+	public var status(default,null) : Status;
 
 	public function new( scnx : haxe.remoting.SocketConnection, rserver : neko.net.RemotingServer ) {
 		serverapi = new PreAuthApi(this);
@@ -19,11 +28,11 @@ class ClientData {
 		adaptor = new EncRemotingAdaptor(scnx);
 		this.remotingserver = rserver;
 		this.remotingserver.addObject("api",serverapi);
-		this.status = "active";
+		this.status = Connecting;
 	}
 
 	public function leave() {
-		this.status = "Offline";
+		this.status = Offline;
 		if( !CryptServer.clients.remove(this) )
 			return;
 		for( c in CryptServer.clients ) {
@@ -67,10 +76,11 @@ class ClientData {
 		return true;
 	}
 
-	public static function encSessionStarted(client : ClientData) : Void {
-		client.status = "Online";
+	public function join() : Void {
+		trace(here.methodName);
+		status = Online;
 		for( c in CryptServer.clients ) {
-			c.api.userJoin(client.name);
+			c.api.userJoin(name);
 		}
 	}
 

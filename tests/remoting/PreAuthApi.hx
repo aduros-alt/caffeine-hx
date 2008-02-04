@@ -19,6 +19,10 @@ class PreAuthApi implements IServerApi {
 		return;
 	}
 
+	public function join() : Void {
+		throw "Not authenticated";
+	}
+
 	public function say( text : String ) : Void {
 		throw "Not authenticated";
 	}
