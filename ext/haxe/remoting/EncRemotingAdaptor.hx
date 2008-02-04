@@ -98,7 +98,7 @@ class EncRemotingAdaptor {
 	function sendMessageEnc( msg : String ) {
 		var e = sp.encodeMessageLength(msg.length + 3);
 		var sb = new StringBuf();
-#if DEBUG_PROTOCOL
+#if CRYPT_DEBUG_PROTOCOL
 		trace(msg + " length is "+(msg.length + 3));
 		trace(e.c1);
 		trace(e.c2);
@@ -107,7 +107,7 @@ class EncRemotingAdaptor {
 		sb.add(Std.chr(e.c2));
 		sb.add(msg);
 		sb.add(Std.chr(0));
-#if DEBUG_PROTOCOL
+#if CRYPT_DEBUG_PROTOCOL
 		trace(StringTools.baseEncode(sb.toString(), crypt.Base.HEXL));
 #end
 
@@ -122,7 +122,7 @@ class EncRemotingAdaptor {
 		sbenc.add(Std.chr(c1));
 		sbenc.add(Std.chr(c2));
 		sbenc.add(enc);
-#if DEBUG_PROTOCOL
+#if CRYPT_DEBUG_PROTOCOL
 		trace(len);
 		trace(c1);
 		trace(c2);
@@ -146,13 +146,13 @@ class EncRemotingAdaptor {
 	public static function readClientMessage( cnx : haxe.remoting.SocketConnection, buf : String, pos : Int, len : Int ) {
 		if(!isCryptedConnection(cnx)) {
 		//if(! Reflect.hasField(cnx.getProtocol().socket, "__crypt") ) {
-#if DEBUG_PROTOCOL
+#if CRYPT_DEBUG_PROTOCOL
 			trace("No encryption mode");
 #end
 			return readRemotingMessage( cnx, buf, pos, len );
 		}
 
-#if DEBUG_PROTOCOL
+#if CRYPT_DEBUG_PROTOCOL
 		trace("Encrypted mode");
 #end
 		var aes : crypt.Base = (cast cnx.getProtocol().socket).__crypt;
@@ -163,7 +163,7 @@ class EncRemotingAdaptor {
 			return null;
 		var dec :String;
 		try {
-#if DEBUG_PROTOCOL
+#if CRYPT_DEBUG_PROTOCOL
 			trace(aes);
 #end
 			dec = aes.decrypt(buf.substr(pos+2,eMsgLen-2));
