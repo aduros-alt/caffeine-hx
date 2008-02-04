@@ -1,5 +1,5 @@
 
-class HaxelibRelease.hx {
+class HaxelibRelease {
 	static var project : String = "caffeine-hx";
 	static var desc : String = "Extended library for haxe";
 	static var maintainer : String = "Madrok";
@@ -8,15 +8,15 @@ class HaxelibRelease.hx {
 
 
 	public static function main() {
-		if(neko.FileSystem.exists(".snv"))
+		if(neko.FileSystem.exists(".svn"))
 			error("Must be run from an exported version of caffeine-hx");
 	}
 
 	public static function fileContents() : String {
-		var s = "<project name=\""+project+"\" url=\"http://code.google.com/p/caffeine-hx\" license=\"BSD\">\n";
-		s += "    <user name=\""++maintainer"\"/>\n";
-		s += "    <description>"+desc+"</description>\n";
-		s += "    <version name=\""+version+"\">"+releasenotes+"</version>\n";
+		var s = "<project name=\""+ project +"\" url=\"http://code.google.com/p/caffeine-hx\" license=\"BSD\">\n";
+		s += "    <user name=\""+ maintainer +"\"/>\n";
+		s += "    <description>"+ desc +"</description>\n";
+		s += "    <version name=\""+ version +"\">"+releasenotes+"</version>\n";
 		s += "</project>\n";
 		return s;
 	}

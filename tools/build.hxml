@@ -1,0 +1,4 @@
+#the library release builder
+-neko librealease.n
+-main HaxelibRelease.hx
+
