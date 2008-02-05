@@ -1,0 +1,10 @@
+PROJECT:=gd
+NDLL:=../../ext/ndll/Linux/$(PROJECT).ndll
+ARCH_PATHS:=
+
+CC:=gcc -Isrc
+NEKO_FLAGS:=-fPIC -shared -L/usr/lib -L$(HOME)/neko -lneko -lz -ldl
+LOCAL_FLAGS:=-I../include -Iinclude -Isrc/linux -DLINUX -lgd
+STRIP:=strip
+
+include Makefile.common
