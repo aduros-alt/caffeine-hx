@@ -24,18 +24,51 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-package crypt;
 
-class BasePhrase extends crypt.Base {
-	public var passphrase(default,setPassphrase) : String;
-        public function new(passphrase:String) {
-                super();
-		this.passphrase = passphrase;
-        }
 
-	function setPassphrase(s : String) {
-		passphrase = s;
-		return s;
+package neko.io;
+import neko.io.File;
+
+/**
+	Create a temporary disk file that will be deleted automatically when
+	the class is garbage collected.
+**/
+class TmpFile {
+	private var fi : FileInput;
+	private var fo : FileOutput;
+	private var __f : FileHandle;
+
+	/**
+		Create a new TmpFile, which will be ready for io when the constructor returns.
+	**/
+	public function new() : Void {
+		__f = untyped tmpfile_open();
+		fi = new FileInput(__f);
+		fo = new FileOutput(__f);
 	}
-}
 
+	/**
+		Once a TmpFile is closed, it can no longer be used. There is
+		no need to call this function, as it will be done automatically.
+	**/
+	public function close() : Void {
+		untyped tmpfile_close(__f);
+	}
+
+	/**
+		Get the FileInput handle
+	**/
+	public function getInput() : FileInput {
+		return fi;
+	}
+
+	/**
+		Get the FileOutput handle
+	**/
+	public function getOutput() : FileOutput {
+		return fo;
+	}
+
+	private static var tmpfile_open = neko.Lib.load("fileext","tmpfile_open",0);
+	private static var tmpfile_close = neko.Lib.load("fileext", "tmpfile_close", 1);
+}

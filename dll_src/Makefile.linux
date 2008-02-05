@@ -6,4 +6,7 @@ crypt: dummy
 reliableudp: dummy
 	cd reliableudp && make -f Makefile.linux
 
+fileext: dummy
+	cd fileext && make clean && make ARCH=linux && make ARCH=linux install
+
 dummy:
