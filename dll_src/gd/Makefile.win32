@@ -1,5 +1,5 @@
 PROJECT:=gd
-NDLL:=../../ext/ndll/Windows/$(PROJECT).ndll
+NDLL:=ndll/Windows/$(PROJECT).ndll
 ARCH_PATHS:=
 
 CC:=i686-mingw32-gcc -Isrc -DWIN32

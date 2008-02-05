@@ -1,5 +1,5 @@
 PROJECT:=gd
-NDLL:=../../ext/ndll/Linux64/$(PROJECT).ndll
+NDLL:=ndll/Linux64/$(PROJECT).ndll
 ARCH_PATHS:=
 
 CC:=gcc -Isrc

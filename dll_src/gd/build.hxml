@@ -1,0 +1,3 @@
+-main tests.GdTest
+-cp ../../ext
+-neko gd.n

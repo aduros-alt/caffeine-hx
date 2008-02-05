@@ -36,7 +36,6 @@
 Imported kinds for files
 **/
 // these are in from neko/std/file.c
-extern vkind k_file;
 typedef struct {
 	value name;
 	FILE *io;
@@ -51,6 +50,20 @@ DEFINE_KIND(k_gdimage);
 // conveniences
 #define val_file(o)     ((fio*)val_data(o))
 #define val_image(o)	(gdImagePtr)val_data(o)
+
+// forwards
+static void destroy_gdimage( value img );
+
+// 'constuctor'
+static value create_gdimage(gdImagePtr im) {
+	// Throw an error if gd does
+	if(im == NULL)
+		return NULL;
+	// see comments in gdImgCreate
+	value v = alloc_abstract(k_gdimage,im);
+	val_gc(v, destroy_gdimage);
+	return v;
+}
 
 // 'destructor'
 static void destroy_gdimage( value img ) {
@@ -86,6 +99,10 @@ static value gdImgCreate(value width, value height)
 	// checks above superfluous. Check that.
 	im = gdImageCreate(val_int(width), val_int(height));
 
+	// Throw an error if gd does
+	if(im == NULL)
+		return NULL;
+
 	// This is where a Garbage Collectable object of our defined
 	// type k_gdimage is created
 	value v = alloc_abstract(k_gdimage,im);
@@ -99,4 +116,21 @@ static value gdImgCreate(value width, value height)
 }
 // this tells neko that gdImgCreate is exported and requires 2 arguments
 DEFINE_PRIM(gdImgCreate,2);
+
+static value gdImgCreateFromJpeg(value fpIn) {
+	vkind k_file;
+	kind_share(&k_file,"file");
+	val_check_kind(fpIn, k_file);
+
+	FILE *in = val_file(fpIn)->io;
+	if(in == NULL) {
+		value a = alloc_string("FP void");
+		val_throw(a);
+	}
+	gdImagePtr im = gdImageCreateFromJpeg(in);
+
+	// shortened from last example
+	return(create_gdimage(im));
+}
+DEFINE_PRIM(gdImgCreateFromJpeg,1);
 

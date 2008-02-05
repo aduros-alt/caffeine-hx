@@ -27,23 +27,38 @@
 
 package gd;
 
+import neko.io.File;
+
+enum GdImageHandle {
+}
+
 class Image {
-	var hnd : Void;
+	var __img : GdImageHandle;
 
 	function new() {}
 
 	public static function create(width: Int, height : Int) {
 		var i = new Image();
-		i.hnd = gdImgCreate(width, height);
+		i.__img = gdImgCreate(width, height);
 	}
 
 /*
 	public static function createFromGif(fi : neko.io.FileInput) {
 		var i = new Image();
-		i.hnd = gdImgCreateFromGif(fi);
+		var fh : { private var __f : FileHandle; } = fi;
+		i.__img = gdImgCreateFromGif(fi);
 	}
 */
 
+	public static function createFromJpeg(fi : neko.io.FileInput) {
+		var i = new Image();
+		// this trick lets you get at the private FileHandle from the
+		// FileInput
+		var fh : { private var __f : FileHandle; } = fi;
+		i.__img = gdImgCreateFromJpeg(fh.__f);
+	}
+
 	private static var gdImgCreate = neko.Lib.load("gd","gdImgCreate",2);
 	//private static var gdImgCreateFromGif = neko.Lib.load("gd","gdImgCreateFromGif",1);
+	private static var gdImgCreateFromJpeg = neko.Lib.load("gd","gdImgCreateFromJpeg",1);
 }
