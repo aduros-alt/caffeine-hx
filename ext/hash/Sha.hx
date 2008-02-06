@@ -25,7 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package crypt;
+package hash;
 
 class Sha {
 	static var K : Array<Int> = [0x5a827999, 0x6ed9eba1, 0x8f1bbcdc, 0xca62c1d6];
@@ -142,6 +142,6 @@ class Sha {
 
 #if neko
         //value pass, value msg, value key_len
-        private static var nsha1 = neko.Lib.load("ncrypt","nsha1",1);
+        private static var nsha1 = neko.Lib.load("hash","nsha1",1);
 #end
 }
