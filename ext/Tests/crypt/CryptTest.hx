@@ -76,7 +76,7 @@ trace(enc);
 			trace("Error "+ e);
 			trace(a);
 			trace(msg);
-			trace(StringTools.baseEncode(enc, crypt.Base.HEXL));
+			trace(StringTools.baseEncode(enc, Constants.DIGITS_HEXL));
 			throw("Fatal");
 		}
 		return enc;
@@ -131,13 +131,13 @@ trace(enc);
 			//trace("aes created");
 			a.mode = ECB;
 			var e = a.encrypt(Base.intArrayToString(msg));
-			if(target != StringTools.baseEncode(e, crypt.Base.HEXL).substr(0,32))
+			if(target != StringTools.baseEncode(e, Constants.DIGITS_HEXL).substr(0,32))
 				throw "AES test vector failure on ECB";
-			//trace(StringTools.baseEncode(e, crypt.Base.HEXL));
+			//trace(StringTools.baseEncode(e, Constants.DIGITS_HEXL));
 			a.mode = CBC;
-			if(target != StringTools.baseEncode(e, crypt.Base.HEXL).substr(0,32))
+			if(target != StringTools.baseEncode(e, Constants.DIGITS_HEXL).substr(0,32))
 				throw "AES test vector failure on CBC";
-			//trace(StringTools.baseEncode(a.encrypt(Base.intArrayToString(msg)), crypt.Base.HEXL));
+			//trace(StringTools.baseEncode(a.encrypt(Base.intArrayToString(msg)), Constants.DIGITS_HEXL));
 		}
 		catch(e:Dynamic) {} 
 		

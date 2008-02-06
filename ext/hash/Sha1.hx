@@ -43,7 +43,7 @@ class Sha1 {
 		else
 			m = new String(nsha1(o));
 		if(!binary)
-			m = StringTools.baseEncode(m, Base.HEXL);
+			m = StringTools.baseEncode(m, Constants.DIGITS_HEXL);
 		return m;
 	}
 #end
@@ -56,7 +56,7 @@ class Sha1 {
 #if neko
 		var m = new String(nsha1(untyped msg.__s));
 		if(!binary)
-			m = StringTools.baseEncode(m, Base.HEXL);
+			m = StringTools.baseEncode(m, Constants.HEXL);
 		return m;
 #else true
 

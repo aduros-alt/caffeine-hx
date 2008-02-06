@@ -25,48 +25,14 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package crypt;
+class Constants {
+	public static var DIGITS_BASE10 : String = "0123456789";
+	public static var DIGITS_HEXU : String = "0123456789ABCDEF";
+	public static var DIGITS_HEXL : String = "0123456789abcdef";
+	public static var DIGITS_OCTAL : String = "01234567";
 
-enum CryptMode {
-	CBC;
-	ECB;
-}
-
-class Base {
-
-	public var mode(default,setMode) : CryptMode;
-
-	public function new() {
-		mode = ECB;
-	}
-
-	public function encrypt(msg : String) : String {
-		throw "override";
-		return "";
-	}
-
-	public function decrypt(msg : String) : String {
-		throw "override";
-		return "";
-	}
-
-	function setMode(m : CryptMode) : CryptMode {
-		mode = m;
-		return m;
-	}
-
-	function modeError() {
-		throw "Mode not supported";
-	}
-
-	/**
-		Return the character code from a string at the given position.
-		If pos is past the end of the string, 0 (null) is returned.
-	**/
-	public static function charCodeAt(s, pos) {
-		if(pos >= s.length)
-			return 0;
-		return Std.ord(s.substr(pos,1));
-	}
-
+	public static var PROTO_HTTP : String = "http://";
+	public static var PROTO_FILE : String = "file://";
+	public static var PROTO_FTP : String = "ftp://";
+	public static var PROTO_RTMP : String = "rtmp://";
 }

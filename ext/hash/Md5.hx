@@ -25,48 +25,47 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package crypt;
+package hash;
 
-enum CryptMode {
-	CBC;
-	ECB;
-}
+import crypt.Base;
 
-class Base {
+class Md5 {
 
-	public var mode(default,setMode) : CryptMode;
-
-	public function new() {
-		mode = ECB;
+	public static function encode(msg : String, ?binary:Bool) : String {
+		var s = haxe.Md5.encode(msg);
+		if(binary) {
+			s = hexBytesToString( s );
+		}
+		return s;
 	}
 
-	public function encrypt(msg : String) : String {
-		throw "override";
-		return "";
-	}
-
-	public function decrypt(msg : String) : String {
-		throw "override";
-		return "";
-	}
-
-	function setMode(m : CryptMode) : CryptMode {
-		mode = m;
-		return m;
-	}
-
-	function modeError() {
-		throw "Mode not supported";
-	}
-
+#if neko
 	/**
-		Return the character code from a string at the given position.
-		If pos is past the end of the string, 0 (null) is returned.
+		Encode any dynamic value, classes, objects etc.
 	**/
-	public static function charCodeAt(s, pos) {
-		if(pos >= s.length)
-			return 0;
-		return Std.ord(s.substr(pos,1));
+	public static function objEncode( o : Dynamic, ?binary : Bool ) : String {
+		var s : String;
+		if(Std.is(o, String)) {
+			if(binary)
+				s = new String(make_md5(untyped o.__s));
+			else
+				untyped s = new String(
+					base_encode(make_md5(s.__s),
+					Constants.DIGITS_HEXL.__s)
+				);
+		}
+		else {
+			s = new String(make_md5(o));
+			if(!binary)
+				s = new String(
+					base_encode(untyped s.__s, untyped Constants.DIGITS_HEXL.__s));
+		}
+		return s;
 	}
+
+	static var base_encode = neko.Lib.load("std","base_encode",2);
+	static var make_md5 = neko.Lib.load("std","make_md5",1);
+#end
+
 
 }

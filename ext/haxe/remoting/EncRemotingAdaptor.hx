@@ -108,7 +108,7 @@ class EncRemotingAdaptor {
 		sb.add(msg);
 		sb.add(Std.chr(0));
 #if CRYPT_DEBUG_PROTOCOL
-		trace(StringTools.baseEncode(sb.toString(), crypt.Base.HEXL));
+		trace(StringTools.baseEncode(sb.toString(), Constants.DIGITS_HEXL));
 #end
 
 		var enc = crypt.encrypt(sb.toString());
@@ -126,8 +126,8 @@ class EncRemotingAdaptor {
 		trace(len);
 		trace(c1);
 		trace(c2);
-		trace(StringTools.baseEncode(enc,crypt.Base.HEXL));
-		trace(StringTools.baseEncode(sbenc.toString(), crypt.Base.HEXL));
+		trace(StringTools.baseEncode(enc, Constants.DIGITS_HEXL));
+		trace(StringTools.baseEncode(sbenc.toString(), Constants.DIGITS_HEXL));
 #end
 		#if neko
 		try {

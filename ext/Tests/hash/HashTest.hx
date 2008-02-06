@@ -1,4 +1,5 @@
 import hash.Sha1;
+import hash.Md5;
 
 class HashTestFunctions extends haxe.unit.TestCase {
 
@@ -15,6 +16,14 @@ class HashTestFunctions extends haxe.unit.TestCase {
 			"84983e441c3bd26ebaae4aa1f95129e5e54670f1",
 			Sha1.encode("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq")
 		);
+	}
+
+	function testMd5() {
+		assertEquals("098f6bcd4621d373cade4e832627b4f6", Md5.encode("test"));
+	}
+
+	function testMd5Empty() {
+		assertEquals("d41d8cd98f00b204e9800998ecf8427e", Md5.encode(""));
 	}
 
 #if neko
