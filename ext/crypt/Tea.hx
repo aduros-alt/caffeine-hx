@@ -44,7 +44,7 @@ class Tea extends BasePhrase {
 trace(asciitext);
 
 		// convert to array of longs
-		var v = Base.strToLongs(asciitext);
+		var v = ByteStringTools.strToInt32(asciitext);
 trace(v);
 		if (v.length <= 1)
 #if neko
@@ -54,7 +54,7 @@ trace(v);
 #end
 
 		// simply convert first 16 chars of passphrase as key
-		var k = Base.strToLongs(passphrase.substr(0,16));
+		var k = ByteStringTools.strToInt32(passphrase.substr(0,16));
 		var n = v.length;
 
 		var z = v[n-1], y = v[0], delta = 0x9E3779B9;
@@ -72,7 +72,7 @@ trace(v);
 			}
 		}
 
-		var ciphertext = Base.longsToStr(v);
+		var ciphertext = ByteStringTools.int32ToString(v);
 
 		return ciphertext;
 		//return Base.escCtrlCh(ciphertext);
@@ -85,8 +85,8 @@ trace(v);
 	{
 		if (ciphertext.length == 0) return('');
 		//var v = strToLongs(unescCtrlCh(ciphertext));
-		var v = Base.strToLongs(ciphertext);
-		var k = Base.strToLongs(passphrase.substr(0,16));
+		var v = ByteStringTools.strToInt32(ciphertext);
+		var k = ByteStringTools.strToInt32(passphrase.substr(0,16));
 		var n = v.length;
 
 		var z = v[n-1], y = v[0], delta = 0x9E3779B9;
@@ -104,7 +104,7 @@ trace(v);
 			sum -= delta;
 		}
 
-		var plaintext = Base.longsToStr(v);
+		var plaintext = ByteStringTools.int32ToString(v);
 
 		// strip trailing null chars resulting
 		//from filling 4-char blocks:

@@ -59,14 +59,6 @@ class Base {
 		throw "Mode not supported";
 	}
 
-	/**
-		Return the character code from a string at the given position.
-		If pos is past the end of the string, 0 (null) is returned.
-	**/
-	public static function charCodeAt(s, pos) {
-		if(pos >= s.length)
-			return 0;
-		return Std.ord(s.substr(pos,1));
-	}
+
 
 }

@@ -31,11 +31,21 @@
 class ByteStringTools {
 
 	/**
+		Return the character code from a string at the given position.
+		If pos is past the end of the string, 0 (null) is returned.
+	**/
+	public static function charCodeAt(s, pos) {
+		if(pos >= s.length)
+			return 0;
+		return Std.ord(s.substr(pos,1));
+	}
+
+	/**
 		Takes a string of hex bytes and converts it to a binary string.
 		Input should resemble "a42fffee" and the length must be a
 		multiple of 2
 	**/
-	static function hexBytesToBinary( s : String) : String {
+	public static function hexBytesToBinary( s : String) : String {
 		if(s.length % 2 != 0)
 			throw "Length must be multiple of 2";
 		var sb = new StringBuf();
@@ -49,6 +59,25 @@ class ByteStringTools {
 		}
 		return sb.toString();
 	}
+
+	/**
+		Transform an array of integers x where 0xFF >= x >= 0 to
+		a string of binary data, optionally padded to a multiple of
+		padToBytes
+	**/
+	public static function byteArrayToString(a: Array<Int>, ?padToBytes:Int) :String  {
+		var sb = new StringBuf();
+		for(i in a) {
+			if(i > 0xFF || i < 0)
+				throw "Value out of range";
+			sb.add(Std.chr(i));
+		}
+		if(padToBytes > 0) {
+			return nullPadString(sb.toString(), padToBytes);
+		}
+		return sb.toString();
+	}
+
 
 	/**
 		Convert an array of 32bit integers to a string<br />
@@ -108,21 +137,24 @@ class ByteStringTools {
 
 	/**
 		Convert a string containing 32bit integers to an array of ints<br />
+		If the string length is not a multiple of 4, it will be NULL padded
+		at the end.
 		TODO: platform endianness
 	**/
 #if neko
-	public static function strToInt32(s : String) : Array<neko.Int32>
+	public static function strToInt32(istr : String) : Array<neko.Int32>
 #else true
-	public static function strToInt32(s : String) : Array<Int>
+	public static function strToInt32(istr : String) : Array<Int>
 #end
 	{
+		var s = nullPadString(istr, 4);
 		if(s.length % 4 != 0)
 			throw "Invalid string length";
 		var len = Math.floor(s.length/4);
 		var a = new Array();
 
 		for(i in 0...len) {
-			// note endianness is irrelevant if the same in intsToString.
+			// note endianness is irrelevant if the same in int32ToString.
 #if neko
 			var j = neko.Int32.ofInt(charCodeAt(s,i*4));
 			var k = neko.Int32.ofInt(charCodeAt(s,i*4+1)<<8);
@@ -138,6 +170,29 @@ class ByteStringTools {
 #end
 		}
 		return a;
+	}
+
+	/**
+		Pad a string with NULLs to the specified chunk length.
+	**/
+	public static function nullPadString(s : String, chunkLen: Int) {
+		var r = chunkLen - (s.length % chunkLen);
+		if(r == chunkLen)
+			return s;
+		var sb = new StringBuf();
+		sb.add(s);
+		for(x in 0...r) {
+			sb.add(Std.chr(0));
+		}
+		return sb.toString();
+	}
+
+	/**
+		Remove nulls at the end of a string
+	**/
+	public static function unNullPadString(s : String) {
+		var er : EReg = ~/\0+$/;
+		return er.replace(s, '');
 	}
 
 	/*

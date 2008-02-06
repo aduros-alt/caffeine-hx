@@ -1,20 +1,19 @@
 import crypt.Aes;
-import crypt.Sha;
 #if !neko
 import crypt.Tea;
 #end
 import crypt.Base;
 import crypt.Base.CryptMode;
 
-class CryptTest {
-	public static function testLongs() {
-		trace(here.methodName);
-		var testv = [0xFF, 0x11, 0x44, 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF];
+class ByteStringToolsFunctions extends haxe.unit.TestCase {
+	public function testLongs() {
+/*
+		var testv = [0xFF,0x11,0x44,0xFF, 0xFF,0xFF,0xFF,0xFF, 0xFF,0xFF,0xFF,0xFF, 0xFF,0xFF,0xFF,0xFF, 0xFF];
 		//var testv = [65, 66, 67];
-		var s = Base.intArrayToString(testv, 4);
-		var longs = Base.strToLongs(s);
+		var s = ByteStringTools.int32ToString(testv);
+		var longs = ByteStringTools.strToInt32(s);
 trace(longs);
-		var sr = Base.longsToStr(longs);
+		var sr = ByteStringTools.int32ToString(longs);
 trace(sr);
 trace(sr.length);
 		if(StringTools.trim(sr) != s) {
@@ -22,44 +21,51 @@ trace(sr.length);
 		}
 		else
 			trace(" * passed");
+*/
+		var s = "Whoa there nellie";
+		var longs = ByteStringTools.strToInt32(s);
+		var sr = 
+				ByteStringTools.unNullPadString(
+					ByteStringTools.int32ToString(longs)
+				);
 
-		s = "Whoa there nellie";
-		longs = Base.strToLongs(s);
-		sr = Base.longsToStr(longs);
-		var er : EReg = ~/\0+$/;
-		sr = er.replace(sr, '');
-		if(sr != s) {
-			trace("not equal");
-			trace(s);
-			trace(sr);
+		assertEquals(s, sr);
+#if nekomore
+		if(s.length != sr.length)
+			assertEquals(0,1);
+		for(x in 0...s.length) {
+			if(s[x].compare(sr[x]))
+				assertEquals(0,2);
 		}
-		else
-			trace(" * passed");
+#end
 
-		trace("** complete\n");
 	}
+}
+
+class AesTestFunctions extends haxe.unit.TestCase {
+}
 
 #if !neko
-	public static function TeaTest() {
-		trace("*** TeaTest");
-		var s = "Whoa there nellie";
+class TeaTestFunctions extends haxe.unit.TestCase {
+	public function testOne() {
+		var s = "Whoa there nellie. Have some tea";
 		var t = new Tea("This is my passphrase");
 		var enc = t.encrypt(s);
-trace(enc);
 		var dec = t.decrypt(enc);
-		if(s != dec) {
-			trace("Failure");
-			trace(s);
-			trace(dec);
-		}
-		trace("*** complete\n");
+
+		assertTrue(s != enc);
+		assertEquals(s, dec);
 	}
+}
 #end
+
+class CryptTest {
+
 	
 	public static function doTestAes(bits, phrase, msg, mode) {
 		var a = new Aes(bits, phrase);
 		a.mode = mode;
-//		trace(Std.string(a) + " for msg " + StringTools.trim(msg));
+		//trace(Std.string(a) + " for msg " + StringTools.trim(msg));
 		var enc: String;
 		try {
 			enc = a.encrypt(msg);
@@ -82,15 +88,9 @@ trace(enc);
 		return enc;
 	}
 
-	public static function doSha(msg) {
-		trace(StringTools.trim(msg) + " SHA1 DIGEST: " + Sha.calcSha1(msg));
-	}
 
 	public static function main() {
-		testLongs();
-#if !neko
-		TeaTest();
-#end
+
 
 		var b : Array<Int> = [128,192,256];
 		var msgs : Array<String> = [
@@ -106,20 +106,6 @@ trace(enc);
 			"my super secret passphrase"
 		];
 
-		var tv = "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
-		if(Sha.calcSha1(tv) != "84983e441c3bd26ebaae4aa1f95129e5e54670f1") {
-			trace("test vector failed");
-			trace(Sha.calcSha1(tv));
-		}
-		tv = "abc";
-		if(Sha.calcSha1(tv) != "a9993e364706816aba3e25717850c26c9cd0d89d") {
-			trace("test vector failed");
-			trace(Sha.calcSha1(tv));
-		}
-
-		for(msg in msgs) {
-			doSha(msg);
-		}
 
 		// AES Test vectors
 		try {
@@ -127,17 +113,17 @@ trace(enc);
 			var target = "69c4e0d86a7b0430d8cdb78070b4c55a";
 			var msg = [0x00,0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff];
 			var key = [0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f];
-			var a = new Aes(128, Base.intArrayToString(key));
+			var a = new Aes(128, ByteStringTools.byteArrayToString(key));
 			//trace("aes created");
 			a.mode = ECB;
-			var e = a.encrypt(Base.intArrayToString(msg));
+			var e = a.encrypt(ByteStringTools.byteArrayToString(msg));
 			if(target != StringTools.baseEncode(e, Constants.DIGITS_HEXL).substr(0,32))
 				throw "AES test vector failure on ECB";
 			//trace(StringTools.baseEncode(e, Constants.DIGITS_HEXL));
 			a.mode = CBC;
 			if(target != StringTools.baseEncode(e, Constants.DIGITS_HEXL).substr(0,32))
 				throw "AES test vector failure on CBC";
-			//trace(StringTools.baseEncode(a.encrypt(Base.intArrayToString(msg)), Constants.DIGITS_HEXL));
+			//trace(StringTools.baseEncode(a.encrypt(ByteStringTools.int32ToString(msg)), Constants.DIGITS_HEXL));
 		}
 		catch(e:Dynamic) {} 
 		
@@ -156,5 +142,13 @@ trace(enc);
 				}
 			}
 		}
+
+		var r = new haxe.unit.TestRunner();
+		r.add(new ByteStringToolsFunctions());
+#if !neko
+		r.add(new TeaTestFunctions());
+#end
+		r.run();
+
 	}
 }
