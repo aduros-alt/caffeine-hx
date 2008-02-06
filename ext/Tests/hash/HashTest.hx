@@ -1,7 +1,10 @@
-import hash.Sha1;
 import hash.Md5;
+import hash.Sha1;
+#if !neko
+import hash.Sha256;
+#end
 
-class HashTestFunctions extends haxe.unit.TestCase {
+class Sha1TestFunctions extends haxe.unit.TestCase {
 
 	public function testSha() {
 		assertEquals(
@@ -18,13 +21,6 @@ class HashTestFunctions extends haxe.unit.TestCase {
 		);
 	}
 
-	function testMd5() {
-		assertEquals("098f6bcd4621d373cade4e832627b4f6", Md5.encode("test"));
-	}
-
-	function testMd5Empty() {
-		assertEquals("d41d8cd98f00b204e9800998ecf8427e", Md5.encode(""));
-	}
 
 #if neko
 	public function testObjSha() {
@@ -58,11 +54,36 @@ class HashTestFunctions extends haxe.unit.TestCase {
 
 }
 
+#if !neko
+class Sha256TestFunctions extends haxe.unit.TestCase {
+	public function testSha256() {
+		assertEquals(
+			"248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1",
+			Sha256.encode("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq")
+		);
+	}
+}
+#end
+
+class Md5TestFunctions extends haxe.unit.TestCase {
+	function testMd5() {
+		assertEquals("098f6bcd4621d373cade4e832627b4f6", Md5.encode("test"));
+	}
+
+	function testMd5Empty() {
+		assertEquals("d41d8cd98f00b204e9800998ecf8427e", Md5.encode(""));
+	}
+}
+
 class HashTest {
 	static function main() 
 	{
 		var r = new haxe.unit.TestRunner();
-		r.add(new HashTestFunctions());
+		r.add(new Sha1TestFunctions());
+#if !neko
+		r.add(new Sha256TestFunctions());
+#end
+		r.add(new Md5TestFunctions());
 		r.run();
 	}
 }

@@ -49,13 +49,14 @@ class ByteStringTools {
 		if(s.length % 2 != 0)
 			throw "Length must be multiple of 2";
 		var sb = new StringBuf();
-		for(x in 0... Math.floor(s.length/2) + 1) {
-			sb.add(
-				StringTools.baseDecode(
-					s.substr(x*2,2),
-					Constants.DIGITS_HEXL
-				)
-			);
+		var max : Int = Math.floor(s.length/2) + 1;
+		for(x in 0...max) {
+			var l = s.substr(Std.int(x*2),2);
+			var r = StringTools.baseDecode(
+						l,
+						Constants.DIGITS_HEXL
+					);
+			sb.add( r );
 		}
 		return sb.toString();
 	}

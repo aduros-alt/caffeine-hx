@@ -27,43 +27,54 @@
 
 package hash;
 
-class Md5 {
-
-	public static function encode(msg : String, ?binary:Bool) : String {
-		var s = haxe.Md5.encode(msg);
-		if(binary) {
-			s = ByteStringTools.hexBytesToBinary( s );
-		}
-		return s;
+class Util {
+	public static function safeAdd(x, y) {
+//#if !neko
+		var lsw = (x & 0xFFFF) + (y & 0xFFFF);
+		var msw = (x >> 16) + (y >> 16) + (lsw >> 16);
+		return (msw << 16) | (lsw & 0xFFFF);
+//#else error
+//#end
 	}
 
-#if neko
 	/**
-		Encode any dynamic value, classes, objects etc.
+		String to big endian binary
+		charSize must be 8 or 16 (Unicode)
 	**/
-	public static function objEncode( o : Dynamic, ?binary : Bool ) : String {
-		var s : String;
-		if(Std.is(o, String)) {
-			if(binary)
-				s = new String(make_md5(untyped o.__s));
-			else
-				untyped s = new String(
-					base_encode(make_md5(s.__s),
-					Constants.DIGITS_HEXL.__s)
-				);
+	public static function str2binb(str:String, ?charSize:Int) : Array<Int> {
+		if(charSize == null)
+			charSize = 8;
+		if(charSize != 8 && charSize != 16)
+			throw "Invalid character size";
+		var bin = new Array();
+		var mask = (1 << charSize) - 1;
+		var i : Int = 0;
+		var max : Int = str.length * charSize;
+		while(i < max) {
+			bin[i>>5] |= (str.charCodeAt(Std.int(i / charSize)) & mask) << (24 - i%32);
+			i += charSize;
 		}
-		else {
-			s = new String(make_md5(o));
-			if(!binary)
-				s = new String(
-					base_encode(untyped s.__s, untyped Constants.DIGITS_HEXL.__s));
-		}
-		return s;
+		return bin;
 	}
 
-	static var base_encode = neko.Lib.load("std","base_encode",2);
-	static var make_md5 = neko.Lib.load("std","make_md5",1);
-#end
-
-
+	public static function binb2hex(binarray:Array<Int>) : String {
+  		var hex_tab = Constants.DIGITS_HEXL;
+		var sb = new StringBuf();
+		for (i in 0...binarray.length * 4) {
+			sb.add(
+				hex_tab.charAt(
+					(binarray[i>>2] >> ((3 - i%4)*8+4)) & 0xF
+				)
+			);
+			sb.add(
+				hex_tab.charAt(
+					(binarray[i>>2] >> ((3 - i%4)*8  )) & 0xF
+				)
+			);
+  		}
+  		return sb.toString();
+	}
 }
+
+
+

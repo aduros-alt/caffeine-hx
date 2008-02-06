@@ -1,0 +1,2 @@
+The md5 sources are not currently in use, as haxe has a standard implementation. It is supposedly a faster algo
+with no need for 32 bit ints, so it may be a good replacement for the Haxe version as well as the C version

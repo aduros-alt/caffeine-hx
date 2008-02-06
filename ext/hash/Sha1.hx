@@ -25,6 +25,14 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/*
+ * Haxe code platforms adapted from SHA1 Javascript implementation
+ * adapted from code covered by the LGPL © 2002-2005 Chris Veness,
+ * http://www.movable-type.co.uk/scripts/sha1.html
+ *
+ * Alternative BSD implementation: http://pajhome.org.uk/crypt/md5/sha1src.html
+*/
+
 package hash;
 
 import crypt.Base;
@@ -56,7 +64,7 @@ class Sha1 {
 #if neko
 		var m = new String(nsha1(untyped msg.__s));
 		if(!binary)
-			m = StringTools.baseEncode(m, Constants.HEXL);
+			m = StringTools.baseEncode(m, Constants.DIGITS_HEXL);
 		return m;
 #else true
 
@@ -91,8 +99,8 @@ class Sha1 {
 	for(i in 0...N) {
 		M[i] = new Array<Int>();
 		for(j in 0...16) { // encode 4 chars per integer, big-endian encoding
-			M[i][j] = (Base.charCodeAt(msg,i*64+j*4)<<24) | (Base.charCodeAt(msg,i*64+j*4+1)<<16) |
-				(Base.charCodeAt(msg,i*64+j*4+2)<<8) | (Base.charCodeAt(msg,i*64+j*4+3));
+			M[i][j] = (ByteStringTools.charCodeAt(msg,i*64+j*4)<<24) | (ByteStringTools.charCodeAt(msg,i*64+j*4+1)<<16) |
+				(ByteStringTools.charCodeAt(msg,i*64+j*4+2)<<8) | (ByteStringTools.charCodeAt(msg,i*64+j*4+3));
 		}
 	}
 
