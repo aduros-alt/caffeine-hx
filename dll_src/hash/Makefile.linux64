@@ -3,7 +3,7 @@ NDLL:=ndll/Linux64/$(PROJECT).ndll
 ARCH_PATHS:=
 
 CC:=gcc -Isrc
-NEKO_FLAGS:=-fPIC -shared -L/usr/lib -lneko -lz -ldl
+NEKO_FLAGS:=-fPIC -shared -L/usr/lib -lneko -ldl
 LOCAL_FLAGS:=-Iinclude -Isrc/linux -DLINUX
 STRIP:=strip
 

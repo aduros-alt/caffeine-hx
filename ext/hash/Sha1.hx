@@ -27,17 +27,39 @@
 
 package hash;
 
-class Sha1 {
+import crypt.Base;
 
+class Sha1 {
+	static var K : Array<Int> = [0x5a827999, 0x6ed9eba1, 0x8f1bbcdc, 0xca62c1d6];
+
+#if neko
+	/**
+		Encode any dynamic value, classes, objects etc.
+	**/
+	public static function objEncode( o : Dynamic, ?binary : Bool ) : String {
+		var m : String;
+		if(Std.is(o, String))
+			m = new String(nsha1(untyped o.__s));
+		else
+			m = new String(nsha1(o));
+		if(!binary)
+			m = StringTools.baseEncode(m, Base.HEXL);
+		return m;
+	}
+#end
+	/**
+		Calculate the Sha1 for a string. The optional parameter binary
+		can be set to return a binary string of the sha1. Otherwise, a
+		lower case hex encoded string is returned.
+	**/
 	public static function encode(msg : String, ?binary:Bool) : String {
 #if neko
 		var m = new String(nsha1(untyped msg.__s));
 		if(!binary)
-			m = StringTools.baseEncode(m, crypt.Base.HEXL);
+			m = StringTools.baseEncode(m, Base.HEXL);
 		return m;
 #else true
 
-	static var K : Array<Int> = [0x5a827999, 0x6ed9eba1, 0x8f1bbcdc, 0xca62c1d6];
 		//
 		// function 'f' [§4.1.1]
 		//

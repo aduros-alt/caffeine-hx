@@ -1,0 +1,12 @@
+-cp ../../
+-js test.js
+-main HashTest
+
+--next
+
+-cp ../../
+-neko test.n
+-main HashTest
+
+
+

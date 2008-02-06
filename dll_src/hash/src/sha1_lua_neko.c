@@ -1,17 +1,37 @@
+/*
+ * Copyright (c) 2008, The Caffeine-hx project contributors
+ * Original author : Russell Weir
+ * Contributors:
+ * All rights reserved.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *   - Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   - Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE CAFFEINE-HX PROJECT CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE CAFFEINE-HX PROJECT CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 #include <stdlib.h>
+#include <string.h>
 #include "sha1.h"
 
 #ifndef uint32
 #define uint32 unsigned long int
 #endif
-
-typedef struct stack {
-        uint32 pos;
-        value v;
-        SHA1_CTX *context;
-        struct stack *next;
-} stack;
-
 
 static void sha1_string(SHA1_CTX *context, const char *message, size_t length)
 {
@@ -38,10 +58,20 @@ static void sha1_uint32(SHA1_CTX *context, uint32 val)
 
 #include <neko/neko.h>
 
+
 /**
 This is coded to the same structure as haxe/neko md5.
 see libs/std/md5.c
 **/
+
+typedef struct stack {
+        uint32 pos;
+        value v;
+        SHA1_CTX *context;
+        struct stack *next;
+} stack;
+static void neko_sha1( SHA1_CTX *context, value v, stack *cur);
+
 
 static void make_sha1_fields( value v, field f, void *c ) {
         stack *s = (stack*)c;
@@ -58,7 +88,7 @@ static void neko_sha1( SHA1_CTX *context, value v, stack *cur) {
 		sha1_uint32(context, (uint32)(int_val)v);
 		break;
 	case VAL_BOOL:
-		sha1_uint32(context, val_bool(v)?8:16;
+		sha1_uint32(context, val_bool(v)?8:16);
 		break;
 	case VAL_FLOAT:
 		{

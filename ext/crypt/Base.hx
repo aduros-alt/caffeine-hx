@@ -163,11 +163,13 @@ class Base {
 
 
 	public static function intsToPaddedString(a : Array<Int>, ?padTo : Int) {
+		var sb = new StringBuf();
 		if(padTo > 0) {
 			var r = padTo - (a.length % padTo);
 			for(i in 0...r) {
 				sb.add(Std.chr(0));
 			}
 		}
+		return sb.toString();
 	}
 }
