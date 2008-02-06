@@ -27,16 +27,17 @@
 
 package hash;
 
-class Sha {
-	static var K : Array<Int> = [0x5a827999, 0x6ed9eba1, 0x8f1bbcdc, 0xca62c1d6];
+class Sha1 {
 
-	public static function calcSha1(msg : String, ?binary:Bool) : String {
+	public static function encode(msg : String, ?binary:Bool) : String {
 #if neko
 		var m = new String(nsha1(untyped msg.__s));
 		if(!binary)
 			m = StringTools.baseEncode(m, crypt.Base.HEXL);
 		return m;
 #else true
+
+	static var K : Array<Int> = [0x5a827999, 0x6ed9eba1, 0x8f1bbcdc, 0xca62c1d6];
 		//
 		// function 'f' [§4.1.1]
 		//
@@ -141,7 +142,6 @@ class Sha {
 	}
 
 #if neko
-        //value pass, value msg, value key_len
         private static var nsha1 = neko.Lib.load("hash","nsha1",1);
 #end
 }
