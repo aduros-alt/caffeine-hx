@@ -79,7 +79,7 @@ class FileSystem {
 		return kind(path) == kdir;
 	}
 
-	//*/2008-02-07// Russell Weir
+	//*/2008-02-07//Russell Weir/Function created
 	public static function isFile( path : String ) : Bool {
 		return kind(path) == kfile;
 	}
