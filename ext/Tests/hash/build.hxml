@@ -8,5 +8,18 @@
 -neko test.n
 -main HashTest
 
+--next
+
+-cp ../../
+-main HashTest
+-swf-version 8
+-swf test8.swf
+
+--next
+
+-cp ../../
+-main HashTest
+-swf-version 9
+-swf test9.swf
 
 
