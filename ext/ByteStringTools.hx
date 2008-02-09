@@ -208,4 +208,16 @@ class ByteStringTools {
 		return sb.toString();
 	}
 	*/
+
+	/**
+		Dump a string into hex bytes
+	**/
+	public static function hexDump(data : String) {
+		var sb = new StringBuf();
+		for(i in 0...data.length) {
+			sb.add(StringTools.hex(data.charCodeAt(i),2));
+			sb.add(" ");
+		}
+		return StringTools.rtrim(sb.toString());
+	}
 }

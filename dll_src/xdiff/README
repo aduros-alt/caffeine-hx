@@ -1,0 +1,3 @@
+XDIFF library wrapper for neko
+require version: 0.22
+src url: http://www.xmailserver.org/xdiff-lib.html
