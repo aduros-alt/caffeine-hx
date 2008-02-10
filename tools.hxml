@@ -2,3 +2,9 @@
 -neko librealease.n
 -main tools/HaxelibRelease.hx
 
+--next
+
+#the PR file builder
+-neko prtool.n
+-cp ext
+-main tools/PrTool.hx

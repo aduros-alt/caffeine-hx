@@ -79,11 +79,11 @@ class FileSystem {
 		return kind(path) == kdir;
 	}
 
-	//*/2008-02-07//Russell Weir/Function created
+	//BEGINPR/rw01/2008-02-07//Russell Weir/Function created
 	public static function isFile( path : String ) : Bool {
 		return kind(path) == kfile;
 	}
-	//*///
+	//ENDPR/rw01///
 
 	public static function createDirectory( path : String ) {
 		sys_create_dir( untyped path.__s, 493 );

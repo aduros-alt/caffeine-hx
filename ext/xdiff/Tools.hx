@@ -30,6 +30,9 @@ package xdiff;
 #if neko
 class Tools {
 
+	/**
+		Diffs two strings. This method will not work on binary data.
+	**/
 	public static function diff( s1 : String, s2 : String, ?context : Int, ?minimal : Bool ) {
 		if(context == null || context < 0 )
 			context = 3;
@@ -42,6 +45,14 @@ class Tools {
 				context,
 				minimal)
 		);
+	}
+
+	/**
+		Returns a string representation of a date in the accepted
+		patch header format
+	**/
+	public static function dateFormat( d : Date ) : String {
+		return DateTools.format(d, "%F %T.000000000 %z");
 	}
 
 	private static var xdiff_string = neko.Lib.load("xdiff","xdiff_string",4);
