@@ -1,0 +1,3 @@
+-cp ../../
+-neko test.n
+-main ConfigTest.hx
