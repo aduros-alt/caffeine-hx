@@ -1,0 +1,4 @@
+Compiler Switches
+-D STATS_HEADERS
+	Collect stats on headers in from web browsers, mainly for optimizing
+	Request.setRequestHeader
