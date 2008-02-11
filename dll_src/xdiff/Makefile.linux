@@ -1,10 +1,9 @@
-PROJECT:=xdiff
-NDLL:=ndll/Linux/$(PROJECT).ndll
+ARCH=Linux
 ARCH_PATHS:=
 
 CC:=gcc -Isrc
 NEKO_FLAGS:=-fPIC -shared -L/usr/lib $(LDFLAGS) -L$(HOME)/neko -lneko -lxdiff -ldl
-LOCAL_FLAGS:=$(CFLAGS) -I../include -Iinclude -Isrc/linux -DLINUX
+LOCAL_FLAGS:=$(CFLAGS) -I../include -Iinclude -Isrc/linux -DLINUX $(LDFLAGS)
 STRIP:=strip
 
 include Makefile.common

@@ -1,5 +1,4 @@
-PROJECT:=hash
-NDLL:=ndll/Windows/$(PROJECT).ndll
+ARCH=Windows
 ARCH_PATHS:=
 
 CC:=i686-mingw32-gcc -Isrc -DWIN32

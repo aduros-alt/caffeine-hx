@@ -1,3 +1,6 @@
+PROJECT:=udprsocket
+NDLL:=ndll/$(ARCH)/$(PROJECT).ndll
+
 CTEST_PATHS:=src include/enet
 CSERV:=test_c/server
 CCLIENT:=test_c/client
@@ -41,11 +44,18 @@ $(HXSERV): $(HX_SRCS)
 $(HXCLIENT): $(HX_SRCS)
 	haxe build.hmxl
 
+install:
+	cp $(NDLL) ../../ext/ndll/$(ARCH)/
+
+install-dev:
+	cp $(NDLL) $(CAFFEINE_NDLL_DIR)
+
 clean:
 	$(RM) $(CSERV)
 	$(RM) $(CCLIENT)
 	$(RM) $(HXSERV)
 	$(RM) $(HXCLIENT)
+	$(RM) $(NDLL)
 	$(RM) *.n
 	$(RM) obj/*
 	$(RM) core.*

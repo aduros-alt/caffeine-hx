@@ -1,3 +1,5 @@
+PROJECT:=ncrypt
+NDLL:=ndll/$(ARCH)/$(PROJECT).ndll
 HXTEST:=crypttest.n
 
 # for ndll
@@ -31,5 +33,12 @@ clean:
 
 luatests:
 	cd tests && lua lua_test.lua
+
+install:
+	cp $(NDLL) ../../ext/ndll/$(ARCH)/
+
+install-dev:
+	cp $(NDLL) $(CAFFEINE_NDLL_DIR)
+
 
 dummy:

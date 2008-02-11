@@ -1,0 +1,31 @@
+NDLL=ndll/$(ARCH)/httpp.ndll
+INCS=-I/usr/include/neko -Isrc -I../include
+OBJS=http11neko.o http11_parser.o
+WARN=-Wfatal-errors -Wall
+CFLAGS:=$(CFLAGS) $(INCS) $(WARN) $(LOCALFLAGS)
+LIBS=$(LOCALLIBS)
+
+all: $(NDLL)
+	$(RM) *.o
+
+$(NDLL): $(OBJS)
+	gcc $(WARN) -shared -o $(NDLL) $(OBJS) $(LIBS)
+
+http11_parser.o: src/http11_parser.c
+	gcc $(CFLAGS) -c src/http11_parser.c -o http11_parser.o
+
+http11neko.o: src/http11neko.c
+	gcc $(CFLAGS) -c src/http11neko.c -o http11neko.o
+
+install:
+	cp $(NDLL) ../../ext/ndll/$(ARCH)/
+
+install-dev:
+	cp $(NDLL) $(CAFFEINE_NDLL_DIR)
+
+clean:
+	$(RM) *.o
+	$(RM) $(NDLL)
+
+dummy:
+

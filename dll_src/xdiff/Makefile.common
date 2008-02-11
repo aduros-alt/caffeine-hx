@@ -1,3 +1,6 @@
+PROJECT:=xdiff
+NDLL:=ndll/$(ARCH)/$(PROJECT).ndll
+
 HXTEST:=xdifftest.n
 
 # for ndll
@@ -22,6 +25,12 @@ tests: $(HXTEST)
 
 $(HXTEST): $(HX_SRCS)
 	haxe build.hmxl
+
+install:
+	cp $(NDLL) ../../ext/ndll/$(ARCH)/
+
+install-dev:
+	cp $(NDLL) $(CAFFEINE_NDLL_DIR)
 
 clean:
 	$(RM) $(NDLL)

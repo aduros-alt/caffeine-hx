@@ -1,11 +1,10 @@
-PROJECT:=udprsocket
-NDLL:=../../ext/ndll/Linux/$(PROJECT).ndll
+ARCH=Linux
 ARCH_PATHS:=src/linux
 
 CC:=gcc -Isrc
 NEKO_FLAGS:=-fPIC -shared -L/usr/lib -lneko -lz  -ldl
 #LOCAL_FLAGS:=-Iinclude -Isrc/linux -DLINUX -DDEBUG -DUSE_CRC32 -DENET_DEBUG
-LOCAL_FLAGS:=-I../include -Iinclude -Isrc/linux -DLINUX -DUSE_CRC32
+LOCAL_FLAGS:=-I../include -Iinclude -Isrc/linux -DLINUX -DUSE_CRC32 $(LDFLAGS)
 
 
 include Makefile.common

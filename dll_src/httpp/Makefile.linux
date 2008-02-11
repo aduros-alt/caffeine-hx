@@ -1,0 +1,5 @@
+ARCH=Linux
+LOCALLIBS = -L/usr/lib $(LDFLAGS) -L$(HOME)/neko -lneko
+LOCALFLAGS=
+
+include Makefile.common

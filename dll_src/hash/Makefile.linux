@@ -1,5 +1,4 @@
-PROJECT:=hash
-NDLL:=ndll/Linux/$(PROJECT).ndll
+ARCH=Linux
 ARCH_PATHS:=
 
 CC:=gcc -Isrc

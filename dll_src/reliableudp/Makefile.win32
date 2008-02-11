@@ -1,5 +1,4 @@
-PROJECT:=udprsocket
-NDLL:=../../ext/ndll/Windows/$(PROJECT).ndll
+ARCH=Windows
 ARCH_PATHS:=src/windows
 
 CC:=i686-mingw32-gcc -Isrc -DWIN32 -DENET_DLL -DENET_BUILDING_LIB
