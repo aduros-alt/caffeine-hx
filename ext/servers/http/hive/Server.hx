@@ -36,7 +36,7 @@ import neko.net.Host;
 import servers.http.hive.TypesHttp;
 import config.XmlConfig;
 import dates.GmtDate;
-import servers.http.Logger;
+import servers.http.hive.Logger;
 
 #if SCHED_REALTIME
 class Server extends RealtimeServer<Client> {
@@ -241,9 +241,9 @@ class Server extends ThreadPollServer<Client> {
 					usage();
 				}
 				sc.host = Std.string(parts[1]);
-			case "--conf":
+			case "--config":
 				if(parts[1] == null) {
-					neko.Lib.println("No file specified for --conf");
+					neko.Lib.println("No file specified for --config");
 					usage();
 				}
 				var f = parts[1];
@@ -337,6 +337,7 @@ trace(here.methodName + " examine this");
 		neko.Lib.print("  --host=localhost\t\tThe ip address or hostname to bind to\n");
 		neko.Lib.print("  --port=3000\t\t\tThe port to bind to.\n");
 		neko.Lib.print("  --debug=[0-5]\t\t\tLevel of trace messages dumped to console.\n");
+		neko.Lib.print("  --config=path/to/config.xml\tXML config file path\n");
 		neko.Lib.print("  --help\t\t\tThis message.");
 		neko.Lib.print("\n");
 		neko.Sys.exit(0);

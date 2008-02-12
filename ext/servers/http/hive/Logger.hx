@@ -25,7 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package servers.http;
+package servers.http.hive;
 
 import dates.GmtDate;
 

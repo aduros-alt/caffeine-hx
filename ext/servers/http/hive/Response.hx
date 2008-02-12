@@ -32,6 +32,7 @@ import neko.io.FileInput;
 import neko.FileSystem;
 
 import servers.http.hive.TypesHttp;
+import servers.http.Range;
 import protocols.Mime;
 import protocols.http.Cookie;
 import dates.GmtDate;

@@ -25,7 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package servers.httpd.hive;
+package servers.http.hive;
 
 import config.XmlConfig;
 import haxe.xml.Check;

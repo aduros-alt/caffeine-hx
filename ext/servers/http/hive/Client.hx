@@ -32,6 +32,7 @@ import neko.io.File;
 import neko.net.Socket;
 import neko.net.Host;
 import servers.http.hive.TypesHttp;
+import servers.http.Range;
 
 class Client {
 #if !PARSER_HAXE
