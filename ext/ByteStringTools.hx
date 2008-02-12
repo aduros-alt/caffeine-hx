@@ -174,7 +174,19 @@ class ByteStringTools {
 	}
 
 	/**
-		Pad a string with NULLs to the specified chunk length.
+		Create a string initialized to nulls of length len
+	**/
+	public static function nullString( len : Int ) : String {
+		var sb = new StringBuf();
+		for(i in 0...len)
+			sb.addChar(0);
+		return sb.toString();
+	}
+
+	/**
+		Pad a string with NULLs to the specified chunk length. Note
+		that 0 length strings passed to this will not be padded. See also
+		nullString()
 	**/
 	public static function nullPadString(s : String, chunkLen: Int) {
 		var r = chunkLen - (s.length % chunkLen);

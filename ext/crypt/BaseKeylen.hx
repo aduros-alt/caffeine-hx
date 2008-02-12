@@ -28,17 +28,21 @@
 package crypt;
 
 class BaseKeylen extends crypt.Base {
-	public var keylen(default,setKeylen) : Int;
+	public var keylen(getKeylen,setKeylen) : Int;
 
-        public function new(keylen : Int) {
-                super();
-                this.keylen = keylen;
-        }
+	public function new(len : Int) {
+		super();
+		keylen = len;
+	}
 
-        function setKeylen(len : Int) {
-                keylen = len;
+	function getKeylen() : Int {
+		return keylen;
+	}
+
+	function setKeylen(len : Int) {
+		keylen = len;
 		return len;
-        }
+	}
 
 	function keyLengthError() {
 		throw "Invalid key length";

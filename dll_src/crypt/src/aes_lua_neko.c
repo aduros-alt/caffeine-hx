@@ -189,19 +189,19 @@ static value naes_encrypt(value pass, value msg, value key_len, int mode) {
 	int key_length = 128;
 	const char *errstr;
 
-        val_check(pass, string);
-        val_check(msg, string);
+	val_check(pass, string);
+	val_check(msg, string);
 	if(!val_is_null(key_len))
-        	val_check(key_len, int);
-        pwd_length = val_strlen(pass);
-        msg_length = val_strlen(msg);
-        const char *password= val_string(pass);
-        const char *message = val_string(msg);
+			val_check(key_len, int);
+	pwd_length = val_strlen(pass);
+	msg_length = val_strlen(msg);
+	const char *password= val_string(pass);
+	const char *message = val_string(msg);
 
-        if(pwd_length == 0)
-                val_throw(alloc_string("Key is null"));
-        if(msg_length == 0)
-                val_throw(alloc_string("Message is null"));
+	if(pwd_length == 0)
+		val_throw(alloc_string("Key is null"));
+	if(msg_length == 0)
+		val_throw(alloc_string("Message is null"));
 	if(!val_is_null(key_len)) {
 		key_length = val_int(key_len);
 		if(key_length != 128 && key_length != 192 && key_length != 256)
@@ -317,22 +317,21 @@ static value naes_decrypt(value pass, value msg, value key_len, int mode) {
 	const char *errstr;
 
 	value rv;
-
-        val_check(pass, string);
-        val_check(msg, string);
+	val_check(pass, string);
+	val_check(msg, string);
 	if(!val_is_null(key_len))
-        	val_check(key_len, int);
-        pwd_length = val_strlen(pass);
-        msg_length = val_strlen(msg);
-        const char *password= val_string(pass);
-        const char *message = val_string(msg);
+			val_check(key_len, int);
+	pwd_length = val_strlen(pass);
+	msg_length = val_strlen(msg);
+	const char *password= val_string(pass);
+	const char *message = val_string(msg);
 
-        if(pwd_length == 0)
-                val_throw(alloc_string("Key is null"));
-        if(msg_length == 0)
-                val_throw(alloc_string("Message is null"));
+	if(pwd_length == 0)
+		val_throw(alloc_string("Key is null"));
+	if(msg_length == 0)
+		val_throw(alloc_string("Message is null"));
 	if(msg_length % AES_BLOCK_SIZE != 0)
-                val_throw(alloc_string("Buffer is not a multiple of the aes block size"));
+		val_throw(alloc_string("Buffer is not a multiple of the aes block size"));
 	if(!val_is_null(key_len)) {
 		key_length = val_int(key_len);
 		if(key_length != 128 && key_length != 192 && key_length != 256)
@@ -342,7 +341,6 @@ static value naes_decrypt(value pass, value msg, value key_len, int mode) {
 	out_buf = (char *)malloc(msg_length);
 	if(out_buf == NULL) {
 		val_throw(alloc_string("Out of memory"));
-
 	}
 	memcpy(out_buf, message, msg_length);
 

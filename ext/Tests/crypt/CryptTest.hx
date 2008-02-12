@@ -43,6 +43,102 @@ trace(sr.length);
 }
 
 class AesTestFunctions extends haxe.unit.TestCase {
+	static var target = "69c4e0d86a7b0430d8cdb78070b4c55a";
+	static var msg = [0x00,0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff];
+	static var key = [0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f];
+
+	static var b : Array<Int> = [128,192,256];
+	static var msgs : Array<String> = [
+		"yo\n",
+		"what there are for you to do?\n",
+		"0123456789abcdef",
+		"ewjkhwety sdfhjsdrkj qweiruqwer iasd faif aoif aijsdfj aiojsfd iaojsdf iojaf iojas oifjaif jasdjf sdoijf osidjf oisdjf sdjfisjdfisj doifjs oidfjosidjf oisjdf oisjdoif jasiojoijjuioasjf asjf ijasjf oaijsdfi odajfioajfdio ajsdifj :#&$&#&*($&\n"
+	];
+	static var phrases : Array<String> = [
+		"pass",
+		"eiwe",
+		"ewrkhoiuewqo etuiwehru asfdjha ewr",
+		"my super secret passphrase"
+	];
+
+	public function testEcbOne() {
+		var a = new Aes(128, ByteStringTools.byteArrayToString(key));
+		a.mode = ECB;
+		var e = a.encrypt(ByteStringTools.byteArrayToString(msg));
+
+		assertEquals( target,
+			StringTools.baseEncode(e, Constants.DIGITS_HEXL).substr(0,32)
+		);
+		//trace(StringTools.baseEncode(e, Constants.DIGITS_HEXL));
+			
+	}
+
+	public function testCbcOne() {
+		var a = new Aes(128, ByteStringTools.byteArrayToString(key));
+		a.mode = CBC;
+		var e = a.encrypt(ByteStringTools.byteArrayToString(msg));
+		assertEquals( target,
+				StringTools.baseEncode(e, Constants.DIGITS_HEXL).substr(0,32)
+		);
+		//trace(StringTools.baseEncode(a.encrypt(ByteStringTools.int32ToString(msg)), Constants.DIGITS_HEXL));
+	}
+
+	public function testEcbAll() {
+		for(bits in b) {
+			for(phrase in phrases) {
+				for(msg in msgs) {
+					assertEquals( true, 
+							doTestAes(bits, phrase, msg, ECB)
+					);
+				}
+			}
+		}
+	}
+
+	public function testCbcAll() {
+		for(bits in b) {
+			for(phrase in phrases) {
+				for(msg in msgs) {
+					assertEquals( true,
+							doTestAes(bits, phrase, msg, CBC)
+					);
+				}
+			}
+		}
+	}
+
+	static function doTestAes(bits, phrase, msg, mode) {
+		var a = new Aes(bits, phrase);
+		a.mode = mode;
+		var enc: String;
+		try {
+			enc = a.encrypt(msg);
+		}
+		catch (e:Dynamic) {
+			//trace(a);
+			throw(e);
+		}
+		try {
+			//trace(ByteStringTools.hexDump(enc));
+			var dec = a.decrypt(enc);
+			if(dec != msg) {
+				trace("Orig: " + msg);
+				trace("Hex : " + ByteStringTools.hexDump(msg)); 
+				trace("Decr: " + dec);
+				trace("Hex : " + ByteStringTools.hexDump(dec));
+				return false;
+			}
+		}
+		catch(e : Dynamic) {
+			trace("Error "+ e);
+			trace(a);
+			trace(msg);
+			trace(StringTools.baseEncode(enc, Constants.DIGITS_HEXL));
+			throw("Fatal");
+		}
+		return true;
+	}
+
 }
 
 #if !neko
@@ -61,92 +157,15 @@ class TeaTestFunctions extends haxe.unit.TestCase {
 
 class CryptTest {
 
-	
-	public static function doTestAes(bits, phrase, msg, mode) {
-		var a = new Aes(bits, phrase);
-		a.mode = mode;
-		//trace(Std.string(a) + " for msg " + StringTools.trim(msg));
-		var enc: String;
-		try {
-			enc = a.encrypt(msg);
-		}
-		catch (e:Dynamic) {
-			trace(a);
-			throw(e);
-		}
-		try {
-			if(a.decrypt(enc) != msg) 
-				throw "Not equal";
-		}
-		catch(e : Dynamic) {
-			trace("Error "+ e);
-			trace(a);
-			trace(msg);
-			trace(StringTools.baseEncode(enc, Constants.DIGITS_HEXL));
-			throw("Fatal");
-		}
-		return enc;
-	}
-
-
 	public static function main() {
 
 
-		var b : Array<Int> = [128,192,256];
-		var msgs : Array<String> = [
-			"yo\n",
-			"what there are for you to do?\n",
-			"0123456789abcdef",
-			"ewjkhwety sdfhjsdrkj qweiruqwer iasd faif aoif aijsdfj aiojsfd iaojsdf iojaf iojas oifjaif jasdjf sdoijf osidjf oisdjf sdjfisjdfisj doifjs oidfjosidjf oisjdf oisjdoif jasiojoijjuioasjf asjf ijasjf oaijsdfi odajfioajfdio ajsdifj :#&$&#&*($&\n"
-		];
-		var phrases : Array<String> = [
-			"pass",
-			"eiwe",
-			"ewrkhoiuewqo etuiwehru asfdjha ewr",
-			"my super secret passphrase"
-		];
-
-
-		// AES Test vectors
-		try {
-			//trace("Should be similar to 69 c4 e0 d8 6a 7b 04 30 d8 cd b7 80 70 b4 c5 5a");
-			var target = "69c4e0d86a7b0430d8cdb78070b4c55a";
-			var msg = [0x00,0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff];
-			var key = [0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f];
-			var a = new Aes(128, ByteStringTools.byteArrayToString(key));
-			//trace("aes created");
-			a.mode = ECB;
-			var e = a.encrypt(ByteStringTools.byteArrayToString(msg));
-			if(target != StringTools.baseEncode(e, Constants.DIGITS_HEXL).substr(0,32))
-				throw "AES test vector failure on ECB";
-			//trace(StringTools.baseEncode(e, Constants.DIGITS_HEXL));
-			a.mode = CBC;
-			if(target != StringTools.baseEncode(e, Constants.DIGITS_HEXL).substr(0,32))
-				throw "AES test vector failure on CBC";
-			//trace(StringTools.baseEncode(a.encrypt(ByteStringTools.int32ToString(msg)), Constants.DIGITS_HEXL));
-		}
-		catch(e:Dynamic) {} 
-		
-
-
-		for(bits in b) {
-			for(phrase in phrases) {
-				for(msg in msgs) {
-					var e = doTestAes(bits, phrase, msg, ECB);
-					var l = doTestAes(bits, phrase, msg, CBC);
-					//trace(e);
-					//trace(l);
-					//if(e == l) {
-					//	trace("ecb and cbc the same for msg length "+msg.length+" phrase length "+ phrase.length+" bits: "+bits);
-					//}
-				}
-			}
-		}
 
 		var r = new haxe.unit.TestRunner();
 		r.add(new ByteStringToolsFunctions());
+		r.add(new AesTestFunctions());
 #if !neko
-		r.add(new TeaTestFunctions());
+		//r.add(new TeaTestFunctions());
 #end
 		r.run();
 

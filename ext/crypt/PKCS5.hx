@@ -24,19 +24,40 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package crypt;
 
-class BaseKeylenPhrase extends crypt.BaseKeylen {
-	public var passphrase(default,setPassphrase) : String;
+class PKCS5 {
+	public var blockSize : Int;
 
-	public function new(keylen : Int, phrase:String) {
-		super(keylen);
-		this.passphrase = phrase;
+	public function new( blockSize : Int ) {
+		this.blockSize = blockSize;
 	}
 
-	function setPassphrase(s : String) {
-		passphrase = s;
-		return s;
+	public function pad( s : String ) : String {
+		var sb = new StringBuf();
+		sb.add ( s );
+		var chr : Int = blockSize - (s.length % blockSize);
+		for( i in 0...chr) {
+			sb.addChar( chr );
+		}
+		return sb.toString();
 	}
+
+	public function unpad( s : String ) : String {
+		if( s.length % blockSize != 0)
+			throw "PKCS5: Unpad buffer not multiple of block size";
+		var c = s.charCodeAt(s.length-1);
+		var i = c;
+		var pos = s.length - 1;
+		while(i > 0) {
+			var n = s.charCodeAt(pos);
+			if (c != n)
+				throw "PKCS5: Unpad invalid byte";
+			pos--;
+			i--;
+		}
+		return s.substr(0, s.length - c);
+	}
+
 }
-
