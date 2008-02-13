@@ -25,11 +25,14 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#if neko
+import neko.Int32;
+#end
+
 /**
 	Functions for manipulating binary data to and from Strings
 **/
 class ByteStringTools {
-
 	/**
 		Return the character code from a string at the given position.
 		If pos is past the end of the string, 0 (null) is returned.
@@ -79,98 +82,30 @@ class ByteStringTools {
 		return sb.toString();
 	}
 
-
 	/**
-		Convert an array of 32bit integers to a string<br />
-		TODO: platform endianness
+		Convert an array of 32bit integers to a little endian string<br />
 	**/
 #if neko
-	public static function int32ToString(l : Array<neko.Int32>) : String {
+	public static function int32ToString(l : Array<Int32>) : String
 #else true
-	public static function int32ToString(l : Array<Int>) : String {
+	public static function int32ToString(l : Array<Int>) : String
 #end
-		var a = new Array<String>();
-		for(i in 0...l.length) {
-			var sb = new StringBuf();
-#if neko
-			sb.add(Std.chr(
-				neko.Int32.toInt(
-					neko.Int32.and(
-						l[i],
-						neko.Int32.ofInt(0xFF)
-					)
-				)
-			));
-			sb.add(Std.chr(
-				neko.Int32.toInt(
-					neko.Int32.and(
-						neko.Int32.ushr(l[i],8),
-						neko.Int32.ofInt(0xFF)
-					)
-				)
-			));
-			sb.add(Std.chr(
-				neko.Int32.toInt(
-					neko.Int32.and(
-						neko.Int32.ushr(l[i],16),
-						neko.Int32.ofInt(0xFF)
-					)
-				)
-			));
-			sb.add(Std.chr(
-				neko.Int32.toInt(
-					neko.Int32.and(
-						neko.Int32.ushr(l[i],24),
-						neko.Int32.ofInt(0xFF)
-					)
-				)
-			));
-#else true
-			sb.add(Std.chr(l[i] & 0xFF));
-			sb.add(Std.chr(l[i]>>>8 & 0xFF));
-			sb.add(Std.chr(l[i]>>>16 & 0xFF));
-			sb.add(Std.chr(l[i]>>>24 & 0xFF));
-#end
-			a[i] = sb.toString();
-		}
-		return a.join('');
+	{
+		return I32.packLE(l);
 	}
 
 	/**
 		Convert a string containing 32bit integers to an array of ints<br />
 		If the string length is not a multiple of 4, it will be NULL padded
 		at the end.
-		TODO: platform endianness
 	**/
 #if neko
-	public static function strToInt32(istr : String) : Array<neko.Int32>
+	public static function strToInt32(s : String) : Array<neko.Int32>
 #else true
-	public static function strToInt32(istr : String) : Array<Int>
+	public static function strToInt32(s : String) : Array<Int>
 #end
 	{
-		var s = nullPadString(istr, 4);
-		if(s.length % 4 != 0)
-			throw "Invalid string length";
-		var len = Math.floor(s.length/4);
-		var a = new Array();
-
-		for(i in 0...len) {
-			// note endianness is irrelevant if the same in int32ToString.
-#if neko
-			var j = neko.Int32.ofInt(charCodeAt(s,i*4));
-			var k = neko.Int32.ofInt(charCodeAt(s,i*4+1)<<8);
-			var l = neko.Int32.ofInt(charCodeAt(s,i*4+2)<<16);
-			var m = neko.Int32.ofInt(charCodeAt(s,i*4+3));
-			m = neko.Int32.shl(m,24);
-			a[i] = neko.Int32.add(j,k);
-			a[i] = neko.Int32.add(a[i],l);
-			a[i] = neko.Int32.add(a[i],m);
-#else true
-			a[i] = charCodeAt(s,i*4) + (charCodeAt(s,i*4+1)<<8) +
-			(charCodeAt(s,i*4+2)<<16) + (charCodeAt(s,i*4+3)<<24);
-#end
-		}
-		return a;
+		return I32.unpackLE(nullPadString(s,4));
 	}
 
 	/**
