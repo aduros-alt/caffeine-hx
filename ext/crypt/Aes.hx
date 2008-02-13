@@ -33,8 +33,9 @@ typedef Keycontext = {
 	var rk : Array<Array<Int>>;
 };
 
-class Aes extends crypt.BaseKeylenPhrase {
+class Aes extends crypt.BaseKeylenPhrase, implements ISymetrical {
 	public static var AES_BLOCK_SIZE : Int = 16;
+	public var blockSize(default,null) : Int;
 
 	//TODO: neko needs to respect this flag
 	var usePadding : Bool;	// PKCS5 padding
@@ -50,6 +51,7 @@ class Aes extends crypt.BaseKeylenPhrase {
 
 	public function new(keylen : Int, phrase:String) {
 		super(keylen, phrase);
+		blockSize = AES_BLOCK_SIZE;
 		usePadding = true;
 #if !neko
 		initialized = true;
@@ -66,6 +68,24 @@ class Aes extends crypt.BaseKeylenPhrase {
 			initKeys();
 #end
 		return len;
+	}
+
+	public function encryptBlock( block : String ) : String {
+#if neko
+		throw "Unimplemented";
+		return "";
+#else true
+		return AESencrypt( block, encKey );
+#end
+	}
+
+	public function decryptBlock( block : String ) : String {
+#if neko
+		throw "Unimplemented";
+		return "";
+#else true
+		return AESdecrypt( block, decKey );
+#end
 	}
 
 	override public function encrypt(msg : String) {
@@ -121,6 +141,8 @@ class Aes extends crypt.BaseKeylenPhrase {
 	private static var naes_cbc_decrypt = neko.Lib.load("ncrypt","naes_cbc_decrypt",3);
 
 #else true
+
+
 	override function setPassphrase(s : String) {
 		super.setPassphrase(s);
 		if(initialized)
@@ -164,18 +186,13 @@ class Aes extends crypt.BaseKeylenPhrase {
 		var offset : Int = 0;
 		var sb = new StringBuf();
 		var iv = ByteStringTools.nullString( AES_BLOCK_SIZE);
-		var ivInts : Array<Int>;
-		var inInts : Array<Int>;
 
 		for (i in 0...numBlocks) {
-			ivInts = packBytes(iv);
-			inInts = packBytes(buf.substr(offset, AES_BLOCK_SIZE));
-			var block : Array<Int> = new Array();
-			block[0] = inInts[0] ^ ivInts[0];
-			block[1] = inInts[1] ^ ivInts[1];
-			block[2] = inInts[2] ^ ivInts[2];
-			block[3] = inInts[3] ^ ivInts[3];
-			var outBuffer = AESencrypt(unpackBytes(block), encKey);
+			var sb2 = new StringBuf();
+			for(x in 0...blockSize) {
+				sb2.addChar( buf.charCodeAt(offset + x) ^ iv.charCodeAt(x));
+			}
+			var outBuffer = AESencrypt(sb2.toString(), encKey);
 			sb.add(outBuffer);
 			iv = outBuffer;
 			offset += AES_BLOCK_SIZE;
@@ -209,23 +226,19 @@ class Aes extends crypt.BaseKeylenPhrase {
 
 		var i = numBlocks;
 		var offset : Int = 0;
-		var ivInts : Array<Int>;
 		var sb = new StringBuf();
 
 		for (i in 0...numBlocks) {
-			ivInts = packBytes(iv);
 			var rv : String = AESdecrypt(
 					buf.substr(offset, AES_BLOCK_SIZE),
 					decKey
 			);
-			var block = packBytes( rv );
-			block[0] ^= ivInts[0];
-			block[1] ^= ivInts[1];
-			block[2] ^= ivInts[2];
-			block[3] ^= ivInts[3];
-
+			var sb2 = new StringBuf();
+			for(x in 0...blockSize) {
+				sb2.addChar( rv.charCodeAt(x) ^ iv.charCodeAt(x));
+			}
+			sb.add(sb2.toString());
 			iv = buf.substr(offset, AES_BLOCK_SIZE);
-			sb.add(unpackBytes(block));
 			offset += AES_BLOCK_SIZE;
 		}
 		if(usePadding) {
@@ -408,7 +421,7 @@ class Aes extends crypt.BaseKeylenPhrase {
 		var r;
 		var t0,t1,t2,t3;
 
-		var b = packBytes(block);
+		var b = I32.unpackLE(block);
 		var rounds = ctx.rounds;
 		var b0 = b[0];
 		var b1 = b[1];
@@ -441,13 +454,13 @@ class Aes extends crypt.BaseKeylenPhrase {
 		b[2] = F1(t2, t3, t0, t1) ^ ctx.rk[rounds][2];
 		b[3] = F1(t3, t0, t1, t2) ^ ctx.rk[rounds][3];
 
-		return unpackBytes(b);
+		return I32.packLE(b);
 	}
 
 	function AESdecrypt(block, ctx)
 	{
 		var t0:Int,t1:Int,t2:Int,t3:Int;
-		var b = packBytes(block);
+		var b = I32.unpackLE(block);
 		var r = ctx.rounds;
 		while( r>1 )
 		{
@@ -479,7 +492,7 @@ class Aes extends crypt.BaseKeylenPhrase {
 		b[2] ^= ctx.rk[0][2];
 		b[3] ^= ctx.rk[0][3];
 
-		return unpackBytes(b);
+		return I32.packLE(b);
 	}
 
 
@@ -492,42 +505,6 @@ class Aes extends crypt.BaseKeylenPhrase {
 	{
 		return B1(T1[x0&255]) | (B1(T1[(x1>>8)&255])<<8)
 			| (B1(T1[(x2>>16)&255])<<16) | (B1(T1[x3>>>24])<<24);
-	}
-
-	static function packBytes(octets : String) : Array<Int>
-	{
-		var len=octets.length;
-		var b=new Array<Int>();
-
-		if (octets == null || len == 0 || (len % 4 != 0)) return null;
-
-		var i : Int = 0;
-		var j : Int = 0;
-		while( j<len ) {
-			//b[i++] = octets[j] | (octets[j+1]<<8) | (octets[j+2]<<16) | (octets[j+3]<<24);
-			b[i++] = octets.charCodeAt(j) |
-					(octets.charCodeAt(j+1) << 8) |
-					(octets.charCodeAt(j+2) << 16) |
-					(octets.charCodeAt(j+3) << 24);
-			j+=4;
-		}
-
-		return b;
-	}
-
-	static function unpackBytes(packed : Array<Int>) : String
-	{
-		var l = packed.length;
-		var sb = new StringBuf();
-
-		for (j in 0...l)
-		{
-			sb.addChar( B0(packed[j]) );
-			sb.addChar( B1(packed[j]) );
-			sb.addChar( B2(packed[j]) );
-			sb.addChar( B3(packed[j]) );
-		}
-		return sb.toString();
 	}
 
 	// The round constants used in subkey expansion
