@@ -1,5 +1,6 @@
 -main NekoClient
 -cp ../../
+#-D DEBUG_PROTOCOL
 -neko nekoclient.n
 
 --next

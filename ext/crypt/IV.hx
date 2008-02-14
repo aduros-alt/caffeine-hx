@@ -56,7 +56,7 @@ class IV {
 
 	public function new(symcrypt: ISymetrical, ?padMethod : IPad) {
 		if(symcrypt == null)
-			throw "null crypt";
+			throw "crypt.iv: null crypt";
 		cipher = symcrypt;
 		if(padMethod == null)
 			padding = new PadPkcs5(cipher.blockSize);
@@ -94,7 +94,7 @@ class IV {
 
 	public function setNextIV( s : String ) : String {
 		if(s.length % cipher.blockSize != 0)
-			throw("Invalid iv length. Expected "+cipher.blockSize+ " bytes.");
+			throw("crypt.iv: invalid length. Expected "+cipher.blockSize+ " bytes.");
 		var sb = new StringBuf();
 		sb.add(s);
 		nextValue = sb;
@@ -104,7 +104,7 @@ class IV {
 	function prepareEncrypt( s : String ) : String {
 		var buf = padding.pad(s);
 		if(buf.length % cipher.blockSize != 0)
-			throw here.methodName + " padding error";
+			throw "crypt.iv: padding error";
 		// queues up the next iv and destroys the nextValue if it exists
 		getIV();
 		return buf;
@@ -132,19 +132,20 @@ class IV {
 			var biv = s.substr(0,cipher.blockSize);
 			iv = biv;
 			if(iv != biv)
-				throw "invalid state";
+				throw "crypt.iv: invalid state";
 			buf = s.substr(cipher.blockSize);
 		}
 		else {
 			buf = s;
 		}
 		if(buf.length % cipher.blockSize != 0)
-			throw "length error";
+			throw "crypt.iv: length error";
 		return buf;
 	}
 
 	function finishDecrypt( s : String ) : String {
 		var buf = padding.unpad(s);
+		curValue = null;
 		return buf;
 	}
 

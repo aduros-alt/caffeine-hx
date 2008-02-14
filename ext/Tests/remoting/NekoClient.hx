@@ -2,7 +2,7 @@ class ServerApiImpl extends haxe.remoting.AsyncProxy<IServerApi> {
 }
 
 import crypt.Aes;
-import crypt.Sha;
+import hash.Sha1;
 import haxe.remoting.EncRemotingAdaptor;
 
 class NekoClient implements IClientApi {
@@ -53,7 +53,7 @@ class NekoClient implements IClientApi {
 	public function startEncSession() : Void {
 		trace(here.methodName);
 		authenticated = true;
-		ra.startCrypt(new Aes(128, password));
+		ra.startCrypt(new crypt.ModeCBC(new Aes(128, password)));
 		api.join();
 	}
 
@@ -74,7 +74,7 @@ class NekoClient implements IClientApi {
 	}
 
 	public function run() {
-		var passcrypt = crypt.Sha.calcSha1(password);
+		var passcrypt = hash.Sha1.encode(password);
 
 		var x = 0;
 		while(!authenticated) {

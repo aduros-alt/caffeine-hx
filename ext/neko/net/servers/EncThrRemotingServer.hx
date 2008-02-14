@@ -26,7 +26,6 @@
  */
 
 package neko.net.servers;
-import crypt.Aes;
 import haxe.remoting.EncRemotingAdaptor;
 import neko.net.ThreadRemotingServer;
 

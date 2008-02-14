@@ -29,11 +29,12 @@ package haxe.remoting;
 import Type;
 import haxe.remoting.SocketConnection;
 import haxe.remoting.SocketProtocol;
+import crypt.IMode;
 
 class EncRemotingAdaptor {
 	public var sc(default,null) : SocketConnection;
 	var sp : SocketProtocol;
-	var crypt : crypt.Base;
+	var cipherMode : IMode;
 
 	public function new(sc : SocketConnection) {
 		this.sc = sc;
@@ -50,18 +51,18 @@ class EncRemotingAdaptor {
 	//////////////////////////////
 	//  Encryption support      //
 	//////////////////////////////
-	public function startCrypt(crypt : crypt.Base) {
-		this.crypt = crypt;
+	public function startCrypt(cipherMode : crypt.IMode) {
+		this.cipherMode = cipherMode;
 
 		// output side, override SocketProtocol.sendMessage
 		sp.sendMessage = sendMessageEnc;
 		//scnx.getProtocol().sendMessage = callback(sendMessageEnc,scnx.getProtocol());
 
-		// input side, add a crypt.Base object to the socket
+		// input side, add a crypt.IMode object to the socket
 		// in SocketConnection.getProtocol().socket
 		Reflect.setField(
 			sp.socket,"__crypt",
-			crypt);
+			cipherMode);
 	}
 
 	public function isCrypted() : Bool {
@@ -111,7 +112,7 @@ class EncRemotingAdaptor {
 		trace(StringTools.baseEncode(sb.toString(), Constants.DIGITS_HEXL));
 #end
 
-		var enc = crypt.encrypt(sb.toString());
+		var enc = cipherMode.encrypt(sb.toString());
 		var len = enc.length + 2;
 		if(len > 0xFFFF)
 			throw "Message too long";
@@ -155,7 +156,7 @@ class EncRemotingAdaptor {
 #if CRYPT_DEBUG_PROTOCOL
 		trace("Encrypted mode");
 #end
-		var aes : crypt.Base = (cast cnx.getProtocol().socket).__crypt;
+		var aes : crypt.IMode = (cast cnx.getProtocol().socket).__crypt;
 		var eMsgLen = encMsgLength(buf.charCodeAt(pos),buf.charCodeAt(pos+1));
 		if(eMsgLen == null)
 			return null;

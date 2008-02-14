@@ -1,5 +1,4 @@
 import crypt.Aes;
-import crypt.Sha;
 import haxe.remoting.EncRemotingAdaptor;
 
 enum Status {
@@ -53,7 +52,7 @@ class ClientData {
 		var valid = false;
 		var textpswd = "";
 		for(p in validPasswords) {
-			if(hPassword == Sha.calcSha1(p)) {
+			if(hPassword == hash.Sha1.encode(p)) {
 				valid = true;
 				textpswd = p;
 				break;
@@ -70,7 +69,7 @@ class ClientData {
 		// instruct client that any further message, after this one itself
 		// will be encrypted.
 		client.api.startEncSession();
-		client.adaptor.startCrypt(new Aes(128,textpswd));
+		client.adaptor.startCrypt(new crypt.ModeCBC(new Aes(128,textpswd)));
 		client.serverapi = new PostAuthApi(client);
 		client.remotingserver.addObject("api",client.serverapi);
 		return true;
