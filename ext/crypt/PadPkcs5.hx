@@ -46,7 +46,7 @@ class PadPkcs5 implements IPad {
 
 	public function unpad( s : String ) : String {
 		if( s.length % blockSize != 0)
-			throw "buffer not multiple of block size";
+			throw "PadPkcs5 " + here.methodName + ": buffer length "+s.length+" not multiple of block size " + blockSize;
 		var c = s.charCodeAt(s.length-1);
 		var i = c;
 		var pos = s.length - 1;

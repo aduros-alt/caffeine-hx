@@ -159,11 +159,12 @@ class ByteStringTools {
 	/**
 		Dump a string into hex bytes
 	**/
-	public static function hexDump(data : String) {
+	public static function hexDump(data : String, ?noSpace:Bool) {
 		var sb = new StringBuf();
 		for(i in 0...data.length) {
 			sb.add(StringTools.hex(data.charCodeAt(i),2));
-			sb.add(" ");
+			if(!noSpace)
+				sb.add(" ");
 		}
 		return StringTools.rtrim(sb.toString());
 	}

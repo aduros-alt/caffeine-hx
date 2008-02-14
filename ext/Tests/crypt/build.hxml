@@ -8,6 +8,13 @@
 -js test.js
 -main CryptTest
 
+--next
+
+-cp ../../
+-swf test9.swf
+-swf-version 9
+-main CryptTest
+
 
 
 

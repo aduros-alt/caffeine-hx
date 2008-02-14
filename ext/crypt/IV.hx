@@ -27,30 +27,44 @@
 
 package crypt;
 
+private enum IvState {
+	IV_UNINIT;
+	IV_BLOCK;
+	IV_STREAM_UNINIT;
+	IV_STREAMcipherONTINUE;
+}
+
 /**
 	IV itself is not a block encryptor, and should not be called directly.
 	Use a Mode that extends IV, like ModeCBC
 **/
-class IV implements IMode {
+class IV {
 	/** Setting the iv value only affects the next encryption process.
 		The value returned from a get may not match the last set. Once
 		an ecryption is complete, the next get on iv will reflect the
 		changes.
 	**/
-	public var iv(getIV, setNextIV) : String;
-	var crypt 		: ISymetrical;
-	var pad 		: IPad;
+	public var iv(getIV, setNextIV) 	: String;
+	public var cipher(default,null) 	: ISymetrical;
+	public var padding				 	: IPad;
 	var prepend 	: Bool;
+	var startIV		: String;
+	var currentIV	: String;
 	var curValue	: StringBuf;
 	var nextValue	: StringBuf;
+	var state		: IvState;
 
-	public function new(symcrypt: ISymetrical, ?pad : IPad) {
-		crypt = symcrypt;
-		if(pad == null)
-			pad = new PadPkcs5(crypt.blockSize);
-		this.pad = pad;
-		pad.blockSize = crypt.blockSize;
+	public function new(symcrypt: ISymetrical, ?padMethod : IPad) {
+		if(symcrypt == null)
+			throw "null crypt";
+		cipher = symcrypt;
+		if(padMethod == null)
+			padding = new PadPkcs5(cipher.blockSize);
+		else
+			padding = padMethod;
+		padding.blockSize = symcrypt.blockSize;
 		prepend = true;
+		state = IV_UNINIT;
 	}
 
 	/**
@@ -65,7 +79,7 @@ class IV implements IMode {
 		if(curValue == null) {
 			if(nextValue == null) {
 				var sb = new StringBuf();
-				for(x in 0...crypt.blockSize) {
+				for(x in 0...cipher.blockSize) {
 					sb.addChar(randomByte());
 				}
 				nextValue = sb;
@@ -73,24 +87,24 @@ class IV implements IMode {
 			curValue = new StringBuf();
 			curValue.add(nextValue.toString());
 			nextValue = null;
+			currentIV = curValue.toString();
 		}
 		return curValue.toString();
 	}
 
 	public function setNextIV( s : String ) : String {
-		if(s.length % crypt.blockSize != 0)
-			throw("Invalid iv length. Expected "+crypt.blockSize+ " bytes.");
+		if(s.length % cipher.blockSize != 0)
+			throw("Invalid iv length. Expected "+cipher.blockSize+ " bytes.");
 		var sb = new StringBuf();
-		//for(i in 0...s.length) {
-		//	sb.addChar(s.charCodeAt(i));
-		//}
 		sb.add(s);
 		nextValue = sb;
 		return s;
 	}
 
 	function prepareEncrypt( s : String ) : String {
-		var buf = pad.pad(s);
+		var buf = padding.pad(s);
+		if(buf.length % cipher.blockSize != 0)
+			throw here.methodName + " padding error";
 		// queues up the next iv and destroys the nextValue if it exists
 		getIV();
 		return buf;
@@ -112,12 +126,26 @@ class IV implements IMode {
 	}
 
 	function prepareDecrypt( s : String ) : String {
-		return s;
+		var buf : String;
+
+		if(prepend) {
+			var biv = s.substr(0,cipher.blockSize);
+			iv = biv;
+			if(iv != biv)
+				throw "invalid state";
+			buf = s.substr(cipher.blockSize);
+		}
+		else {
+			buf = s;
+		}
+		if(buf.length % cipher.blockSize != 0)
+			throw "length error";
+		return buf;
 	}
 
 	function finishDecrypt( s : String ) : String {
-
-		return s;
+		var buf = padding.unpad(s);
+		return buf;
 	}
 
 	// inline
@@ -125,13 +153,13 @@ class IV implements IMode {
 		return Std.int(Math.random() * 256);
 	}
 
-	public function encrypt( s : String ) : String {
-		throw "override";
-		return null;
+	public function startStreamMode() : Void {
+		if(state != IV_UNINIT)
+			throw "Cipher in initialized state";
+		state = IV_STREAM_UNINIT;
 	}
 
-	public function decrypt( s : String ) : String {
-		throw "override";
-		return null;
+	public function endStreamMode() : Void {
+		state = IV_UNINIT;
 	}
 }

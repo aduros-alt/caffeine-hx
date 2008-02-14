@@ -26,54 +26,77 @@
  */
 
 package crypt;
-import crypt.Base.CryptMode;
+//import crypt.Base.CryptMode;
 
+#if neko
+enum Keycontext {
+}
+#else true
 typedef Keycontext = {
 	var rounds : Int;
 	var rk : Array<Array<Int>>;
 };
+#end
 
-class Aes extends crypt.BaseKeylenPhrase, implements ISymetrical {
+class Aes implements ISymetrical {
 	public static var AES_BLOCK_SIZE : Int = 16;
+
+	public var keylen(default,setKeylen) : Int;
+	public var passphrase(default,setPassphrase) : String;
 	public var blockSize(default,null) : Int;
-
 	//TODO: neko needs to respect this flag
-	var usePadding : Bool;	// PKCS5 padding
-#if !neko
-	static var maxkc : Int = 8;
-	static var maxrk : Int = 14;
-
 	var initialized : Bool;
 	var encKey : Keycontext;
 	var decKey : Keycontext;
-#end
-
 
 	public function new(keylen : Int, phrase:String) {
-		super(keylen, phrase);
+		setKeylen(keylen);
+		setPassphrase(phrase);
 		blockSize = AES_BLOCK_SIZE;
-		usePadding = true;
-#if !neko
 		initialized = true;
 		initKeys();
-#end
 	}
 
-	override function setKeylen(len : Int) : Int {
+	public function toString() : String {
+		return "aes-" + keylen;
+	}
+
+	function setKeylen(len : Int) : Int {
 		if(len != 128 && len != 192 && len != 256)
-			keyLengthError();
+			throw "Invalid key length";
 		keylen = len;
-#if !neko
 		if(initialized)
 			initKeys();
-#end
 		return len;
 	}
 
-	public function encryptBlock( block : String ) : String {
+	function setPassphrase(s : String) {
+		passphrase = s;
+		if(initialized)
+			initKeys();
+		return s;
+	}
+
+	function initKeys() {
 #if neko
-		throw "Unimplemented";
-		return "";
+		encKey = stringToKey(true, keylen, untyped passphrase.__s);
+		decKey = stringToKey(false, keylen, untyped passphrase.__s);
+#else true
+		encKey = stringToKey(true, keylen, passphrase);
+		decKey = stringToKey(false, keylen, passphrase, encKey);
+#end
+	}
+
+	public function encryptBlock( block : String ) : String {
+		if(block.length != blockSize)
+			throw("bad block size");
+#if neko
+		var rv = new String(aes_encrypt_block( encKey, untyped block.__s));
+#if CAFFEINE_DEBUG
+		if(blockSize != rv.length)
+			throw("returned buffer is " + rv.length + " bytes");
+#end
+		return rv;
 #else true
 		return AESencrypt( block, encKey );
 #end
@@ -81,13 +104,18 @@ class Aes extends crypt.BaseKeylenPhrase, implements ISymetrical {
 
 	public function decryptBlock( block : String ) : String {
 #if neko
-		throw "Unimplemented";
-		return "";
+		var rv = new String(aes_decrypt_block( decKey, untyped block.__s));
+#if CAFFEINE_DEBUG
+		if(blockSize != rv.length)
+			throw("returned buffer is " + rv.length + " bytes");
+#end
+		return rv;
 #else true
 		return AESdecrypt( block, decKey );
 #end
 	}
 
+/*
 	override public function encrypt(msg : String) {
 		var rv;
 		switch(mode) {
@@ -131,30 +159,26 @@ class Aes extends crypt.BaseKeylenPhrase, implements ISymetrical {
 			return "";
 		return rv;
 	}
+*/
 
 #if neko
-
+/*
 	//value pass, value msg, value key_len
 	private static var naes_ecb_encrypt = neko.Lib.load("ncrypt","naes_ecb_encrypt",3);
 	private static var naes_ecb_decrypt = neko.Lib.load("ncrypt","naes_ecb_decrypt",3);
 	private static var naes_cbc_encrypt = neko.Lib.load("ncrypt","naes_cbc_encrypt",3);
 	private static var naes_cbc_decrypt = neko.Lib.load("ncrypt","naes_cbc_decrypt",3);
+*/
+	private static var stringToKey = neko.Lib.load("ncrypt","aes_create_key",3);
+	private static var aes_encrypt_block = neko.Lib.load("ncrypt","aes_encrypt_block",2);
+	private static var aes_decrypt_block = neko.Lib.load("ncrypt","aes_decrypt_block",2);
 
 #else true
 
+	static var maxkc : Int = 8;
+	static var maxrk : Int = 14;
 
-	override function setPassphrase(s : String) {
-		super.setPassphrase(s);
-		if(initialized)
-			initKeys();
-		return s;
-	}
-
-	function initKeys() {
-		encKey = stringToKey(passphrase, keylen, true);
-		decKey = stringToKey(passphrase, keylen, false, encKey);
-	}
-
+/*
 	public function ecb_encrypt( msg : String ) : String {
 		var buf : String;
 		if(!usePadding)
@@ -247,13 +271,13 @@ class Aes extends crypt.BaseKeylenPhrase, implements ISymetrical {
 		}
 		return sb.toString();
 	}
-
+*/
 	/**
 		Transform a string to a key. If making a decryption key, and the encrypt key
 		for the same string and keylen exists, it may be passes in context to
 		reduce key generation time.
 	**/
-	static function stringToKey( s : String, keylen : Int, encrypt : Bool, ?context : Keycontext ) : Keycontext
+	static function stringToKey(  encrypt : Bool, keylen : Int, s : String,  ?context : Keycontext ) : Keycontext
 	{
 		var sb = new StringBuf();
 		//string len max 32 bytes

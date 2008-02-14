@@ -28,25 +28,34 @@
 package crypt;
 
 class ModeECB implements IMode {
-	var crypt : ISymetrical;
-	var pad : IPad;
+	public var cipher(default,null)	: ISymetrical;
+	public var padding				: IPad;
 
-	public function new(crypt: ISymetrical, ?pad : IPad) {
-		this.crypt = crypt;
-		if(pad == null)
-			pad = new PadPkcs5(crypt.blockSize);
-		this.pad = pad;
-		pad.blockSize = crypt.blockSize;
+	public function new(symcrypt: ISymetrical, ?padMethod : IPad) {
+		if(symcrypt == null)
+			throw "null crypt";
+		cipher = symcrypt;
+		if(padMethod == null)
+			padding = new PadPkcs5(symcrypt.blockSize);
+		else
+			padding = padMethod;
+		padding.blockSize = symcrypt.blockSize;
+	}
+
+	public function toString() {
+		if(cipher != null)
+			return Std.string(cipher) + "-ecb";
+		return "???-???-ecb";
 	}
 
 	public function encrypt( s : String ) : String {
-		var buf = pad.pad(s);
-		var bsize = crypt.blockSize;
+		var buf = padding.pad(s);
+		var bsize = cipher.blockSize;
 		var numBlocks = Std.int(buf.length/bsize);
 		var offset : Int = 0;
 		var sb = new StringBuf();
 		for (i in 0...numBlocks) {
-			var rv = crypt.encryptBlock(buf.substr(offset, bsize));
+			var rv = cipher.encryptBlock(buf.substr(offset, bsize));
 			offset += bsize;
 			sb.add(rv);
 		}
@@ -54,18 +63,22 @@ class ModeECB implements IMode {
 	}
 
 	public function decrypt( s : String ) : String {
-		var bsize = crypt.blockSize;
+		var buf = s;
+		var bsize = cipher.blockSize;
 		if(buf.length % bsize != 0)
 			throw "Invalid buffer length";
 		var numBlocks = Std.int(buf.length/bsize);
 		var offset : Int = 0;
 		var sb = new StringBuf();
 		for (i in 0...numBlocks) {
-			var rv = crypt.decryptBlock(buf.substr(offset, bsize));
+			var rv = cipher.decryptBlock(buf.substr(offset, bsize));
 			offset += bsize;
 			sb.add(rv);
 		}
-		return pad.unpad(sb.toString());
+		return padding.unpad(sb.toString());
 	}
 
+	// These have no effect when using ECB mode.
+	public function startStreamMode() : Void {}
+	public function endStreamMode() : Void {}
 }

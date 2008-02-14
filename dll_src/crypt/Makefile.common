@@ -37,7 +37,7 @@ luatests:
 install:
 	cp $(NDLL) ../../ext/ndll/$(ARCH)/
 
-install-dev:
+install-dev: $(NDLL)
 	cp $(NDLL) $(CAFFEINE_NDLL_DIR)
 
 

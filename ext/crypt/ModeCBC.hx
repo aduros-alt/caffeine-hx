@@ -32,9 +32,15 @@ class ModeCBC extends IV, implements IMode {
 		super(symcrypt, pad);
 	}
 
-	override public function encrypt( s : String ) : String {
+	public function toString() {
+		if(cipher != null)
+			return Std.string(cipher) + "-cbc";
+		return "???-???-cbc";
+	}
+
+	public function encrypt( s : String ) : String {
 		var buf = prepareEncrypt( s );
-		var bsize = crypt.blockSize;
+		var bsize = cipher.blockSize;
 		var numBlocks = Std.int(buf.length/bsize);
 		var offset : Int = 0;
 		var sb = new StringBuf();
@@ -42,40 +48,38 @@ class ModeCBC extends IV, implements IMode {
 		var curIV = iv;
 		for (i in 0...numBlocks) {
 			var sb2 = new StringBuf();
-			for(x in 0...crypt.blockSize) {
+			for(x in 0...cipher.blockSize) {
 				var bc : Int = buf.charCodeAt(offset + x);
 				var ic : Int = curIV.charCodeAt(x);
 				sb2.addChar( bc ^ ic );
 			}
-			var outBuffer = crypt.encryptBlock(sb2.toString());
+			var outBuffer = cipher.encryptBlock(sb2.toString());
 			sb.add(outBuffer);
 			curIV = outBuffer;
-			offset += crypt.blockSize;
+			offset += cipher.blockSize;
 		}
 		return finishEncrypt(sb);
 	}
 
-	override public function decrypt( s : String ) : String {
+	public function decrypt( s : String ) : String {
 		var buf = prepareDecrypt( s );
-		var bsize = crypt.blockSize;
+		var bsize = cipher.blockSize;
 		if(buf.length % bsize != 0)
 			throw "Invalid buffer length";
 		var numBlocks = Std.int(buf.length/bsize);
 		var offset : Int = 0;
 		var sb = new StringBuf();
 
-		var curIV = iv;
 		for (i in 0...numBlocks) {
-			var rv = crypt.decryptBlock(buf.substr(offset, bsize));
+			var rv = cipher.decryptBlock(buf.substr(offset, bsize));
 			var sb2 = new StringBuf();
-			for(x in 0...crypt.blockSize) {
-				sb2.addChar( rv.charCodeAt(x) ^ curIV.charCodeAt(x));
+			for(x in 0...cipher.blockSize) {
+				sb2.addChar( rv.charCodeAt(x) ^ currentIV.charCodeAt(x));
 			}
-			sb.add(sb2.toString);
-			curIV = buf.substr(offset, crypt.blockSize);
+			sb.add(sb2.toString());
+			currentIV = buf.substr(offset, cipher.blockSize);
 			offset += bsize;
 		}
-		return pad.unpad(sb.toString());
+		return finishDecrypt(sb.toString());
 	}
-
 }

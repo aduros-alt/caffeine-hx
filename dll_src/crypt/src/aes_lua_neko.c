@@ -170,6 +170,100 @@ char *aes_decode_decrypt_buffer(char *buf, size_t buf_len, size_t *rec_len) {
 	return(buf + AES_BLOCK_SIZE);
 }
 
+#ifdef NEKO
+
+DEFINE_KIND(k_aeskey);
+DEFINE_KIND(k_aescipher);
+
+#define E_NO_MEM() val_throw(alloc_string("out of memory"))
+#define THROW(x) val_throw(alloc_string(x))
+
+#define val_aeskey(o)	(keyInstance *)val_data(o)
+
+static void destroy_key(value nekoKey) {
+	keyInstance *key;
+	if(!val_is_kind(nekoKey, k_aeskey))
+		return;
+	key = val_aeskey(nekoKey);
+	memset(key, 0, sizeof(keyInstance));
+	free(key);
+	val_kind(nekoKey) = NULL;
+}
+
+static value aes_create_key(value forEncrypt, value keyLen, value keyMaterial) {
+	keyInstance *key;
+	const char *key_material;
+	int key_length = 128;
+	value v;
+	BYTE direction;
+
+	val_check(forEncrypt, bool);
+	val_check(keyLen, int);
+	val_check(keyMaterial, string);
+
+	if( val_bool(forEncrypt) ) {
+		direction = DIR_ENCRYPT;
+	}
+	else {
+		direction = DIR_DECRYPT;
+	}
+
+	key = (keyInstance *)malloc(sizeof(keyInstance));
+	if(key == NULL)
+		E_NO_MEM();
+
+	if(!val_is_null(keyLen)) {
+		key_length = val_int(keyLen);
+	}
+	if(key_length != 128 && key_length != 192 && key_length != 256)
+		THROW("Invalid key length");
+
+	if(val_strlen(keyMaterial) < 1)
+		THROW("No key material");
+
+	memToKey(key, direction, key_length, val_string(keyMaterial), val_strlen(keyMaterial));
+
+	v = alloc_abstract(k_aeskey, key);
+	val_gc(v, destroy_key);
+	return v;
+}
+DEFINE_PRIM(aes_create_key,3);
+
+static value aes_encrypt_block(value nekoKey, value sBlock) {
+	keyInstance *key;
+	BYTE outBuffer[AES_BLOCK_SIZE];
+
+	val_check_kind(nekoKey, k_aeskey);
+	val_check(sBlock, string);
+	key = val_aeskey(nekoKey);
+
+	if(val_strlen(sBlock) != AES_BLOCK_SIZE)
+		THROW("block size incorrect");
+	if(key->direction != DIR_ENCRYPT)
+		THROW("not an encryption key");
+	rijndaelEncrypt(key->rk, key->Nr, (BYTE *)val_string(sBlock), outBuffer);
+	return copy_string(outBuffer, AES_BLOCK_SIZE);
+}
+DEFINE_PRIM(aes_encrypt_block, 2);
+
+static value aes_decrypt_block(value nekoKey, value sBlock) {
+	keyInstance *key;
+	BYTE outBuffer[AES_BLOCK_SIZE];
+
+	val_check_kind(nekoKey, k_aeskey);
+	val_check(sBlock, string);
+	key = val_aeskey(nekoKey);
+
+	if(val_strlen(sBlock) != AES_BLOCK_SIZE)
+		THROW("block size incorrect");
+	if(key->direction != DIR_DECRYPT)
+		THROW("not a decryption key");
+	rijndaelDecrypt(key->rk, key->Nr, (BYTE *)val_string(sBlock), outBuffer);
+	return copy_string(outBuffer, AES_BLOCK_SIZE);
+}
+DEFINE_PRIM(aes_decrypt_block, 2);
+
+#endif
 
 /**
 *  Encrypt function
@@ -180,6 +274,8 @@ char *aes_decode_decrypt_buffer(char *buf, size_t buf_len, size_t *rec_len) {
 *  MODE_ECB MODE_CBC MODE_CFB1
 */
 #ifdef NEKO
+
+
 static value naes_encrypt(value pass, value msg, value key_len, int mode) {
 	size_t msg_length;
 	size_t pwd_length;

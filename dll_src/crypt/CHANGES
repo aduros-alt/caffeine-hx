@@ -1,0 +1,3 @@
+2008-02-14:
+- created neko methods aes_block_encrypt and aes_block_decrypt for new haxe crypt class structure
+

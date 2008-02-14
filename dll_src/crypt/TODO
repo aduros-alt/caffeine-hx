@@ -1,0 +1,2 @@
+2008-02-14
+- add aes_(en/de)crypt_block functions for LUA
