@@ -31,6 +31,9 @@ import haxe.remoting.SocketConnection;
 import haxe.remoting.SocketProtocol;
 import crypt.IMode;
 
+/**
+	An encrypted version of Haxe remoting.
+**/
 class EncRemotingAdaptor {
 	public var sc(default,null) : SocketConnection;
 	var sp : SocketProtocol;
@@ -46,17 +49,17 @@ class EncRemotingAdaptor {
 		sp.sendAnswer = me.sendAnswer;
 	}
 
-
-
 	//////////////////////////////
 	//  Encryption support      //
 	//////////////////////////////
+	/**
+		Begin encryption on the remoting connection.
+	**/
 	public function startCrypt(cipherMode : crypt.IMode) {
 		this.cipherMode = cipherMode;
 
 		// output side, override SocketProtocol.sendMessage
 		sp.sendMessage = sendMessageEnc;
-		//scnx.getProtocol().sendMessage = callback(sendMessageEnc,scnx.getProtocol());
 
 		// input side, add a crypt.IMode object to the socket
 		// in SocketConnection.getProtocol().socket
@@ -65,9 +68,16 @@ class EncRemotingAdaptor {
 			cipherMode);
 	}
 
+	/**
+		Returns true if the connection is currently being encrypted
+	**/
 	public function isCrypted() : Bool {
 		return Reflect.hasField(sp.socket, "__crypt");
 	}
+
+	/**
+		Check if any given SocketConnection is crypted
+	**/
 	public static function isCryptedConnection(cnx : SocketConnection) : Bool {
 		return Reflect.hasField(cnx.getProtocol().socket, "__crypt");
 	}
@@ -215,8 +225,10 @@ class EncRemotingAdaptor {
 	}
 
 #if (flash || js)
-	// to use the adaptor, instead of using SocketConnection.socketConnect,
-	// this function must be called. Ref SocketConnection
+	/**
+		To use the adaptor, instead of using SocketConnection.socketConnect,
+		this function must be called.
+	**/
 	static public function flashJsSocketConnect( s : Socket ) {
 		var sc = untyped { new SocketConnection(new SocketProtocol(s), []); }
 		Reflect.setField(sc,"__funs",new List<Dynamic -> Void>());

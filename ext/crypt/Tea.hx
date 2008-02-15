@@ -26,93 +26,143 @@
  */
 
 package crypt;
-class Tea extends BasePhrase {
-	public function new(password) {
-		super(password);
-	}
 
-	public function encrypt(plaintext : String) : String {
-		if (plaintext.length == 0) return('');
-		// 'escape' plaintext so chars outside ISO-8859-1
-		// work in single-byte packing, but keep
-		// spaces as spaces (not '%20') so encrypted
-		//text doesn't grow too long (quick & dirty)
-		//var asciitext = escape(plaintext).replace(/%20/g,' ');
-		var asciitext = StringTools.urlEncode(plaintext);
-		var er : EReg = ~/%20/g;
-		asciitext = er.replace(asciitext,' ');
-trace(asciitext);
-
-		// convert to array of longs
-		var v = ByteStringTools.strToInt32(asciitext);
-trace(v);
-		if (v.length <= 1)
 #if neko
-			v[1] = neko.Int32.ofInt(0);
-#else true
-			v[1] = 0;
+import neko.Int32;
+
+enum XXTeaKey {
+}
 #end
 
-		// simply convert first 16 chars of passphrase as key
-		var k = ByteStringTools.strToInt32(passphrase.substr(0,16));
+class Tea implements ISymetrical {
+#if neko
+	var k : XXTeaKey;
+#else true
+	var k : Array<Int>; // 16 bytes of key material
+#end
+	public var blockSize(default,setBlocksize) : Int;
+
+	public function new(key : String) {
+#if !neko
+		k = ByteStringTools.strToInt32(
+				ByteStringTools.nullPadString(key.substr(0,16), 16)
+		);
+#else true
+		var m = ByteStringTools.strToInt32(
+				ByteStringTools.nullPadString(key.substr(0,16), 16)
+		);
+		k = xxtea_create_key(I32.mkNekoArray(m));
+#end
+		blockSize = 8;
+	}
+
+	public function toString() : String {
+		return "xxtea";
+	}
+
+	public function setBlocksize( i : Int ) : Int {
+		if(i == 0 || i % 4 != 0)
+			throw "xxtea: block size must be multiple of 4";
+		blockSize = i;
+		return i;
+	}
+
+#if neko
+	public function encryptBlock(plaintext : String) : String {
+		if (plaintext.length == 0) return('');
+		var v : Array<neko.Int32> = ByteStringTools.strToInt32(plaintext);
 		var n = v.length;
+		if (n == 1)
+			v[n++] = neko.Int32.ofInt(0);
+		var rv = xxtea_encrypt_block(
+				I32.mkNekoArray(v),
+				n,
+				k);
+		return new String(rv);
+	}
+#else true
+	public function encryptBlock(plaintext : String) : String {
+		if (plaintext.length == 0) return('');
+		var v = ByteStringTools.strToInt32(plaintext);
+		var n = v.length;
+		if (n == 1)
+			v[n++] = 0;
 
-		var z = v[n-1], y = v[0], delta = 0x9E3779B9;
-		var mx, e, q = Math.floor(6 + 52/n), sum = 0;
+		var delta = 0x9e3779B9;
+		var e : Int;
+		var mx : Int;
+		var q = Std.int(6 + 52/n);
+		var y = v[0];
+		var z = v[n-1];
+		var sum = 0;
 
-		// 6 + 52/n operations gives between 6 & 32 mixes
-		// on each word
 		while (q-- > 0) {
 			sum += delta;
-			e = sum>>>2 & 3;
-			for(p in 0...n) {
-				y = v[(p+1)%n];
-				mx = (z>>>5 ^ y<<2) + (y>>>3 ^ z<<4) ^ (sum^y) + (k[p&3 ^ e] ^ z);
+			e = sum >>> 2 & 3;
+			//for (p=0; p<n-1; p++) y = v[p+1], z = v[p] += MX;
+			var p = 0;
+			while(p < n-1) {
+				y = v[(p+1)];
+				mx = (((z>>>5)^(y<<2)) + ((y>>>3)^(z<<4))) ^ ((sum^y) + (k[(p&3)^e]^z));
 				z = v[p] += mx;
+				p ++;
 			}
+			y = v[0];
+			z = v[n-1] += (z>>>5 ^ y<<2) + (y>>>3 ^ z<<4) ^ (sum^y) + (k[p&3^e]^z);
 		}
-
-		var ciphertext = ByteStringTools.int32ToString(v);
-
-		return ciphertext;
-		//return Base.escCtrlCh(ciphertext);
+		return ByteStringTools.int32ToString(v);
 	}
+#end
 
-	//
-	// TEAdecrypt: Use Corrected Block TEA to decrypt ciphertext
-	//
-	public function decrypt(ciphertext : String) : String
+#if neko
+	public function decryptBlock(ciphertext : String) : String {
+		if (ciphertext.length == 0) return('');
+		var v = ByteStringTools.strToInt32(ciphertext);
+		var n = v.length;
+		var rv = xxtea_decrypt_block(
+				I32.mkNekoArray(v),
+				n,
+				k);
+		return new String(rv);
+	}
+#else true
+	public function decryptBlock(ciphertext : String) : String
 	{
 		if (ciphertext.length == 0) return('');
-		//var v = strToLongs(unescCtrlCh(ciphertext));
 		var v = ByteStringTools.strToInt32(ciphertext);
-		var k = ByteStringTools.strToInt32(passphrase.substr(0,16));
 		var n = v.length;
 
-		var z = v[n-1], y = v[0], delta = 0x9E3779B9;
-		var mx, e, q = Math.floor(6 + 52/n), sum = q*delta;
+		var delta = 0x9e3779B9;
+		var e : Int;
+		var mx : Int;
+		var q = Std.int(6 + 52/n);
+		var y = v[0];
+		var z = v[n-1];
+		var sum = q * delta;
 
 		while (sum != 0) {
-			e = sum>>>2 & 3;
+			e = sum >>> 2 & 3;
 			var p = n - 1;
-			while(p-->=0) {
-			//for (var p = n-1; p >= 0; p--) {
-				z = v[p>0 ? p-1 : n-1];
-				mx = (z>>>5 ^ y<<2) + (y>>>3 ^ z<<4) ^ (sum^y) + (k[p&3 ^ e] ^ z);
+			while(p > 0 ) {
+				z = v[p-1];
+				//mx = (z>>>5 ^ y<<2) + (y>>>3 ^ z<<4) ^ (sum^y) + (k[p&3^e]^z);
+				mx = (((z>>>5)^(y<<2)) + ((y>>>3)^(z<<4))) ^ ((sum^y) + (k[(p&3)^e]^z));
 				y = v[p] -= mx;
+				p--;
 			}
+			z = v[n-1];
+			y = v[0] -= (z>>>5 ^ y<<2) + (y>>>3 ^ z<<4) ^ (sum^y) + (k[p&3^e]^z);
 			sum -= delta;
 		}
-
-		var plaintext = ByteStringTools.int32ToString(v);
-
-		// strip trailing null chars resulting
-		//from filling 4-char blocks:
-		var er : EReg = ~/\0+$/;
-		plaintext = er.replace(plaintext,'');
-
-		return StringTools.urlDecode(plaintext);
+		return ByteStringTools.int32ToString(v);
 	}
+#end
 
+#if neko
+	private static var xxtea_create_key = neko.Lib.load("ncrypt","xxtea_create_key",1);
+
+	private static var xxtea_encrypt_block = neko.Lib.load("ncrypt","xxtea_encrypt_block",3);
+	private static var xxtea_decrypt_block = neko.Lib.load("ncrypt","xxtea_decrypt_block",3);
+#end
 }
 

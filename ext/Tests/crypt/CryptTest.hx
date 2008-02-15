@@ -2,6 +2,7 @@ import crypt.Aes;
 import crypt.ModeECB;
 import crypt.ModeCBC;
 import crypt.IMode;
+import crypt.Tea;
 
 enum CryptMode {
 	CBC;
@@ -52,14 +53,14 @@ class AesTestFunctions extends haxe.unit.TestCase {
 	static var ivstr = "00000000000000000000000000000000";
 
 	static var b : Array<Int> = [128,192,256];
-	static var msgs : Array<String> = [
+	public static var msgs : Array<String> = [
 		"yo\n",
 		"what is there for you to do?\n",
 		"0123456789abcdef",
 		"ewjkhwety sdfhjsdrkj qweiruqwer iasd faif aoif aijsdfj aiojsfd iaojsdf iojaf iojas oifjaif jasdjf sdoijf osidjf oisdjf sdjfisjdfisj doifjs oidfjosidjf oisjdf oisjdoif jasiojoijjuioasjf asjf ijasjf oaijsdfi odajfioajfdio ajsdifj :#&$&#&*($&\n",
 		"The quick brown fox jumped over the lazy dog. The quick brown fox jumped over the lazy dog again.",
 	];
-	static var phrases : Array<String> = [
+	public static var phrases : Array<String> = [
 		"pass",
 		"eiwe",
 		"ewrkhoiuewqo etuiwehru asfdjha ewr",
@@ -184,19 +185,57 @@ class AesTestFunctions extends haxe.unit.TestCase {
 
 }
 
-#if havesometea
 class TeaTestFunctions extends haxe.unit.TestCase {
 	public function testOne() {
-		var s = "Whoa there nellie. Have some tea";
+		//var s = "Whoa there nellie. Have some tea";
+		var s = "Message";
 		var t = new Tea("This is my passphrase");
-		var enc = t.encrypt(s);
-		var dec = t.decrypt(enc);
+/*
+trace('');
+var te = t.encryptBlock( s );
+trace("Hex dump");
+trace(ByteStringTools.hexDump(te));
+var td = t.decryptBlock(te);
+trace("Raw td");
+trace(td);
+trace("Hex dump");
+trace(ByteStringTools.hexDump(td));
+*/
+		var tea = new ModeECB( t );
+		var e = tea.encrypt(s);
 
-		assertTrue(s != enc);
-		assertEquals(s, dec);
+trace(ByteStringTools.hexDump(e));
+
+		var d = tea.decrypt(e);
+
+		assertTrue(s != e);
+		assertEquals(s, d);
+	}
+
+	public function testEcbAll() {
+		for(phrase in AesTestFunctions.phrases) {
+			for(msg in AesTestFunctions.msgs) {
+				assertEquals( true,
+						doTestTea(phrase, msg, ECB)
+				);
+			}
+		}
+	}
+
+	static function doTestTea(phrase, msg, mode) {
+		var t = new Tea(phrase);
+		var tea : IMode;
+		switch(mode) {
+		case CBC: tea = cast { var c = new ModeCBC(t); c.iv = ByteStringTools.nullString(16); c; }
+		case ECB: tea = cast new ModeECB(t);
+		}
+		var enc = tea.encrypt(msg);
+		var dec = tea.decrypt(enc);
+		if(dec == msg)
+			return true;
+		return false;
 	}
 }
-#end
 
 class CryptTest {
 
@@ -206,14 +245,10 @@ class CryptTest {
 			haxe.Firebug.redirectTraces();
 		}
 #end
-
 		var r = new haxe.unit.TestRunner();
 		r.add(new ByteStringToolsFunctions());
 		r.add(new AesTestFunctions());
-#if havesometea
 		r.add(new TeaTestFunctions());
-#end
 		r.run();
-
 	}
 }

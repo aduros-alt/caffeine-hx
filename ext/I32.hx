@@ -293,4 +293,22 @@ class I32 {
 		return Std.ord(s.substr(pos,1));
 	}
 
+#if neko
+	/**
+		Create a neko array of Int32
+	**/
+	public static function mkNekoArray( a : Array<neko.Int32> ) {
+		if( a == null )
+			return null;
+		untyped {
+			var r = __dollar__amake(a.length);
+			var i = 0;
+			while( i < a.length ) {
+				r[i] = a[i];
+				i += 1;
+			}
+			return r;
+		}
+	}
+#end
 }

@@ -1,5 +1,5 @@
 /**
-TEA implementation 
+TEA implementation
 Released into the public domain by David Wheeler and Roger Needham
 This version is the block corrected or 'xxtea'
 **/
@@ -19,24 +19,159 @@ This version is the block corrected or 'xxtea'
 #ifdef NEKO
 #       include <neko/neko.h>
 
-/*
-static value ntea_encrypt (value pass, value msg) 
-{
-        val_check(pass, string);
-        val_check(msg, string);
+#define E_NO_MEM() val_throw(alloc_string("out of memory"))
+#define THROW(x) val_throw(alloc_string(x))
 
-        pwd_length = val_strlen(pass);
-        msg_length = val_strlen(msg);
-        const char *password= val_string(pass);
-        const char *message = val_string(msg);
+DEFINE_KIND(k_xxteakey);
 
-	//v is the n word data vector, k is the 4 word key, 
-	//n is # of words, negative for decoding
-	xxtea(int32_t* v, int32_t n, int32_t* k);
+#define val_xxteakey(o)	(u_int32_t *)val_data(o)
+
+static void destroy_key(value nekoKey) {
+	u_int32_t *key;
+	if(!val_is_kind(nekoKey, k_xxteakey))
+		return;
+	key = val_xxteakey(nekoKey);
+	memset(key, 0, 4 * sizeof(u_int32_t));
+	free(key);
+	val_kind(nekoKey) = NULL;
 }
-DEFINE_PRIM(ntea_encrypt,2);
-DEFINE_PRIM(ntea_decrypt,2);
+
+static value xxtea_create_key(value Int32Array) {
+	u_int32_t* k;
+	int x;
+
+	if( !val_is_array(Int32Array) )
+		THROW("key is not array");
+	if( val_array_size(Int32Array) != 4)
+		THROW("key must be 16 bytes");
+	k = (u_int32_t*)malloc(val_array_size(Int32Array) * sizeof(u_int32_t));
+	for(x = 0; x<val_array_size(Int32Array); x++) {
+		value i = val_array_ptr(Int32Array)[x];
+		if( !val_is_int32(i) )
+			THROW("not int32");
+		k[x] = val_int32(i);
+	}
+	value v = alloc_abstract(k_xxteakey, k);
+	val_gc(v, destroy_key);
+	return v;
+}
+DEFINE_PRIM(xxtea_create_key,1);
+
+#define W_NOT_ARRAY 1
+#define W_COUNT_MISMATCH 2
+#define W_NOT_INT32 3
+#define W_NO_MEM 4
+#define W_DATA_LEN 5
+
+static int xxtea_make_array(value Words, value Count, u_int32_t** v) {
+	u_int32_t x;
+	u_int32_t n;
+	if(! val_is_array(Words))
+		return W_NOT_ARRAY;
+		//THROW("xxtea_encrypt_block: v is not array");
+	n = val_array_size(Words);
+	if( n != val_int(Count))
+		return W_COUNT_MISMATCH;
+	if( n < 2 )
+		return W_DATA_LEN;
+	if(v == NULL)
+		return W_NO_MEM;
+
+	u_int32_t *mem = (u_int32_t*)malloc(n * sizeof(u_int32_t));
+	if(mem == NULL)
+		return W_NO_MEM;
+	for(x=0; x<n; x++) {
+		value i = val_array_ptr(Words)[x];
+		if( !val_is_int32(i) ) {
+			free(mem);
+			return W_NOT_INT32;
+		}
+		mem[x] = val_int32(i);
+	}
+	*v = mem;
+	return 0;
+}
+
+/**
+*  Block encrypt function
+*  @param Words: LE packed plaintext
+*  @param Count: length of Words array
+*  @param Key: LE packed key
+*  @return LE packed string.
 */
+static value xxtea_encrypt_block(value Words, value Count, value Key)
+{
+	u_int32_t* v;
+	u_int32_t  n;
+	u_int32_t* k;
+	u_int32_t  x;
+	val_check(Count, int);
+	val_check_kind(Key, k_xxteakey);
+
+	//v is the n word data vector, k is the 4 word key,
+	//n is # of words, negative for decoding
+	n = val_array_size(Words);
+	if(n == 0)
+		return alloc_string("");
+	k = val_xxteakey(Key);
+	x = xxtea_make_array( Words, Count, &v);
+	if(x) {
+		switch(x) {
+		case W_NOT_ARRAY: THROW("not array"); break;
+		case W_COUNT_MISMATCH: THROW("array count mismatch"); break;
+		case W_NOT_INT32: THROW("not int32"); break;
+		case W_DATA_LEN: THROW("array count < 2"); break;
+		case W_NO_MEM: E_NO_MEM(); break;
+		default: THROW("unhandled error"); break;
+		}
+	}
+	xxtea(v, n, k);
+	value rv = copy_string((const char *)v, n * sizeof(u_int32_t));
+	free(v);
+	return rv;
+}
+DEFINE_PRIM(xxtea_encrypt_block,3);
+
+/**
+*  Block decrypt function
+*  @param Words: LE packed ciphertext
+*  @param Count: length of Words array
+*  @param Key: LE packed key
+*  @return LE packed string.
+*/
+static value xxtea_decrypt_block(value Words, value Count, value Key)
+{
+	u_int32_t* v;
+	u_int32_t  n;
+	u_int32_t* k;
+	u_int32_t  x;
+	val_check(Count, int);
+	val_check_kind(Key, k_xxteakey);
+
+	//v is the n word data vector, k is the 4 word key,
+	//n is # of words, negative for decoding
+	n = val_array_size(Words);
+	if(n == 0)
+		return alloc_string("");
+	k = val_xxteakey(Key);
+	x = xxtea_make_array( Words, Count, &v);
+	if(x) {
+		switch(x) {
+		case W_NOT_ARRAY: THROW("not array"); break;
+		case W_COUNT_MISMATCH: THROW("array count mismatch"); break;
+		case W_NOT_INT32: THROW("not int32"); break;
+		case W_DATA_LEN: THROW("array count < 2"); break;
+		case W_NO_MEM: E_NO_MEM(); break;
+		default: THROW("unhandled error"); break;
+		}
+	}
+	xxtea(v, 0-n, k);
+	value rv = copy_string((const char *)v, n * sizeof(u_int32_t));
+	free(v);
+	return rv;
+}
+DEFINE_PRIM(xxtea_decrypt_block,3);
+
 
 #elif defined(LUA)
 #       include "lua.h"
@@ -55,99 +190,9 @@ void tea_copy(const BYTE* orig, BYTE *dest, u_int32_t len) {
     } u;
     u.l = 1;
     //return (u.c[sizeof (long) - 1] == 1);
+}
 
 /*
-	int be = be_test();
-	if(be) {
-	}
-	else {
-	}
-*/
-}
-
-BYTE* tea_prepare_source_buffer(const BYTE* orig, u_int32_t len, u_int32_t *outBufLen) {
-	BYTE padbytes;
-	int rem;
-	u_int32_t blocks;
-
-	if(len == 0) {
-		*outBufLen = 0;
-		return NULL;
-	}
-	blocks = len/TEA_BLOCK_SIZE;
-	rem = len % TEA_BLOCK_SIZE;
-	padbytes = 0;
-
-	if(rem == 0) {
-		padbytes = TEA_BLOCK_SIZE;
-		blocks++;
-	}
-	else
-		padbytes = TEA_BLOCK_SIZE - rem;
-
-	if(blocks == 0) {
-		blocks = 2;
-		padbytes += TEA_BLOCK_SIZE;
-	}
-	else if(blocks == 1) {
-		blocks = 2;
-	}
-
-	if(blocks * TEA_BLOCK_SIZE < len) {
-		*outBufLen = 0;
-		return NULL;
-	}
-	assert(padbytes <= (2 * TEA_BLOCK_SIZE));
-	assert(blocks >= 2);
-
-	BYTE *buf = (BYTE *)malloc(blocks * TEA_BLOCK_SIZE);
-	memset(buf, padbytes, blocks * TEA_BLOCK_SIZE);
-	memcpy(buf, orig, (size_t)len);
-
-	*outBufLen = blocks * TEA_BLOCK_SIZE;
-	return buf;
-}
-
-BYTE *xxtea_encrypt(const BYTE* orig, size_t inputLen, size_t *finallen, int32_t *key) {
-	BYTE *buf;
-	u_int32_t outLen;
-
-	buf = tea_prepare_source_buffer(orig, inputLen, &outLen);
-	if(buf == NULL)
-		return NULL;
-	assert(outLen % TEA_BLOCK_SIZE == 0);
-
-	if(xxtea((u_int32_t*)buf, outLen % TEA_BLOCK_SIZE, key)) {
-		free(buf);
-		*finallen = 0;
-		return NULL;		
-	}
-	*finallen = outLen;
-	return (BYTE *)buf;
-}
-
-BYTE *xxtea_decrypt(const BYTE* orig, size_t len, size_t *finallen, int32_t *key) {
-	int32_t blocks = len / TEA_BLOCK_SIZE;
-	if(len % TEA_BLOCK_SIZE != 0 || blocks < 2) {
-		return NULL;
-	}
-
-
-	int32_t *buf = (int32_t *)malloc(blocks * TEA_BLOCK_SIZE);
-	memset((void *)buf,0,blocks*TEA_BLOCK_SIZE);
-
-	memcpy((BYTE *)buf, orig+TEA_BLOCK_SIZE, len - TEA_BLOCK_SIZE);
-	if(xxtea(buf, 0-blocks, key)) {
-		free(buf);
-		*finallen = 0;
-		return NULL;
-	}
-}
-
-
-/*
-btea is a block version of tean. MUST BE at least 2 words long
-It will encode or decode n words as a single block where n > 1.
 v is the n word data vector,
 k is the 4 word key.
 n is negative for decoding,
@@ -155,14 +200,15 @@ if n is zero result is 1 and no coding or decoding takes place,
 otherwise the result is zero.
 assumes 32 bit long and same endian coding and decoding
 */
-#define MX (z>>5^y<<2) + (y>>3^z<<4)^(sum^y) + (k[p&3^e]^z);
+//#define MX (z>>5^y<<2) + (y>>3^z<<4)^(sum^y) + (k[p&3^e]^z);
+#define MX (((z>>5)^(y<<2)) + ((y>>3)^(z<<4))) ^ ((sum^y) + (k[(p&3)^e]^z));
 
 int32_t xxtea(u_int32_t* v, u_int32_t n, u_int32_t* k) {
-	u_int32_t z=v[n-1], y=v[0], sum=0, e, DELTA=0x9e3779b9;
-	int32_t m, p, q ;
-	int be = be_test();
+	u_int32_t z, y=v[0], sum=0, e, DELTA=0x9e3779b9;
+	int32_t p, q ;
 
-	if(n > 1) {
+	if((int32_t)n > 1) {
+		z=v[n-1];
 		q = 6+52/n ;
  		while (q-- > 0) {
 			sum += DELTA;
@@ -176,13 +222,16 @@ int32_t xxtea(u_int32_t* v, u_int32_t n, u_int32_t* k) {
 		}
 		return 0;
 	}
-	else if(n < -1) {
+	else if((int32_t)n < -1) {
 		n = -n ;
 		q = 6+52/n ;
 		sum = q*DELTA ;
 		while (sum != 0) {
 			e = sum>>2 & 3;
-			for (p=n-1; p>0; p--) z = v[p-1], y = v[p] -= MX;
+			for (p=n-1; p>0; p--) {
+				z = v[p-1];
+				y = v[p] -= MX;
+			}
 			z = v[n-1];
 			y = v[0] -= MX;
 			sum -= DELTA;
@@ -192,33 +241,6 @@ int32_t xxtea(u_int32_t* v, u_int32_t n, u_int32_t* k) {
 	return 1;
 }
 
-
-/*
-void tea_encrypt (unsigned int32_t* v, unsigned int32_t* k) {
-     u_int32_t v0=v[0], v1=v[1], sum=0, i;           // set up 
-     u_int32_t delta=0x9e3779b9;                     // a key schedule constant 
-     u_int32_t k0=k[0], k1=k[1], k2=k[2], k3=k[3];   // cache key 
-     for (i=0; i < 32; i++) {                            // basic cycle start 
-         sum += delta;
-         v0 += ((v1<<4) + k0) ^ (v1 + sum) ^ ((v1>>5) + k1);
-         v1 += ((v0<<4) + k2) ^ (v0 + sum) ^ ((v0>>5) + k3);   // end cycle 
-     }
-     v[0]=v0; v[1]=v1;
- }
- 
-
-void tea_decrypt (u_int32_t* v, u_int32_t* k) {
-     u_int32_t v0=v[0], v1=v[1], sum=0xC6EF3720, i;  // set up 
-     u_int32_t delta=0x9e3779b9;                     // a key schedule constant 
-     u_int32_t k0=k[0], k1=k[1], k2=k[2], k3=k[3];   // cache key 
-     for (i=0; i<32; i++) {                               // basic cycle start 
-         v1 -= ((v0<<4) + k2) ^ (v0 + sum) ^ ((v0>>5) + k3);
-         v0 -= ((v1<<4) + k0) ^ (v1 + sum) ^ ((v1>>5) + k1);
-         sum -= delta;                                   // end cycle 
-     }
-     v[0]=v0; v[1]=v1;
- }
-*/
 
 /*
 v gives the plain text of 2 words,
@@ -231,7 +253,7 @@ assumes 32 bit \long" and same endian coding or decoding
 tean( int32_t * v, int32_t * k, int32_t N) {
 	u_int32_t y=v[0], z=v[1], DELTA=0x9e3779b9 ;
 	if (N>0) {
-		// coding 
+		// coding
 		u_int32_t limit=DELTA*N, sum=0 ;
 		while (sum!=limit)
 			y+= (z<<4 ^ z>>5) + z ^ sum + k[sum&3],
@@ -239,7 +261,7 @@ tean( int32_t * v, int32_t * k, int32_t N) {
 			z+= (y<<4 ^ y>>5) + y ^ sum + k[sum>>11 &3] ;
 	}
 	else {
-		// decoding 
+		// decoding
 		u_int32_t sum=DELTA*(-N) ;
 		while (sum)
 		z-= (y<<4 ^ y>>5) + y ^ sum + k[sum>>11 &3],
