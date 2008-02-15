@@ -31,9 +31,9 @@ package tools;
 	PrTool writes all PR request patches to std output.
 
 	The PR format is:
+	//BEGINPR/ID/CREATED_DATE/SUBMIT_DATE/AUTHOR/COMMENT
+	//ENDPR/ID/STATUS(N|A|R|I)/ACTION_DATE/REASON
 **/
-//BEGINPR/ID/CREATED_DATE/SUBMIT_DATE/AUTHOR/COMMENT
-//ENDPR/ID/STATUS(N|A|R|I)/ACTION_DATE/REASON
 
 typedef Creation = {
 	var date : Date;
@@ -189,6 +189,7 @@ class PrTool {
 					}
 					lastPr = processTag(s, line);
 					hasPr = true;
+					vPatch.push(s);
 				}
 				else if(closePr.match(s)) {
 					if(lastPr == null)
@@ -196,8 +197,11 @@ class PrTool {
 					var ct = processTag(s,line);
 					switch(ct) {
 					case PR_CLOSE_NEW(line, label):
+						vPatch.push(s);
 						vCaffeine = vCaffeine.concat(vPatch);
 					case PR_ACCEPTED(line, label, date):
+						// remove the open tag
+						vPatch.shift();
 						vCaffeine = vCaffeine.concat(vPatch);
 					case PR_REJECTED(line, label, date, reason):
 					case PR_IGNORE(line, label, date):

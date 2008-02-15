@@ -18,4 +18,7 @@ docs:
 	cd ext/Doc && haxedoc "../flash.xml;flash\" \"../neko.xml;neko\" \"../js.xml;js"
 	cd ext && $(RM) *.swf *.n *.js *.xml
 
-#	cd ext && mv index.html Doc/ && mv content Doc/
+tools: dummy
+	haxe tools.hxml
+
+dummy:
