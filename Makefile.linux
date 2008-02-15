@@ -11,7 +11,16 @@ clean-kate:
 clean-neko:
 	find . -name "*.n" -exec rm {} \;
 
-distclean: clean clean-kate clean-neko
+clean-docs:
+	cd ext/Doc && $(RM) index.html && $(RM) -r content
+
+clean-dllbuilds:
+	cd dll_src && find . -name "*.ndll" -exec rm {} \;
+
+clean-exttests:
+	cd ext/Tests && haxe build.hxml && neko maintain.n --clean && $(RM) maintain.n
+
+distclean: clean clean-kate clean-neko clean-dllbuilds clean-docs
 
 docs:
 	cd ext && haxe all.hxml
