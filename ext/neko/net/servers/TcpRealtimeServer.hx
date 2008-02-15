@@ -36,11 +36,11 @@ class TcpRealtimeServer<Client> extends RealtimeServer<neko.net.Socket,Client> {
 		select_function = neko.net.Socket.select;
 	}
 
-	function createSock() {
+	override function createSock() {
 		return new neko.net.Socket();
 	}
 
-	function addClient( s : neko.net.Socket ) {
+	override function addClient( s : neko.net.Socket ) {
 		var tid = Std.random(config.threadsCount);
 		var thread = threads[tid];
 		if( thread == null ) {
@@ -64,7 +64,7 @@ class TcpRealtimeServer<Client> extends RealtimeServer<neko.net.Socket,Client> {
 		cinf.thread.t.sendMessage({ s : s, cnx : true });
 	}
 
-	function clientWrite( c : SocketInfos<neko.net.Socket, Client> ) : Bool {
+	override function clientWrite( c : SocketInfos<neko.net.Socket, Client> ) : Bool {
 		var pos = 0;
 		while( c.wbytes > 0 )
 			try {

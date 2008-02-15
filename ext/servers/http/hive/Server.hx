@@ -40,9 +40,8 @@ import servers.http.hive.Logger;
 
 #if SCHED_REALTIME
 class Server extends RealtimeServer<Client> {
-#else SCHED_THREAD_POLL
+#else true
 class Server extends ThreadPollServer<Client> {
-#else error
 #end
 	public static var SERVER_VERSION 	: String	= "0.4";
 	public static var CLIENT_BUFFER_SIZE: Int		= (1 << 16); // 64 KB buffer
@@ -93,11 +92,10 @@ class Server extends ThreadPollServer<Client> {
 #if SCHED_REALTIME
 		config.listenValue = 64*SERVER_THREADS; //50;
 		config.threadsCount = SERVER_THREADS;
-#else SCHED_THREAD_POLL
+#else true
 		config.listenValue = Math.floor(Math.min(1000, LISTEN));
 		config.timeoutRead = 10.0;
 		config.timeoutWrite = 10.0;
-#else error
 #end
 		config.connectLag = 0.0001;
 

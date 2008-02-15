@@ -36,7 +36,7 @@
 package hash;
 
 #if neko
-enum ShaCtx {
+private enum ShaCtx {
 }
 #end
 

@@ -82,7 +82,7 @@ class EncRemotingAdaptor {
 		return Reflect.hasField(cnx.getProtocol().socket, "__crypt");
 	}
 
-	static function encMsgLength( c1 : Int, c2 : Int ) : Null<Int> {
+	static function encMsgLength( c1 : Null<Int>, c2 : Null<Int> ) : Null<Int> {
 		if( c1 == null || c2 == null)
 			return null;
 		return (c1 << 8) | c2;

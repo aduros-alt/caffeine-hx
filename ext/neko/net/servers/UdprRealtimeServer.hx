@@ -37,11 +37,11 @@ class UdprRealtimeServer<Client> extends RealtimeServer<neko.net.UdpReliableSock
 		select_function = neko.net.UdpReliableSocket.select;
 	}
 
-	function createSock() {
+	override function createSock() {
 		return new neko.net.UdpReliableSocket();
 	}
 
-	function addClient( s : neko.net.UdpReliableSocket ) {
+	override function addClient( s : neko.net.UdpReliableSocket ) {
 		var tid = Std.random(config.threadsCount);
 		var thread = threads[tid];
 		if( thread == null ) {
@@ -65,7 +65,7 @@ class UdprRealtimeServer<Client> extends RealtimeServer<neko.net.UdpReliableSock
 		cinf.thread.t.sendMessage({ s : s, cnx : true });
 	}
 
-	function clientWrite( c : SocketInfos<neko.net.UdpReliableSocket, Client> ) : Bool {
+	override function clientWrite( c : SocketInfos<neko.net.UdpReliableSocket, Client> ) : Bool {
 		var pos = 0;
 		while( c.wbytes > 0 )
 			try {

@@ -36,9 +36,15 @@
 
 package hash;
 
-#if !neko
+#if neko
+private enum ShaCtx {
+}
+#end
+
 class Sha256 {
 
+
+#if !neko
 	public static var charSize : Int = 8;
 	public static function encode(s : String) {
 		return Util.binb2hex(
@@ -106,7 +112,19 @@ class Sha256 {
 		}
 		return HASH;
 	}
+#else true
+	public static function encode(s : String, ?binary : Bool) {
+		var _ctx : ShaCtx = sha_init(256);
+		sha_update(_ctx, untyped s.__s);
+		var value = new String(sha_final(_ctx));
+		if(!binary)
+			value = StringTools.baseEncode(value, Constants.DIGITS_HEXL);
+		return value;
+	}
+
+	private static var sha_init = neko.Lib.load("hash","sha_init",1);
+	private static var sha_update = neko.Lib.load("hash","sha_update",2);
+	private static var sha_final = neko.Lib.load("hash","sha_final",1);
+#end
 
 }
-#else error
-#end

@@ -79,12 +79,12 @@ class DotConfig {
 		parent = r;
 	}
 
+#if neko
 	public function loadFile( path : String ) {
 		if(parent != null)
 			return parent.loadFile( path );
 		if(loaded)
 			throw AlreadyLoaded;
-#if neko
 		var i : neko.io.FileInput;
 		var s : String;
 		try i = neko.io.File.read( path, false )
@@ -97,8 +97,8 @@ class DotConfig {
 		}
 		loadString(s);
 		return true;
-#end
 	}
+#end
 
 	/**
 		Populate from a string.

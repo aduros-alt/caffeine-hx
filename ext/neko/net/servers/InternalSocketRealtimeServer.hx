@@ -37,11 +37,11 @@ class InternalSocketRealtimeServer<Client> extends RealtimeServer<neko.net.Inter
 		select_function = neko.net.InternalSocket.select;
 	}
 
-	function createSock() {
+	override function createSock() {
 		return new neko.net.InternalSocket();
 	}
 
-	function addClient( s : neko.net.InternalSocket ) {
+	override function addClient( s : neko.net.InternalSocket ) {
 		var tid = Std.random(config.threadsCount);
 		var thread = threads[tid];
 		if( thread == null ) {
@@ -65,7 +65,7 @@ class InternalSocketRealtimeServer<Client> extends RealtimeServer<neko.net.Inter
 		cinf.thread.t.sendMessage({ s : s, cnx : true });
 	}
 
-	function clientWrite( c : SocketInfos<neko.net.InternalSocket, Client> ) : Bool {
+	override function clientWrite( c : SocketInfos<neko.net.InternalSocket, Client> ) : Bool {
 		var pos = 0;
 		while( c.wbytes > 0 )
 			try {

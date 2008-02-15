@@ -12,3 +12,10 @@ clean-neko:
 	find . -name "*.n" -exec rm {} \;
 
 distclean: clean clean-kate clean-neko
+
+docs:
+	cd ext && haxe all.hxml
+	cd ext/Doc && haxedoc "../flash.xml;flash\" \"../neko.xml;neko\" \"../js.xml;js"
+	cd ext && $(RM) *.swf *.n *.js *.xml
+
+#	cd ext && mv index.html Doc/ && mv content Doc/
