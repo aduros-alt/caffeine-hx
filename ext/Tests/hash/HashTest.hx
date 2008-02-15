@@ -50,6 +50,21 @@ class Sha1TestFunctions extends haxe.unit.TestCase {
 
 		assertEquals(1,1);
 	}
+
+	public function testStream() {
+		var sha = new Sha1();
+		sha.init();
+		sha.update("a");
+		sha.update("b");
+		sha.update("c");
+		var rv = sha.final();
+
+		assertEquals(
+			"a9993e364706816aba3e25717850c26c9cd0d89d",
+			rv
+		);
+		
+	}
 #end
 
 }

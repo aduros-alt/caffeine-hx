@@ -28,10 +28,40 @@
 #include <stdlib.h>
 #include <string.h>
 #include "sha1.h"
+#include "sha2.h"
+#include <cfhxdef.h>
 
 #ifndef uint32
 #define uint32 unsigned long int
 #endif
+
+typedef struct {
+	unsigned int type;
+	union {
+		SHA1_CTX   *text1;
+		sha224_ctx *text224;
+		sha256_ctx *text256;
+		sha384_ctx *text384;
+		sha512_ctx *text512;
+	} con;
+} sha_container;
+
+/*
+	switch(sc->type) {
+	case 1:
+		break;
+	case 224:
+		break;
+	case 256:
+		break;
+	case 384:
+		break;
+	case 512:
+		break;
+	default:
+		THROW("invalid sha size");
+	}
+*/
 
 static void sha1_string(SHA1_CTX *context, const char *message, size_t length)
 {
@@ -48,16 +78,47 @@ static void sha1_string(SHA1_CTX *context, const char *message, size_t length)
     }
 }
 
+static void sha_uint32(SHA1_CTX *context, uint32 val)
+{
+	SHA1Update(context, (unsigned char*)&val, 4);
+}
+
+static void sha_string(sha_container *container, const char *message, size_t length)
+{
+    size_t j;
+    unsigned char buffer[16384];
+    unsigned int i = 16384;
+    const char *c = message;
+
+    for(j=length; j; j -= i) {
+        if(j < i) i = j;
+        memcpy(buffer, c, i);
+		switch(container->type) {
+        case 1:
+			SHA1Update(container->con.text1, buffer, i);
+			break;
+		case 224:
+			sha224_update(container->con.text224, buffer, i);
+			break;
+		case 256: sha256_update(container->con.text256, buffer, i); break;
+		case 384: sha384_update(container->con.text384, buffer, i); break;
+		case 512: sha512_update(container->con.text512, buffer, i); break;
+		}
+        c += i;
+    }
+}
+
 static void sha1_uint32(SHA1_CTX *context, uint32 val)
 {
 	SHA1Update(context, (unsigned char*)&val, 4);
 }
 
-
 #ifdef NEKO
 
 #include <neko/neko.h>
 
+DEFINE_KIND(k_shacontainer);
+#define val_shacontainer(o) (sha_container *)val_data(o)
 
 /**
 This is coded to the same structure as haxe/neko md5.
@@ -68,6 +129,7 @@ typedef struct stack {
         uint32 pos;
         value v;
         SHA1_CTX *context;
+		//neko_sha_container *
         struct stack *next;
 } stack;
 static void neko_sha1( SHA1_CTX *context, value v, stack *cur);
@@ -136,6 +198,132 @@ static void neko_sha1( SHA1_CTX *context, value v, stack *cur) {
 		break;
 	}
 }
+
+static void destroy_container( value c ) {
+	sha_container *sc;
+	if(!val_is_kind(c, k_shacontainer))
+		return;
+	sc = val_shacontainer(c);
+	free(sc->con.text1);
+	free(sc);
+	val_kind(c) = NULL;
+}
+
+static value sha_init(value Size) {
+	int size;
+	sha_container *sc;
+	val_check(Size, int);
+	size = val_int(Size);
+
+	sc = (sha_container *) malloc(sizeof(sha_container));
+	if(sc == NULL)
+		E_NO_MEM();
+	switch(size) {
+	case 1:
+		sc->type = 1;
+		sc->con.text1 = malloc(sizeof(SHA1_CTX));
+		if(sc->con.text1 == NULL) goto err;
+		SHA1Init(sc->con.text1);
+		break;
+	case 224:
+		sc->type = 224;
+		sc->con.text224 = malloc(sizeof(sha224_ctx));
+		if(sc->con.text224 == NULL) goto err;
+		sha224_init(sc->con.text224);
+		break;
+	case 256:
+		sc->type = 256;
+		sc->con.text256 = malloc(sizeof(sha256_ctx));
+		if(sc->con.text256 == NULL) goto err;
+		sha256_init(sc->con.text256);
+		break;
+	case 384:
+		sc->type = 384;
+		sc->con.text384 = malloc(sizeof(sha384_ctx));
+		if(sc->con.text384 == NULL) goto err;
+		sha384_init(sc->con.text384);
+		break;
+	case 512:
+		sc->type = 512;
+		sc->con.text512 = malloc(sizeof(sha512_ctx));
+		if(sc->con.text512 == NULL) goto err;
+		sha512_init(sc->con.text512);
+		break;
+	default:
+		free(sc);
+		THROW("invalid SHA size");
+	}
+	value v = alloc_abstract(k_shacontainer, sc);
+	val_gc(v, destroy_container);
+	return v;
+err:
+	free(sc);
+	E_NO_MEM();
+}
+DEFINE_PRIM(sha_init,1);
+
+static value sha_update(value SC, value Msg) {
+	sha_container *sc;
+	val_check_kind(SC, k_shacontainer);
+	val_check(Msg, string);
+
+	sc = val_shacontainer(SC);
+	if(sc == NULL)
+		THROW("sha_update: null handle");
+	switch(sc->type) {
+	case 1:
+		SHA1Update(sc->con.text1, val_string(Msg), val_strlen(Msg));
+		break;
+	case 224:
+		sha224_update(sc->con.text224, val_string(Msg), val_strlen(Msg));
+		break;
+	case 256:
+		sha256_update(sc->con.text256, val_string(Msg), val_strlen(Msg));
+		break;
+	case 384:
+		sha384_update(sc->con.text384, val_string(Msg), val_strlen(Msg));
+		break;
+	case 512:
+		sha512_update(sc->con.text512, val_string(Msg), val_strlen(Msg));
+		break;
+	default:
+		THROW("invalid sha size");
+	}
+	return alloc_bool(1);
+}
+DEFINE_PRIM(sha_update,2);
+
+static value sha_final(value SC) {
+	sha_container *sc;
+	val_check_kind(SC, k_shacontainer);
+	value rv;
+	switch(sc->type) {
+	case 1:
+		rv = alloc_empty_string(SHA1_DIGEST_SIZE);
+		SHA1Final((unsigned char *)val_string(rv), sc->con.text1);
+		break;
+	case 224:
+		rv = alloc_empty_string(SHA224_DIGEST_SIZE);
+		sha224_final(sc->con.text224, (unsigned char *)val_string(rv));
+		break;
+	case 256:
+		rv = alloc_empty_string(SHA256_DIGEST_SIZE);
+		sha256_final(sc->con.text256, (unsigned char *)val_string(rv));
+		break;
+	case 384:
+		rv = alloc_empty_string(SHA384_DIGEST_SIZE);
+		sha384_final(sc->con.text384, (unsigned char *)val_string(rv));
+		break;
+	case 512:
+		rv = alloc_empty_string(SHA512_DIGEST_SIZE);
+		sha512_final(sc->con.text512, (unsigned char *)val_string(rv));
+		break;
+	default:
+		THROW("invalid sha size");
+	}
+	return rv;
+}
+DEFINE_PRIM(sha_final,1);
 
 static value nsha1(value v) {
 	SHA1_CTX context;

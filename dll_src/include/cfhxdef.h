@@ -5,6 +5,10 @@ extern "C" {
 #ifndef _CFHX_DEFINES
 #define _CFHX_DEFINES
 
+#define E_NO_MEM() val_throw(alloc_string("out of memory"))
+#define THROW(x) val_throw(alloc_string(x))
+
+
 #ifdef NEKO_WINDOWS
 #	include <windows.h>
 #	define MUTEX_CREATE(x) CRITICAL_SECTION x
