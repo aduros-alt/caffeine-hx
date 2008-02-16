@@ -41,15 +41,42 @@ private enum ShaCtx {
 }
 #end
 
-class Sha256 {
+class Sha256 implements IHash {
 
+	public function new() {
+	}
+
+	public function toString() : String {
+		return "sha256";
+	}
+
+	public function calculate( msg:String ) : String {
+		return encode(msg, false);
+	}
+
+	public function getLengthBytes() : Int {
+		return 32;
+	}
+
+	public function getLengthBits() : Int {
+		return 256;
+	}
+
+	public function getBlockSizeBytes() : Int {
+		return 64;
+	}
+
+	public function getBlockSizeBits() : Int {
+		return 512;
+	}
 
 #if !neko
 	public static var charSize : Int = 8;
-	public static function encode(s : String) {
-		return Util.binb2hex(
-			core_sha256(Util.str2binb(s, 8), s.length * charSize)
-		);
+	public static function encode(s : String, ?binary  : Bool) {
+		var rv = Util.binb2hex(core_sha256(Util.str2binb(s, 8), s.length * charSize));
+		if(!binary)
+			return rv;
+		return ByteStringTools.hexBytesToBinary(rv);
 	}
 
 	static function S (X, n) {return ( X >>> n ) | (X << (32 - n));}

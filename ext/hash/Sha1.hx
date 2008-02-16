@@ -51,10 +51,10 @@ class Sha1 implements IHash {
 	}
 
 	public function toString() : String {
-		return "sha";
+		return "sha1";
 	}
 
-	public function calculate( msg:String ) {
+	public function calculate( msg:String ) : String {
 		return encode(msg, false);
 	}
 

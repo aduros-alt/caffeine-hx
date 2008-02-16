@@ -27,7 +27,34 @@
 
 package hash;
 
-class Md5 {
+class Md5 implements IHash {
+
+	public function new() {
+	}
+
+	public function toString() : String {
+		return "md5";
+	}
+
+	public function calculate( msg:String ) : String {
+		return encode(msg, false);
+	}
+
+	public function getLengthBytes() : Int {
+		return 16;
+	}
+
+	public function getLengthBits() : Int {
+		return 128;
+	}
+
+	public function getBlockSizeBytes() : Int {
+		return 64;
+	}
+
+	public function getBlockSizeBits() : Int {
+		return 512;
+	}
 
 	public static function encode(msg : String, ?binary:Bool) : String {
 		var s = haxe.Md5.encode(msg);
