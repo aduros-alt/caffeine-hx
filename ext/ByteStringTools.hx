@@ -46,6 +46,17 @@ class ByteStringTools {
 	}
 
 	/**
+		Return a hex representation of the byte b. If
+		b > 255 only the lowest 8 bits are used.
+	**/
+	public static function byte2Hex(b : Int) {
+		b = b & 0xFF;
+		if(b < 0x10)
+			return StringTools.hex(b, 1).toLowerCase();
+		return StringTools.hex(b).toLowerCase();
+	}
+
+	/**
 		Takes a string of hex bytes and converts it to a binary string.
 		Input should resemble "a42fffee" and the length must be a
 		multiple of 2
@@ -69,7 +80,8 @@ class ByteStringTools {
 	/**
 		Transform an array of integers x where 0xFF >= x >= 0 to
 		a string of binary data, optionally padded to a multiple of
-		padToBytes
+		padToBytes. 0 length input returns 0 length output, not
+		padded.
 	**/
 	public static function byteArrayToString(a: Array<Int>, ?padToBytes:Int) :String  {
 		var sb = new StringBuf();
@@ -78,10 +90,33 @@ class ByteStringTools {
 				throw "Value out of range";
 			sb.add(Std.chr(i));
 		}
-		if(padToBytes > 0) {
+		if(padToBytes != null && padToBytes > 0) {
 			return nullPadString(sb.toString(), padToBytes);
 		}
 		return sb.toString();
+	}
+
+	/**
+		Transform  a string into an array of integers x where
+		0xFF >= x >= 0, optionally padded to a multiple of
+		padToBytes. 0 length input returns 0 length output, not
+		padded.
+	**/
+	public static function stringToByteArray( s : String, ?padToBytes:Int) : Array<Int> {
+		var a = new Array();
+		var len = s.length;
+		for(x in 0...s.length) {
+			a.push(s.charCodeAt(x));
+		}
+		if(padToBytes != null && padToBytes > 0) {
+			var r = padToBytes - (a.length % padToBytes);
+			if(r != padToBytes) {
+				for(x in 0...r) {
+					a.push(0);
+				}
+			}
+		}
+		return a;
 	}
 
 	/**
