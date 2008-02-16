@@ -61,6 +61,7 @@ import crypt.Tea;
 
 import dates.GmtDate;
 
+import hash.HMAC;
 import hash.Md5;
 import hash.Sha1;
 import hash.Sha256;

@@ -32,6 +32,8 @@ import neko.Int32;
 /**
 	Functions for manipulating binary data to and from Strings
 **/
+// 0x12345678 in Big Endian (network byte order) is stored 12 34 56 78
+// 0x12345678 in Little Endian (Intel architecture) is stored 78 56 34 12
 class ByteStringTools {
 	/**
 		Return the character code from a string at the given position.
@@ -123,7 +125,7 @@ class ByteStringTools {
 		that 0 length strings passed to this will not be padded. See also
 		nullString()
 	**/
-	public static function nullPadString(s : String, chunkLen: Int) {
+	public static function nullPadString(s : String, chunkLen: Int) : String {
 		var r = chunkLen - (s.length % chunkLen);
 		if(r == chunkLen)
 			return s;

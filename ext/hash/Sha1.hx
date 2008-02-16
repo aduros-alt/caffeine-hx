@@ -41,16 +41,42 @@ private enum ShaCtx {
 #end
 
 
-class Sha1 {
+class Sha1 implements IHash {
 	static var K : Array<Int> = [0x5a827999, 0x6ed9eba1, 0x8f1bbcdc, 0xca62c1d6];
+
+	public function new() {
+#if neko
+		init();
+#end
+	}
+
+	public function toString() : String {
+		return "sha";
+	}
+
+	public function calculate( msg:String ) {
+		return encode(msg, false);
+	}
+
+	public function getLengthBytes() : Int {
+		return 20;
+	}
+
+	public function getLengthBits() : Int {
+		return 160;
+	}
+
+	public function getBlockSizeBytes() : Int {
+		return 64;
+	}
+
+	public function getBlockSizeBits() : Int {
+		return 512;
+	}
 
 #if neko
 	var _ctx : ShaCtx;
 	public var value(default, null) : String;
-
-	public function new() {
-		init();
-	}
 
 	/**
 		Prepare a streaming sha calculation
