@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2008, The Caffeine-hx project contributors
  * Original author : Russell Weir
- * Contributors:
+ * Contributors: Mark Winterhalder
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -31,7 +31,8 @@
  */
 package math;
 
-import math.reduction.Classic
+import math.reduction.ModularReduction;
+import math.reduction.Classic;
 import math.reduction.Montgomery;
 
 class BigInteger {
@@ -41,8 +42,8 @@ class BigInteger {
 
 	public static var BI_FP : Int 	= 52;
 	public static var FV : Float 	= Math.pow(2,BI_FP);
-	public static var F1 : Float 	= BI_FP-dbits;
-	public static var F2 : Float 	= 2*dbits-BI_FP;
+	public static var F1 : Int 	= BI_FP-30;
+	public static var F2 : Int 	= 2*30-BI_FP;
 
 	public static var ZERO(getZERO,null)	: BigInteger;
 	public static var ONE(getONE, null)		: BigInteger;
@@ -51,28 +52,45 @@ class BigInteger {
 	static var BI_RM : String ;
 	static var BI_RC : Array<Int>;
 
-
 	static function __init__() {
-
-		DB = 30; // dbits .. see notes in constructor and the am? functions
-		DM = ((1<<DB)-1);
-		DV = (1<<DB);
-
-		BI_FP = 52;
-		FV = Math.pow(2,BI_FP);
-		F1 = BI_FP - DB;
-		F2 = 2 * DB - BI_FP;
-
 		BI_RM = "0123456789abcdefghijklmnopqrstuvwxyz";
 		var rr : Int = "0".charCodeAt(0);
-		for(vv = 0; vv <= 9; ++vv)
+		for(vv in 0...10)
 			BI_RC[rr++] = vv;
 		rr = "a".charCodeAt(0);
-		for(vv = 10; vv < 36; ++vv)
+		for(vv in 10...37)
 			BI_RC[rr++] = vv;
 		rr = "A".charCodeAt(0);
-		for(vv = 10; vv < 36; ++vv)
+		for(vv in 10...37)
 			BI_RC[rr++] = vv;
+
+#if js
+
+		// Bits per digit
+		var dbits; This is th DB static
+		
+		// JavaScript engine analysis
+		var canary = 0xdeadbeefcafe;
+		var j_lm = ((canary&0xffffff)==0xefcafe);
+
+		if(j_lm && (navigator.appName == "Microsoft Internet Explorer")) {
+			BigInteger.prototype.am = am2;
+			dbits = 30;
+		}
+		else if(j_lm && (navigator.appName != "Netscape")) {
+			BigInteger.prototype.am = am1;
+			dbits = 26;
+		}
+		else { // Mozilla/Netscape seems to prefer
+			BigInteger.prototype.am = am3;
+			dbits = 28;
+		}
+		
+		DB = dbits;
+		F1 = BI_FP - dbits;
+		F2 = 2 * dbits - BI_FP;
+#end
+
 	}
 
 	public static function getZERO() : BigInteger {
@@ -103,42 +121,12 @@ class BigInteger {
 
 	public var t(default,null) : Int; // number of chunks.
 	public var s(default,null) : Int; //sign
-	public var a(default,null) : Array; // chunks
-	var am : Int->Int->BigInteger->Int->Int->Int->Int; // am function
+	public var chunks(default,null) : Array<Int>; // chunks
 
-	public function new(a, b, c) {
-		if(a != null)
-			if("number" == typeof a) this.fromNumber(a,b,c);
-			else if(b == null && "string" != typeof a) this.fromString(a,256);
-			else this.fromString(a,b);
-		am = am2;
-#if js
-		/*
-
-		There should be a static var populated at __init__ that
-		chooses the am function type, then on new() it can be applied.
-
-		// Bits per digit
-		var dbits; This is th DB static
-
-		// JavaScript engine analysis
-		var canary = 0xdeadbeefcafe;
-		var j_lm = ((canary&0xffffff)==0xefcafe);
-
-		if(j_lm && (navigator.appName == "Microsoft Internet Explorer")) {
-		BigInteger.prototype.am = am2;
-		dbits = 30;
-		}
-		else if(j_lm && (navigator.appName != "Netscape")) {
-		BigInteger.prototype.am = am1;
-		dbits = 26;
-		}
-		else { // Mozilla/Netscape seems to prefer
-		BigInteger.prototype.am = am3;
-		dbits = 28;
-		}
-		*/
-#end
+	public function new(?int : Int, ?str : String, ?radix : Int) {
+		chunks = new Array<Int>();
+		if(int != null)	this.fromInt(int);
+		else if( str != null && radix == null) this.fromString(str,256);
 	}
 
 	/**
@@ -148,6 +136,14 @@ class BigInteger {
 		return (this.s<0)?this.negate():this;
 	}
 
+	/**
+		This is so Montgomery Reduction can pad. Used to be (in Montgomery):
+		while(x.t <= this.mt2)	// pad x so am has enough room later
+			x.chunks[x.t++] = 0;
+	**/
+	public function padTo ( n : Int ) : Void {
+		while( t < n )	chunks[ t++ ] = 0;
+	}
 
 	/**
 		Modulus division bn % bn
@@ -162,8 +158,8 @@ class BigInteger {
 	/**
 		this^e % m, 0 <= e < 2^32
 	**/
-	public function modPowInt(e,m) {
-		var z;
+	public function modPowInt(e,m : BigInteger) {
+		var z : ModularReduction;
 		if(e < 256 || m.isEven()) z = new Classic(m);
 		else z = new Montgomery(m);
 		return this.exp(e,z);
@@ -174,7 +170,7 @@ class BigInteger {
 	**/
 	public function bitLength() {
 		if(this.t <= 0) return 0;
-		return this.DB*(this.t-1)+nbits(this[this.t-1]^(this.s&this.DM));
+		return DB*(this.t-1)+nbits(chunks[this.t-1]^(this.s&DM));
 	}
 
 	/**
@@ -186,7 +182,7 @@ class BigInteger {
 		var i = this.t;
 		r = i-a.t;
 		if(r != 0) return r;
-		while(--i >= 0) if((r=this[i]-a[i]) != 0) return r;
+		while(--i >= 0) if((r=chunks[i]-a.chunks[i]) != 0) return r;
 		return 0;
 	}
 
@@ -214,17 +210,17 @@ class BigInteger {
 		else if(b == 4) k = 2;
 		else return this.toRadix(b);
 		var km = (1<<k)-1, d, m = false, r = "", i = this.t;
-		var p = this.DB-(i*this.DB)%k;
+		var p = DB-(i*DB)%k;
 		if(i-- > 0) {
-			if(p < this.DB && (d = this[i]>>p) > 0) { m = true; r = int2char(d); }
+			if(p < DB && (d = chunks[i]>>p) > 0) { m = true; r = int2char(d); }
 			while(i >= 0) {
 			if(p < k) {
-				d = (this[i]&((1<<p)-1))<<(k-p);
-				d |= this[--i]>>(p+=this.DB-k);
+				d = (chunks[i]&((1<<p)-1))<<(k-p);
+				d |= chunks[--i]>>(p+=DB-k);
 			}
 			else {
-				d = (this[i]>>(p-=k))&km;
-				if(p <= 0) { p += this.DB; --i; }
+				d = (chunks[i]>>(p-=k))&km;
+				if(p <= 0) { p += DB; --i; }
 			}
 			if(d > 0) m = true;
 			if(m) r += int2char(d);
@@ -239,9 +235,8 @@ class BigInteger {
 	//////////////////////////////////////////////////////////////
 
 	// (protected) copy this to r
-	function copyTo(r) {
-		for(var i = this.t-1; i >= 0; --i)
-			r[i] = this[i];
+	public function copyTo(r : BigInteger) {
+		r.chunks = chunks.copy();
 		r.t = this.t;
 		r.s = this.s;
 	}
@@ -250,8 +245,8 @@ class BigInteger {
 	function fromInt(x : Int) {
 		this.t = 1;
 		this.s = (x<0)?-1:0;
-		if(x > 0) this[0] = x;
-		else if(x < -1) this[0] = x+DV;
+		if(x > 0) chunks[0] = x;
+		else if(x < -1) chunks[0] = x+DV;
 		else this.t = 0;
 	}
 
@@ -269,154 +264,234 @@ class BigInteger {
 		this.s = 0;
 		var i = s.length, mi = false, sh = 0;
 		while(--i >= 0) {
-			var x = (k==8)?s[i]&0xff:intAt(s,i);
+			var x = (k==8)?s.charCodeAt( i )&0xff:intAt(s,i);
 			if(x < 0) {
 			if(s.charAt(i) == "-") mi = true;
 			continue;
 			}
 			mi = false;
 			if(sh == 0)
-			this[this.t++] = x;
-			else if(sh+k > this.DB) {
-			this[this.t-1] |= (x&((1<<(this.DB-sh))-1))<<sh;
-			this[this.t++] = (x>>(this.DB-sh));
+			chunks[this.t++] = x;
+			else if(sh+k > DB) {
+			chunks[this.t-1] |= (x&((1<<(DB-sh))-1))<<sh;
+			chunks[this.t++] = (x>>(DB-sh));
 			}
 			else
-			this[this.t-1] |= x<<sh;
+			chunks[this.t-1] |= x<<sh;
 			sh += k;
-			if(sh >= this.DB) sh -= this.DB;
+			if(sh >= DB) sh -= DB;
 		}
-		if(k == 8 && (s[0]&0x80) != 0) {
+		if(k == 8 && (s.charCodeAt( 0 )&0x80) != 0) {
 			this.s = -1;
-			if(sh > 0) this[this.t-1] |= ((1<<(this.DB-sh))-1)<<sh;
+			if(sh > 0) chunks[this.t-1] |= ((1<<(DB-sh))-1)<<sh;
 		}
 		this.clamp();
 		if(mi) BigInteger.ZERO.subTo(this,this);
 	}
+	
+	// (protected) convert from radix string
+	function fromRadix(s : String, b : Int) {
+	  this.fromInt(0);
+	  if(b == null) b = 10;
+	  var cs = Math.floor(0.6931471805599453*DB/Math.log(b));
+	  var d = Std.int( Math.pow(b,cs) ), mi = false, j = 0, w = 0;
+	  for(i in 0...s.length) {
+	    var x = intAt(s,i);
+	    if(x < 0) {
+	      if(s.charAt(i) == "-" && this.s == 0) mi = true;
+	      continue;
+	    }
+	    w = b*w+x;
+	    if(++j >= cs) {
+		  dMultiply( d );
+	      this.dAddOffset(w,0);
+	      j = 0;
+	      w = 0;
+	    }
+	  }
+	  if(j > 0) {
+	    this.dMultiply(Std.int( Math.pow(b,j) ));
+	    this.dAddOffset(w,0);
+	  }
+	  if(mi) BigInteger.ZERO.subTo(this,this);
+	}
+	
+	// (protected) convert to radix string
+	function toRadix(b) {
+	  if(b == null) b = 10;
+	  if(s == 0 || b < 2 || b > 36) return "0";
+	  var cs = Math.floor(0.6931471805599453*DB/Math.log(b));
+	  var a = Std.int(Math.pow(b,cs));
+	  var d = nbv(a), y = nbi(), z = nbi(), r = "";
+	  this.divRemTo(d,y,z);
+	  while(y.s > 0) {
+	    r = (a+z.intValue()).toString(b).substr(1) + r;
+	    y.divRemTo(d,y,z);
+	  }
+	  return z.intValue().toString(b) + r;
+	}
 
+	function dAddOffset(n,w) {
+	  while(t <= w) chunks[t++] = 0;
+	  chunks[w] += n;
+	  while(chunks[w] >= DV) {
+	    chunks[w] -= DV;
+	    if(++w >= t) chunks[t++] = 0;
+	    ++chunks[w];
+	  }
+	}
+
+	function dMultiply ( n : Int ) {
+		chunks[ t ] = am(0,n-1,this,0,0,t);
+		t++;
+		clamp();
+	}	
+	
+	function intValue() {
+		if(s < 0) {
+			if(t == 1) return chunks[0]-DV;
+			else if(t == 0) return -1;
+		}
+		else if(t == 1) return chunks[0];
+		else if(t == 0) return 0;
+		// assumes 16 < DB < 32
+		return ((chunks[1]&((1<<(32-DB))-1))<<DB)|chunks[0];
+	}
+	
 	// (protected) clamp off excess high words
-	function bnpClamp() {
-		var c = this.s&this.DM;
-		while(this.t > 0 && this[this.t-1] == c) --this.t;
+	public function clamp() {
+		var c = this.s&DM;
+		while(this.t > 0 && chunks[this.t-1] == c) --this.t;
 	}
 
 	// (protected) r = this << n*DB
-	function dlShiftTo(n,r) {
+	public function dlShiftTo(n : Int, r : BigInteger) {
 		var i;
-		for(i = this.t-1; i >= 0; --i) r[i+n] = this[i];
-		for(i = n-1; i >= 0; --i) r[i] = 0;
+//		for(i = this.t-1; i >= 0; --i) r.chunks[i+n] = chunks[i];
+//		for(i = n-1; i >= 0; --i) r.chunks[i] = 0;
+		var padding = new Array<Int>();
+		while( n-- > 0 ) 	padding.push( 0 );
+		r.chunks = padding.concat( chunks.copy() );
 		r.t = this.t+n;
 		r.s = this.s;
 	}
 
 	// (protected) r = this >> n*DB
-	function drShiftTo(n,r) {
-		for(var i = n; i < this.t; ++i) r[i-n] = this[i];
-		r.t = Math.max(this.t-n,0);
+	public function drShiftTo(n : Int, r : BigInteger) {
+//		for(var i = n; i < this.t; ++i) r.chunks[i-n] = chunks[i];
+		r.chunks = chunks.slice( n );
+		r.t = Std.int( Math.max(this.t-n,0) );
 		r.s = this.s;
 	}
 
 	// (protected) r = this << n
-	function lShiftTo(n,r) {
-		var bs = n%this.DB;
-		var cbs = this.DB-bs;
+	public function lShiftTo(n : Int, r : BigInteger) {
+		var bs = n%DB;
+		var cbs = DB-bs;
 		var bm = (1<<cbs)-1;
-		var ds = Math.floor(n/this.DB), c = (this.s<<bs)&this.DM, i;
-		for(i = this.t-1; i >= 0; --i) {
-			r[i+ds+1] = (this[i]>>cbs)|c;
-			c = (this[i]&bm)<<bs;
+		var ds = Math.floor(n/DB), c = (this.s<<bs)&DM, i;
+//		for(i = this.t-1; i >= 0; --i) {
+		var i = t-1;
+		while( i-- > 0 ) {
+			r.chunks[i+ds+1] = (chunks[i]>>cbs)|c;
+			c = (chunks[i]&bm)<<bs;
 		}
-		for(i = ds-1; i >= 0; --i) r[i] = 0;
-		r[ds] = c;
+//		for(i = ds-1; i >= 0; --i) r.chunks[i] = 0;
+		i = ds - 1;
+		while( i-- > 0 ) r.chunks[i] = 0;
+		r.chunks[ds] = c;
 		r.t = this.t+ds+1;
 		r.s = this.s;
 		r.clamp();
 	}
 
 	// (protected) r = this >> n
-	function rShiftTo(n,r) {
+	public function rShiftTo(n : Int, r : BigInteger) {
 		r.s = this.s;
-		var ds = Math.floor(n/this.DB);
+		var ds = Math.floor(n/DB);
 		if(ds >= this.t) { r.t = 0; return; }
-		var bs = n%this.DB;
-		var cbs = this.DB-bs;
+		var bs = n%DB;
+		var cbs = DB-bs;
 		var bm = (1<<bs)-1;
-		r[0] = this[ds]>>bs;
-		for(var i = ds+1; i < this.t; ++i) {
-			r[i-ds-1] |= (this[i]&bm)<<cbs;
-			r[i-ds] = this[i]>>bs;
+		r.chunks[0] = chunks[ds]>>bs;
+//		for(var i = ds+1; i < this.t; ++i) {
+		for( i in (ds + 1)...this.t ) {
+			r.chunks[i-ds-1] |= (chunks[i]&bm)<<cbs;
+			r.chunks[i-ds] = chunks[i]>>bs;
 		}
-		if(bs > 0) r[this.t-ds-1] |= (this.s&bm)<<cbs;
+		if(bs > 0) r.chunks[this.t-ds-1] |= (this.s&bm)<<cbs;
 		r.t = this.t-ds;
 		r.clamp();
 	}
 
 	// (protected) r = this - a
-	function subTo(a,r) {
+	public function subTo(a : BigInteger, r : BigInteger) {
 		var i = 0, c = 0, m = Math.min(a.t,this.t);
 		while(i < m) {
-			c += this[i]-a[i];
-			r[i++] = c&this.DM;
-			c >>= this.DB;
+			c += chunks[i]-a.chunks[i];
+			r.chunks[i++] = c&DM;
+			c >>= DB;
 		}
 		if(a.t < this.t) {
 			c -= a.s;
 			while(i < this.t) {
-			c += this[i];
-			r[i++] = c&this.DM;
-			c >>= this.DB;
+			c += chunks[i];
+			r.chunks[i++] = c&DM;
+			c >>= DB;
 			}
 			c += this.s;
 		}
 		else {
 			c += this.s;
 			while(i < a.t) {
-			c -= a[i];
-			r[i++] = c&this.DM;
-			c >>= this.DB;
+			c -= a.chunks[i];
+			r.chunks[i++] = c&DM;
+			c >>= DB;
 			}
 			c -= a.s;
 		}
 		r.s = (c<0)?-1:0;
-		if(c < -1) r[i++] = this.DV+c;
-		else if(c > 0) r[i++] = c;
+		if(c < -1) r.chunks[i++] = DV+c;
+		else if(c > 0) r.chunks[i++] = c;
 		r.t = i;
 		r.clamp();
 	}
 
 	// (protected) r = this * a, r != this,a (HAC 14.12)
 	// "this" should be the larger one if appropriate.
-	function multiplyTo(a,r) {
+	public function multiplyTo(a : BigInteger, r : BigInteger) {
 		var x = this.abs(), y = a.abs();
 		var i = x.t;
 		r.t = i+y.t;
-		while(--i >= 0) r[i] = 0;
-		for(i = 0; i < y.t; ++i) r[i+x.t] = x.am(0,y[i],r,i,0,x.t);
+		while(--i >= 0) r.chunks[i] = 0;
+//		for(i = 0; i < y.t; ++i) r.chunks[i+x.t] = x.am(0,y[i],r,i,0,x.t);
+		for( i in 0...y.t ) 	r.chunks[i+x.t] = x.am(0,y.chunks[i],r,i,0,x.t);
 		r.s = 0;
 		r.clamp();
 		if(this.s != a.s) BigInteger.ZERO.subTo(r,r);
 	}
 
 	// (protected) r = this^2, r != this (HAC 14.16)
-	function squareTo(r) {
+	public function squareTo(r : BigInteger) {
 		var x = this.abs();
 		var i = r.t = 2*x.t;
-		while(--i >= 0) r[i] = 0;
-		for(i = 0; i < x.t-1; ++i) {
-			var c = x.am(i,x[i],r,2*i,0,1);
-			if((r[i+x.t]+=x.am(i+1,2*x[i],r,2*i+1,c,x.t-i-1)) >= x.DV) {
-			r[i+x.t] -= x.DV;
-			r[i+x.t+1] = 1;
+		while(--i >= 0) r.chunks[i] = 0;
+//		for(i = 0; i < x.t-1; ++i) {
+		for(i in 0...x.t-1) {
+			var c = x.am(i,x.chunks[i],r,2*i,0,1);
+			if((r.chunks[i+x.t]+=x.am(i+1,2*x.chunks[i],r,2*i+1,c,x.t-i-1)) >= DV) {
+			r.chunks[i+x.t] -= DV;
+			r.chunks[i+x.t+1] = 1;
 			}
 		}
-		if(r.t > 0) r[r.t-1] += x.am(i,x[i],r,2*i,0,1);
+		if(r.t > 0) r.chunks[r.t-1] += x.am(i,x.chunks[i],r,2*i,0,1);
 		r.s = 0;
 		r.clamp();
 	}
 
 	// (protected) divide this by m, quotient and remainder to q, r (HAC 14.20)
 	// r != q, this != m.  q or r may be null.
-	function divRemTo(m,q,r) {
+	public function divRemTo(m : BigInteger, q : BigInteger ,?r : BigInteger) {
 		var pm = m.abs();
 		if(pm.t <= 0) return;
 		var pt = this.abs();
@@ -427,30 +502,30 @@ class BigInteger {
 		}
 		if(r == null) r = nbi();
 		var y = nbi(), ts = this.s, ms = m.s;
-		var nsh = this.DB-nbits(pm[pm.t-1]);	// normalize modulus
+		var nsh = DB-nbits(pm.chunks[pm.t-1]);	// normalize modulus
 		if(nsh > 0) { pm.lShiftTo(nsh,y); pt.lShiftTo(nsh,r); }
 		else { pm.copyTo(y); pt.copyTo(r); }
 		var ys = y.t;
-		var y0 = y[ys-1];
+		var y0 = y.chunks[ys-1];
 		if(y0 == 0) return;
-		var yt = y0*(1<<this.F1)+((ys>1)?y[ys-2]>>this.F2:0);
-		var d1 = this.FV/yt, d2 = (1<<this.F1)/yt, e = 1<<this.F2;
+		var yt = y0*(1<<F1)+((ys>1)?y.chunks[ys-2]>>F2:0);
+		var d1 = FV/yt, d2 = (1<<F1)/yt, e = 1<<F2;
 		var i = r.t, j = i-ys, t = (q==null)?nbi():q;
 		y.dlShiftTo(j,t);
 		if(r.compareTo(t) >= 0) {
-			r[r.t++] = 1;
+			r.chunks[r.t++] = 1;
 			r.subTo(t,r);
 		}
 		BigInteger.ONE.dlShiftTo(ys,t);
 		t.subTo(y,y);	// "negative" y so we can replace sub with am later
-		while(y.t < ys) y[y.t++] = 0;
+		while(y.t < ys) y.chunks[y.t++] = 0;
 		while(--j >= 0) {
 			// Estimate quotient digit
-			var qd = (r[--i]==y0)?this.DM:Math.floor(r[i]*d1+(r[i-1]+e)*d2);
-			if((r[i]+=y.am(0,qd,r,j,0,ys)) < qd) {	// Try it out
+			var qd = (r.chunks[--i]==y0)?DM:Math.floor(r.chunks[i]*d1+(r.chunks[i-1]+e)*d2);
+			if((r.chunks[i]+=y.am(0,qd,r,j,0,ys)) < qd) {	// Try it out
 			y.dlShiftTo(j,t);
 			r.subTo(t,r);
-			while(r[i] < --qd) r.subTo(t,r);
+			while(r.chunks[i] < --qd) r.subTo(t,r);
 			}
 		}
 		if(q != null) {
@@ -473,9 +548,9 @@ class BigInteger {
 	// if y is 1/x mod m, then y(2-xy) is 1/x mod m^2
 	// should reduce x and y(2-xy) by m^2 at each step to keep size bounded.
 	// JS multiply "overflows" differently from C/C++, so care is needed here.
-	function invDigit() {
+	public function invDigit() {
 		if(this.t < 1) return 0;
-		var x = this[0];
+		var x = chunks[0];
 		if((x&1) == 0) return 0;
 		var y = x&3;		// y == 1/x mod 2^2
 		y = (y*(2-(x&0xf)*y))&0xf;	// y == 1/x mod 2^4
@@ -483,18 +558,18 @@ class BigInteger {
 		y = (y*(2-(((x&0xffff)*y)&0xffff)))&0xffff;	// y == 1/x mod 2^16
 		// last step - calculate inverse mod DV directly;
 		// assumes 16 < DB <= 32 and assumes ability to handle 48-bit ints
-		y = (y*(2-x*y%this.DV))%this.DV;		// y == 1/x mod 2^dbits
+		y = (y*(2-x*y%DV))%DV;		// y == 1/x mod 2^dbits
 		// we really want the negative inverse, and -DV < y < DV
-		return (y>0)?this.DV-y:-y;
+		return (y>0)?DV-y:-y;
 	}
 
 	// (protected) true if this is even
-	function isEven() {
-		return ((this.t>0)?(this[0]&1):this.s) == 0;
+	public function isEven() {
+		return ((this.t>0)?(chunks[0]&1):this.s) == 0;
 	}
 
 	// (protected) this^e, e < 2^32, doing sqr and mul with "r" (HAC 14.79)
-	function exp(e,z) {
+	function exp(e,z : ModularReduction) {
 		if(e > 0xffffffff || e < 1) return BigInteger.ONE;
 		var r = nbi(), r2 = nbi(), g = z.convert(this), i = nbits(e)-1;
 		g.copyTo(r);
@@ -518,25 +593,51 @@ class BigInteger {
 		return r;
 	}
 
+	function intAt(s,i) {
+		var c = BI_RC[s.charCodeAt(i)];
+		return (c==null)?-1:c;
+	}
+
+	function int2char(n: Int) : String {
+		return BI_RM.charAt(n);
+	}
+	
+#if !js
+	public function am (i:Int,x:Int,w:BigInteger,j:Int,c:Int,n:Int) : Int {
+		// same as JavaScript 'am2' variant
+		var xl:Int = x&0x7fff;
+		var xh:Int = x>>15;
+		while(--n >= 0) {
+			var l : Int = chunks[i]&0x7fff;
+			var h : Int = chunks[i++]>>15;
+			var m : Int = xh*l + h*xl;
+			l = xl*l + ((m&0x7fff)<<15)+w.chunks[j]+(c&0x3fffffff);
+			c = (l>>>30)+(m>>>15)+xh*h+(c>>>30);
+			w.chunks[j++] = l&0x3fffffff;
+		}
+		return c;		
+	}
+
+#else true
+	public svar am : Int->Int->BigInteger->Int->Int->Int->Int; // am function
+
 	// am: Compute w_j += (x*this_i), propagate carries,
 	// c is initial carry, returns final carry.
 	// c < 3*dvalue, x < 2*dvalue, this_i < dvalue
-	// TODO Javascript:
-	// We need to select the fastest one that works in this environment.
 	//
 	// am2 avoids a big mult-and-extract completely.
 	// Max digit bits should be <= 30 because we do bitwise ops
 	// on values up to 2*hdvalue^2-hdvalue-1 (< 2^31)
 	function am2(i:Int,x:Int,w:BigInteger,j:Int,c:Int,n:Int) : Int {
-		var xl:int = x&0x7fff;
-		var xh:int = x>>15;
+		var xl:Int = x&0x7fff;
+		var xh:Int = x>>15;
 		while(--n >= 0) {
-			var l : Int = a[i]&0x7fff;
-			var h : Int = a[i++]>>15;
+			var l : Int = chunks[i]&0x7fff;
+			var h : Int = chunks[i++]>>15;
 			var m : Int = xh*l + h*xl;
-			l = xl*l + ((m&0x7fff)<<15)+w.a[j]+(c&0x3fffffff);
+			l = xl*l + ((m&0x7fff)<<15)+w.a.chunks[j]+(c&0x3fffffff);
 			c = (l>>>30)+(m>>>15)+xh*h+(c>>>30);
-			w.a[j++] = l&0x3fffffff;
+			w.chunks[j++] = l&0x3fffffff;
 		}
 		return c;
 	}
@@ -546,7 +647,7 @@ class BigInteger {
 	// max internal value = 2*dvalue^2-2*dvalue (< 2^53)
 	function am1(i:Int,x:Int,w:BigInteger,j:Int,c:Int,n:Int) : Int {
 		while(--n >= 0) {
-			var v = x*this[i++]+w[j]+c;
+			var v = x*chunks[i++]+w[j]+c;
 			c = Math.floor(v/0x4000000);
 			w[j++] = v&0x3ffffff;
 		}
@@ -558,8 +659,8 @@ class BigInteger {
 	function am3(i:Int,x:Int,w:BigInteger,j:Int,c:Int,n:Int) : Int {
 		var xl = x&0x3fff, xh = x>>14;
 		while(--n >= 0) {
-			var l = this[i]&0x3fff;
-			var h = this[i++]>>14;
+			var l = chunks[i]&0x3fff;
+			var h = chunks[i++]>>14;
 			var m = xh*l+h*xl;
 			l = xl*l+((m&0x3fff)<<14)+w[j]+c;
 			c = (l>>28)+(m>>14)+xh*h;
@@ -567,14 +668,6 @@ class BigInteger {
 		}
 		return c;
 	}
-
-	function intAt(s,i) {
-		var c = BI_RC[s.charCodeAt(i)];
-		return (c==null)?-1:c;
-	}
-
-	function int2char(n: Int) : String {
-		return BI_RM.charAt(n);
-	}
+#end
 }
 

@@ -32,10 +32,12 @@
 
 package math.reduction;
 
+import math.BigInteger;
+
 /**
 	Modular reduction using "classic" algorithm
 **/
-class Classic {
+class Classic implements math.reduction.ModularReduction {
 	private var m : BigInteger;
 	public function new(m) {
 		this.m = m;

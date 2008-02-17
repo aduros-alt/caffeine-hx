@@ -32,10 +32,13 @@
 
 package math.reduction;
 
+import math.BigInteger;
+
 /**
 	Montgomery reduction
 **/
-class Montgomery {
+class Montgomery implements math.reduction.ModularReduction {
+	
 	private var m : BigInteger;
 	private var mp : Int;
 	private var mpl : Int;
@@ -44,12 +47,12 @@ class Montgomery {
 	private var mt2 : Int;
 
 
-	function new(m:BigInteger) {
+	public function new(m:BigInteger) {
 		this.m = m;
 		this.mp = m.invDigit();
 		this.mpl = this.mp&0x7fff;
 		this.mph = this.mp>>15;
-		this.um = (1<<(m.DB-15))-1;
+		this.um = (1<<(BigInteger.DB-15))-1;
 		this.mt2 = 2*m.t;
 	}
 
@@ -73,17 +76,17 @@ class Montgomery {
 
 	// x = x/R mod m (HAC 14.32)
 	public function reduce(x:BigInteger) {
-		while(x.t <= this.mt2)	// pad x so am has enough room later
-			x[x.t++] = 0;
-		for(var i = 0; i < this.m.t; ++i) {
+		x.padTo( mt2 );	// pad x so am has enough room later
+//		for(var i = 0; i < this.m.t; ++i) {
+		for( i in 0...m.t ) {
 			// faster way of calculating u0 = x[i]*mp mod DV
-			var j = x[i]&0x7fff;
-			var u0 = (j*this.mpl+(((j*this.mph+(x[i]>>15)*this.mpl)&this.um)<<15))&x.DM;
+			var j = x.chunks[i]&0x7fff;
+			var u0 = (j*this.mpl+(((j*this.mph+(x.chunks[i]>>15)*this.mpl)&this.um)<<15))&BigInteger.DM;
 			// use am to combine the multiply-shift-add into one call
 			j = i+this.m.t;
-			x[j] += this.m.am(0,u0,x,i,0,this.m.t);
+			x.chunks[j] += this.m.am(0,u0,x,i,0,this.m.t);
 			// propagate carry
-			while(x[j] >= x.DV) { x[j] -= x.DV; x[++j]++; }
+			while(x.chunks[j] >= BigInteger.DV) { x.chunks[j] -= BigInteger.DV; x.chunks[++j]++; }
 		}
 		x.clamp();
 		x.drShiftTo(this.m.t,x);
