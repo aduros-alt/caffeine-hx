@@ -34,28 +34,13 @@ package math.reduction;
 import math.BigInteger;
 
 /**
-	Modular reduction using "classic" algorithm
+	A "null" reducer
 **/
-class Classic implements math.reduction.ModularReduction {
-	private var m : BigInteger;
-	public function new(m) {
-		this.m = m;
-	}
-	public function convert(x:BigInteger) {
-		if(x.s < 0 || x.compareTo(this.m) >= 0)
-			return x.mod(this.m);
-		return x;
-	}
-
+class Null implements math.reduction.ModularReduction {
+	public function new() { }
+	public function convert(x:BigInteger) { return x; }
 	public function revert(x:BigInteger) { return x; }
-	public function reduce(x:BigInteger) { x.divRemTo(this.m,null,x); }
-	public function mulTo(x:BigInteger,y:BigInteger,r:BigInteger) {
-		x.multiplyTo(y,r); this.reduce(r);
-	}
-	public function sqrTo(x:BigInteger,r:BigInteger) {
-		x.squareTo(r);
-		this.reduce(r);
-	}
-
-
+	public function mulTo(x:BigInteger,y:BigInteger,r:BigInteger) { x.multiplyTo(y,r); }
+	public function sqrTo(x:BigInteger,r:BigInteger) { x.squareTo(r); }
+	public function reduce(x:BigInteger) {}
 }

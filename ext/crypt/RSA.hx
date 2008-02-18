@@ -24,11 +24,13 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 /*
  * Derived from javascript implementation Copyright (c) 2005 Tom Wu
- *
  */
+
+package crypt;
+
+import math.BigInteger;
 
 /**
 	Full RSA encryption class. For encryption only, the base class
@@ -44,33 +46,34 @@ class RSA extends RSAEncrypt {
 		Generate a new random private key B bits long, using public expt E
 	*/
 	public static function generate(B:Int, E:String) : RSA {
-		var rng = new SecureRandom();
+		var rng = new math.prng.Random();
+		var key:RSA = new RSA(null,0,null);
 		var qs : Int = B>>1;
-		this.e = parseInt(E,16);
+		key.e = parseInt(E,16);
 		var ee = new BigInteger(E,16);
 		while(true) {
 			while(true) {
-				this.p = new BigInteger(B-qs,1,rng);
-				if(this.p.subtract(BigInteger.ONE).gcd(ee).compareTo(BigInteger.ONE) == 0 && this.p.isProbablePrime(10)) break;
+				key.p = new BigInteger(B-qs,1,rng);
+				if(key.p.subtract(BigInteger.ONE).gcd(ee).compareTo(BigInteger.ONE) == 0 && key.p.isProbablePrime(10)) break;
 			}
 			while(true) {
-				this.q = new BigInteger(qs,1,rng);
-				if(this.q.subtract(BigInteger.ONE).gcd(ee).compareTo(BigInteger.ONE) == 0 && this.q.isProbablePrime(10)) break;
+				key.q = new BigInteger(qs,1,rng);
+				if(key.q.subtract(BigInteger.ONE).gcd(ee).compareTo(BigInteger.ONE) == 0 && key.q.isProbablePrime(10)) break;
 			}
-			if(this.p.compareTo(this.q) <= 0) {
-				var t = this.p;
-				this.p = this.q;
-				this.q = t;
+			if(key.p.compareTo(key.q) <= 0) {
+				var t = key.p;
+				key.p = key.q;
+				key.q = t;
 			}
-			var p1 = this.p.subtract(BigInteger.ONE);
-			var q1 = this.q.subtract(BigInteger.ONE);
+			var p1 = key.p.subtract(BigInteger.ONE);
+			var q1 = key.q.subtract(BigInteger.ONE);
 			var phi = p1.multiply(q1);
 			if(phi.gcd(ee).compareTo(BigInteger.ONE) == 0) {
-				this.n = this.p.multiply(this.q);
-				this.d = ee.modInverse(phi);
-				this.dmp1 = this.d.mod(p1);
-				this.dmq1 = this.d.mod(q1);
-				this.coeff = this.q.modInverse(this.p);
+				key.n = key.p.multiply(key.q);
+				key.d = ee.modInverse(phi);
+				key.dmp1 = key.d.mod(p1);
+				key.dmq1 = key.d.mod(q1);
+				key.coeff = key.q.modInverse(key.p);
 				break;
 			}
 		}

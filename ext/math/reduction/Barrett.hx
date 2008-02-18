@@ -33,29 +33,47 @@ package math.reduction;
 
 import math.BigInteger;
 
-/**
-	Modular reduction using "classic" algorithm
-**/
-class Classic implements math.reduction.ModularReduction {
-	private var m : BigInteger;
-	public function new(m) {
+class Barrett implements math.reduction.ModularReduction {
+	var m : BigInteger;
+	var mu : BigInteger;
+	var r2 : BigInteger;
+	var q3 : BigInteger;
+	// Barrett modular reduction
+	function new(m:BigInteger) {
+		// setup Barrett
+		r2 = BigInteger.nbi();
+		q3 = BigInteger.nbi();
+		BigInteger.ONE.dlShiftTo(2*m.t,r2);
+		mu = r2.divide(m);
 		this.m = m;
 	}
+
 	public function convert(x:BigInteger) {
-		if(x.s < 0 || x.compareTo(this.m) >= 0)
-			return x.mod(this.m);
-		return x;
+		if(x.s < 0 || x.t > 2*m.t) return x.mod(m);
+		else if(x.compareTo(m) < 0) return x;
+		else { var r = BigInteger.nbi(); x.copyTo(r); reduce(r); return r; }
 	}
 
 	public function revert(x:BigInteger) { return x; }
-	public function reduce(x:BigInteger) { x.divRemTo(this.m,null,x); }
-	public function mulTo(x:BigInteger,y:BigInteger,r:BigInteger) {
-		x.multiplyTo(y,r); this.reduce(r);
+
+	// x = x mod m (HAC 14.42)
+	public function reduce(x:BigInteger) {
+		x.drShiftTo(m.t-1,r2);
+		if(x.t > m.t+1) { untyped x.t = m.t+1; x.clamp(); }
+		mu.multiplyUpperTo(r2,m.t+1,q3);
+		m.multiplyLowerTo(q3,m.t+1,r2);
+		while(x.compareTo(r2) < 0) x.dAddOffset(1,m.t+1);
+		x.subTo(r2,x);
+		while(x.compareTo(m) >= 0) x.subTo(m,x);
 	}
+
+	// r = x^2 mod m; x != r
 	public function sqrTo(x:BigInteger,r:BigInteger) {
-		x.squareTo(r);
-		this.reduce(r);
+		x.squareTo(r); reduce(r);
 	}
 
-
+	// r = x*y mod m; x,y != r
+	public function mulTo(x:BigInteger,y:BigInteger,r:BigInteger) {
+		x.multiplyTo(y,r); reduce(r);
+	}
 }

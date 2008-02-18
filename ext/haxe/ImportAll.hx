@@ -27,6 +27,7 @@ package haxe;
 // std
 import Array;
 import ByteStringTools;
+import ByteString;
 import Class;
 import Constants;
 import Date;
@@ -57,6 +58,8 @@ import crypt.ModeCBC;
 import crypt.ModeECB;
 import crypt.PadNull;
 import crypt.PadPkcs5;
+import crypt.RSA;
+import crypt.RSAEncrypt;
 import crypt.Tea;
 
 import dates.GmtDate;
@@ -617,6 +620,13 @@ import js.XMLHttpRequest;
 import js.XMLSocket;
 
 #end
+
+import math.BigInteger;
+import math.prng.Random;
+import math.prng.ArcFour;
+import math.reduction.Barrett;
+import math.reduction.Classic;
+import math.reduction.Null;
 
 import protocols.Mime;
 import protocols.http.Cookie;

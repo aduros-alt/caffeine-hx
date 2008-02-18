@@ -95,6 +95,7 @@ class Random {
 			pptr = 0;
 			var t;
 /*
+			// TODO:
 			if(navigator.appName == "Netscape" && navigator.appVersion < "5" && window.crypto) {
 				// Extract entropy (256 bits) from NS4 RNG if available
 				var z = window.crypto.random(32);
