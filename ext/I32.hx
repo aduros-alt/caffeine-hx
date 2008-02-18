@@ -311,4 +311,54 @@ class I32 {
 		}
 	}
 #end
+
+	/**
+		Encode a 31 bit int to string in base 'radix'.
+	**/
+	public static function baseEncode31(vi : Int, radix : Int) : String {
+		if(radix < 2 || radix > 36)
+			throw "radix out of range";
+		var sb = "";
+		var av = Std.int(Math.abs(vi));
+		while(true) {
+			var r = av % radix;
+			sb = Constants.DIGITS_BN.charAt(r) + sb;
+			av = Std.int((av-r)/radix);
+			if(av == 0)
+				break;
+		}
+		if(vi < 0)
+			return "-" + sb;
+		return sb;
+	}
+
+	/**
+		Encode a 32 bit int to string in base 'radix'.
+	**/
+#if neko
+	public static function baseEncode32(vi : Int32, radix : Int) : String
+#else true
+	public static function baseEncode32(vi : Int, radix : Int) : String
+#end
+	{
+#if !neko
+		return baseEncode31(vi, radix);
+#else true
+#end
+		if(radix < 2 || radix > 36)
+			throw "radix out of range";
+		var sb = "";
+		var av : Int32 = Int32.abs(vi);
+		var radix32 = Int32.ofInt(radix);
+		while(true) {
+			var r32 = neko.Int32.mod(av, radix32);
+			sb = Constants.DIGITS_BN.charAt(Int32.toInt(r32)) + sb;
+			av = Int32.div(Int32.sub(av,r32),radix32);
+			if(Int32.eq(av, Int32.ZERO))
+				break;
+		}
+		if(Int32.lt(vi, Int32.ZERO))
+			return "-" + sb;
+		return sb;
+	}
 }

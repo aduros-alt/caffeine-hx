@@ -25,15 +25,34 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-class Constants {
-	public static var DIGITS_BASE10 : String = "0123456789";
-	public static var DIGITS_HEXU : String = "0123456789ABCDEF";
-	public static var DIGITS_HEXL : String = "0123456789abcdef";
-	public static var DIGITS_OCTAL : String = "01234567";
-	public static var DIGITS_BN : String = "0123456789abcdefghijklmnopqrstuvwxyz";
+/**
+	64 bit Integers. Implemented as BigInteger for all platforms currently.
+**/
+class I64 {
+	public static var MAX : BigInteger;
+	public static var MIN : BigInteger;
 
-	public static var PROTO_HTTP : String = "http://";
-	public static var PROTO_FILE : String = "file://";
-	public static var PROTO_FTP : String = "ftp://";
-	public static var PROTO_RTMP : String = "rtmp://";
+	var value : BigInteger;
+
+	public function new() {
+	}
+
+	public function __init()__ {
+		//MAX = BigInteger("0x7fffffffffffffff", 16);
+		//MIN = BigInteger("0x8000000000000000",16);
+	}
+
+	public function toString() {
+		return bnToRadixString(10);
+	}
+
+	public function toRadixString(radix : Int) {
+		return bnToRadixString(value, radix);
+	}
+
+	public static function bnToRadixString(v : BigInteger, radix : Int) {
+		if(radix < BigInteger.MIN_RADIX || radix > BigInteger.MAX_RADIX)
+			throw "radix out of range";
+	}
+
 }

@@ -39,7 +39,7 @@ class Barrett implements math.reduction.ModularReduction {
 	var r2 : BigInteger;
 	var q3 : BigInteger;
 	// Barrett modular reduction
-	function new(m:BigInteger) {
+	public function new(m:BigInteger) {
 		// setup Barrett
 		r2 = BigInteger.nbi();
 		q3 = BigInteger.nbi();

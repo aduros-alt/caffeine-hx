@@ -32,18 +32,23 @@
 package math;
 
 import math.reduction.ModularReduction;
+import math.reduction.Barrett;
 import math.reduction.Classic;
 import math.reduction.Montgomery;
 
 class BigInteger {
-	public static var DB : Int 		= 30; //dbits TODO: assumed to be 16 < DB < 32
+	public static var MAX_RADIX : Int = 36;
+	public static var MIN_RADIX : Int = 2;
+
+	//dbits (DB) TODO: assumed to be 16 < DB < 32
+	public static var DB : Int 		= 30;
 	public static var DM : Int 		= ((1<<30)-1);
 	public static var DV : Int 		= (1<<30);
 
 	public static var BI_FP : Int 	= 52;
 	public static var FV : Float 	= Math.pow(2,BI_FP);
-	public static var F1 : Int 	= BI_FP-30;
-	public static var F2 : Int 	= 2*30-BI_FP;
+	public static var F1 : Int 		= BI_FP-30;
+	public static var F2 : Int		= 2*30-BI_FP;
 
 	public static var ZERO(getZERO,null)	: BigInteger;
 	public static var ONE(getONE, null)		: BigInteger;
@@ -323,7 +328,7 @@ class BigInteger {
 	}
 
 	// (protected) convert to radix string
-	function toRadix(b : Int) : String {
+	public function toRadix(b : Int) : String {
 		if(b == null) b = 10;
 		if(s == 0 || b < 2 || b > 36) return "0";
 		var cs = Math.floor(0.6931471805599453*DB/Math.log(b)); // Math.LN2
@@ -334,10 +339,10 @@ class BigInteger {
 		var r = "";
 		divRemTo(d,y,z);
 		while(y.s > 0) {
-			r = (a + z.intValue()).toString(b).substr(1) + r;
+			r = I32.baseEncode31(a + z.intValue(), b).substr(1) + r;
 			y.divRemTo(d,y,z);
 		}
-		return z.intValue().toString(b) + r;
+		return I32.baseEncode31(z.intValue(), b) + r;
 	}
 
 /*
@@ -735,7 +740,7 @@ class BigInteger {
 	/**
 		(public) 0 if this == 0, 1 if this > 0
 	**/
-	public function sigNum() {
+	public function signum() {
 		if(s < 0) return -1;
 		else if(t <= 0 || (t == 1 && chunks[0] <= 0)) return 0;
 		else return 1;
@@ -851,7 +856,7 @@ class BigInteger {
 	function flipBit(n) { return this.changeBit(n,op_xor); }
 
 	// (protected) r = this + a
-	function addTo(a:BigInteger,r:BigInteger) {
+	function addTo(a:BigInteger,r:BigInteger) : Void {
 		var i :Int = 0, c:Int = 0, m:Int = Std.int(Math.min(a.t,t));
 		while(i < m) {
 			c += chunks[i]+a.chunks[i];
@@ -886,33 +891,39 @@ class BigInteger {
 	/**
 		(public) this + a
 	**/
-	public function add(a) { var r = nbi(); this.addTo(a,r); return r; }
+	public function add(a) : BigInteger
+	{ var r = nbi(); this.addTo(a,r); return r; }
 
 	/**
 		(public) this - a
 	**/
-	public function subtract(a) { var r = nbi(); this.subTo(a,r); return r; }
+	public function subtract(a) : BigInteger
+	{ var r = nbi(); this.subTo(a,r); return r; }
 
 	/**
 		(public) this * a
 	**/
-	public function multiply(a) { var r = nbi(); this.multiplyTo(a,r); return r; }
+	public function multiply(a) : BigInteger
+	{ var r = nbi(); this.multiplyTo(a,r); return r; }
 
 	/**
 		(public) this / a
 	**/
-	public function divide(a) { var r = nbi(); divRemTo(a,r,null); return r; }
+	public function divide(a) : BigInteger
+	{ var r = nbi(); divRemTo(a,r,null); return r; }
 
 	/**
 		(public) this % a
 	**/
-	public function remainder(a) { var r = nbi(); divRemTo(a,null,r); return r; }
+	public function remainder(a) : BigInteger
+	{ var r = nbi(); divRemTo(a,null,r); return r; }
 
 	/**
 		(public) [this/a,this%a]
 	**/
 	public function divideAndRemainder(a) : Array<BigInteger> {
-		var q = nbi(), r = nbi();
+		var q = nbi();
+		var r = nbi();
 		divRemTo(a,q,r);
 		return [q,r];
 	}
@@ -920,135 +931,160 @@ class BigInteger {
 	/**
 		(public) this^e
 	**/
-	public function Pow(e) { return this.exp(e,new math.reduction.Null()); }
+	public function pow(e : Int) : BigInteger {
+		return this.exp(e,new math.reduction.Null());
+	}
 
 	/**
 		(protected) r = lower n words of "this * a", a.t <= n
 		"this" should be the larger one if appropriate.
-	**
-	function multiplyLowerTo(a:BigInteger,n : Int,r:BigInteger) {
-		var i = Math.min(this.t+a.t,n);
+	**/
+	public function multiplyLowerTo(a:BigInteger,n : Int,r:BigInteger) : Void {
+		var i : Int = Std.int(Math.min(this.t+a.t,n));
 		r.s = 0; // assumes a,this >= 0
 		r.t = i;
 		while(i > 0) r.chunks[--i] = 0;
-		var j;
-		for(j = r.t-this.t; i < j; ++i) r.chunks[i+this.t] = this.am(0,a.chunks[i],r,i,0,this.t);
-		for(j = Math.min(a.t,n); i < j; ++i) this.am(0,a.chunks[i],r,i,0,n-i);
+		var j : Int = r.t - this.t;
+		for(i in 0...j)
+			r.chunks[i+this.t] = this.am(0,a.chunks[i],r,i,0,this.t);
+		j = Std.int(Math.min(a.t,n));
+		for(i in 0...j)
+			this.am(0,a.chunks[i],r,i,0,n-i);
 		r.clamp();
 	}
-	*/
+
 	/**
 		(protected) r = "this * a" without lower n words, n > 0
 		"this" should be the larger one if appropriate.
-	**
-	function multiplyUpperTo(a,n,r) {
+	**/
+	public function multiplyUpperTo(a:BigInteger,n:Int,r:BigInteger) : Void {
 		--n;
-		var i = r.t = t+a.t-n;
+		var i : Int = r.t = t+a.t-n;
 		r.s = 0; // assumes a,this >= 0
-		while(--i >= 0) r.chunks[i] = 0;
-		for(i = Math.max(n-t,0); i < a.t; ++i)
-			r.chunks[t+i-n] = this.am(n-i,a.chunks[i],r,0,0,t+i-n);
+		while(--i >= 0)
+			r.chunks[i] = 0;
+		i = Std.int(Math.max(n-t,0));
+		for(x in i...a.t)
+			r.chunks[t+x-n] = this.am(n-x,a.chunks[x],r,0,0,t+x-n);
 		r.clamp();
 		r.drShiftTo(1,r);
 	}
 
-// (public) this^e % m (HAC 14.85)
-public function modPow(e,m) {
-  var i = e.bitLength(), k, r = nbv(1), z;
-  if(i <= 0) return r;
-  else if(i < 18) k = 1;
-  else if(i < 48) k = 3;
-  else if(i < 144) k = 4;
-  else if(i < 768) k = 5;
-  else k = 6;
-  if(i < 8)
-    z = new Classic(m);
-  else if(m.isEven())
-    z = new Barrett(m);
-  else
-    z = new Montgomery(m);
+	// (public) this^e % m (HAC 14.85)
+	public function modPow(e : BigInteger, m:BigInteger) : BigInteger {
+		var i = e.bitLength();
+		var k : Int;
+		var r : BigInteger = nbv(1);
+		var z : ModularReduction;
+		if(i <= 0) return r;
+		else if(i < 18) k = 1;
+		else if(i < 48) k = 3;
+		else if(i < 144) k = 4;
+		else if(i < 768) k = 5;
+		else k = 6;
+		if(i < 8)
+			z = new Classic(m);
+		else if(m.isEven())
+			z = new Barrett(m);
+		else
+			z = new Montgomery(m);
 
-  // precomputation
-  var g = new Array(), n = 3, k1 = k-1, km = (1<<k)-1;
-  g[1] = z.convert(this);
-  if(k > 1) {
-    var g2 = nbi();
-    z.sqrTo(g[1],g2);
-    while(n <= km) {
-      g[n] = nbi();
-      z.mulTo(g2,g[n-2],g[n]);
-      n += 2;
-    }
-  }
+		// precomputation
+		var g : Array<BigInteger> = new Array();
+		var n : Int = 3;
+		var k1 : Int = k-1;
+		var km : Int = (1<<k)-1;
+		g[1] = z.convert(this);
+		if(k > 1) {
+			var g2 : BigInteger = nbi();
+			z.sqrTo(g[1],g2);
+			while(n <= km) {
+				g[n] = nbi();
+				z.mulTo(g2,g[n-2],g[n]);
+				n += 2;
+			}
+		}
 
-  var j = e.t-1, w, is1 = true, r2 = nbi(), t;
-  i = nbits(e[j])-1;
-  while(j >= 0) {
-    if(i >= k1) w = (e[j]>>(i-k1))&km;
-    else {
-      w = (e[j]&((1<<(i+1))-1))<<(k1-i);
-      if(j > 0) w |= e[j-1]>>(this.DB+i-k1);
-    }
+		var j : Int = e.t-1;
+		var w : Int;
+		var is1 : Bool = true;
+		var r2 : BigInteger = nbi();
+		var t : BigInteger;
+		i = nbits(e.chunks[j])-1;
+		while(j >= 0) {
+			if(i >= k1) w = (e.chunks[j]>>(i-k1))&km;
+			else {
+				w = (e.chunks[j]&((1<<(i+1))-1))<<(k1-i);
+				if(j > 0) w |= e.chunks[j-1]>>(DB+i-k1);
+			}
 
-    n = k;
-    while((w&1) == 0) { w >>= 1; --n; }
-    if((i -= n) < 0) { i += this.DB; --j; }
-    if(is1) {	// ret == 1, don't bother squaring or multiplying it
-      g[w].copyTo(r);
-      is1 = false;
-    }
-    else {
-      while(n > 1) { z.sqrTo(r,r2); z.sqrTo(r2,r); n -= 2; }
-      if(n > 0) z.sqrTo(r,r2); else { t = r; r = r2; r2 = t; }
-      z.mulTo(r2,g[w],r);
-    }
+			n = k;
+			while((w&1) == 0) { w >>= 1; --n; }
+			if((i -= n) < 0) { i += DB; --j; }
+			if(is1) {	// ret == 1, don't bother squaring or multiplying it
+				g[w].copyTo(r);
+				is1 = false;
+			}
+			else {
+				while(n > 1) { z.sqrTo(r,r2); z.sqrTo(r2,r); n -= 2; }
+				if(n > 0) z.sqrTo(r,r2);
+				else { t = r; r = r2; r2 = t; }
+				z.mulTo(r2,g[w],r);
+			}
 
-    while(j >= 0 && (e[j]&(1<<i)) == 0) {
-      z.sqrTo(r,r2); t = r; r = r2; r2 = t;
-      if(--i < 0) { i = this.DB-1; --j; }
-    }
-  }
-  return z.revert(r);
-}
+			while(j >= 0 && (e.chunks[j]&(1<<i)) == 0) {
+				z.sqrTo(r,r2); t = r; r = r2; r2 = t;
+				if(--i < 0) { i = DB-1; --j; }
+			}
+		}
+		return z.revert(r);
+	}
 
-// (public) gcd(this,a) (HAC 14.54)
-public function gcd(a) {
-  var x = (this.s<0)?this.negate():this.clone();
-  var y = (a.s<0)?a.negate():a.clone();
-  if(x.compareTo(y) < 0) { var t = x; x = y; y = t; }
-  var i = x.getLowestSetBit(), g = y.getLowestSetBit();
-  if(g < 0) return x;
-  if(i < g) g = i;
-  if(g > 0) {
-    x.rShiftTo(g,x);
-    y.rShiftTo(g,y);
-  }
-  while(x.signum() > 0) {
-    if((i = x.getLowestSetBit()) > 0) x.rShiftTo(i,x);
-    if((i = y.getLowestSetBit()) > 0) y.rShiftTo(i,y);
-    if(x.compareTo(y) >= 0) {
-      x.subTo(y,x);
-      x.rShiftTo(1,x);
-    }
-    else {
-      y.subTo(x,y);
-      y.rShiftTo(1,y);
-    }
-  }
-  if(g > 0) y.lShiftTo(g,y);
-  return y;
-}
 
-// (protected) this % n, n < 2^26
-public function modInt(n) {
-  if(n <= 0) return 0;
-  var d = this.DV%n, r = (this.s<0)?n-1:0;
-  if(this.t > 0)
-    if(d == 0) r = this[0]%n;
-    else for(var i = this.t-1; i >= 0; --i) r = (d*r+this[i])%n;
-  return r;
-}
+	// (public) gcd(this,a) (HAC 14.54)
+	public function gcd(a:BigInteger) : BigInteger {
+		var x = (this.s<0)?this.negate():this.clone();
+		var y = (a.s<0)?a.negate():a.clone();
+		if(x.compareTo(y) < 0) { var t = x; x = y; y = t; }
+		var i = x.getLowestSetBit(), g = y.getLowestSetBit();
+		if(g < 0) return x;
+		if(i < g) g = i;
+		if(g > 0) {
+			x.rShiftTo(g,x);
+			y.rShiftTo(g,y);
+		}
+		while(x.signum() > 0) {
+			if((i = x.getLowestSetBit()) > 0) x.rShiftTo(i,x);
+			if((i = y.getLowestSetBit()) > 0) y.rShiftTo(i,y);
+			if(x.compareTo(y) >= 0) {
+				x.subTo(y,x);
+				x.rShiftTo(1,x);
+			}
+			else {
+				y.subTo(x,y);
+				y.rShiftTo(1,y);
+			}
+		}
+		if(g > 0) y.lShiftTo(g,y);
+		return y;
+	}
 
+
+	// (protected) this % n, n < 2^26
+	public function modInt(n : Int) {
+		if(n <= 0) return 0;
+		var d = DV%n, r = (this.s<0)?n-1:0;
+		if(this.t > 0)
+			if(d == 0) r = chunks[0]%n;
+			else {
+				var i = this.t-1;
+				while( --i >= 0)
+					r = (d*r+chunks[i])%n;
+			}
+		return r;
+	}
+
+/*
 // (public) 1/this % m (HAC 14.61)
 public function modInverse(m) {
   var ac = m.isEven();
@@ -1090,53 +1126,53 @@ public function modInverse(m) {
   if(d.signum() < 0) d.addTo(m,d); else return d;
   if(d.signum() < 0) return d.add(m); else return d;
 }
+*/
 
+	// (public) test primality with certainty >= 1-.5^t
+	public function isProbablePrime(t) {
+		var i;
+		var x = this.abs();
+		if(x.t == 1 && x.chunks[0] <= lowprimes[lowprimes.length-1]) {
+			for(i in 0...lowprimes.length)
+			if(x.chunks[0] == lowprimes[i]) return true;
+			return false;
+		}
+		if(x.isEven()) return false;
+		i = 1;
+		while(i < lowprimes.length) {
+			var m = lowprimes[i];
+			var j = i+1;
+			while(j < lowprimes.length && m < lplim) m *= lowprimes[j++];
+			m = x.modInt(m);
+			while(i < j) if(m%lowprimes[i++] == 0) return false;
+		}
+		return x.millerRabin(t);
+	}
 
+	// (protected) true if probably prime (HAC 4.24, Miller-Rabin)
+	public function millerRabin(t:Int) {
+		var n1 = this.subtract(BigInteger.ONE);
+		var k = n1.getLowestSetBit();
+		if(k <= 0) return false;
+		var r = n1.shiftRight(k);
+		t = (t+1)>>1;
+		if(t > lowprimes.length) t = lowprimes.length;
+		var a = nbi();
+		for(i in 0...t) {
+			a.fromInt(lowprimes[i]);
+			var y = a.modPow(r,this);
+			if(y.compareTo(BigInteger.ONE) != 0 && y.compareTo(n1) != 0) {
+				var j = 1;
+				while(j++ < k && y.compareTo(n1) != 0) {
+					y = y.modPowInt(2,this);
+					if(y.compareTo(BigInteger.ONE) == 0) return false;
+				}
+				if(y.compareTo(n1) != 0) return false;
+			}
+		}
+		return true;
+	}
 
-// (public) test primality with certainty >= 1-.5^t
-public function isProbablePrime(t) {
-  var i, x = this.abs();
-  if(x.t == 1 && x[0] <= lowprimes[lowprimes.length-1]) {
-    for(i = 0; i < lowprimes.length; ++i)
-      if(x[0] == lowprimes[i]) return true;
-    return false;
-  }
-  if(x.isEven()) return false;
-  i = 1;
-  while(i < lowprimes.length) {
-    var m = lowprimes[i], j = i+1;
-    while(j < lowprimes.length && m < lplim) m *= lowprimes[j++];
-    m = x.modInt(m);
-    while(i < j) if(m%lowprimes[i++] == 0) return false;
-  }
-  return x.millerRabin(t);
-}
-
-// (protected) true if probably prime (HAC 4.24, Miller-Rabin)
-public function millerRabin(t) {
-  var n1 = this.subtract(BigInteger.ONE);
-  var k = n1.getLowestSetBit();
-  if(k <= 0) return false;
-  var r = n1.shiftRight(k);
-  t = (t+1)>>1;
-  if(t > lowprimes.length) t = lowprimes.length;
-  var a = nbi();
-  for(var i = 0; i < t; ++i) {
-    a.fromInt(lowprimes[i]);
-    var y = a.modPow(r,this);
-    if(y.compareTo(BigInteger.ONE) != 0 && y.compareTo(n1) != 0) {
-      var j = 1;
-      while(j++ < k && y.compareTo(n1) != 0) {
-        y = y.modPowInt(2,this);
-        if(y.compareTo(BigInteger.ONE) == 0) return false;
-      }
-      if(y.compareTo(n1) != 0) return false;
-    }
-  }
-  return true;
-}
-
-	*/
 #if !js
 	public function am (i:Int,x:Int,w:BigInteger,j:Int,c:Int,n:Int) : Int {
 		// same as JavaScript 'am2' variant
