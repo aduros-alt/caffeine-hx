@@ -44,7 +44,7 @@ class Barrett implements math.reduction.ModularReduction {
 		r2 = BigInteger.nbi();
 		q3 = BigInteger.nbi();
 		BigInteger.ONE.dlShiftTo(2*m.t,r2);
-		mu = r2.divide(m);
+		mu = r2.div(m);
 		this.m = m;
 	}
 
