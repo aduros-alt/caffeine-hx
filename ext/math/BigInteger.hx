@@ -35,6 +35,9 @@ import math.reduction.ModularReduction;
 import math.reduction.Barrett;
 import math.reduction.Classic;
 import math.reduction.Montgomery;
+#if neko
+import neko.Int32;
+#end
 
 class BigInteger {
 	public static var MAX_RADIX : Int = 36;
@@ -61,6 +64,7 @@ class BigInteger {
 	static var lplim : Int;
 
 	static function __init__() {
+		BI_RC = new Array();
 		BI_RM = "0123456789abcdefghijklmnopqrstuvwxyz";
 		var rr : Int = "0".charCodeAt(0);
 		for(vv in 0...10)
@@ -74,33 +78,6 @@ class BigInteger {
 
 		lowprimes = [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113,127,131,137,139,149,151,157,163,167,173,179,181,191,193,197,199,211,223,227,229,233,239,241,251,257,263,269,271,277,281,283,293,307,311,313,317,331,337,347,349,353,359,367,373,379,383,389,397,401,409,419,421,431,433,439,443,449,457,461,463,467,479,487,491,499,503,509];
 		lplim = Std.int((1<<26)/lowprimes[lowprimes.length-1]);
-
-#if js
-
-		// Bits per digit
-		var dbits; This is th DB static
-
-		// JavaScript engine analysis
-		var canary = 0xdeadbeefcafe;
-		var j_lm = ((canary&0xffffff)==0xefcafe);
-
-		if(j_lm && (navigator.appName == "Microsoft Internet Explorer")) {
-			BigInteger.prototype.am = am2;
-			dbits = 30;
-		}
-		else if(j_lm && (navigator.appName != "Netscape")) {
-			BigInteger.prototype.am = am1;
-			dbits = 26;
-		}
-		else { // Mozilla/Netscape seems to prefer
-			BigInteger.prototype.am = am3;
-			dbits = 28;
-		}
-
-		DB = dbits;
-		F1 = BI_FP - dbits;
-		F2 = 2 * dbits - BI_FP;
-#end
 
 	}
 
@@ -138,6 +115,35 @@ class BigInteger {
 		chunks = new Array<Int>();
 		if(int != null)	this.fromInt(int);
 		else if( str != null && radix == null) this.fromString(str,256);
+#if js
+		// Bits per digit
+		var dbits; //This is th DB static
+
+		// JavaScript engine analysis
+		var j_lm : Bool;
+		untyped {
+		var canary : Int = 0xdeadbeefcafe;
+		j_lm = ((canary&0xffffff)==0xefcafe);
+		}
+
+		if(j_lm && (js.Lib.window.navigator.appName == "Microsoft Internet Explorer")) {
+			am = am2;
+			dbits = 30;
+		}
+		else if(j_lm && (js.Lib.window.navigator.appName != "Netscape")) {
+			am = am1;
+			dbits = 26;
+		}
+		else { // Mozilla/Netscape seems to prefer
+			am = am3;
+			dbits = 28;
+		}
+
+		DB = dbits;
+		F1 = BI_FP - dbits;
+		F2 = 2 * dbits - BI_FP;
+#end
+
 	}
 
 	/**
@@ -301,7 +307,7 @@ class BigInteger {
 	}
 
 	// (protected) convert from radix string
-	function fromRadix(s : String, b : Int) {
+	function fromRadix(s : String, ?b : Int) {
 	  this.fromInt(0);
 	  if(b == null) b = 10;
 	  var cs = Math.floor(0.6931471805599453*DB/Math.log(b));
@@ -328,7 +334,7 @@ class BigInteger {
 	}
 
 	// (protected) convert to radix string
-	public function toRadix(b : Int) : String {
+	public function toRadix(?b : Int) : String {
 		if(b == null) b = 10;
 		if(s == 0 || b < 2 || b > 36) return "0";
 		var cs = Math.floor(0.6931471805599453*DB/Math.log(b)); // Math.LN2
@@ -431,7 +437,18 @@ class BigInteger {
 	public function xor(a) { var r = nbi(); this.bitwiseTo(a,op_xor,r); return r; }
 
 	// (public) this & ~a
+#if !neko
 	public function op_andnot(x:Int, y:Int) { return x&~y; }
+#else true
+	public function op_andnot(x:Int, y:Int) {
+		return Int32.toInt(
+			Int32.and(
+				Int32.ofInt(x),
+				Int32.complement(Int32.ofInt(y))
+			)
+		);
+	}
+#end
 	public function andNot(a) { var r = nbi(); this.bitwiseTo(a,op_andnot,r); return r; }
 
 	/**
@@ -538,9 +555,22 @@ class BigInteger {
 	**/
 	function not() {
 		var r = nbi();
+#if !neko
 		for(i in 0...t) r.chunks[i] = DM&~chunks[i];
 		r.t = t;
 		r.s = ~this.s;
+#else true
+		for(i in 0...t) {
+			r.chunks[i] =
+				Int32.toInt(
+				Int32.and(
+					Int32.ofInt(DM),
+					Int32.complement(Int32.ofInt(chunks[i]))
+				));
+		}
+		r.t = t;
+		r.s = Int32.toInt(Int32.complement(Int32.ofInt(this.s)));
+#end
 		return r;
 	}
 
@@ -771,8 +801,8 @@ class BigInteger {
 		return r;
 	}
 
-	function intAt(s,i) {
-		var c = BI_RC[s.charCodeAt(i)];
+	function intAt(s : String, i: Int) : Int {
+		var c : Null<Int> = BI_RC[s.charCodeAt(i)];
 		return (c==null)?-1:c;
 	}
 
@@ -1206,7 +1236,7 @@ public function modInverse(m) {
 			var l : Int = chunks[i]&0x7fff;
 			var h : Int = chunks[i++]>>15;
 			var m : Int = xh*l + h*xl;
-			l = xl*l + ((m&0x7fff)<<15)+w.a.chunks[j]+(c&0x3fffffff);
+			l = xl*l + ((m&0x7fff)<<15)+w.chunks[j]+(c&0x3fffffff);
 			c = (l>>>30)+(m>>>15)+xh*h+(c>>>30);
 			w.chunks[j++] = l&0x3fffffff;
 		}
@@ -1218,9 +1248,9 @@ public function modInverse(m) {
 	// max internal value = 2*dvalue^2-2*dvalue (< 2^53)
 	function am1(i:Int,x:Int,w:BigInteger,j:Int,c:Int,n:Int) : Int {
 		while(--n >= 0) {
-			var v = x*chunks[i++]+w[j]+c;
+			var v = x*chunks[i++]+w.chunks[j]+c;
 			c = Math.floor(v/0x4000000);
-			w[j++] = v&0x3ffffff;
+			w.chunks[j++] = v&0x3ffffff;
 		}
 		return c;
 	}
@@ -1233,9 +1263,9 @@ public function modInverse(m) {
 			var l = chunks[i]&0x3fff;
 			var h = chunks[i++]>>14;
 			var m = xh*l+h*xl;
-			l = xl*l+((m&0x3fff)<<14)+w[j]+c;
+			l = xl*l+((m&0x3fff)<<14)+w.chunks[j]+c;
 			c = (l>>28)+(m>>14)+xh*h;
-			w[j++] = l&0xfffffff;
+			w.chunks[j++] = l&0xfffffff;
 		}
 		return c;
 	}

@@ -344,7 +344,6 @@ class I32 {
 #if !neko
 		return baseEncode31(vi, radix);
 #else true
-#end
 		if(radix < 2 || radix > 36)
 			throw "radix out of range";
 		var sb = "";
@@ -360,5 +359,7 @@ class I32 {
 		if(Int32.lt(vi, Int32.ZERO))
 			return "-" + sb;
 		return sb;
+#end
 	}
 }
+
