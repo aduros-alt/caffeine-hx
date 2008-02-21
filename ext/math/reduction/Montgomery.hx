@@ -38,7 +38,7 @@ import math.BigInteger;
 	Montgomery reduction
 **/
 class Montgomery implements math.reduction.ModularReduction {
-	
+
 	private var m : BigInteger;
 	private var mp : Int;
 	private var mpl : Int;
@@ -61,7 +61,7 @@ class Montgomery implements math.reduction.ModularReduction {
 		var r = BigInteger.nbi();
 		x.abs().dlShiftTo(this.m.t,r);
 		r.divRemTo(this.m,null,r);
-		if(x.s < 0 && r.compareTo(BigInteger.ZERO) > 0)
+		if(x.sign < 0 && r.compareTo(BigInteger.ZERO) > 0)
 			this.m.subTo(r,r);
 		return r;
 	}

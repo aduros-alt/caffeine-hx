@@ -49,7 +49,7 @@ class Barrett implements math.reduction.ModularReduction {
 	}
 
 	public function convert(x:BigInteger) {
-		if(x.s < 0 || x.t > 2*m.t) return x.mod(m);
+		if(x.sign < 0 || x.t > 2*m.t) return x.mod(m);
 		else if(x.compareTo(m) < 0) return x;
 		else { var r = BigInteger.nbi(); x.copyTo(r); reduce(r); return r; }
 	}
