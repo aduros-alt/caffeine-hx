@@ -50,6 +50,10 @@ class BigInteger {
 	public var am : Int->Int->BigInteger->Int->Int->Int->Int; // am function
 
 	public function new(?byInt : Int, ?str : String, ?radix : Int) {
+		if(BI_RC == null || BI_RC.length == 0)
+			initBiRc();
+		if(BI_RM.length == 0)
+			throw("BI_RM not initialized");
 		am = switch(defaultAm) {
 		case 1: am1;
 		case 2: am2;
@@ -88,9 +92,9 @@ class BigInteger {
 		Return a base 10 string
 	**/
 	public function toString() : String {
-		//return toRadixExt(10);
+		return toRadixExt(10);
 		// debug TODO test traces in base 16
-		return toRadix(16);
+		// return toRadix(16);
 	}
 	/**
 		return string representation in given radix.
@@ -135,14 +139,12 @@ class BigInteger {
 		if(b < 2 || b > 36) return "0";
 		var cs : Int = Math.floor(0.6931471805599453*DB/Math.log(b));
 		var a = Std.int(Math.pow(b,cs));
-//trace(a);
 		var d = nbv(a);
 		var y = nbi();
 		var z = nbi();
 		var r = "";
 		divRemTo(d,y,z);
 		while(y.sigNum() > 0) {
-//trace(a + z.intValue());
 			r = I32.baseEncode31(a + z.intValue(), b).substr(1) + r;
 			y.divRemTo(d,y,z);
 		}
@@ -195,30 +197,32 @@ class BigInteger {
 		convert from radix string
 	**/
 	function fromStringExt(s : String, ?b : Int) : Void {
-trace(here.methodName);
-	  fromInt(0);
-	  if(b == null) b = 10;
-	  var cs = Math.floor(0.6931471805599453*DB/Math.log(b));
-	  var d = Std.int( Math.pow(b,cs) ), mi = false, j = 0, w = 0;
-	  for(i in 0...s.length) {
-	    var x = intAt(s,i);
-	    if(x < 0) {
-	      if(s.charAt(i) == "-" && sign == 0) mi = true;
-	      continue;
-	    }
-	    w = b*w+x;
-	    if(++j >= cs) {
-		  dMultiply( d );
-	      dAddOffset(w,0);
-	      j = 0;
-	      w = 0;
-	    }
-	  }
-	  if(j > 0) {
-	    dMultiply(Std.int( Math.pow(b,j) ));
-	    dAddOffset(w,0);
-	  }
-	  if(mi) ZERO.subTo(this,this);
+		fromInt(0);
+		if(b == null) b = 10;
+		var cs:Int = Math.floor(0.6931471805599453*DB/Math.log(b));
+		var d:Int = Std.int( Math.pow(b,cs) );
+		var mi:Bool = false;
+		var j:Int = 0;
+		var w:Int = 0;
+		for(i in 0...s.length) {
+			var x = intAt(s,i);
+			if(x < 0) {
+				if(s.charAt(i) == "-" && sign == 0) mi = true;
+				continue;
+			}
+			w = b*w+x;
+			if(++j >= cs) {
+				dMultiply( d );
+				dAddOffset(w,0);
+				j = 0;
+				w = 0;
+			}
+		}
+		if(j > 0) {
+			dMultiply(Std.int( Math.pow(b,j) ));
+			dAddOffset(w,0);
+		}
+		if(mi) ZERO.subTo(this,this);
 	}
 
 
@@ -519,12 +523,11 @@ trace(here.methodName);
 		<pre>r != q, this != m.  q or r may be null.</pre>
 	**/
 	public function divRemTo(m : BigInteger, q : BigInteger ,?r : BigInteger) {
-trace(here.methodName);
 		var pm : BigInteger = m.abs();
 		if(pm.t <= 0) return;
 		var pt : BigInteger = abs();
-//trace(pt); // 41
-//trace(pm); // 4
+// 		trace(pt); // 41
+// 		trace(pm); // 4
 		if(pt.t < pm.t) {
 			trace(true);
 			if(q != null) q.fromInt(0);
@@ -535,14 +538,17 @@ trace(here.methodName);
 		var y:BigInteger = nbi();
 		var ts:Int = sign;
 		var ms:Int = m.sign;
-trace( Std.string(ts)  +  " " + Std.string(ms));
-trace(pm.t); //1
-trace(pm.chunks); // 4
-trace(nbits(pm.chunks[pm.t-1])); // 3
+
+// 		trace( Std.string(ts)  +  " " + Std.string(ms));
+// 		trace(pm.t); //1
+// 		trace(pm.chunks); // 4
+// 		trace(nbits(pm.chunks[pm.t-1])); // 3
+
 		var nsh: Int = DB-nbits(pm.chunks[pm.t-1]);	// normalize modulus
-trace(nsh); // 25
-trace(pt.chunks);
-trace(pm.chunks);
+// 		trace(nsh); // 25
+// 		trace(pt.chunks);
+// 		trace(pm.chunks);
+
 		if(nsh > 0) {
 			pt.lShiftTo(nsh,r);
 			pm.lShiftTo(nsh,y);
@@ -551,60 +557,70 @@ trace(pm.chunks);
 			pt.copyTo(r);
 			pm.copyTo(y);
 		}
-trace(r.chunks);
-trace(y.chunks);
-trace(r.t);
-trace(y.t);
-//trace(y.chunks); // [0]
+// 		trace(r.chunks);
+// 		trace(y.chunks);
+// 		trace(r.t);
+// 		trace(y.t);
+// 		//trace(y.chunks); // [0]
 		var ys: Int = y.t;
 		var y0: Int = y.chunks[ys-1];
 		if(y0 == 0) return;
-trace(y0); // 134217728
-trace(ys); // 1
-//trace(F1); // 24
-//trace(F2); // 4
-		var yt:Float = y0*(1<<F1)+((ys>1)?y.chunks[ys-2]>>F2:0);
-trace(yt); // 0
+// 		trace(y0); // 134217728
+// 		trace(ys); // 1
+// 		trace(F1); // 24
+// 		trace(F2); // 4
+		// TODO: neko nastiness in Int to Float casting
+		//var yt:Float = y0*(1<<F1)+((ys>1)?y.chunks[ys-2]>>F2:0);
+		var yt : Float = Std.parseFloat(Std.string(y0));
+		{
+			var h : Float = Std.parseFloat(Std.string(1<<F1));
+			//var h : Float = cast((1<<F1), Float);
+			var u : Float = 0.0;
+			if(ys > 1)
+				u = Std.parseFloat(Std.string(y.chunks[ys-2]>>F2));
+			yt = yt * h + u;
+		}
+// 		trace(yt);
 		var d1:Float = FV/yt;
-trace(d1);
+// 		trace(d1);
 		var d2:Float = (1<<F1)/yt;
-		var e:Float = 1<<F2;
+		var e:Float = (1<<F2);
 		var i:Int = r.t;
 		var j:Int = i-ys;
 		var t:BigInteger = (q==null)?nbi():q;
-//trace(y);
-trace(j);
-trace(DB);
+// 		//trace(y);
+// 		trace(j);
+// 		trace(DB);
 		/** <pre> t = this << n*DB </pre> **/
 		y.dlShiftTo(j,t);
-//trace(t);
+// 		//trace(t);
 		if(r.compareTo(t) >= 0) {
-trace(true);
+// 			trace(true);
 			r.chunks[r.t++] = 1;
 			r.subTo(t,r);
 		}
 		ONE.dlShiftTo(ys,t);
-//trace(t);
+//		//trace(t);
 		t.subTo(y,y);	// "negative" y so we can replace sub with am later
-//trace(y);
+//		//trace(y);
 		while(y.t < ys) y.chunks[y.t++] = 0;
 		while(--j >= 0) {
-trace(r.chunks[i]);
-trace(r.chunks[i-1]);
+// 			trace(r.chunks[i]);
+// 			trace(r.chunks[i-1]);
 			// Estimate quotient digit
 			var qd:Int = (r.chunks[--i]==y0)?DM:Math.floor(r.chunks[i]*d1+(r.chunks[i-1]+e)*d2);
-trace(qd);
+// 			trace(qd);
 			if((r.chunks[i]+=y.am(0,qd,r,j,0,ys)) < qd) {	// Try it out
-trace("Here");
+// 				trace("Here");
 				y.dlShiftTo(j,t);
 				r.subTo(t,r);
 				while(r.chunks[i] < --qd) { r.subTo(t,r); }
 			}
 		}
-trace(r.chunks);
-trace(ys);
+// 	trace(r.chunks);
+// 	trace(ys);
 		if(q != null) {
-trace(true);
+// 			trace(true);
 			r.drShiftTo(ys,q);
 			if(ts != ms) ZERO.subTo(q,q);
 		}
@@ -612,8 +628,8 @@ trace(true);
 		r.clamp();
 		if(nsh > 0) r.rShiftTo(nsh,r);	// Denormalize remainder
 		if(ts < 0) ZERO.subTo(r,r);
-trace(q.chunks);
-trace(q.t);
+// 		trace(q.chunks);
+// 		trace(q.t);
 	}
 
 	/**
@@ -1274,15 +1290,16 @@ public function modInverse(m) {
 		// JavaScript engine analysis
 		var j_lm : Bool;
 		untyped {
-		var canary : Int = 0xdeadbeefcafe;
-		j_lm = ((canary&0xffffff)==0xefcafe);
+			var canary : Int = 0xdeadbeefcafe;
+			j_lm = ((canary&0xffffff)==0xefcafe);
 		}
 
-		if(j_lm && (js.Lib.window.navigator.appName == "Microsoft Internet Explorer")) {
+		var browser: String = untyped window.navigator.appName;
+		if(j_lm && (browser == "Microsoft Internet Explorer")) {
 			defaultAm = 2;
 			dbits = 30;
 		}
-		else if(j_lm && (js.Lib.window.navigator.appName != "Netscape")) {
+		else if(j_lm && (browser != "Netscape")) {
 			defaultAm = 1;
 			dbits = 26;
 		}
@@ -1290,7 +1307,7 @@ public function modInverse(m) {
 			defaultAm = 3;
 			dbits = 28;
 		}
-#else flash9
+#else flash
 		dbits = 28;
 		defaultAm =3;
 #else true
@@ -1304,21 +1321,28 @@ public function modInverse(m) {
 		FV = Math.pow(2,BI_FP);
 		F1 = BI_FP-DB;
 		F2 = 2*DB-BI_FP;
-		BI_RC = new Array();
+		// TODO: for some reason on flash8, BI_RC was not initializing here
+		// properly, so it is double checked in the constructor.
+		initBiRc();
 		BI_RM = "0123456789abcdefghijklmnopqrstuvwxyz";
-		var rr : Int = "0".charCodeAt(0);
-		for(vv in 0...10)
-			BI_RC[rr++] = vv;
-		rr = "a".charCodeAt(0);
-		for(vv in 10...37)
-			BI_RC[rr++] = vv;
-		rr = "A".charCodeAt(0);
-		for(vv in 10...37)
-			BI_RC[rr++] = vv;
+
 
 		lowprimes = [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113,127,131,137,139,149,151,157,163,167,173,179,181,191,193,197,199,211,223,227,229,233,239,241,251,257,263,269,271,277,281,283,293,307,311,313,317,331,337,347,349,353,359,367,373,379,383,389,397,401,409,419,421,431,433,439,443,449,457,461,463,467,479,487,491,499,503,509];
 		lplim = Std.int((1<<26)/lowprimes[lowprimes.length-1]);
 
+	}
+
+	static function initBiRc() : Void {
+		BI_RC = new Array<Int>();
+		var rr : Int = Std.ord("0"); //.charCodeAt(0);
+		for(vv in 0...10)
+			BI_RC[rr++] = vv;
+		rr = Std.ord("a");//.charCodeAt(0);
+		for(vv in 10...37)
+			BI_RC[rr++] = vv;
+		rr = Std.ord("A");//.charCodeAt(0);
+		for(vv in 10...37)
+			BI_RC[rr++] = vv;
 	}
 
 	/**
