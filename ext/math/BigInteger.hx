@@ -36,6 +36,8 @@ import math.reduction.Barrett;
 import math.reduction.Classic;
 import math.reduction.Montgomery;
 #if neko
+private enum HndBI {
+}
 import neko.Int32;
 #end
 
@@ -63,7 +65,6 @@ class BigInteger {
 		chunks = new Array<Int>();
 		if(byInt != null)	fromInt(byInt);
 		else if( str != null && radix == null) fromString(str,256);
-
 	}
 
 	/**
@@ -86,6 +87,79 @@ class BigInteger {
 	}
 
 	//////////////////////////////////////////////////////////////
+	//                 Conversion methods                       //
+	//////////////////////////////////////////////////////////////
+	/**
+		Set from an integer value. If x is less than -DV, the integer will
+		be parsed through fromString.
+	**/
+	public function fromInt(x : Int) {
+		t = 0;
+		var nb = nbits(x);
+		sign = (x<0)?-1:0;
+		if(x > 0) {
+			if(nb > DB) {
+				var v = x;
+				chunks[0] = v & DM;
+				chunks[1] = v >>> DB;
+				t = 2;
+			}
+			else {
+				chunks[0] = x;
+				t = 1;
+			}
+		}
+		else if(x < -1) {
+			if(nb > DB) {
+				var abs = Std.int(Math.abs(x));
+				var s = StringTools.hex(abs);
+				fromString("-" + s, 16);
+				return;
+			}
+			chunks[0] = x+DV;
+			t = 1;
+		}
+	}
+
+	/**
+		Will return the integer value. If the number of bits in the native
+		int does not support the bitlength of this BigInteger, unpredictable
+		values will occur.
+	**/
+	public function toInt() : Int {
+		if(sign < 0) {
+			if(t == 1) return chunks[0]-DV;
+			else if(t == 0) return -1;
+		}
+		else if(t == 1) return chunks[0];
+		else if(t == 0) return 0;
+		// assumes 16 < DB < 32
+		return ((chunks[1]&((1<<(32-DB))-1))<<DB)|chunks[0];
+	}
+
+	/**
+		Generate a random BigInteger of 'bits' length
+	**/
+	public function fromRandom(bits:Int, b:math.prng.Random) {
+		if(bits < 2) {
+			fromInt(1);
+			return;
+		}
+		var x = new ByteString();
+		var t : Int = bits&7;
+		x.setLength((bits>>3)+1);
+		b.nextBytes(x);
+		if(t > 0) {
+			var v = x.get(0);
+			v &= ((1<<t)-1);
+			x.set(0, v);
+		}
+		else x.set(0, 0);
+		fromString(x.toString(),256);
+	}
+
+
+	//////////////////////////////////////////////////////////////
 	//            String conversion methods                     //
 	//////////////////////////////////////////////////////////////
 	/**
@@ -93,8 +167,6 @@ class BigInteger {
 	**/
 	public function toString() : String {
 		return toRadixExt(10);
-		// debug TODO test traces in base 16
-		// return toRadix(16);
 	}
 	/**
 		return string representation in given radix.
@@ -137,18 +209,18 @@ class BigInteger {
 	public function toRadixExt(?b : Int) : String {
 		if(b == null) b = 10;
 		if(b < 2 || b > 36) return "0";
-		var cs : Int = Math.floor(0.6931471805599453*DB/Math.log(b));
-		var a = Std.int(Math.pow(b,cs));
-		var d = nbv(a);
-		var y = nbi();
-		var z = nbi();
-		var r = "";
+		var cs: Int = Math.floor(0.6931471805599453*DB/Math.log(b));
+		var a:Int = Std.int(Math.pow(b,cs));
+		var d:BigInteger = nbv(a);
+		var y:BigInteger = nbi();
+		var z:BigInteger = nbi();
+		var r:String = "";
 		divRemTo(d,y,z);
 		while(y.sigNum() > 0) {
-			r = I32.baseEncode31(a + z.intValue(), b).substr(1) + r;
+			r = I32.baseEncode31(a + z.toInt(), b).substr(1) + r;
 			y.divRemTo(d,y,z);
 		}
-		return I32.baseEncode31(z.intValue(), b) + r;
+		return I32.baseEncode31(z.toInt(), b) + r;
 	}
 
 	/**
@@ -526,8 +598,6 @@ class BigInteger {
 		var pm : BigInteger = m.abs();
 		if(pm.t <= 0) return;
 		var pt : BigInteger = abs();
-// 		trace(pt); // 41
-// 		trace(pm); // 4
 		if(pt.t < pm.t) {
 			trace(true);
 			if(q != null) q.fromInt(0);
@@ -539,15 +609,7 @@ class BigInteger {
 		var ts:Int = sign;
 		var ms:Int = m.sign;
 
-// 		trace( Std.string(ts)  +  " " + Std.string(ms));
-// 		trace(pm.t); //1
-// 		trace(pm.chunks); // 4
-// 		trace(nbits(pm.chunks[pm.t-1])); // 3
-
 		var nsh: Int = DB-nbits(pm.chunks[pm.t-1]);	// normalize modulus
-// 		trace(nsh); // 25
-// 		trace(pt.chunks);
-// 		trace(pm.chunks);
 
 		if(nsh > 0) {
 			pt.lShiftTo(nsh,r);
@@ -557,70 +619,59 @@ class BigInteger {
 			pt.copyTo(r);
 			pm.copyTo(y);
 		}
-// 		trace(r.chunks);
-// 		trace(y.chunks);
-// 		trace(r.t);
-// 		trace(y.t);
-// 		//trace(y.chunks); // [0]
 		var ys: Int = y.t;
 		var y0: Int = y.chunks[ys-1];
 		if(y0 == 0) return;
-// 		trace(y0); // 134217728
-// 		trace(ys); // 1
-// 		trace(F1); // 24
-// 		trace(F2); // 4
 		// TODO: neko nastiness in Int to Float casting
 		//var yt:Float = y0*(1<<F1)+((ys>1)?y.chunks[ys-2]>>F2:0);
 		var yt : Float = Std.parseFloat(Std.string(y0));
 		{
-			var h : Float = Std.parseFloat(Std.string(1<<F1));
-			//var h : Float = cast((1<<F1), Float);
+			//var h : Float = Std.parseFloat(Std.string(1<<F1));
+			var h : Float = (1<<F1);
 			var u : Float = 0.0;
 			if(ys > 1)
 				u = Std.parseFloat(Std.string(y.chunks[ys-2]>>F2));
 			yt = yt * h + u;
 		}
-// 		trace(yt);
 		var d1:Float = FV/yt;
-// 		trace(d1);
 		var d2:Float = (1<<F1)/yt;
 		var e:Float = (1<<F2);
 		var i:Int = r.t;
 		var j:Int = i-ys;
 		var t:BigInteger = (q==null)?nbi():q;
-// 		//trace(y);
-// 		trace(j);
-// 		trace(DB);
 		/** <pre> t = this << n*DB </pre> **/
 		y.dlShiftTo(j,t);
-// 		//trace(t);
 		if(r.compareTo(t) >= 0) {
-// 			trace(true);
+			trace(true);
 			r.chunks[r.t++] = 1;
 			r.subTo(t,r);
 		}
 		ONE.dlShiftTo(ys,t);
-//		//trace(t);
 		t.subTo(y,y);	// "negative" y so we can replace sub with am later
-//		//trace(y);
 		while(y.t < ys) y.chunks[y.t++] = 0;
 		while(--j >= 0) {
-// 			trace(r.chunks[i]);
-// 			trace(r.chunks[i-1]);
 			// Estimate quotient digit
-			var qd:Int = (r.chunks[--i]==y0)?DM:Math.floor(r.chunks[i]*d1+(r.chunks[i-1]+e)*d2);
-// 			trace(qd);
-			if((r.chunks[i]+=y.am(0,qd,r,j,0,ys)) < qd) {	// Try it out
-// 				trace("Here");
+			//var qd:Int = (r.chunks[--i]==y0)?DM:Math.floor(r.chunks[i]*d1+(r.chunks[i-1]+e)*d2);
+			var qd : Int;
+			if(r.chunks[--i]==y0) {
+				qd = DM;
+			}
+			else {
+				var o : Float = r.chunks[i];
+				var p : Float = r.chunks[i-1]+e;
+				qd = Math.floor(o * d1 + p *d2);
+			}
+
+			//if((r.chunks[i]+=y.am(0,qd,r,j,0,ys)) < qd) {
+			var amv =  y.am(0,qd,r,j,0,ys);
+			r.chunks[i] += amv;
+			if(r.chunks[i] < qd) {	// Try it out
 				y.dlShiftTo(j,t);
 				r.subTo(t,r);
 				while(r.chunks[i] < --qd) { r.subTo(t,r); }
 			}
 		}
-// 	trace(r.chunks);
-// 	trace(ys);
 		if(q != null) {
-// 			trace(true);
 			r.drShiftTo(ys,q);
 			if(ts != ms) ZERO.subTo(q,q);
 		}
@@ -628,8 +679,6 @@ class BigInteger {
 		r.clamp();
 		if(nsh > 0) r.rShiftTo(nsh,r);	// Denormalize remainder
 		if(ts < 0) ZERO.subTo(r,r);
-// 		trace(q.chunks);
-// 		trace(q.t);
 	}
 
 	/**
@@ -714,6 +763,7 @@ class BigInteger {
 
 	/** <pre>r = this - a</pre> **/
 	public function subTo(a : BigInteger, r : BigInteger) : Void {
+#if !neko
 		var i: Int = 0;
 		var c: Int = 0;
 		var m: Int = Std.int(Math.min(a.t,t));
@@ -744,6 +794,12 @@ class BigInteger {
 		if(c < -1) r.chunks[i++] = DV+c;
 		else if(c > 0) r.chunks[i++] = c;
 		r.t = i;
+#else true
+		var biA : Dynamic = mkBigInt(this);
+		var biB : HndBI = mkBigInt(a);
+		var res : HndBI = bi_sub_to(biA,biB);
+		popFromHandle(res, r);
+#end
 		r.clamp();
 	}
 
@@ -891,18 +947,10 @@ class BigInteger {
 	/**
 		<pre>this += n << w words, this >= 0</pre>
 	**/
-  /*while(t <= w) this[t++] = 0;
-  this[w] += n;
-  while(this[w] >= this.DV) {
-    this[w] -= this.DV;
-    if(++w >= t) this[t++] = 0;
-    ++this[w];
-  } */
 	public function dAddOffset(n : Int, w : Int) :Void {
 	  while(t <= w) chunks[t++] = 0;
 	  chunks[w] += n;
 	  while(chunks[w] >= DV) {
-//trace(w + " " +chunks[w]);
 	    chunks[w] -= DV;
 	    if(++w >= t) chunks[t++] = 0;
 	    ++chunks[w];
@@ -988,15 +1036,6 @@ class BigInteger {
 	//					Private methods							//
 	//////////////////////////////////////////////////////////////
 
-	// (protected) set from integer value x, <pre>-DV <= x < DV</pre>
-	// TODO: doesn't respect DB
-	function fromInt(x : Int) {
-		t = 1;
-		sign = (x<0)?-1:0;
-		if(x > 0) chunks[0] = x;
-		else if(x < -1) chunks[0] = x+DV;
-		else t = 0;
-	}
 
 /*
 	// (protected) alternate constructor
@@ -1015,14 +1054,7 @@ class BigInteger {
 				}
 			}
 		}
-		else {
-			// new BigInteger(int,RNG)
-			var x = new Array(), t = a&7;
-			x.length = (a>>3)+1;
-			b.nextBytes(x);
-			if(t > 0) x[0] &= ((1<<t)-1); else x[0] = 0;
-			fromString(x,256);
-		}
+
 	}
 */
 
@@ -1110,17 +1142,6 @@ class BigInteger {
 		return -1;
 	}
 
-	function intValue() : Int {
-		if(sign < 0) {
-			if(t == 1) return chunks[0]-DV;
-			else if(t == 0) return -1;
-		}
-		else if(t == 1) return chunks[0];
-		else if(t == 0) return 0;
-		// assumes 16 < DB < 32
-		return ((chunks[1]&((1<<(32-DB))-1))<<DB)|chunks[0];
-	}
-
 	/** <pre>this | (1<<n)</pre> **/
 	function setBit(n) { return changeBit(n,op_or); }
 
@@ -1204,7 +1225,7 @@ public function modInverse(m) {
 	// max internal value = 2*dvalue^2-2*dvalue (< 2^53)
 	function am1(i:Int,x:Int,w:BigInteger,j:Int,c:Int,n:Int) : Int {
 		while(--n >= 0) {
-			var v = x*chunks[i++]+w.chunks[j]+c;
+			var v : Int = x*chunks[i++]+w.chunks[j]+c;
 			c = Math.floor(v/0x4000000);
 			w.chunks[j++] = v&0x3ffffff;
 		}
@@ -1257,8 +1278,8 @@ public function modInverse(m) {
 
 	//dbits (DB) TODO: assumed to be 16 < DB < 32
 	public static var DB : Int; // bits per chunk.
-	public static var DM : Int;
-	public static var DV : Int;
+	public static var DM : Int; // bit mask
+	public static var DV : Int; // max value in bitsize
 
 	public static var BI_FP : Int;
 	public static var FV : Float;
@@ -1365,7 +1386,7 @@ public function modInverse(m) {
 	/**
 		Create a new big integer from the int value i
 	**/
-	public static function nbv(i : Int) {
+	public static function nbv(i : Int) : BigInteger {
 		var r = nbi();
 		r.fromInt(i);
 		return r;
@@ -1374,8 +1395,18 @@ public function modInverse(m) {
 	/**
 		return new, unset BigInteger
 	**/
-	public static function nbi() {
+	public static function nbi() : BigInteger {
 		return new BigInteger(null);
+	}
+
+	/**
+		Construct a BigInteger from a string in a given base
+	**/
+	public static function ofString(s : String, base : Int)
+	{
+		var i = nbi();
+		i.fromString(s, base);
+		return i;
 	}
 
 	/**
@@ -1384,6 +1415,15 @@ public function modInverse(m) {
 	public static function ofInt(x : Int) {
 		var i = nbi();
 		i.fromInt(x);
+		return i;
+	}
+
+	/**
+		Construct from random number source
+	**/
+	public static function ofRandom(a:Int, b:math.prng.Random) : BigInteger {
+		var i = nbi();
+		i.fromRandom(a, b);
 		return i;
 	}
 
@@ -1448,5 +1488,36 @@ public function modInverse(m) {
 		if((x&1) == 0) ++r;
 		return r;
 	}
+
+#if neko
+	static function mkBigInt(a:BigInteger) : HndBI {
+		return bi_create(DB, a.t, a.sign, I32.mkNekoArray31(a.chunks));
+	}
+
+	static function mkFromHandle(r : HndBI) : BigInteger {
+		var a = bi_to_array(r);
+		var rv = BigInteger.nbi();
+		untyped	{
+			rv.t = a[0];
+			rv.sign = a[1];
+			for(x in 0...rv.t) {
+				rv.chunks[x] = a[x+2];
+			}
+		}
+		return rv;
+	}
+
+	static function popFromHandle(h : HndBI, r : BigInteger) {
+		var a = mkFromHandle(h);
+		r.t = a.t;
+		r.sign = a.sign;
+		r.chunks = a.chunks.copy();
+	}
+
+	private static var bi_create = neko.Lib.load("math","bi_create",4);
+	private static var bi_free = neko.Lib.load("math","bi_free",1);
+	private static var bi_sub_to = neko.Lib.load("math","bi_sub_to",2);
+	private static var bi_to_array = neko.Lib.load("math","bi_to_array",1);
+#end
 }
 

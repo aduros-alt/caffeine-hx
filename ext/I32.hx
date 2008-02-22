@@ -295,6 +295,23 @@ class I32 {
 
 #if neko
 	/**
+		Create a neko array of Int31
+	**/
+	public static function mkNekoArray31( a : Array<Int> ) {
+		if( a == null )
+			return null;
+		untyped {
+			var r = __dollar__amake(a.length);
+			var i = 0;
+			while( i < a.length ) {
+				r[i] = a[i];
+				i += 1;
+			}
+			return r;
+		}
+	}
+
+	/**
 		Create a neko array of Int32
 	**/
 	public static function mkNekoArray( a : Array<neko.Int32> ) {

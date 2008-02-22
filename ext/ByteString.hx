@@ -123,6 +123,24 @@ class ByteString extends String {
 	}
 
 	/**
+		Force buffer to a particular length. If the length
+		is less than current, the data will be truncated. If
+		greater, it will be null padded.
+	**/
+	public function setLength(i : Int) : Void {
+		if(i == _buf.length)
+			return;
+		if(i > _buf.length) {
+			var o : Int = _buf.length;
+			_buf[i-1] = 0;
+			for(x in o...i) {
+				_buf[x] = 0;
+			}
+			return;
+		}
+		_buf = _buf.slice(0, i);
+	}
+	/**
 		Removes the last byte and returns it.
 	**/
 	public function shift() : Null<Int> {

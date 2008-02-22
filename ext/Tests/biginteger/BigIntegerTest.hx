@@ -107,17 +107,13 @@ class Functions extends haxe.unit.TestCase {
 	}
 
 	public function testZDiv2() {
-		var i = BigInteger.ofInt(2000);
-		var m = BigInteger.ofInt(4);
+		var i = BigInteger.nbi();
+		i.fromString("FFFFFFF0", 16);
+		var m = BigInteger.ofInt(80);
 		var q = BigInteger.nbi();
 		var r = BigInteger.nbi();
-
-		//assertEquals("2000", decVal(i));
-		//assertEquals("4", decVal(m));
 		var rv = i.div(m);
-		//trace(rv.chunks);
-		//assertEquals("1f4",hexVal(rv));
-		assertEquals(500, rv.chunks[0]);
+		assertEquals("3333333", rv.toRadix(16));
 	}
 
 	public function testZDivRemTo2() {
@@ -134,10 +130,12 @@ class Functions extends haxe.unit.TestCase {
 
 	}
 
-	public function testOne() {
+	public function testSubOne() {
 		var i = BigInteger.nbv(1000000000);
+		var b = i.sub(BigInteger.ONE);
+		assertEquals("3b9ac9ff", b.toRadix(16));
 		assertEquals( "999999999",
-			i.sub(BigInteger.ONE).toString()
+			b.toString()
 		);
 	}
 
@@ -147,6 +145,11 @@ class Functions extends haxe.unit.TestCase {
 		//trace(here.lineNumber);
 		//trace(i.chunks);
 		assertEquals("10000000000", i.toString());
+	}
+
+	public function testIntValue() {
+		var i = BigInteger.ofString("3FFFFFFF", 16);
+		assertEquals(0x3fffffff, i.toInt());
 	}
 }
 
@@ -170,24 +173,9 @@ class BigIntegerTest {
 		i.lShiftTo(1, b);
 		trace(b.chunks);
 */
-#if !nekotest
 		var r = new haxe.unit.TestRunner();
 		r.add(new Functions());
 		r.run();
-#else true
-		var i = BigInteger.ofInt(2000);
-		var m = BigInteger.ofInt(4);
-		var q = BigInteger.nbi();
-		var r = BigInteger.nbi();
-
-		//assertEquals("2000", decVal(i));
-		//assertEquals("4", decVal(m));
-		var rv = i.div(m);
-		trace(rv.chunks);
-		//assertEquals("1f4",hexVal(rv));
-		trace(rv.chunks[0]);
-		trace(untyped BigInteger.defaultAm);
-#end
 	}
 }
 
