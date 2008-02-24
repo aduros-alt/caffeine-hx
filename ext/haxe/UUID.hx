@@ -46,7 +46,7 @@ class UUID
 	{
 		var sbuf = new StringBuf();
 		var getBits = rule30.getBits;
-		var hex = function(x){ return hex(sbuf, x); }
+		var hex = callback(hex, sbuf);
 		
 		// TimeLow
 		hex(getBits( 16 ));
@@ -75,7 +75,7 @@ class UUID
 	{
 		var sbuf = new StringBuf();
 		var getBits = rule30.getBits;
-		var hex = function(x){return hex(sbuf, x);}
+		var hex = callback(hex, sbuf);
 		
 		// TimeLow
 		hex(getBits( 16 ));
@@ -132,19 +132,21 @@ private class Rule30
 	}
 	
 	var cells : String;
+	var cellsLength : Int;
 	
 	private function new ( cells : String )
 	{
-		this.cells = cells;
+		this.cellsLength = cells.length;
+		this.cells = untyped cells;
 		var str = new StringBuf();
 		
-		var stir = cells.length * 16;
+		var stir = cellsLength * 16;
 		for(i in 0 ... stir)
 			getBit();
-		for(i in 0 ... cells.length)
+		for(i in 0 ... cellsLength)
 			str.addChar( getBits( 8 ) );
 		
-		this.cells = str.toString();
+		this.cells = untyped str.toString();
 	}
 	
 	public function getBits ( length : Int ) : Int
@@ -161,14 +163,14 @@ private class Rule30
 	function getBit () : Int
 	{
 		var cells = this.cells;
-		var length = cells.length;
 		var newCells = new StringBuf();
+		var C = newCells.addChar;
 		var newCell : Int;
-		var section : Int =	(cells.charCodeAt( length - 1 ) << 8) | cells.charCodeAt( 0 );
+		var section : Int =	(cells.charCodeAt( cellsLength - 1 ) << 8) | cells.charCodeAt( 0 );
 		
-		for( pos in 0 ... length )
+		for( pos in 0 ... cellsLength )
 		{
-			section = (section << 8) | cells.charCodeAt( pos % length );
+			section = (section << 8) | cells.charCodeAt( pos % cellsLength );
 			newCell = 0;
 			var i = 16;
 			while( i-- > 8 )

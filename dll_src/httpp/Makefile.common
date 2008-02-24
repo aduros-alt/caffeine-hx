@@ -2,7 +2,7 @@ NDLL=ndll/$(ARCH)/httpp.ndll
 INCS=-I/usr/include/neko -Isrc -I../include
 OBJS=http11neko.o http11_parser.o
 WARN=-Wfatal-errors -Wall
-CFLAGS:=$(CFLAGS) $(INCS) $(WARN) $(LOCALFLAGS)
+CFLAGS:=$(CFLAGS) $(INCS) $(WARN) $(LOCALFLAGS) -O3 -march=native
 LIBS=$(LOCALLIBS)
 
 all: $(NDLL)

@@ -8,10 +8,10 @@ LIBS=-L$(HOME)/neko/ -lneko
 all: archtest $(NDLLS)
 
 %.ndll: src/%.o
-	$(CC) $(LIBPATH) $(INCPATH) -Wall -shared -o $@ $< $(LIBS)
+	gcc $(LIBPATH) $(INCPATH) -fPIC -O3 -march=native -shared -o $@ $< $(LIBS)
 
 src/%.o: src/%.c
-	$(CC) -c $(INCPATH) -Wall -o $@ $<
+	gcc -fPIC -c $(INCPATH) -O3 -march=native -o $@ $<
 
 install:
 	@mv *.ndll ../../ext/ndll/$(ARCH_CAP)/

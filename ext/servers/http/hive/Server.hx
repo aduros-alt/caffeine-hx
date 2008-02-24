@@ -28,8 +28,8 @@
 package servers.http.hive;
 
 #if SCHED_REALTIME
-import neko.net.RealtimeServer;
-#else SCHED_THREAD_POLL
+import neko.net.servers.RealtimeServer;
+#else true
 import servers.http.hive.ThreadPollServer;
 #end
 import neko.net.Host;
@@ -55,7 +55,7 @@ class Server extends ThreadPollServer<Client> {
 	public var server_root				: String;
 	public var document_root			: String;
 	public var log_root					: String;
-	public var state_root				: String;
+//	public var state_root				: String;
 	public var template_root			: String;
 	public var scratch_root				: String;
 
@@ -74,7 +74,7 @@ class Server extends ThreadPollServer<Client> {
 
 	var pathsStatic						: Hash<Bool>;
 
-	public var db(default,null)			: hive.state.Database;
+//	public var db(default,null)			: hive.state.Database;
 	public var handlers(default,null)	: List<ReqHandler>;
 
 	var xmlConf							: ServerConfig;
@@ -134,7 +134,7 @@ class Server extends ThreadPollServer<Client> {
 
 		document_root = server_root + "/public";
 		log_root = server_root + "/_log";
-		state_root = server_root + "/_state";
+//		state_root = server_root + "/_state";
 		template_root = server_root + "/_templates";
 		scratch_root = server_root + "/_tmp";
 		if(!testDirectory(document_root,false)) {
@@ -145,11 +145,11 @@ class Server extends ThreadPollServer<Client> {
 			neko.Lib.println("Error: '_log' directory does not exist, or can not be written to");
 			usage();
 		}
-		if(!testDirectory(state_root,true)) {
+/*		if(!testDirectory(state_root,true)) {
 			neko.Lib.println("Warning: '_state' directory does not exist");
 			usage();
 		}
-		if(!testDirectory(template_root,false)) {
+*/		if(!testDirectory(template_root,false)) {
 			neko.Lib.println("Error: '_templates' directory does not exist");
 			usage();
 		}
@@ -160,7 +160,7 @@ class Server extends ThreadPollServer<Client> {
 
 		var h = new Logger("*", log_root + "/accesslog", log_format);
 		access_loggers.add(h);
-		db = new hive.state.Database(state_root);
+//		db = new hive.state.Database(state_root);
 		mtwin.templo.Loader.BASE_DIR = template_root + "/";
 		mtwin.templo.Loader.TMP_DIR = scratch_root + "/";
 		mtwin.templo.Loader.MACROS = null;
