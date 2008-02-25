@@ -13,10 +13,15 @@ class Functions extends haxe.unit.TestCase {
 	public function test0() {
 		var i = BigInteger.ONE.add(BigInteger.ofInt(9));
 		var b = BigInteger.nbi();
+		//trace("fromString>>");
 		b.fromString("10",10);
-		i.eq(b);
-		assertEquals(true,true);
+		assertEquals(10, b.chunks[0]);
+		//trace("toRadix>>");
+		//i.eq(b);
 		b.toRadix(10);
+		//trace(b.chunks);
+		//trace("toString>>");
+		assertEquals("10",b.toString());
 	}
 
 	public function test1() {
@@ -33,16 +38,16 @@ class Functions extends haxe.unit.TestCase {
 // 		Right shifts back tracing Hexadecimal
 	public function testRshLsh() {
 		var i = BigInteger.ONE;
-		trace(i.toRadix(2));
+		//trace(i.toRadix(2));
 		for(x in 0...60) {
 			i = i.shl(1);
-			trace(Std.string(x) + " " + i.toRadix(2));
+			//trace(Std.string(x) + " " + i.toRadix(2));
 		}
 		assertEquals("1000000000000000", i.toRadix(16));
 		//trace(i.toRadix(16));
 		for(x in 0...60) {
 			i = i.shr(1);
-			trace(Std.string(x) + " " + i.toRadix(2));
+			//trace(Std.string(x) + " " + i.toRadix(2));
 			//trace(i.toRadix(16));
 		}
 		assertEquals(true,i.eq(BigInteger.ONE));
@@ -52,12 +57,12 @@ class Functions extends haxe.unit.TestCase {
 		var i = BigInteger.ONE;
 		//trace(i.toRadix(2));
 		for(x in 0...60) {
-			i.lShiftTo(1,i);
+			i = i.shl(1);
 		}
 		assertEquals("1000000000000000", i.toRadix(16));
 		//trace(i.toRadix(16));
 		for(x in 0...60) {
-			i.rShiftTo(1,i);
+			i = i.shr(1);
 		}
 		assertEquals(true,i.eq(BigInteger.ONE));
 	}
@@ -146,7 +151,7 @@ class Functions extends haxe.unit.TestCase {
 		var i = BigInteger.nbi();
 		i.fromString("10000000000",10); // 10 tril 34 bit
 		//trace(here.lineNumber);
-		trace(i.chunks);
+		//trace(i.chunks);
 		//assertEquals("10000000000", i.toString());
 		assertEquals(true,true);
 	}
@@ -167,7 +172,7 @@ class BigIntegerTest {
 			haxe.Firebug.redirectTraces();
 		}
 #end
-		trace("default am function: am"+Std.string(untyped BigInteger.defaultAm));
+		//trace("default am function: am"+Std.string(untyped BigInteger.defaultAm));
 		trace("Significant bits: "+Std.string(BigInteger.DB));
 /*
 		var i = BigInteger.nbv(10);

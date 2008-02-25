@@ -191,6 +191,21 @@ static void destroy_biginteger( value c ) {
 //                  Neko Methods                       //
 /////////////////////////////////////////////////////////
 
+static void dump_bi(int line, bigInteger * bi) {
+	int x, max;
+	max = val_array_size(bi->chunks);
+	printf("dll line %d: sign: %d t : %d [",line,  bi->sign, bi->t);
+	for(x=0; x<max; x++) {
+		if(x != 0)
+			printf(", ");
+		printf("%d", val_int(val_array_ptr(bi->chunks)[x]));
+	}
+	printf("]\n");
+}
+
+static void dump_BI(int line, value BI) {
+	dump_bi(line, val_biginteger(BI));
+}
 
 static value bi_free(value BI) {
 	destroy_biginteger(BI);
@@ -336,15 +351,15 @@ static value bi_divide(value A, value M) {
 				:0.0
 			);
 
-	double d1 = FV/yt;
-	double d2 = (1<<F1)/yt;
-	double e = (1<<F2);
+	double d1 = (double)FV/yt;
+	double d2 = ((double)(1<<F1))/(float)yt;
+	double e = (double)(1<<F2);
 	int i = r->t;
 	int j = i-ys;
 
 	value T = bi_dl_shift(Y, alloc_int(j)); // Q in return val
 	NEW_PTR(t, T);
-	if(bi_compare(R, T) >= 0) {
+	if(val_int(bi_compare(R, T)) >= 0) {
 		//r.chunks[r.t++] = 1;
 		SET_CHUNK(r, r->t, 1);
 		r->t++;

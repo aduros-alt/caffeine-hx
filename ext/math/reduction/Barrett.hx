@@ -50,7 +50,7 @@ class Barrett implements math.reduction.ModularReduction {
 
 	public function convert(x:BigInteger) {
 		if(x.sign < 0 || x.t > 2*m.t) return x.mod(m);
-		else if(x.compareTo(m) < 0) return x;
+		else if(x.compare(m) < 0) return x;
 		else { var r = BigInteger.nbi(); x.copyTo(r); reduce(r); return r; }
 	}
 
@@ -62,9 +62,9 @@ class Barrett implements math.reduction.ModularReduction {
 		if(x.t > m.t+1) { untyped x.t = m.t+1; x.clamp(); }
 		mu.multiplyUpperTo(r2,m.t+1,q3);
 		m.multiplyLowerTo(q3,m.t+1,r2);
-		while(x.compareTo(r2) < 0) x.dAddOffset(1,m.t+1);
+		while(x.compare(r2) < 0) x.dAddOffset(1,m.t+1);
 		x.subTo(r2,x);
-		while(x.compareTo(m) >= 0) x.subTo(m,x);
+		while(x.compare(m) >= 0) x.subTo(m,x);
 	}
 
 	// r = x^2 mod m; x != r

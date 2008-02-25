@@ -49,41 +49,15 @@ class BigInteger {
 	public var sign(default,null) : Int;
 	/** data chunks **/
 	public var chunks(default,null) : Array<Int>; // chunks
-	public var am : Int->Int->BigInteger->Int->Int->Int->Int; // am function
 
 	public function new(?byInt : Int, ?str : String, ?radix : Int) {
 		if(BI_RC == null || BI_RC.length == 0)
 			initBiRc();
 		if(BI_RM.length == 0)
 			throw("BI_RM not initialized");
-		am = switch(defaultAm) {
-		case 1: am1;
-		case 2: am2;
-		case 3: am3;
-		default: { throw "am error"; null;}
-		}
 		chunks = new Array<Int>();
-		if(byInt != null)	fromInt(byInt);
+		if(byInt != null) fromInt(byInt);
 		else if( str != null && radix == null) fromString(str,256);
-	}
-
-	/**
-		This is so Montgomery Reduction can pad. Used to be (in Montgomery):<br />
-		<code>
-		while(x.t <= this.mt2)	// pad x so am has enough room later
-			x.chunks[x.t++] = 0;
-		</code>
-	**/
-	public function padTo ( n : Int ) : Void {
-		while( t < n )	chunks[ t++ ] = 0;
-	}
-
-	/**
-		return the number of bits in "this"
-	**/
-	public function bitLength() {
-		if(t <= 0) return 0;
-		return DB*(t-1)+nbits(chunks[t-1]^(sign&DM));
 	}
 
 	//////////////////////////////////////////////////////////////
@@ -93,7 +67,7 @@ class BigInteger {
 		Set from an integer value. If x is less than -DV, the integer will
 		be parsed through fromString.
 	**/
-	public function fromInt(x : Int) {
+	public function fromInt(x : Int) : Void {
 		t = 0;
 		var nb = nbits(x);
 		sign = (x<0)?-1:0;
@@ -140,7 +114,7 @@ class BigInteger {
 	/**
 		Generate a random BigInteger of 'bits' length
 	**/
-	public function fromRandom(bits:Int, b:math.prng.Random) {
+	public function fromRandom(bits:Int, b:math.prng.Random) : Void {
 		if(bits < 2) {
 			fromInt(1);
 			return;
@@ -380,18 +354,18 @@ class BigInteger {
 	//                    Math methods                          //
 	//////////////////////////////////////////////////////////////
 	/** Absolute value **/
-	public function abs() {
+	public function abs()  : BigInteger {
 		return (sign<0)?neg():this;
 	}
 
 	/** this + a **/
-	public function add(a) : BigInteger
+	public function add(a : BigInteger) : BigInteger
 	{ var r = nbi(); addTo(a,r); return r; }
 
 	/**
 		<pre>return + if this > a, - if this < a, 0 if equal</pre>
 	**/
-	public function compareTo(a : BigInteger) : Int {
+	public function compare(a : BigInteger) : Int {
 		var r = sign-a.sign;
 		if(r != 0) return r;
 		var i:Int = t;
@@ -409,7 +383,7 @@ class BigInteger {
 	{ var r = nbi(); divRemTo(a,r,null); return r; }
 
 	/** <pre>[this/a,this%a]</pre> **/
-	public function divideAndRemainder(a) : Array<BigInteger> {
+	public function divideAndRemainder(a : BigInteger) : Array<BigInteger> {
 		var q = nbi();
 		var r = nbi();
 		divRemTo(a,q,r);
@@ -417,25 +391,30 @@ class BigInteger {
 	}
 
 	/** this == a **/
-	public function eq(a) : Bool {
-		return compareTo(a) == 0;
+	public function eq(a : BigInteger) : Bool {
+		return compare(a) == 0;
+	}
+
+	/** true if this is even **/
+	public function isEven() :Bool {
+		return ((t>0)?(chunks[0]&1):sign) == 0;
 	}
 
 	/**	Return the biggest of this and a **/
-	public function max(a:BigInteger) : BigInteger {
-		return (compareTo(a)>0)?this:a;
+	public function max(a : BigInteger) : BigInteger {
+		return (compare(a)>0)?this:a;
 	}
 
 	/**	Return the smallest of this and a **/
-	public function min(a:BigInteger) : BigInteger {
-		return (compareTo(a)<0)?this:a;
+	public function min(a : BigInteger) : BigInteger {
+		return (compare(a)<0)?this:a;
 	}
 
 	/** Modulus division bn % bn **/
-	public function mod(a) : BigInteger {
+	public function mod(a : BigInteger) : BigInteger {
 		var r = nbi();
 		abs().divRemTo(a,null,r);
-		if(sign < 0 && r.compareTo(ZERO) > 0) a.subTo(r,r);
+		if(sign < 0 && r.compare(ZERO) > 0) a.subTo(r,r);
 		return r;
 	}
 
@@ -459,7 +438,7 @@ class BigInteger {
 	/**
 		1/this % m (HAC 14.61)
 	**/
-	public function modInverse(m : BigInteger) {
+	public function modInverse(m : BigInteger) : BigInteger {
 		var ac = m.isEven();
 		if((isEven() && ac) || m.sigNum() == 0) return ZERO;
 		var u : BigInteger = m.clone();
@@ -495,7 +474,7 @@ class BigInteger {
 					d.subTo(m,d);
 				d.rShiftTo(1,d);
 			}
-			if(u.compareTo(v) >= 0) {
+			if(u.compare(v) >= 0) {
 				u.subTo(v,u);
 				if(ac) a.subTo(c,a);
 				b.subTo(d,b);
@@ -506,15 +485,15 @@ class BigInteger {
 				d.subTo(b,d);
 			}
 		}
-		if(v.compareTo(ONE) != 0) return ZERO;
-		if(d.compareTo(m) >= 0) return d.sub(m);
+		if(v.compare(ONE) != 0) return ZERO;
+		if(d.compare(m) >= 0) return d.sub(m);
 		if(d.sigNum() < 0) d.addTo(m,d); else return d;
 		//if(d.sigNum() < 0) return d.add(m); else return d;
 		return d;
 	}
 
 	/** <pre>this^e % m (HAC 14.85)</pre> **/
-	public function modPow(e : BigInteger, m:BigInteger) : BigInteger {
+	public function modPow(e : BigInteger, m : BigInteger) : BigInteger {
 		var i:Int = e.bitLength();
 		var k : Int;
 		var r : BigInteger = nbv(1);
@@ -594,13 +573,13 @@ class BigInteger {
 	}
 
 	/** this * a **/
-	public function mul(a) : BigInteger
+	public function mul(a : BigInteger) : BigInteger
 	{ var r = nbi(); multiplyTo(a,r); return r; }
 
 	/**
 		-this
 	**/
-	public function neg() {
+	public function neg() : BigInteger {
 		var r = nbi();
 		ZERO.subTo(this,r);
 		return r;
@@ -612,11 +591,11 @@ class BigInteger {
 	}
 
 	/** this % a **/
-	public function remainder(a) : BigInteger
+	public function remainder(a : BigInteger) : BigInteger
 	{ var r = nbi(); divRemTo(a,null,r); return r; }
 
 	/** this - a **/
-	public function sub(a:BigInteger) : BigInteger
+	public function sub(a : BigInteger) : BigInteger
 	{ var r = nbi(); subTo(a,r); return r; }
 
 
@@ -624,13 +603,48 @@ class BigInteger {
 	//                  Bitwise Operators                       //
 	//////////////////////////////////////////////////////////////
 	/** this &amp; a **/
-	public function and(a) { var r = nbi(); bitwiseTo(a,op_and,r); return r; }
+	public function and(a : BigInteger) : BigInteger {
+		var r = nbi(); bitwiseTo(a,op_and,r);
+		return r;
+	}
 
 	/** this &amp; ~a **/
-	public function andNot(a) { var r = nbi(); bitwiseTo(a,op_andnot,r); return r; }
+	public function andNot(a : BigInteger) : BigInteger {
+		var r = nbi(); bitwiseTo(a,op_andnot,r);
+		return r;
+	}
+
+	/** return number of set bits **/
+	public function bitCount() : Int {
+		var r = 0, x = sign&DM;
+		for(i in 0...t) r += cbit(chunks[i]^x);
+		return r;
+	}
+
+	/**
+		return the number of bits in "this"
+	**/
+	public function bitLength() : Int {
+		if(t <= 0) return 0;
+		return DB*(t-1)+nbits(chunks[t-1]^(sign&DM));
+	}
 
 	/** alias for not() **/
 	public function complement() : BigInteger { return not(); }
+
+	/** <pre>this & ~(1<<n)</pre> **/
+	public function clearBit(n) : BigInteger { return changeBit(n,op_andnot); }
+
+	/** <pre>this ^ (1<<n)</pre> **/
+	public function flipBit(n) : BigInteger { return changeBit(n,op_xor); }
+
+	/** returns index of lowest 1-bit (or -1 if none) **/
+	public function getLowestSetBit() : Int {
+		for(i in 0...t)
+			if(chunks[i] != 0) return i*DB+lbit(chunks[i]);
+		if(sign < 0) return t*DB;
+		return -1;
+	}
 
 	/** ~this **/
 	public function not() : BigInteger {
@@ -655,7 +669,12 @@ class BigInteger {
 	}
 
 	/** this | a **/
-	public function or(a) { var r = nbi(); bitwiseTo(a,op_or,r); return r; }
+	public function or(a : BigInteger) : BigInteger {
+		var r = nbi(); bitwiseTo(a,op_or,r); return r;
+	}
+
+	/** <pre>this | (1<<n)</pre> **/
+	public function setBit(n : Int) : BigInteger { return changeBit(n,op_or); }
 
 	/**
 		<pre>this << n</pre>
@@ -664,8 +683,6 @@ class BigInteger {
 #if neko
 		var biA : HndBI = mkBigInt(this);
 		var res = bi_shl(biA, n);
-		//var r = nbv(0);
-		//popFromHandle(res, r);
 		return mkFromHandle(res);
 #else true
 		var r = nbi();
@@ -689,8 +706,19 @@ class BigInteger {
 #end
 	}
 
+	/** <pre>true iff nth bit is set</pre> **/
+	public function testBit(n:Int) : Bool {
+		var j = Math.floor(n/DB);
+		if(j >= t) return(sign!=0);
+		return((chunks[j]&(1<<(n%DB)))!=0);
+	}
+
 	/** this ^ a **/
-	public function xor(a) { var r = nbi(); bitwiseTo(a,op_xor,r); return r; }
+	public function xor(a : BigInteger) : BigInteger {
+		var r = nbi();
+		bitwiseTo(a,op_xor,r);
+		return r;
+	}
 
 
 	//////////////////////////////////////////////////////////////
@@ -734,7 +762,7 @@ class BigInteger {
 	}
 
 	/** copy this to r **/
-	public function copyTo(r : BigInteger) {
+	public function copyTo(r : BigInteger) : Void {
 		r.chunks = chunks.copy();
 		r.t = t;
 		r.sign = sign;
@@ -743,8 +771,9 @@ class BigInteger {
 		divide this by m, quotient and remainder to q, r (HAC 14.20)
 		<pre>r != q, this != m.  q or r may be null.</pre>
 	**/
-	public function divRemTo(m : BigInteger, q : BigInteger ,?r : BigInteger) {
-#if nekogg
+	public function divRemTo(m : BigInteger, q : BigInteger ,?r : BigInteger) : Void
+	{
+#if neko
 		var biA : HndBI = mkBigInt(this);
 		var biM : HndBI = mkBigInt(m);
 		var res = bi_divide(biA,biM);
@@ -752,7 +781,6 @@ class BigInteger {
 			popFromHandle(res[0], q);
 		if(r != null)
 			popFromHandle(res[1], r);
-		return;
 #else true
 		var pm : BigInteger = m.abs();
 		if(pm.t <= 0) return;
@@ -777,53 +805,37 @@ class BigInteger {
 			pt.copyTo(r);
 			pm.copyTo(y);
 		}
+
 		var ys: Int = y.t;
 		var y0: Int = y.chunks[ys-1];
 		if(y0 == 0) return;
-		// TODO: no neko Int to Float casting
-		//var yt:Float = y0*(1<<F1)+((ys>1)?y.chunks[ys-2]>>F2:0);
-		var yt : Float = Std.parseFloat(Std.string(y0));
-		//var yt : Float = cast y0;
-		{
-			//var h : Float = Std.parseFloat(Std.string(1<<F1));
-			var h : Float = (1<<F1);
-			var u : Float = 0.0;
-			if(ys > 1)
-				u = Std.parseFloat(Std.string(y.chunks[ys-2]>>F2));
-			yt = yt * h + u;
-		}
+		var yt:Float = (y0*1.0)*((1<<F1)*1.0) + ((ys>1) ? ((y.chunks[ys-2]>>F2)*1.0) : 0.0);
 		var d1:Float = FV/yt;
-		var d2:Float = (1<<F1)/yt;
-		var e:Float = (1<<F2);
+		var d2:Float = ((1<<F1)*1.0)/yt;
+		var e:Float = ((1<<F2)*1.0);
 		var i:Int = r.t;
 		var j:Int = i-ys;
 		var t:BigInteger = (q==null)?nbi():q;
+
 		/** <pre> t = this << n*DB </pre> **/
 		y.dlShiftTo(j,t);
-		if(r.compareTo(t) >= 0) {
+		if(r.compare(t) >= 0) {
 			r.chunks[r.t++] = 1;
 			r.subTo(t,r);
 		}
+
 		ONE.dlShiftTo(ys,t);
 		t.subTo(y,y);	// "negative" y so we can replace sub with am later
 		while(y.t < ys) y.chunks[y.t++] = 0;
 		while(--j >= 0) {
 			// Estimate quotient digit
-			//var qd:Int = (r.chunks[--i]==y0)?DM:Math.floor(r.chunks[i]*d1+(r.chunks[i-1]+e)*d2);
-			var qd : Int;
-			if(r.chunks[--i]==y0) {
+			var qd:Int;
+			if(r.chunks[--i]==y0)
 				qd = DM;
-			}
-			else {
-				var o : Float = r.chunks[i];
-				var p : Float = r.chunks[i-1]+e;
-				qd = Math.floor(o * d1 + p *d2);
-			}
-
-			//if((r.chunks[i]+=y.am(0,qd,r,j,0,ys)) < qd) {
-			var amv =  y.am(0,qd,r,j,0,ys);
-			r.chunks[i] += amv;
-			if(r.chunks[i] < qd) {	// Try it out
+			else
+				qd = Math.floor((r.chunks[i]*1.0) * d1 + ((r.chunks[i-1]*1.0) + e) *d2);
+			r.chunks[i] += y.am(0,qd,r,j,0,ys);
+			if(r.chunks[i] < qd) {
 				y.dlShiftTo(j,t);
 				r.subTo(t,r);
 				while(r.chunks[i] < --qd) { r.subTo(t,r); }
@@ -850,12 +862,10 @@ class BigInteger {
 		r.t = i;
 		while(i > 0) r.chunks[--i] = 0;
 		var j : Int = r.t - t;
-		//for (j=r.t-t;i<j;++i) {
 		while(i < j) {
 			r.chunks[i+t] = am(0,a.chunks[i],r,i,0,t);
 			++i;
 		}
-		//for (j=Math.min(a.t,n);i<j;++i) {
 		j = Std.int(Math.min(a.t,n));
 		while(i < j) {
 			am(0,a.chunks[i],r,i,0,n-i);
@@ -868,12 +878,11 @@ class BigInteger {
 		<pre>r = this * a, r != this,a (HAC 14.12)</pre>
 		"this" should be the larger one if appropriate.
 	**/
-	public function multiplyTo(a : BigInteger, r : BigInteger) {
+	public function multiplyTo(a : BigInteger, r : BigInteger) : Void {
 		var x = abs(), y = a.abs();
 		var i:Int = x.t;
 		r.t = i+y.t;
 		while(--i >= 0) r.chunks[i] = 0;
-//		for(i = 0; i < y.t; ++i) r.chunks[i+x.t] = x.am(0,y[i],r,i,0,x.t);
 		for( i in 0...y.t ) r.chunks[i+x.t] = x.am(0,y.chunks[i],r,i,0,x.t);
 		r.sign = 0;
 		r.clamp();
@@ -898,8 +907,9 @@ class BigInteger {
 	}
 
 	/** <pre>r = this^2, r != this (HAC 14.16)</pre> **/
-	// TODO: able to square where r==this
-	public function squareTo(r : BigInteger) {
+	public function squareTo(r : BigInteger) : Void {
+		if(r == this)
+			throw("can not squareTo self");
 		var x = abs();
 		var i:Int = r.t = 2*x.t;
 		while(--i >= 0) r.chunks[i] = 0;
@@ -962,63 +972,18 @@ class BigInteger {
 		r.clamp();
 	}
 
-	//////////////////////////////////////////////////////////////
-	//             'Result To' Bitwise methods                  //
-	// These methods take 'this', perform bitwise function with //
-	// 'a', and store the result in 'r'                         //
-	//////////////////////////////////////////////////////////////
-	/** <pre>r = this << n </pre> **/
-	public function lShiftTo(n : Int, r : BigInteger) {
-		var bs: Int = n%DB;
-		var cbs:Int = DB-bs;
-		var bm:Int = (1<<cbs)-1;
-		var ds:Int = Math.floor(n/DB), c:Int = (sign<<bs)&DM, i : Int;
-//		for(i = t-1; i >= 0; --i) {
-		var i = t-1;
-		while( i >= 0 ) {
-			r.chunks[i+ds+1] = (chunks[i]>>cbs)|c;
-			c = (chunks[i]&bm)<<bs;
-			i--;
-		}
-//		for(i = ds-1; i >= 0; --i) r.chunks[i] = 0;
-		i = ds - 1;
-		while( i >= 0 ) { r.chunks[i] = 0; i--; }
-		r.chunks[ds] = c;
-		r.t = t+ds+1;
-		r.sign = sign;
-		r.clamp();
-	}
-
-	/** <pre>r = this >> n</pre> **/
-	public function rShiftTo(n : Int, r : BigInteger) {
-		r.sign = sign;
-		var ds:Int = Math.floor(n/DB);
-		if(ds >= t) { r.t = 0; return; }
-		var bs:Int = n%DB;
-		var cbs:Int = DB-bs;
-		var bm:Int = (1<<bs)-1;
-		r.chunks[0] = chunks[ds]>>bs;
-//		for(var i = ds+1; i < t; ++i) {
-		for( i in (ds + 1)...t ) {
-			r.chunks[i-ds-1] |= (chunks[i]&bm)<<cbs;
-			r.chunks[i-ds] = chunks[i]>>bs;
-		}
-		if(bs > 0) r.chunks[t-ds-1] |= (sign&bm)<<cbs;
-		r.t = t-ds;
-		r.clamp();
-	}
 
 	//////////////////////////////////////////////////////////////
 	//                    Misc methods                          //
 	//////////////////////////////////////////////////////////////
 	/** clamp off excess high words **/
-	public function clamp() {
+	public function clamp() : Void {
 		var c = sign&DM;
 		while(t > 0 && chunks[t-1] == c) --t;
 	}
 
 	/** Clone a BigInteger **/
-	public function clone() {
+	public function clone() : BigInteger {
 		var r = nbi();
 		copyTo(r);
 		return r;
@@ -1028,7 +993,7 @@ class BigInteger {
 	public function gcd(a:BigInteger) : BigInteger {
 		var x = (sign<0)?neg():clone();
 		var y = (a.sign<0)?a.neg():a.clone();
-		if(x.compareTo(y) < 0) { var t:BigInteger = x; x = y; y = t; }
+		if(x.compare(y) < 0) { var t:BigInteger = x; x = y; y = t; }
 		var i:Int = x.getLowestSetBit(), g:Int = y.getLowestSetBit();
 		if(g < 0) return x;
 		if(i < g) g = i;
@@ -1039,7 +1004,7 @@ class BigInteger {
 		while(x.sigNum() > 0) {
 			if((i = x.getLowestSetBit()) > 0) x.rShiftTo(i,x);
 			if((i = y.getLowestSetBit()) > 0) y.rShiftTo(i,y);
-			if(x.compareTo(y) >= 0) {
+			if(x.compare(y) >= 0) {
 				x.subTo(y,x);
 				x.rShiftTo(1,x);
 			}
@@ -1052,18 +1017,20 @@ class BigInteger {
 		return y;
 	}
 
-	/** true if this is even **/
-	public function isEven() {
-		return ((t>0)?(chunks[0]&1):sign) == 0;
+	/**
+		Pads the chunk buffer to n chunks, left fill with 0.
+	**/
+	public function padTo ( n : Int ) : Void {
+		while( t < n )	chunks[ t++ ] = 0;
 	}
 
 	/** return value as short (assumes DB &gt;= 16) **/
-	public function shortValue() {
+	public function shortValue() : Int {
 		return (t==0)?sign:(chunks[0]<<16)>>16;
 	}
 
 	/** <pre>0 if this == 0, 1 if this > 0</pre>**/
-	public function sigNum() {
+	public function sigNum() : Int {
 		if(sign < 0) return -1;
 		else if(t <= 0 || (t == 1 && chunks[0] <= 0)) return 0;
 		else return 1;
@@ -1139,7 +1106,7 @@ class BigInteger {
 	// if y is 1/x mod m, then y(2-xy) is 1/x mod m^2
 	// should reduce x and y(2-xy) by m^2 at each step to keep size bounded.
 	// JS multiply "overflows" differently from C/C++, so care is needed here.
-	public function invDigit() {
+	public function invDigit() : Int {
 		if(t < 1) return 0;
 		var x:Int = chunks[0];
 		if((x&1) == 0) return 0;
@@ -1192,7 +1159,6 @@ class BigInteger {
 	//					Private methods							//
 	//////////////////////////////////////////////////////////////
 
-
 /*
 	// (protected) alternate constructor
 	function fromNumber(a,b,c) {
@@ -1213,16 +1179,8 @@ class BigInteger {
 
 	}
 */
-
-	/** return number of set bits **/
-	function bitCount() : Int {
-		var r = 0, x = sign&DM;
-		for(i in 0...t) r += cbit(chunks[i]^x);
-		return r;
-	}
-
 	// (protected) r = this op a (bitwise)
-	function bitwiseTo(a : BigInteger, op:Int->Int->Int, r:BigInteger) {
+	function bitwiseTo(a : BigInteger, op:Int->Int->Int, r:BigInteger) : Void {
 		var f : Int;
 		var m : Int = Std.int(Math.min(a.t,t));
 		for(i in 0...m) r.chunks[i] = op(chunks[i],a.chunks[i]);
@@ -1241,23 +1199,19 @@ class BigInteger {
 	}
 
 	/** return value as byte **/
-	function byteValue() { return (t==0)?sign:(chunks[0]<<24)>>24; }
+	function byteValue() : Int { return (t==0)?sign:(chunks[0]<<24)>>24; }
 
 	/** this op (1<<n) 	**/
-	function changeBit(n,op) {
+	function changeBit(n,op) : BigInteger {
 		var r = ONE.shl(n);
 		bitwiseTo(r,op,r);
 		return r;
 	}
 
 	/** <pre>return x s.t. r^x < DV</pre> **/
-	function chunkSize(r) {
+	function chunkSize(r : Int) : Int {
 		return Math.floor(0.6931471805599453*DB/Math.log(r));
 	}
-
-	/** <pre>this & ~(1<<n)</pre> **/
-	function clearBit(n) { return changeBit(n,op_andnot); }
-
 
 	/**
 		(protected) <pre>this *= n, this >= 0, 1 < n < DV</pre>
@@ -1287,27 +1241,6 @@ class BigInteger {
 		return z.revert(r);
 	}
 
-	/** <pre>this ^ (1<<n)</pre> **/
-	function flipBit(n) { return changeBit(n,op_xor); }
-
-	/** returns index of lowest 1-bit (or -1 if none) **/
-	function getLowestSetBit() : Int {
-		for(i in 0...t)
-			if(chunks[i] != 0) return i*DB+lbit(chunks[i]);
-		if(sign < 0) return t*DB;
-		return -1;
-	}
-
-	/** <pre>this | (1<<n)</pre> **/
-	function setBit(n) { return changeBit(n,op_or); }
-
-	/** <pre>true iff nth bit is set</pre> **/
-	function testBit(n:Int) : Bool {
-		var j = Math.floor(n/DB);
-		if(j >= t) return(sign!=0);
-		return((chunks[j]&(1<<(n%DB)))!=0);
-	}
-
 	/** (protected) true if probably prime (HAC 4.24, Miller-Rabin) **/
 	function millerRabin(t:Int) : Bool {
 		var n1:BigInteger = sub(ONE);
@@ -1320,18 +1253,72 @@ class BigInteger {
 		for(i in 0...t) {
 			a.fromInt(lowprimes[i]);
 			var y:BigInteger = a.modPow(r,this);
-			if(y.compareTo(ONE) != 0 && y.compareTo(n1) != 0) {
+			if(y.compare(ONE) != 0 && y.compare(n1) != 0) {
 				var j:Int = 1;
-				while(j++ < k && y.compareTo(n1) != 0) {
+				while(j++ < k && y.compare(n1) != 0) {
 					y = y.modPowInt(2,this);
-					if(y.compareTo(ONE) == 0) return false;
+					if(y.compare(ONE) == 0) return false;
 				}
-				if(y.compareTo(n1) != 0) return false;
+				if(y.compare(n1) != 0) return false;
 			}
 		}
 		return true;
 	}
 
+	//////////////////////////////////////////////////////////////
+	//             'Result To' Bitwise methods                  //
+	// These methods take 'this', perform bitwise function with //
+	// 'a', and store the result in 'r'                         //
+	// These are not public, since a lsh of a negative should   //
+	// be done as a rsh. Use shl() and shr()                    //
+	//////////////////////////////////////////////////////////////
+	/** <pre>r = this << n </pre> **/
+	function lShiftTo(n : Int, r : BigInteger) : Void {
+		var bs: Int = n%DB;
+		var cbs:Int = DB-bs;
+		var bm:Int = (1<<cbs)-1;
+		var ds:Int = Math.floor(n/DB), c:Int = (sign<<bs)&DM, i : Int;
+//		for(i = t-1; i >= 0; --i) {
+		var i = t-1;
+		while( i >= 0 ) {
+			r.chunks[i+ds+1] = (chunks[i]>>cbs)|c;
+			c = (chunks[i]&bm)<<bs;
+			i--;
+		}
+//		for(i = ds-1; i >= 0; --i) r.chunks[i] = 0;
+		i = ds - 1;
+		while( i >= 0 ) { r.chunks[i] = 0; i--; }
+		r.chunks[ds] = c;
+		r.t = t+ds+1;
+		r.sign = sign;
+		r.clamp();
+	}
+
+	/** <pre>r = this >> n</pre> **/
+	function rShiftTo(n : Int, r : BigInteger) : Void {
+		r.sign = sign;
+		var ds:Int = Math.floor(n/DB);
+		if(ds >= t) { r.t = 0; return; }
+		var bs:Int = n%DB;
+		var cbs:Int = DB-bs;
+		var bm:Int = (1<<bs)-1;
+		r.chunks[0] = chunks[ds]>>bs;
+//		for(var i = ds+1; i < t; ++i) {
+		for( i in (ds + 1)...t ) {
+			r.chunks[i-ds-1] |= (chunks[i]&bm)<<cbs;
+			r.chunks[i-ds] = chunks[i]>>bs;
+		}
+		if(bs > 0) r.chunks[t-ds-1] |= (sign&bm)<<cbs;
+		r.t = t-ds;
+		r.clamp();
+	}
+
+/*
+	Functions am1 and am2 included for reference only. BigInteger
+	will be using 28 bits in order to provide correct serialization
+	between platforms
+*/
+/*
 	// am1: use a single mult and divide to get the high bits,
 	// max digit bits should be 26 because
 	// max internal value = 2*dvalue^2-2*dvalue (< 2^53)
@@ -1364,10 +1351,11 @@ class BigInteger {
 		}
 		return c;
 	}
-
+*/
+	// This is the original am3 function
 	// Alternately, set max digit bits to 28 since some
 	// browsers slow down when dealing with 32-bit numbers.
-	function am3(i:Int,x:Int,w:BigInteger,j:Int,c:Int,n:Int) : Int {
+	public function am(i:Int,x:Int,w:BigInteger,j:Int,c:Int,n:Int) : Int {
 #if neko
 		var biA : HndBI = mkBigInt(this);
 		var biW : HndBI;
@@ -1423,7 +1411,6 @@ class BigInteger {
 
 	public static var lowprimes : Array<Int>;
 	static var lplim : Int;
-	static var defaultAm : Int; // am function
 
 	//////////////////////////////////////////////////////////////
 	//                   Static methods                         //
@@ -1431,42 +1418,7 @@ class BigInteger {
 
 	static function __init__() {
 		// Bits per digit
-		var dbits : Int ; //This is th DB static
-#if neko
-		dbits = 28;
-		defaultAm = 3;
-#else js
-		// JavaScript engine analysis
-		var j_lm : Bool;
-		untyped {
-			var canary : Int = 0xdeadbeefcafe;
-			j_lm = ((canary&0xffffff)==0xefcafe);
-		}
-
-		var browser: String = untyped window.navigator.appName;
-		if(j_lm && (browser == "Microsoft Internet Explorer")) {
-// 			defaultAm = 2;
-// 			dbits = 30;
-			defaultAm = 3;
-			dbits = 28;
-		}
-		else if(j_lm && (browser != "Netscape")) {
-// 			defaultAm = 1;
-// 			dbits = 26;
-			defaultAm = 3;
-			dbits = 28;
-		}
-		else { // Mozilla/Netscape seems to prefer
-			defaultAm = 3;
-			dbits = 28;
-		}
-#else flash
-		dbits = 28;
-		defaultAm =3;
-#else true
-		dbits = 30;
-		defaultAm = 2;
-#end
+		var dbits : Int = 28; //This is th DB static
 		DB = dbits;
 		DM = ((1<<DB)-1);
 		DV = (1<<DB);
@@ -1478,7 +1430,6 @@ class BigInteger {
 		// properly, so it is double checked in the constructor.
 		initBiRc();
 		BI_RM = "0123456789abcdefghijklmnopqrstuvwxyz";
-
 
 		lowprimes = [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113,127,131,137,139,149,151,157,163,167,173,179,181,191,193,197,199,211,223,227,229,233,239,241,251,257,263,269,271,277,281,283,293,307,311,313,317,331,337,347,349,353,359,367,373,379,383,389,397,401,409,419,421,431,433,439,443,449,457,461,463,467,479,487,491,499,503,509];
 		lplim = Std.int((1<<26)/lowprimes[lowprimes.length-1]);
@@ -1529,9 +1480,6 @@ class BigInteger {
 	**/
 	public static function nbi() : BigInteger {
 		return new BigInteger(null);
-		//var bi = new BigInteger(null);
-		//bi.fromInt(0);
-		//return bi;
 	}
 
 	/**
@@ -1574,13 +1522,13 @@ class BigInteger {
 	//////////////////////////////////////////////////////////////
 	//                  Operator functions                      //
 	//////////////////////////////////////////////////////////////
-	public static function op_and(x:Int, y:Int) { return x&y; }
-	public static function op_or(x:Int, y:Int) { return x|y; }
-	public static function op_xor(x:Int, y:Int) { return x^y; }
+	public static function op_and(x:Int, y:Int) : Int { return x&y; }
+	public static function op_or(x:Int, y:Int) : Int { return x|y; }
+	public static function op_xor(x:Int, y:Int) : Int { return x^y; }
 #if !neko
-	public static function op_andnot(x:Int, y:Int) { return x&~y; }
+	public static function op_andnot(x:Int, y:Int) : Int { return x&~y; }
 #else true
-	public static function op_andnot(x:Int, y:Int) {
+	public static function op_andnot(x:Int, y:Int) : Int {
 		return Int32.toInt(
 			Int32.and(
 				Int32.ofInt(x),
@@ -1631,6 +1579,13 @@ class BigInteger {
 		if((x&3) == 0) { x >>= 2; r += 2; }
 		if((x&1) == 0) ++r;
 		return r;
+	}
+
+	static function dumpBi(r:BigInteger) : String {
+		var s = "sign: " + Std.string(r.sign);
+		s += " t: "+r.t;
+		s += Std.string(r.chunks);
+		return s;
 	}
 
 #if neko

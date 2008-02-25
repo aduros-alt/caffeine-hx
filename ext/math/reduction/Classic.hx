@@ -42,7 +42,7 @@ class Classic implements math.reduction.ModularReduction {
 		this.m = m;
 	}
 	public function convert(x:BigInteger) {
-		if(x.sign < 0 || x.compareTo(this.m) >= 0)
+		if(x.sign < 0 || x.compare(this.m) >= 0)
 			return x.mod(this.m);
 		return x;
 	}

@@ -67,13 +67,13 @@ class RSA extends RSAEncrypt {
 		while(true) {
 			while(true) {
 				key.p = genRandom(B-qs,rng);
-				if(key.p.sub(BigInteger.ONE).gcd(ee).compareTo(BigInteger.ONE) == 0 && key.p.isProbablePrime(10)) break;
+				if(key.p.sub(BigInteger.ONE).gcd(ee).compare(BigInteger.ONE) == 0 && key.p.isProbablePrime(10)) break;
 			}
 			while(true) {
 				key.q = genRandom(qs,rng);
-				if(key.q.sub(BigInteger.ONE).gcd(ee).compareTo(BigInteger.ONE) == 0 && key.q.isProbablePrime(10)) break;
+				if(key.q.sub(BigInteger.ONE).gcd(ee).compare(BigInteger.ONE) == 0 && key.q.isProbablePrime(10)) break;
 			}
-			if(key.p.compareTo(key.q) <= 0) {
+			if(key.p.compare(key.q) <= 0) {
 				var t = key.p;
 				key.p = key.q;
 				key.q = t;
@@ -81,7 +81,7 @@ class RSA extends RSAEncrypt {
 			var p1 = key.p.sub(BigInteger.ONE);
 			var q1 = key.q.sub(BigInteger.ONE);
 			var phi = p1.mul(q1);
-			if(phi.gcd(ee).compareTo(BigInteger.ONE) == 0) {
+			if(phi.gcd(ee).compare(BigInteger.ONE) == 0) {
 				key.n = key.p.mul(key.q);
 				key.d = ee.modInverse(phi);
 				key.dmp1 = key.d.mod(p1);
@@ -163,7 +163,7 @@ class RSA extends RSAEncrypt {
 		var xp = x.mod(this.p).modPow(this.dmp1, this.p);
 		var xq = x.mod(this.q).modPow(this.dmq1, this.q);
 
-		while(xp.compareTo(xq) < 0)
+		while(xp.compare(xq) < 0)
 			xp = xp.add(this.p);
 		return xp.sub(xq).mul(this.coeff).mod(this.p).mul(this.q).add(xq);
 	}

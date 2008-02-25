@@ -61,7 +61,7 @@ class Montgomery implements math.reduction.ModularReduction {
 		var r = BigInteger.nbi();
 		x.abs().dlShiftTo(m.t,r);
 		r.divRemTo(m,null,r);
-		if(x.sign < 0 && r.compareTo(BigInteger.ZERO) > 0)
+		if(x.sign < 0 && r.compare(BigInteger.ZERO) > 0)
 			m.subTo(r,r);
 		return r;
 	}
@@ -95,7 +95,7 @@ class Montgomery implements math.reduction.ModularReduction {
 		}
 		x.clamp();
 		x.drShiftTo(m.t,x);
-		if(x.compareTo(m) >= 0) x.subTo(m,x);
+		if(x.compare(m) >= 0) x.subTo(m,x);
 	}
 
 	// r = "xy/R mod m"; x,y != r
