@@ -37,9 +37,22 @@ import math.BigInteger;
 	RSAEncrypt can be used instead.
 **/
 class RSA extends RSAEncrypt {
+	// private key
+	public var d : BigInteger;
+	public var p : BigInteger;
+	public var q : BigInteger;
+	public var dmp1 : BigInteger;
+	public var dmq1 : BigInteger;
+	public var coeff: BigInteger;
 
 	public function new() {
 		super();
+		this.d = null;
+		this.p = null;
+		this.q = null;
+		this.dmp1 = null;
+		this.dmq1 = null;
+		this.coeff = null;
 	}
 
 	/**
@@ -47,29 +60,29 @@ class RSA extends RSAEncrypt {
 	*/
 	public static function generate(B:Int, E:String) : RSA {
 		var rng = new math.prng.Random();
-		var key:RSA = new RSA(null,0,null);
+		var key:RSA = new RSA(); // new RSA(null,0,null);
 		var qs : Int = B>>1;
-		key.e = parseInt(E,16);
-		var ee = new BigInteger(E,16);
+		key.e = Std.parseInt("0x" + E);
+		var ee : BigInteger = BigInteger.ofString(E,16);
 		while(true) {
 			while(true) {
-				key.p = new BigInteger(B-qs,1,rng);
-				if(key.p.subtract(BigInteger.ONE).gcd(ee).compareTo(BigInteger.ONE) == 0 && key.p.isProbablePrime(10)) break;
+				key.p = genRandom(B-qs,rng);
+				if(key.p.sub(BigInteger.ONE).gcd(ee).compareTo(BigInteger.ONE) == 0 && key.p.isProbablePrime(10)) break;
 			}
 			while(true) {
-				key.q = new BigInteger(qs,1,rng);
-				if(key.q.subtract(BigInteger.ONE).gcd(ee).compareTo(BigInteger.ONE) == 0 && key.q.isProbablePrime(10)) break;
+				key.q = genRandom(qs,rng);
+				if(key.q.sub(BigInteger.ONE).gcd(ee).compareTo(BigInteger.ONE) == 0 && key.q.isProbablePrime(10)) break;
 			}
 			if(key.p.compareTo(key.q) <= 0) {
 				var t = key.p;
 				key.p = key.q;
 				key.q = t;
 			}
-			var p1 = key.p.subtract(BigInteger.ONE);
-			var q1 = key.q.subtract(BigInteger.ONE);
-			var phi = p1.multiply(q1);
+			var p1 = key.p.sub(BigInteger.ONE);
+			var q1 = key.q.sub(BigInteger.ONE);
+			var phi = p1.mul(q1);
 			if(phi.gcd(ee).compareTo(BigInteger.ONE) == 0) {
-				key.n = key.p.multiply(key.q);
+				key.n = key.p.mul(key.q);
 				key.d = ee.modInverse(phi);
 				key.dmp1 = key.d.mod(p1);
 				key.dmq1 = key.d.mod(q1);
@@ -77,16 +90,22 @@ class RSA extends RSAEncrypt {
 				break;
 			}
 		}
+		return key;
+	}
+
+	static function genRandom(bits:Int, rng:math.prng.Random) : BigInteger {
+		var i = BigInteger.ofRandom(bits, rng);
+		i.primify(bits, 1);
+		return i;
 	}
 
 	/**
-		Set the private key fields N, e, and d from hex strings. Throws exception
-		if inputs are invalid.
+		Set the private key fields N, e, and d from hex strings.
+		Throws exception if inputs are invalid.
 	**/
 	public function setPrivate(N:String,E:String,D:String) : Void {
-		if(N != null && E != null && N.length > 0 && E.length > 0) {
-			this.n = parseBigInt(N,16);
-			this.e = parseInt(E,16);
+		super.setPublic(N, E);
+		if(D != null && D.length > 0) {
 			this.d = parseBigInt(D,16);
 		}
 		else
@@ -94,17 +113,17 @@ class RSA extends RSAEncrypt {
 	}
 
 	/**
-		Set the private key fields N, e, d and CRT params from hex strings. Throws
-		exception if any input is invalid
+		Set the private key fields N, e, d and CRT params from
+		hex strings. Throws exception if any input is invalid
 	**/
 	public function setPrivateEx(
 			N:String,E:String,D:String,P:String,
 			Q:String,DP:String,DQ:String,C:String) : Void
 	{
-		if(N != null && E != null && N.length > 0 && E.length > 0) {
-			this.n = parseBigInt(N,16);
-			this.e = parseInt(E,16);
-			this.d = parseBigInt(D,16);
+		setPrivate(N, E, D);
+		if(P != null && Q != null && DP != null && DQ != null && C != null &&
+			P.length > 0 && Q.length > 0 && DP.length > 0 && DQ.length > 0 && C.length > 0)
+		{
 			this.p = parseBigInt(P,16);
 			this.q = parseBigInt(Q,16);
 			this.dmp1 = parseBigInt(DP,16);
@@ -112,19 +131,22 @@ class RSA extends RSAEncrypt {
 			this.coeff = parseBigInt(C,16);
 		}
 		else
-			throw("Invalid RSA private key");
+			throw("Invalid RSA private key ex");
 	}
 
 	/**
 		Return the PKCS#1 RSA decryption of "ctext".
-		"ctext" is an even-length hex string and the output is a plain string.
+		"ctext" is an even-length hex string and the output
+		is a plain string.
 	**/
 	public function decrypt(ctext : String) : String {
 		var c = parseBigInt(ctext, 16);
-		var m = this.doPrivate(c);
-		if(m == null)
+		var m = doPrivate(c);
+		if(m == null) {
+			throw "doPrivate error";
 			return null;
-		return pkcs1unpad2(m, (this.n.bitLength()+7)>>3);
+		}
+		return pkcs1unpad2(m, (n.bitLength()+7)>>3);
 	}
 
 	//////////////////////////////////////////////////
@@ -143,7 +165,7 @@ class RSA extends RSAEncrypt {
 
 		while(xp.compareTo(xq) < 0)
 			xp = xp.add(this.p);
-		return xp.subtract(xq).multiply(this.coeff).mod(this.p).multiply(this.q).add(xq);
+		return xp.sub(xq).mul(this.coeff).mod(this.p).mul(this.q).add(xq);
 	}
 
 	//////////////////////////////////////////////////
@@ -151,23 +173,21 @@ class RSA extends RSAEncrypt {
 	//////////////////////////////////////////////////
 	/**
 		Undo PKCS#1 (type 2, random) padding and, if valid, return the plaintext
-		TODO: can rip this out to a PadPkcs1.hx ? see also RSAEncrypt.hx
-			- Probably not useful to, since the conversion from
-			Array<Int> -> String -> BigInteger wastes time
 	**/
-	function pkcs1unpad2(d : String, n:Int) : String {
-		var b : Array<Int> = ByteStringTools.stringToByteArray(d);
+	function pkcs1unpad2(d : BigInteger, n:Int) : String {
+		var b : Array<Int> = d.toByteArray();
 		var i = 0;
+trace(b.length);
 		while(i < b.length && b[i] == 0) ++i;
-		if(b.length-i != n-1 || b[i] != 2)
+		if(b.length-i != n-1 || b[i] != 2) {
+			throw("Length error b.length: "+b.length+" i:"+i+" n:"+n+" b:"+Std.string(b));
 			return null;
+		}
 		++i;
-		while(b[i] != 0)
-			if(++i >= b.length)
-				return null;
 		var sb = new StringBuf();
-		while(++i < b.length)
-			sb.addChar((b[i]));
+		while(++i < b.length) {
+			try	sb.addChar((b[i])) catch(e:Dynamic) return null;
+		}
 		return sb.toString();
 	}
 }

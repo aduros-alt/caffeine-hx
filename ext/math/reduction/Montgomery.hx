@@ -47,22 +47,22 @@ class Montgomery implements math.reduction.ModularReduction {
 	private var mt2 : Int;
 
 
-	public function new(m:BigInteger) {
-		this.m = m;
-		this.mp = m.invDigit();
-		this.mpl = this.mp&0x7fff;
-		this.mph = this.mp>>15;
-		this.um = (1<<(BigInteger.DB-15))-1;
-		this.mt2 = 2*m.t;
+	public function new(x:BigInteger) {
+		m = x;
+		mp = m.invDigit();
+		mpl = mp&0x7fff;
+		mph = mp>>15;
+		um = (1<<(BigInteger.DB-15))-1;
+		mt2 = 2*m.t;
 	}
 
 	// xR mod m
 	public function convert(x:BigInteger) {
 		var r = BigInteger.nbi();
-		x.abs().dlShiftTo(this.m.t,r);
-		r.divRemTo(this.m,null,r);
+		x.abs().dlShiftTo(m.t,r);
+		r.divRemTo(m,null,r);
 		if(x.sign < 0 && r.compareTo(BigInteger.ZERO) > 0)
-			this.m.subTo(r,r);
+			m.subTo(r,r);
 		return r;
 	}
 
@@ -70,39 +70,44 @@ class Montgomery implements math.reduction.ModularReduction {
 	public function revert(x:BigInteger) {
 		var r = BigInteger.nbi();
 		x.copyTo(r);
-		this.reduce(r);
+		reduce(r);
 		return r;
 	}
 
 	// x = x/R mod m (HAC 14.32)
 	public function reduce(x:BigInteger) {
 		x.padTo( mt2 );	// pad x so am has enough room later
-//		for(var i = 0; i < this.m.t; ++i) {
+//		for(var i = 0; i < m.t; ++i) {
 		for( i in 0...m.t ) {
 			// faster way of calculating u0 = x[i]*mp mod DV
 			var j = x.chunks[i]&0x7fff;
-			var u0 = (j*this.mpl+(((j*this.mph+(x.chunks[i]>>15)*this.mpl)&this.um)<<15))&BigInteger.DM;
+			var u0 = (j*mpl+(((j*mph+(x.chunks[i]>>15)*mpl)&um)<<15))&BigInteger.DM;
 			// use am to combine the multiply-shift-add into one call
-			j = i+this.m.t;
-			x.chunks[j] += this.m.am(0,u0,x,i,0,this.m.t);
+			j = i+m.t;
+			x.chunks[j] += m.am(0,u0,x,i,0,m.t);
 			// propagate carry
-			while(x.chunks[j] >= BigInteger.DV) { x.chunks[j] -= BigInteger.DV; x.chunks[++j]++; }
+			while(x.chunks[j] >= BigInteger.DV) {
+				x.chunks[j] -= BigInteger.DV;
+				if(x.chunks.length < j+2)
+					x.chunks[j+1] = 0;
+				x.chunks[++j]++;
+			}
 		}
 		x.clamp();
-		x.drShiftTo(this.m.t,x);
-		if(x.compareTo(this.m) >= 0) x.subTo(this.m,x);
+		x.drShiftTo(m.t,x);
+		if(x.compareTo(m) >= 0) x.subTo(m,x);
 	}
 
 	// r = "xy/R mod m"; x,y != r
 	public function mulTo(x:BigInteger,y:BigInteger,r:BigInteger) {
 		x.multiplyTo(y,r);
-		this.reduce(r);
+		reduce(r);
 	}
 
 	// r = "x^2/R mod m"; x != r
 	public function sqrTo(x:BigInteger, r:BigInteger) {
 		x.squareTo(r);
-		this.reduce(r);
+		reduce(r);
 	}
 
 }

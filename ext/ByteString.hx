@@ -25,11 +25,11 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-class ByteString extends String {
-
+class ByteString {
+	public var length(getLength, setLength) : Int;
 	var _buf : Array<Int>;
+
 	public function new(?s : String) {
-		super("");
 		_buf = new Array();
 		if(s != null) {
 			for(i in 0...s.length)
@@ -66,37 +66,37 @@ class ByteString extends String {
 		set(pos, value);
 	}
 
-	override public function charAt( index : Int ) : String {
+	public function charAt( index : Int ) : String {
 		return Std.chr(_buf[index]);
 	}
 
-	override public function charCodeAt( index : Int ) : Null<Int> {
+	public function charCodeAt( index : Int ) : Null<Int> {
 		var a : Null<Int> = get(index);
 		return a;
 	}
 
-	override public function toString() : String {
+	public function toString() : String {
 		var sb = new StringBuf();
 		for(x in 0..._buf.length)
 			sb.addChar(_buf[x]);
 		return sb.toString();
 	}
 
-	override public function toUpperCase() : String {
+	public function toUpperCase() : String {
 		throw "unimplemented";
 		return "";
 	}
 
-	override public function toLowerCase() : String {
+	public function toLowerCase() : String {
 		throw "unimplemented";
 		return "";
 	}
 
-	override public function indexOf( value : String, ?startIndex : Int ) : Int {
+	public function indexOf( value : String, ?startIndex : Int ) : Int {
 		return toString().indexOf(value, startIndex);
 	}
 
-	override public function lastIndexOf( value : String, ?startIndex : Int ) : Int {
+	public function lastIndexOf( value : String, ?startIndex : Int ) : Int {
 		return toString().indexOf(value, startIndex);
 	}
 
@@ -127,19 +127,25 @@ class ByteString extends String {
 		is less than current, the data will be truncated. If
 		greater, it will be null padded.
 	**/
-	public function setLength(i : Int) : Void {
+	public function setLength(i : Int) : Int {
 		if(i == _buf.length)
-			return;
+			return i;
 		if(i > _buf.length) {
 			var o : Int = _buf.length;
 			_buf[i-1] = 0;
 			for(x in o...i) {
 				_buf[x] = 0;
 			}
-			return;
+			return i;
 		}
 		_buf = _buf.slice(0, i);
+		return i;
 	}
+
+	public function getLength() : Int {
+		return _buf.length;
+	}
+
 	/**
 		Removes the last byte and returns it.
 	**/
@@ -149,7 +155,7 @@ class ByteString extends String {
 		return r;
 	}
 
-	override public function split( delimiter : String ) : Array<String> {
+	public function split( delimiter : String ) : Array<String> {
 		return toString().split( delimiter );
 	}
 
@@ -165,7 +171,7 @@ class ByteString extends String {
 		return r;
 	}
 
-	override public function substr( pos : Int, ?len : Int ) : String {
+	public function substr( pos : Int, ?len : Int ) : String {
 		return toString().substr( pos, len );
 	}
 
@@ -185,5 +191,13 @@ class ByteString extends String {
 		return r;
 	}
 
+	public static function ofIntArray(a : Array<Int>) : ByteString {
+		var b = new ByteString();
+		b._buf = a.copy();
+		for(i in 0...b._buf.length) {
+			b._buf[i] &= 0xff;
+		}
+		return b;
+	}
 }
 

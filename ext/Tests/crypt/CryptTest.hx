@@ -3,6 +3,7 @@ import crypt.ModeECB;
 import crypt.ModeCBC;
 import crypt.IMode;
 import crypt.Tea;
+import crypt.RSA;
 
 enum CryptMode {
 	CBC;
@@ -204,7 +205,7 @@ trace(ByteStringTools.hexDump(td));
 		var tea = new ModeECB( t );
 		var e = tea.encrypt(s);
 
-trace(ByteStringTools.hexDump(e));
+//trace(ByteStringTools.hexDump(e));
 
 		var d = tea.decrypt(e);
 
@@ -237,6 +238,17 @@ trace(ByteStringTools.hexDump(e));
 	}
 }
 
+class RSAFunctions extends haxe.unit.TestCase {
+	function testOne() {
+		var msg = "Hello";
+		var rsa:RSA = RSA.generate(256, "10001");
+		var e = rsa.encrypt("Hello");
+		var u = rsa.decrypt(e);
+		assertEquals(msg,u.substr(u.length-msg.length));
+	}
+
+}
+
 class CryptTest {
 
 	public static function main() {
@@ -245,10 +257,38 @@ class CryptTest {
 			haxe.Firebug.redirectTraces();
 		}
 #end
+#if !nekogg
+	//function testZGenerate() {
+		var num : Int = 10;
+		var bits : Int = 256;
+		var exp : String = "10001";
+		trace("Generating " + num +" " + bits + " bit RSA keys");
+		var msg = "Hello";
+		for(x in 0...num) {
+			var rsa:RSA = RSA.generate(bits, exp);
+			var e = rsa.encrypt("Hello");
+			if(e == null)
+				throw "e is null";
+			var u = rsa.decrypt(e);
+			if (u == null) {
+				trace(e);
+				trace(u);
+				throw "u is null";
+			}
+			if(msg != u.substr(u.length-msg.length)) {
+				throw "message mismatch";
+			}
+			//neko.Lib.print(".");
+		}
+		//neko.Lib.println("");
+	//}
+#end
+
 		var r = new haxe.unit.TestRunner();
 		r.add(new ByteStringToolsFunctions());
 		r.add(new AesTestFunctions());
 		r.add(new TeaTestFunctions());
+		r.add(new RSAFunctions());
 		r.run();
 	}
 }

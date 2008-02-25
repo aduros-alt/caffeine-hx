@@ -38,21 +38,25 @@ class Random {
 	var state : IPrng;
 	var pool : Array<Int>;
 	var pptr : Int;
+	var initialized: Bool;
 
-	public function new(backend: IPrng) {
-		createState();
+	public function new(?backend: IPrng) {
+		createState(backend);
+		initialized = false;
 	}
 
 	/**
 		Get one random byte value
 	**/
 	public function getByte() : Int {
-		if(state == null) {
+		if(initialized == false) {
 			createState();
 			state.init(pool);
 			for(i in 0...pool.length)
 				pool[i] = 0;
 			pptr = 0;
+			pool = new Array();
+			initialized = true;
 		}
 		return state.next();
 	}
@@ -64,6 +68,15 @@ class Random {
 		var i;
 		for(i in 0...ba.length)
 			ba.set(i, getByte());
+	}
+
+	/**
+		Fill the provided Array with random bytes
+	**/
+	public function nextBytesArray(ba : Array<Int>) : Void {
+		var i;
+		for(i in 0...ba.length)
+			ba[i] = getByte();
 	}
 
 	/**

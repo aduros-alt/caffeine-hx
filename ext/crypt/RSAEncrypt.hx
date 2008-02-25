@@ -33,6 +33,7 @@
 package crypt;
 
 import math.BigInteger;
+import math.prng.Random;
 
 /**
 	RSAEncrypt encrypts using a provided public key. If decryption is
@@ -42,23 +43,10 @@ class RSAEncrypt {
 	// public key
 	public var n : BigInteger;	// modulus
 	public var e : Int;			// exponent. <2^31
-	// private key
-	public var d : BigInteger;
-	public var p : BigInteger;
-	public var q : BigInteger;
-	public var dmp1 : BigInteger;
-	public var dmq1 : BigInteger;
-	public var coeff: BigInteger;
 
 	public function new() {
 		this.n = null;
 		this.e = 0;
-		this.d = null;
-		this.p = null;
-		this.q = null;
-		this.dmp1 = null;
-		this.dmq1 = null;
-		this.coeff = null;
 	}
 
 	/**
@@ -67,10 +55,10 @@ class RSAEncrypt {
 	public function setPublic(N : String, E:String) : Void {
 		if(N != null && E != null && N.length > 0 && E.length > 0) {
 			this.n = parseBigInt(N,16);
-			this.e = parseInt(E,16);
+			this.e = Std.parseInt("0x" + E);
 		}
 		else
-			alert("Invalid RSA public key");
+			throw("Invalid RSA public key");
 	}
 
 	/**
@@ -79,11 +67,11 @@ class RSAEncrypt {
 		TODO: Return Binary string, not text. Use padding etc...
 	**/
 	public function encrypt( text : String ) : String {
-		var m = pkcs1pad2(text,(this.n.bitLength()+7)>>3);
+		var m = pkcs1pad2(text,(n.bitLength()+7)>>3);
 		if(m == null) return null;
-		var c = this.doPublic(m);
+		var c = doPublic(m);
 		if(c == null) return null;
-		var h = c.toString(16);
+		var h = c.toRadix(16);
 		if((h.length & 1) == 0) return h; else return "0" + h;
 	}
 
@@ -91,7 +79,7 @@ class RSAEncrypt {
 	//               Private                        //
 	//////////////////////////////////////////////////
 	// Perform raw public operation on "x": return x^e (mod n)
-	function doPublic(x : BigInteger) {
+	function doPublic(x : BigInteger) : BigInteger {
 		return x.modPowInt(this.e, this.n);
 	}
 
@@ -101,9 +89,6 @@ class RSAEncrypt {
 	/**
 		PKCS#1 (type 2, random) pad input string s to n bytes,
 		and return a bigint
-		TODO: can rip this out to a PadPkcs1.hx ? see also RSA.hx
-			- Probably not useful to, since the conversion from
-			Array<Int> -> String -> BigInteger wastes time
 	**/
 	function pkcs1pad2(s : String, n : Int) : BigInteger {
 		if(n < s.length + 11) {
@@ -115,16 +100,20 @@ class RSAEncrypt {
 		while(i >= 0 && n > 0)
 			ba[--n] = s.charCodeAt(i--);
 		ba[--n] = 0;
-		var rng = new SecureRandom();
+		var rng = new Random();
 		var x = new Array<Int>();
 		while(n > 2) { // random non-zero pad
 			x[0] = 0;
-			while(x[0] == 0) rng.nextBytes(x);
+			while(x[0] == 0) rng.nextBytesArray(x);
 			ba[--n] = x[0];
 		}
 		ba[--n] = 2;
 		ba[--n] = 0;
-		return new BigInteger(ba);
+trace(ba);
+		var bv = BigInteger.nbi();
+		bv.fromByteArray(ba,0,ba.length);
+trace(bv.toByteArray());
+		return bv;
 	}
 
 	//////////////////////////////////////////////////
@@ -132,9 +121,9 @@ class RSAEncrypt {
 	//////////////////////////////////////////////////
 	// convert a (hex) string to a bignum object
 	function parseBigInt(str:String, r : Int) {
-		return new BigInteger(str,r);
+		return BigInteger.ofString(str,r);
 	}
-
+/*
 	function linebrk(s:String, n : Int) {
 		var ret = "";
 		var i = 0;
@@ -144,6 +133,7 @@ class RSAEncrypt {
 		}
 		return ret + s.substr(i,s.length);
 	}
+*/
 
 }
 

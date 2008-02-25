@@ -68,6 +68,8 @@ class ArcFour implements IPrng {
 		Returns the next byte.
 	**/
 	public function next() : Int {
+		if(S.length == 0)
+			throw "not initialized";
 		var t;
 		i = (i + 1) & 255;
 		j = (j + S[i]) & 255;
