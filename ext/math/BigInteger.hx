@@ -165,9 +165,13 @@ class BigInteger {
 	/**
 		convert from a bigendian byte array xxx
 	**/
-	public function fromByteArray(r:Array<Int>, pos:Int, len:Int) : Void {
+	public function fromByteArray(r:Array<Int>, ?pos:Int, ?len:Int) : Void {
 		sign = 0;
 		t = 0;
+		if(pos == null)
+			pos = 0;
+		if(len == null)
+			len = r.length - pos;
 		var i:Int = pos+len;
 		var sh:Int = 0;
 		while (--i >= pos) {
@@ -229,6 +233,14 @@ class BigInteger {
 		if(sign < 0) return "-"+neg().toRadix(b);
 		var k;
 		if(b == 16) k = 4;
+		else if(b == 256) {
+			var ba = toByteArray();
+			var sb = new StringBuf();
+			for(x in 0...ba.length) {
+				sb.addChar(ba[x]);
+			}
+			return sb.toString();
+		}
 		else if(b == 8) k = 3;
 		else if(b == 2) k = 1;
 		else if(b == 32) k = 5;
@@ -566,6 +578,7 @@ class BigInteger {
 		<pre>this^e % m, 0 <= e < 2^32</pre>
 	**/
 	public function modPowInt(e : Int, m : BigInteger) : BigInteger {
+trace(e);
 		var z : ModularReduction;
 		if(e < 256 || m.isEven()) z = new Classic(m);
 		else z = new Montgomery(m);
@@ -680,7 +693,7 @@ class BigInteger {
 		<pre>this << n</pre>
 	**/
 	public function shl(n : Int) : BigInteger {
-#if neko
+#if (neko && NDLL_MATH)
 		var biA : HndBI = mkBigInt(this);
 		var res = bi_shl(biA, n);
 		return mkFromHandle(res);
@@ -695,7 +708,7 @@ class BigInteger {
 		<pre>this >> n</pre>
 	**/
 	public function shr(n : Int) : BigInteger {
-#if neko
+#if (neko && NDLL_MATH)
 		var biA : HndBI = mkBigInt(this);
 		var res = bi_shr(biA, n);
 		return mkFromHandle(res);
@@ -763,7 +776,8 @@ class BigInteger {
 
 	/** copy this to r **/
 	public function copyTo(r : BigInteger) : Void {
-		r.chunks = chunks.copy();
+		for(i in 0...chunks.length)
+			r.chunks[i] = chunks[i];
 		r.t = t;
 		r.sign = sign;
 	}
@@ -773,7 +787,7 @@ class BigInteger {
 	**/
 	public function divRemTo(m : BigInteger, q : BigInteger ,?r : BigInteger) : Void
 	{
-#if neko
+#if (neko && NDLL_MATH)
 		var biA : HndBI = mkBigInt(this);
 		var biM : HndBI = mkBigInt(m);
 		var res = bi_divide(biA,biM);
@@ -932,7 +946,12 @@ class BigInteger {
 
 	/** <pre>r = this - a</pre> **/
 	public function subTo(a : BigInteger, r : BigInteger) : Void {
-#if !neko
+#if neko //&& NDLL_MATH)
+		var biA : HndBI = mkBigInt(this);
+		var biB : HndBI = mkBigInt(a);
+		var res : HndBI = bi_subtract(biA,biB);
+		popFromHandle(res, r);
+#else true
 		var i: Int = 0;
 		var c: Int = 0;
 		var m: Int = Std.int(Math.min(a.t,t));
@@ -963,11 +982,6 @@ class BigInteger {
 		if(c < -1) r.chunks[i++] = DV+c;
 		else if(c > 0) r.chunks[i++] = c;
 		r.t = i;
-#else true
-		var biA : HndBI = mkBigInt(this);
-		var biB : HndBI = mkBigInt(a);
-		var res : HndBI = bi_subtract(biA,biB);
-		popFromHandle(res, r);
 #end
 		r.clamp();
 	}
@@ -1056,7 +1070,7 @@ class BigInteger {
 	/** <pre> r = this << n*DB </pre> **/
 	public function dlShiftTo(n : Int, r : BigInteger) :Void {
 		if(r == null) return;
-#if neko
+#if (neko && NDLL_MATH)
 		var biA : HndBI = mkBigInt(this);
 		var res = bi_dl_shift(biA, n);
 		popFromHandle(res, r);
@@ -1079,7 +1093,7 @@ class BigInteger {
 	/** <pre>r = this >> n*DB</pre> **/
 	public function drShiftTo(n : Int, r : BigInteger) {
 		if(r == null) return;
-#if neko
+#if (neko && NDLL_MATH)
 		var biA : HndBI = mkBigInt(this);
 		var res = bi_dr_shift(biA, n);
 		popFromHandle(res, r);
@@ -1116,13 +1130,13 @@ class BigInteger {
 		y = (y*(2-(((x&0xffff)*y)&0xffff)))&0xffff;	// y == 1/x mod 2^16
 		// last step - calculate inverse mod DV directly;
 		// assumes 16 < DB <= 32 and assumes ability to handle 48-bit ints
-		y = (y*(2-x*y%DV))%DV;		// y == 1/x mod 2^dbits
+		y = (y*(2-((x*y)%DV))) % DV;		// y == 1/x mod 2^dbits
 		// we really want the negative inverse, and -DV < y < DV
 		return (y>0)?DV-y:-y;
 	}
 
 	/** <pre>test primality with certainty >= 1-.5^t</pre> **/
-	public function isProbablePrime(t : Int) : Bool {
+	public function isProbablePrime(v : Int) : Bool {
 		var i:Int;
 		var x = abs();
 		if(x.t == 1 && x.chunks[0] <= lowprimes[lowprimes.length-1]) {
@@ -1139,17 +1153,17 @@ class BigInteger {
 			m = x.modInt(m);
 			while(i < j) if(m%lowprimes[i++] == 0) return false;
 		}
-		return x.millerRabin(t);
+		return x.millerRabin(v);
 	}
 
-	public function primify(bits:Int, t:Int) : Void {
+	public function primify(bits:Int, ta:Int) : Void {
 		if (!testBit(bits-1)) { // force MSB set
 			bitwiseTo(BigInteger.ONE.shl(bits-1), op_or, this);
 		}
 		if (isEven()) {
 			dAddOffset(1,0);    // force odd
 		}
-		while (!isProbablePrime(t)) {
+		while (!isProbablePrime(ta)) {
 			dAddOffset(2,0);
 			while(bitLength()>bits) subTo(BigInteger.ONE.shl(bits-1),this);
 		}
@@ -1225,32 +1239,36 @@ class BigInteger {
 	/** <pre>this^e, e < 2^32, doing sqr and mul with "r" (HAC 14.79)</pre> **/
 	function exp(e : Int, z : ModularReduction) : BigInteger {
 #if !neko
-		if(e > 0xffffffff || e < 1) return ONE;
+		if(e > 0x7fffffff || e < 1) return ONE;
 #else true
 		if(e < 1) return ONE;
 #end
-		var r = nbi(), r2 = nbi();
-		var g = z.convert(this);
+		var r:BigInteger = nbi();
+		var r2:BigInteger = nbi();
+		var g:BigInteger = z.convert(this);
+//trace(g);
 		var i:Int = nbits(e)-1;
+//trace(i);
 		g.copyTo(r);
 		while(--i >= 0) {
 			z.sqrTo(r,r2);
+//trace(r2);
 			if((e&(1<<i)) > 0) z.mulTo(r2,g,r);
-			else { var t = r; r = r2; r2 = t; }
+			else { var t:BigInteger = r; r = r2; r2 = t; }
 		}
 		return z.revert(r);
 	}
 
 	/** (protected) true if probably prime (HAC 4.24, Miller-Rabin) **/
-	function millerRabin(t:Int) : Bool {
+	function millerRabin(v:Int) : Bool {
 		var n1:BigInteger = sub(ONE);
 		var k:Int = n1.getLowestSetBit();
 		if(k <= 0) return false;
 		var r:BigInteger = n1.shr(k);
-		t = (t+1)>>1;
-		if(t > lowprimes.length) t = lowprimes.length;
+		v = (v+1)>>1;
+		if(v > lowprimes.length) v = lowprimes.length;
 		var a : BigInteger = nbi();
-		for(i in 0...t) {
+		for(i in 0...v) {
 			a.fromInt(lowprimes[i]);
 			var y:BigInteger = a.modPow(r,this);
 			if(y.compare(ONE) != 0 && y.compare(n1) != 0) {
@@ -1356,7 +1374,7 @@ class BigInteger {
 	// Alternately, set max digit bits to 28 since some
 	// browsers slow down when dealing with 32-bit numbers.
 	public function am(i:Int,x:Int,w:BigInteger,j:Int,c:Int,n:Int) : Int {
-#if neko
+#if (neko && NDLL_MATH)
 		var biA : HndBI = mkBigInt(this);
 		var biW : HndBI;
 		if(w == this)
@@ -1375,15 +1393,32 @@ class BigInteger {
 		while(--n >= 0) {
 			var l : Int = chunks[i]&0x3fff;
 			var h : Int = chunks[i++]>>14;
-			var m : Int = xh*l+h*xl;
+			var m : Int = (xh*l) + (h*xl);
 			l = (xl*l) + ((m&0x3fff)<<14) + w.chunks[j] + c;
 			c = (l>>28) + (m>>14) + (xh*h);
-			w.chunks[j++] = l&0xfffffff;
+			w.chunks[j] = l&0xfffffff;
+			j++;
 		}
 		return c;
 #end
 	}
 
+#if neko
+	public function amNeko(i:Int32,x:Int32,w:BigInteger,j:Int32,c:Int32,n:Int32) : Int {
+		var biA : HndBI = mkBigInt(this);
+		var biW : HndBI;
+		if(w == this)
+			biW = biA;
+		else
+			biW = mkBigInt(w);
+		var args : Array<Int32> = [i,x,j,c,n];
+		var res : Int;
+
+		res = bi_am3(biA, biW, I32.mkNekoArray(args));
+		popFromHandle(biW, w);
+		return res;
+	}
+#end
 
 	//////////////////////////////////////////////////////////////
 	//                  Static variables                        //
@@ -1588,7 +1623,7 @@ class BigInteger {
 		return s;
 	}
 
-#if neko
+#if neko //&& NDLL_MATH)
 	static function mkBigInt(a:BigInteger) : HndBI {
 		return bi_create(DB, a.t, a.sign, I32.mkNekoArray31(a.chunks));
 	}
