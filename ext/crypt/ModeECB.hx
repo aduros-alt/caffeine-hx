@@ -28,18 +28,18 @@
 package crypt;
 
 class ModeECB implements IMode {
-	public var cipher(default,null)	: ISymetrical;
+	public var cipher(default,null)	: IBlockCipher;
 	public var padding				: IPad;
 
-	public function new(symcrypt: ISymetrical, ?padMethod : IPad) {
-		if(symcrypt == null)
+	public function new(bCipher: IBlockCipher, ?padMethod : IPad) {
+		if(bCipher == null)
 			throw "null crypt";
-		cipher = symcrypt;
+		cipher = bCipher;
 		if(padMethod == null)
-			padding = new PadPkcs5(symcrypt.blockSize);
+			padding = new PadPkcs5(bCipher.blockSize);
 		else
 			padding = padMethod;
-		padding.blockSize = symcrypt.blockSize;
+		padding.blockSize = bCipher.blockSize;
 	}
 
 	public function toString() {
@@ -49,33 +49,67 @@ class ModeECB implements IMode {
 	}
 
 	public function encrypt( s : String ) : String {
-		var buf = padding.pad(s);
-		var bsize = cipher.blockSize;
-		var numBlocks = Std.int(buf.length/bsize);
+		var buf : String;
+		var padBlocks : Bool = padding.isBlockPad();
+		var tsize = padding.textSize;
+		var bsize = padding.blockSize;
+		var numBlocks = padding.calcNumBlocks(s.length);
 		var offset : Int = 0;
+// trace(s);
+// trace(padBlocks);
+// trace(tsize);
+// trace(bsize);
+// trace(numBlocks);
 		var sb = new StringBuf();
+ 		if(!padBlocks)
+			buf = padding.pad(s);
 		for (i in 0...numBlocks) {
-			var rv = cipher.encryptBlock(buf.substr(offset, bsize));
-			offset += bsize;
-			sb.add(rv);
+			var rv : String;
+			if(padBlocks) {
+// trace(s.substr(offset, tsize));
+				rv = padding.pad(s.substr(offset, tsize));
+				offset += tsize;
+			}
+			else {
+				rv = buf.substr(offset, tsize);
+				offset += bsize;
+			}
+			//if(rv.length != bsize)
+			//	throw "padded length error";
+// trace(rv.length);
+trace(ByteStringTools.hexDump(rv, false));
+			var enc = cipher.encryptBlock(rv);
+trace(ByteStringTools.hexDump(enc,false));
+			if(enc.length != bsize)
+				throw("block encryption to wrong block size");
+			sb.add(enc);
+// trace(sb.toString().length);
 		}
+// trace(ByteStringTools.hexDump(sb.toString()));
+
 		return sb.toString();
 	}
 
 	public function decrypt( s : String ) : String {
-		var buf = s;
-		var bsize = cipher.blockSize;
-		if(buf.length % bsize != 0)
-			throw "Invalid buffer length";
-		var numBlocks = Std.int(buf.length/bsize);
+		var padBlocks : Bool = padding.isBlockPad();
+		var bsize = padding.blockSize;
+		if(s.length % bsize != 0)
+			throw "Invalid message length " + s.length;
+		var numBlocks = Std.int(s.length/bsize);
 		var offset : Int = 0;
 		var sb = new StringBuf();
 		for (i in 0...numBlocks) {
-			var rv = cipher.decryptBlock(buf.substr(offset, bsize));
+			var rv : String = cipher.decryptBlock(s.substr(offset, bsize));
+trace(ByteStringTools.hexDump(rv));
+			if(!padBlocks)
+				sb.add(rv);
+			else
+				sb.add(padding.unpad(rv));
 			offset += bsize;
-			sb.add(rv);
 		}
-		return padding.unpad(sb.toString());
+		if(!padBlocks)
+			return padding.unpad(sb.toString());
+		return sb.toString();
 	}
 
 	// These have no effect when using ECB mode.

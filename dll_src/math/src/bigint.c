@@ -45,16 +45,37 @@
 #define PRINT(n)
 #define DESTROY(n) destroy_biginteger(n)
 
-bi_settings *bi_get_settings(int db) {
-	bi_settings *rv = malloc(sizeof(bi_settings));
-	rv->DB = db;
-	rv->DM = ((1<<db)-1);
-	rv->DV = (1<<db);
-	rv->BI_FP = 52;
-	rv->FV = pow(2,52);
-	rv->F1 = 52 - db;
-	rv->F2 = 2 * db - 52;
-	return rv;
+#define DBITS	28
+
+static int DB;
+static int DM; // = ((1<<DB)-1);
+static int DV; // = (1<<DB);
+static int BI_FP; // = 52;
+static double FV; // = Math.pow(2,BI_FP);
+static int F1; // = BI_FP-DB;
+static int F2; // = 2*DB-BI_FP;
+
+static void bi_init() {
+	DB = DBITS;
+	DM = ((1<<DBITS)-1);
+	DV = (1<<DBITS);
+	BI_FP = 52;
+	FV = pow(2, BI_FP);
+	F1 = 52 - DBITS;
+	F2 = 2 * DBITS - 52;
+}
+
+
+static void dump_bi(int line, bigInteger * bi) {
+	int x, max;
+	max = val_array_size(bi->chunks);
+	printf("dll line %d: sign: %d t : %d [",line,  bi->sign, bi->t);
+	for(x=0; x<max; x++) {
+		if(x != 0)
+			printf(", ");
+		printf("%d", val_int(val_array_ptr(bi->chunks)[x]));
+	}
+	printf("]\n");
 }
 
 static int bi_nbits( int i ) {
@@ -94,125 +115,21 @@ static int am3(bigInteger *a, int i, int x, bigInteger *w, int j, int c, int n) 
 	return c;
 }
 
-#ifdef NEKO
 
-
-DEFINE_KIND(k_biginteger);
-#define val_biginteger(o) (bigInteger *)val_data(o)
-
-/**
-	Allocate n number of chunks. Any existing will be destroyed.
-	@param bi bigInteger structure
-	@param n # of chunks
-**/
-static void bip_alloc_chunks(bigInteger *bi, int n) {
-	ASSERT(bi != NULL);
-	if(n <= 0) {
-		printf("Trying to allocate %d chunks\n", n);
-		ASSERT(n>0);
-		return;
-	}
-	if(n >= max_array_size - 2) {
-		printf("Trying to allocate %d chunks\n", n);
-		ASSERT(n<max_array_size);
-		return;
-	}
-	bi->chunks = alloc_array(n);
-	int x;
-	for(x=0; x<n; x++) {
-		SET_CHUNK(bi,x,0);
-	}
-}
-
-/**
-	Reallocate to n number of chunks. Any existing will be
-	copied to new array. Will not reduce chunk count, only
-	increases.
-	@param bi bigInteger structure
-	@param n # of chunks
-**/
-static void bip_realloc_chunks(bigInteger *bi, int n) {
-	ASSERT(bi != NULL);
-	int x;
-	int max;
-
-	if(n >= max_array_size - 2) {
-		printf("Trying to allocate %d chunks\n", n);
-		ASSERT(n<max_array_size);
-		return;
-	}
-	if(bi->chunks == NULL) {
-		bip_alloc_chunks(bi, n);
-		return;
-	}
-	if(n <= (int)val_array_size(bi->chunks))
-		return;
-	value newarray = alloc_array(n);
-	max = (int)val_array_size(bi->chunks);
-	for(x=0; x < max; x++) {
-		val_array_ptr(newarray)[x] =
-			alloc_int(val_int(val_array_ptr(bi->chunks)[x]));
-	}
-	bi->chunks = newarray;
-}
-
-static void bip_clear(bigInteger *a) {
-	if(a->chunks == NULL)
-		bip_alloc_chunks(a, 1);
-	int max = (int)val_array_size(a->chunks);
-	int x;
-	for(x =0; x < max; x++) {
-		SET_CHUNK(a,x,0);
-	}
-	a->t = 0;
-}
-
-static void bip_clamp(bigInteger *a, int DM) {
+static void bi_clamp(bigInteger *a, int DM) {
 	int c = a->sign&DM;
-ASSERT(c == 0);
 	while(a->t > 0 && GET_CHUNK(a, a->t-1) == c) --a->t;
 }
 
-/**
-	Neko garbage collection for bigInteger struct.
-	@param bi bigInteger structure
-**/
-static void destroy_biginteger( value c ) {
-	bigInteger *bi;
-	if(!val_is_kind(c, k_biginteger))
-		return;
-	bi = val_biginteger(c);
-	bi->chunks = NULL;
-	free(bi);
-	val_kind(c) = NULL;
-}
 
 /////////////////////////////////////////////////////////
 //                  Neko Methods                       //
 /////////////////////////////////////////////////////////
 
-static void dump_bi(int line, bigInteger * bi) {
-	int x, max;
-	max = val_array_size(bi->chunks);
-	printf("dll line %d: sign: %d t : %d [",line,  bi->sign, bi->t);
-	for(x=0; x<max; x++) {
-		if(x != 0)
-			printf(", ");
-		printf("%d", val_int(val_array_ptr(bi->chunks)[x]));
-	}
-	printf("]\n");
-}
 
-static void dump_BI(int line, value BI) {
-	dump_bi(line, val_biginteger(BI));
-}
 
-static value bi_free(value BI) {
-	destroy_biginteger(BI);
-	return val_true;
-}
 
-static value bi_create(value DB, value T, value SIGN, value CHUNKS)
+static value bi_create(int t, int sign, value CHUNKS)
 {
 	int x = 0;
 	bigInteger *bi = malloc(sizeof(bigInteger));
@@ -237,13 +154,13 @@ static value bi_create(value DB, value T, value SIGN, value CHUNKS)
 	return v;
 }
 
-static value bi_zero(value DB) {
+static value bi_zero() {
 	value chunks = alloc_array(1);
 	val_array_ptr(chunks)[0] = alloc_int(0);
 	return bi_create(DB, alloc_int(1), alloc_int(0), chunks);
 }
 
-static value bi_one(value DB) {
+static value bi_one() {
 	value chunks = alloc_array(1);
 	val_array_ptr(chunks)[0] = alloc_int(1);
 	return bi_create(DB, alloc_int(1), alloc_int(0), chunks);
@@ -279,14 +196,16 @@ static value bi_am3(value A, value W, value args) {
 		return NULL;
 	int res = am3(
 		val_biginteger(A),
-		val_int(val_array_ptr(args)[0]),
-		val_int(val_array_ptr(args)[1]),
+		val_int32(val_array_ptr(args)[0]),
+		val_int32(val_array_ptr(args)[1]),
 		val_biginteger(W),
-		val_int(val_array_ptr(args)[2]),
-		val_int(val_array_ptr(args)[3]),
-		val_int(val_array_ptr(args)[4]));
+		val_int32(val_array_ptr(args)[2]),
+		val_int32(val_array_ptr(args)[3]),
+		val_int32(val_array_ptr(args)[4]));
 
 	bigInteger *w = val_biginteger(W);
+	if(need_32_bits(res))
+		failure("32 bits needed");
 	return alloc_int(res);
 }
 
@@ -729,26 +648,4 @@ static value bi_shr_to(value A, value N, value R) {
 	return val_true;
 }
 
-DEFINE_PRIM(bi_free,1);
-DEFINE_PRIM(bi_create,4);
-DEFINE_PRIM(bi_zero,1);
-DEFINE_PRIM(bi_one,1);
-DEFINE_PRIM(bi_to_array,1);
-DEFINE_PRIM(bi_am3,3);
-DEFINE_PRIM(bi_divide,2);
-DEFINE_PRIM(bi_subtract,2);
-DEFINE_PRIM(bi_subtract_to,3);
-DEFINE_PRIM(bi_dl_shift, 2);
-DEFINE_PRIM(bi_dr_shift, 2);
-DEFINE_PRIM(bi_compare, 2);
-DEFINE_PRIM(bi_abs,1);
-DEFINE_PRIM(bi_negate,1);
-DEFINE_PRIM(bi_clone,1);
-DEFINE_PRIM(bi_copy_to,2);
-DEFINE_PRIM(bi_shl,2);
-DEFINE_PRIM(bi_shr,2);
-DEFINE_PRIM(bi_shl_to,3);
-DEFINE_PRIM(bi_shr_to,3);
 
-
-#endif

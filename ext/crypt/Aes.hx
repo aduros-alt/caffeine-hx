@@ -38,12 +38,12 @@ typedef Keycontext = {
 };
 #end
 
-class Aes implements ISymetrical {
+class Aes implements IBlockCipher {
 	public static var AES_BLOCK_SIZE : Int = 16;
 
 	public var keylen(default,setKeylen) : Int;
 	public var passphrase(default,setPassphrase) : String;
-	public var blockSize(default,null) : Int;
+	public var blockSize(getBlockSize,null) : Int;
 	//TODO: neko needs to respect this flag
 	var initialized : Bool;
 	var encKey : Keycontext;
@@ -75,6 +75,10 @@ class Aes implements ISymetrical {
 		if(initialized)
 			initKeys();
 		return s;
+	}
+
+	function getBlockSize() : Int {
+		return this.blockSize;
 	}
 
 	function initKeys() {

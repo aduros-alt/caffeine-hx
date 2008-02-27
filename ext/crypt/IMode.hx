@@ -29,7 +29,7 @@ package crypt;
 
 interface IMode {
 	//var blockSize : Int;
-	var cipher(default, null) : ISymetrical;
+	var cipher(default, null) : IBlockCipher;
 	var padding : IPad;
 
 	function encrypt( s : String ) : String;

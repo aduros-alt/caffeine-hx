@@ -45,18 +45,26 @@ class RSA extends RSAEncrypt {
 	public var dmq1 : BigInteger;
 	public var coeff: BigInteger;
 
-	public function new() {
-		super();
-		this.d = null;
+	public function new(?N:String,?E:String,?D:String) {
+		super(null,null);
+		this.d = null; // private exponent
 		this.p = null;
 		this.q = null;
 		this.dmp1 = null;
 		this.dmq1 = null;
 		this.coeff = null;
+		if(N != null)
+			setPrivate(N,E,D);
 	}
 
 	/**
-		Generate a new random private key B bits long, using public expt E
+		Generate a new random private key B bits long, using public expt E.
+		Generating keys over 512 bits in neko, or 256 bit on other platforms
+		is just not practical. If you need large keys, generate them with
+		openssl and load them into RSA.<br />
+		<b>openssl genrsa -des3 -out user.key 1024</b><br />
+		will generate a 1024 bit key, which can be displayed with<br />
+		<b>openssl rsa -in user.key -noout -text</b>
 	*/
 	public static function generate(B:Int, E:String) : RSA {
 		var rng = new math.prng.Random();
@@ -100,20 +108,21 @@ class RSA extends RSAEncrypt {
 	}
 
 	/**
-		Set the private key fields N, e, and d from hex strings.
+		Set the private key fields N (modulus), E (public exponent)
+		and D (private exponent) from hex strings.
 		Throws exception if inputs are invalid.
 	**/
 	public function setPrivate(N:String,E:String,D:String) : Void {
 		super.setPublic(N, E);
 		if(D != null && D.length > 0) {
-			this.d = parseBigInt(D,16);
+			this.d = parseBigInt(cleanFormat(D),16);
 		}
 		else
 			throw("Invalid RSA private key");
 	}
 
 	/**
-		Set the private key fields N, e, d and CRT params from
+		Set the private key fields N, E, D and CRT params from
 		hex strings. Throws exception if any input is invalid
 	**/
 	public function setPrivateEx(
@@ -124,11 +133,11 @@ class RSA extends RSAEncrypt {
 		if(P != null && Q != null && DP != null && DQ != null && C != null &&
 			P.length > 0 && Q.length > 0 && DP.length > 0 && DQ.length > 0 && C.length > 0)
 		{
-			this.p = parseBigInt(P,16);
-			this.q = parseBigInt(Q,16);
-			this.dmp1 = parseBigInt(DP,16);
-			this.dmq1 = parseBigInt(DQ,16);
-			this.coeff = parseBigInt(C,16);
+			this.p = parseBigInt(cleanFormat(P),16);
+			this.q = parseBigInt(cleanFormat(Q),16);
+			this.dmp1 = parseBigInt(cleanFormat(DP),16);
+			this.dmq1 = parseBigInt(cleanFormat(DQ),16);
+			this.coeff = parseBigInt(cleanFormat(C),16);
 		}
 		else
 			throw("Invalid RSA private key ex");
@@ -149,6 +158,21 @@ class RSA extends RSAEncrypt {
 		return pkcs1unpad2(m, (n.bitLength()+7)>>3);
 	}
 
+	override public function decryptBlock( enc : String ) : String {
+		var c = parseBigInt(enc, 256);
+		var m = doPrivate(c);
+		if(m == null) {
+			throw "doPrivate error";
+			return null;
+		}
+		// the encrypted block is a BigInteger, so any leading
+		// 0's will have been truncated. Push them back in.
+		var ba = m.toByteArray();
+		while(ba.length < blockSize)
+			ba.unshift(0);
+		return ByteString.ofIntArray(ba).toString();
+	}
+
 	//////////////////////////////////////////////////
 	//               Private                        //
 	//////////////////////////////////////////////////
@@ -156,6 +180,8 @@ class RSA extends RSAEncrypt {
 		Perform raw private operation on "x": return x^d (mod n)
 	**/
 	function doPrivate( x:BigInteger ) : BigInteger {
+trace(this.d);
+trace(this.n);
 		if(this.p == null || this.q == null)
 			return x.modPow(this.d, this.n);
 

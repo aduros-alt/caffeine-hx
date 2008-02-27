@@ -28,10 +28,22 @@
 package crypt;
 
 interface IPad {
-	var blockSize : Int;
+	/** finished padded block size **/
+	var blockSize(default,setBlockSize) : Int;
+	/** text that can fit into each block **/
+	var textSize(default,null) : Int;
 
 	function pad( s : String ) : String;
 
 	function unpad( s : String ) : String;
+
+	/** pads by block? **/
+	function isBlockPad() : Bool;
+
+	/** returns the number of blocks for message length len **/
+	function calcNumBlocks(len : Int) : Int;
+
+	/** number of bytes padding needs per block **/
+	function blockOverhead() : Int;
 
 }

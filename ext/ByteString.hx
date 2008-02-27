@@ -183,6 +183,13 @@ class ByteString {
 	}
 
 	/**
+		Returns a copy of the internal int array buffer.
+	**/
+	public function toArray() : Array<Int>
+	{
+		return _buf.copy();
+	}
+	/**
 		Add a byte to the beginning of the buffer.
 	**/
 	public function unshift(v : Int ) : Void {
@@ -199,5 +206,20 @@ class ByteString {
 		}
 		return b;
 	}
+
+/*
+	public static function ofHexString(s : String) : ByteString {
+		if(s.length % 2 != 0)
+			throw "string length must be multiple of 2";
+		var b = new ByteString();
+		for(x in 0...Std.int(s.length/2)) {
+			var ch = s.substr(x * 2, 2).toLowerCase();
+			b._buf[x] = StringTools.baseDecode(ch, Constants.DIGITS_HEXL);
+			if(b._buf[x] > 0xff)
+				throw "error";
+		}
+		return b;
+	}
+*/
 }
 

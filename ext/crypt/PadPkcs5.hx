@@ -28,16 +28,19 @@
 package crypt;
 
 class PadPkcs5 implements IPad {
-	public var blockSize : Int;
+	public var blockSize(default,setBlockSize) : Int;
+	public var textSize(default,null) : Int;
 
-	public function new( blockSize : Int ) {
-		this.blockSize = blockSize;
+	public function new( blockLen : Int ) {
+		setBlockSize(blockLen);
 	}
 
 	public function pad( s : String ) : String {
 		var sb = new StringBuf();
 		sb.add ( s );
 		var chr : Int = blockSize - (s.length % blockSize);
+		if(s.length == blockSize)
+			chr = blockSize;
 		for( i in 0...chr) {
 			sb.addChar( chr );
 		}
@@ -60,4 +63,22 @@ class PadPkcs5 implements IPad {
 		return s.substr(0, s.length - c);
 	}
 
+	function setBlockSize(len : Int) : Int {
+		blockSize = len;
+		textSize = len;
+		return len;
+	}
+
+	public function calcNumBlocks(len : Int) : Int {
+		var n : Int = Math.ceil(len/blockSize);
+		if(len % blockSize == 0)
+			n++;
+		return n;
+	}
+
+	/** pads by block? **/
+	public function isBlockPad() : Bool { return false; }
+
+	/** number of bytes padding needs per block **/
+	public function blockOverhead() : Int { return 0; }
 }

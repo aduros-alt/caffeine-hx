@@ -28,8 +28,8 @@
 package crypt;
 
 class ModeCBC extends IV, implements IMode {
-	public function new(symcrypt: ISymetrical, ?pad : IPad) {
-		super(symcrypt, pad);
+	public function new(bCipher: IBlockCipher, ?pad : IPad) {
+		super(bCipher, pad);
 	}
 
 	public function toString() {

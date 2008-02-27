@@ -39,23 +39,29 @@ import math.prng.Random;
 	RSAEncrypt encrypts using a provided public key. If decryption is
 	required, use the derived class RSADecrypt which can encypt and decrypt.
 **/
-class RSAEncrypt {
+class RSAEncrypt implements IBlockCipher {
 	// public key
-	public var n : BigInteger;	// modulus
-	public var e : Int;			// exponent. <2^31
+	/** modulus **/
+	public var n : BigInteger;
+	/** exponent. <2^31 **/
+	public var e : Int;
+	public var blockSize(getBlockSize,null) : Int;
 
-	public function new() {
+	public function new(?N:String,?E:String) {
 		this.n = null;
 		this.e = 0;
+		if(N != null)
+			setPublic(N, E);
 	}
 
 	/**
-		Set the public key fields N and e from hex strings
+		Set the public key fields N (modulus) and E (public exponent)
+		from hex strings.
 	**/
 	public function setPublic(N : String, E:String) : Void {
 		if(N != null && E != null && N.length > 0 && E.length > 0) {
-			this.n = parseBigInt(N,16);
-			this.e = Std.parseInt("0x" + E);
+			this.n = parseBigInt(cleanFormat(N),16);
+			this.e = Std.parseInt("0x" + cleanFormat(E));
 		}
 		else
 			throw("Invalid RSA public key");
@@ -67,17 +73,79 @@ class RSAEncrypt {
 		TODO: Return Binary string, not text. Use padding etc...
 	**/
 	public function encrypt( text : String ) : String {
-		var m = pkcs1pad2(text,(n.bitLength()+7)>>3);
-		if(m == null) return null;
-		var c = doPublic(m);
-		if(c == null) return null;
-		var h = c.toRadix(16);
-		if((h.length & 1) == 0) return h; else return "0" + h;
+		return doEncrypt(text, doPublic, 0x02);
 	}
+
+	public function encryptBlock( block : String ) : String {
+		var bsize : Int = blockSize;
+		if(block.length != bsize)
+			throw("bad block size");
+
+		var biv = BigInteger.nbi();
+		biv.fromString(block, 256);
+trace("BI of Block: " + biv.toRadix(16));
+trace("e: " + StringTools.hex(e));
+trace("n: " + n.toRadix(16));
+var biRes = doPublic(biv);
+trace("result: " + biRes.toRadix(16));
+		var ba = doPublic(biv).toByteArray();
+
+		while(ba.length > bsize) {
+			if(ba[0] == 0)
+				ba.shift();
+			else {
+				trace(ByteStringTools.hexDump(ByteString.ofIntArray(ba).toString()));
+				throw("encoded length was "+ba.length);
+			}
+		}
+		while(ba.length < bsize)
+			ba.unshift(0); // = Std.chr(0) + buf;
+
+		var rv = ByteString.ofIntArray(ba).toString();
+		trace(ByteStringTools.hexDump(rv));
+		return rv;
+	}
+
+	public function decryptBlock( enc : String ) : String {
+		throw("Not a private key");
+		return "";
+	}
+/*
+	http://www.imc.org/ietf-openpgp/mail-archive/msg14307.html
+	public function verify( text : String ) : String {
+		return doDecrypt(text, doPublic, 0x01);
+	}
+*/
 
 	//////////////////////////////////////////////////
 	//               Private                        //
 	//////////////////////////////////////////////////
+
+	function doEncrypt(src:String, f : BigInteger->BigInteger, padType : Int)
+	{
+trace(src);
+trace(src.length);
+		var bs = blockSize;
+		var ts : Int = bs - 11;
+trace("Blocksize : "+bs);
+		var idx : Int = 0;
+		var msg = new StringBuf();
+		while(idx < src.length) {
+			var m = pkcs1pad2(src.substr(idx,ts), bs);
+trace(m.bitCount());
+			if(m == null) return null;
+			var c = f(m);
+//trace(c.chunks);
+			if(c == null) return null;
+			var h = c.toRadix(16);
+trace(h.length);
+			msg.add(if((h.length & 1) == 0) h; else "0" + h);
+			idx += ts;
+		}
+trace(msg.toString().length);
+		return msg.toString();
+	}
+
 	// Perform raw public operation on "x": return x^e (mod n)
 	function doPublic(x : BigInteger) : BigInteger {
 		return x.modPowInt(this.e, this.n);
@@ -110,30 +178,58 @@ class RSAEncrypt {
 		ba[--n] = 2;
 		ba[--n] = 0;
 trace(ba);
+trace(ba.length);
 		var bv = BigInteger.nbi();
 		bv.fromByteArray(ba,0,ba.length);
 trace(bv.toByteArray());
+trace(bv.toByteArray().length);
 		return bv;
 	}
 
 	//////////////////////////////////////////////////
-	//             Convenience                      //
+	//             getters/setters                  //
+	//////////////////////////////////////////////////
+	function getBlockSize() : Int {
+		if(n == null)
+			return 0;
+		return (n.bitLength()+7)>>3;
+	}
+
+	//////////////////////////////////////////////////
+	//               Convenience                    //
 	//////////////////////////////////////////////////
 	// convert a (hex) string to a bignum object
-	function parseBigInt(str:String, r : Int) {
-		return BigInteger.ofString(str,r);
+	function parseBigInt(str:String, r : Int) : BigInteger {
+		var bi = BigInteger.nbi();
+		bi.fromString(str,r);
+		return bi;
 	}
-/*
-	function linebrk(s:String, n : Int) {
-		var ret = "";
-		var i = 0;
-		while(i + n < s.length) {
-			ret += s.substr(i,i+n) + "\n";
-			i += n;
+
+	/**
+		Cleans out all carriage returns and colons
+		from input hex strings
+	**/
+	function cleanFormat(s : String) : String {
+#if (neko || flash9 || js)
+		var e = StringTools.replace(s, ":", "");
+
+		var ereg : EReg = ~/([\s]*)/g;
+		e = ereg.replace(e, "");
+#else true
+		var e = s;
+		var ol : Int = 0;
+		var nl : Int = s.length;
+		while(nl != ol) {
+			ol = nl;
+			e = StringTools.replace(e, "\r", "");
+			e = StringTools.replace(e, "\n", "");
+			e = StringTools.replace(e, "\t", "");
+			e = StringTools.replace(e, " ", "");
+			nl = e.length;
 		}
-		return ret + s.substr(i,s.length);
+#end
+		return e;
 	}
-*/
 
 }
 

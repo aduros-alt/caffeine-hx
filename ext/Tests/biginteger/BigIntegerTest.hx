@@ -1,4 +1,5 @@
 import math.BigInteger;
+import crypt.RSAEncrypt;
 
 class Functions extends haxe.unit.TestCase {
 
@@ -138,6 +139,7 @@ class Functions extends haxe.unit.TestCase {
 
 	}
 
+
 	public function testSubOne() {
 		var i = BigInteger.nbv(1000000000);
 		var b = i.sub(BigInteger.ONE);
@@ -159,6 +161,62 @@ class Functions extends haxe.unit.TestCase {
 	public function testIntValue() {
 		var i = BigInteger.ofString("3FFFFFFF", 16);
 		assertEquals(0x3fffffff, i.toInt());
+	}
+
+	public function testRsaValues() {
+		var bufh = "1ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff007768617420697320746865726520666f7220796f7520746f20646f3f0a";
+		var nh = "00bdb119666ebeeb1ffb9c6a304b4fb3eb0561d937d497582ca355b7a307e011cd8188c44227a266b29494bc81ae8cf81893dba4cedd4a87e472f5fc2f93aaf107b898188af926bf20644f8d33cd54afa83f59c3eed8bd1632a9277e3329aeb460d8272b66f5c7740535411e66df536a29c0f6602e9a32f93b22a34aa7bc9cd2f7";
+		var eh = "10001";
+		var dh = "3766f339349d3444fa12dbfcd0f22d65360437121458439b7df4fa1676a55dedbca87a51ac0bc59ce0c27430180ffa220b853a246503709f2b6866c86a83a1b39371d3dbc8f9de9d3acab256d1cb1948a3422af77457fca29b509aa90f95b09f0f9017f2c6684c191d27f8e2ee7e50271575dd744f8abe57c26e69b87cde8341";
+
+		// decimal
+		var bufd="5486124068793688683255936251187209270074392635932332070112001988456197381759672947165175699536362793613284725337872111744958183862744647903224103718245670299614498700710006264535590197791934024641512541262359795191593953928908168988529130661834890119808421928375322532610062173667761649741182297885851402";
+		var ns ="133206107616895911276282727458046455337534161820979721604463773929767597935110313612434319656737520333563650320168048948419157669249224322246963682268636718066281017378115140153780820244916784506341314670358249484991778427045142432656380287775830843493866516086622740226068785889970179364509001398348947444471";
+		var es ="65537";
+		var ds ="38904711932114754073871670755061525575106297075169337187101043636261678015105154536454297763852676758239495716592712893810993743184756744314343528728870332441157167932063579798572669191654345408121447731582483604244177916892485661185682880305905225746393455753230438758165141419790363062170096731044844569409";
+
+
+
+		var biPriv = BigInteger.ofString(dh, 16);
+		assertEquals(ds, biPriv.toString());
+		var biPriv2 = BigInteger.nbi();
+		biPriv2.fromString(dh, 16);
+		assertEquals(ds, biPriv2.toString());
+
+		var rsa = new RSAEncrypt(nh, eh);
+		assertEquals(ns, rsa.n.toString());
+
+
+		var biBuf = BigInteger.ofString(bufh,16);
+		var biExp = BigInteger.ofString(eh, 16);
+		var biMod = BigInteger.ofString(nh, 16);
+
+		assertEquals(bufd, biBuf.toString());
+		assertEquals(es, biExp.toString());
+		assertEquals(ns, biMod.toString());
+
+		// Verified
+// 		 trace(biBuf.mul(biMod));
+// 		 trace(biBuf.mod(biMod));
+// 		 trace(biBuf.mul(biBuf));
+// 		 trace(biBuf.div(biExp));
+
+		var target="b2ffd8b2cabdce4c08b6aa358d27f3f8652ffbe0ffb5824bd0c598da85d53f9cf30dd5cd5fb537b3ccfc4499a5abdfd2ef0ad3c135fb4557073543bb90026bf6f848998e48dd1ea24ae6026cffd96c3558791d431fb0fa1557333478b43e08aef8afca3f708e4840c82555c64c00076ed0f4d0f135965ebd150ada191afd8b0d";
+
+		var res = biBuf.modPowInt(65537, biMod);
+		assertEquals(target, res.toRadix(16));
+// 		trace("");
+// 		for(x in 0...100) {
+
+//#if neko
+// 			neko.Lib.print(".");
+//#end
+// 			biBuf = BigInteger.ofString(bufh,16);
+// 			biMod = BigInteger.ofString(nh, 16);
+// 			biExp = BigInteger.ofString(eh, 16);
+// 		}
+//trace(res.toRadix(16));
+
 	}
 
 }

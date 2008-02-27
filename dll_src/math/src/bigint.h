@@ -24,7 +24,6 @@ bi_settings *bi_get_settings(int db);
 #include <neko/neko.h>
 
 typedef struct {
-	int DB; // significant bits
 	int t;  // significant chunks
 	int sign;
 	value chunks;

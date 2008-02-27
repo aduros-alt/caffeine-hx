@@ -34,13 +34,13 @@ enum XXTeaKey {
 }
 #end
 
-class Tea implements ISymetrical {
+class Tea implements IBlockCipher {
 #if neko
 	var k : XXTeaKey;
 #else true
 	var k : Array<Int>; // 16 bytes of key material
 #end
-	public var blockSize(default,setBlocksize) : Int;
+	public var blockSize(getBlockSize,null) : Int;
 
 	public function new(key : String) {
 #if !neko
@@ -58,6 +58,10 @@ class Tea implements ISymetrical {
 
 	public function toString() : String {
 		return "xxtea";
+	}
+
+	function getBlockSize() : Int {
+		return this.blockSize;
 	}
 
 	public function setBlocksize( i : Int ) : Int {

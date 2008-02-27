@@ -45,7 +45,7 @@ class IV {
 		changes.
 	**/
 	public var iv(getIV, setNextIV) 	: String;
-	public var cipher(default,null) 	: ISymetrical;
+	public var cipher(default,null) 	: IBlockCipher;
 	public var padding				 	: IPad;
 	var prepend 	: Bool;
 	var startIV		: String;
@@ -54,15 +54,15 @@ class IV {
 	var nextValue	: StringBuf;
 	var state		: IvState;
 
-	public function new(symcrypt: ISymetrical, ?padMethod : IPad) {
-		if(symcrypt == null)
+	public function new(bCipher: IBlockCipher, ?padMethod : IPad) {
+		if(bCipher == null)
 			throw "crypt.iv: null crypt";
-		cipher = symcrypt;
+		cipher = bCipher;
 		if(padMethod == null)
 			padding = new PadPkcs5(cipher.blockSize);
 		else
 			padding = padMethod;
-		padding.blockSize = symcrypt.blockSize;
+		padding.blockSize = bCipher.blockSize;
 		prepend = true;
 		state = IV_UNINIT;
 	}
