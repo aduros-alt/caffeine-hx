@@ -1,43 +1,56 @@
 import math.BigInteger;
 import crypt.RSAEncrypt;
 
-class Functions extends haxe.unit.TestCase {
-
-	public static function decVal(i:BigInteger) {
-		return i.toRadix(10);
+class DecimalConversion extends haxe.unit.TestCase {
+	function test01() {
+		var one = BigInteger.ONE;
+		assertEquals(true, true);
 	}
 
-	public static function hexVal(i:BigInteger) {
-		return i.toRadix(16);
+	function test02() {
+		var one = BigInteger.ONE;
+		assertEquals("1", one.toRadix(10));
 	}
 
-	public function test0() {
-		var i = BigInteger.ONE.add(BigInteger.ofInt(9));
-		var b = BigInteger.nbi();
-		//trace("fromString>>");
-		b.fromString("10",10);
-		assertEquals(10, b.chunks[0]);
-		//trace("toRadix>>");
-		//i.eq(b);
-		b.toRadix(10);
-		//trace(b.chunks);
-		//trace("toString>>");
-		assertEquals("10",b.toString());
+	function test03() {
+		var b = BigInteger.ofString("10",10);
+		assertEquals("10", b.toRadix(10));
 	}
 
-	public function test1() {
-		var i = BigInteger.ONE.add(BigInteger.ofInt(9));
-		//trace(i.chunks);
-		var b = BigInteger.nbi();
-		b.fromString("10",10);
-		//trace(b.chunks);
-		assertEquals(true, i.eq(b));
-		assertEquals("10",decVal(b));
+	function test04() {
+		var b = BigInteger.ofInt(78);
+		assertEquals("78", b.toRadix(10));
 	}
 
-// 		Lest shifts one diplaying binary up to 60 lsh.
-// 		Right shifts back tracing Hexadecimal
-	public function testRshLsh() {
+	function test05() {
+		var b = BigInteger.ofInt(-45);
+#if !neko
+		assertEquals(-1, b.sign);
+#end
+		assertEquals("-45", b.toRadix(10));
+	}
+
+	function test06() {
+		var b = BigInteger.ofInt(-2358);
+		b.fromInt(-1);
+		assertEquals("-1", b.toRadix(10));
+	}
+}
+
+class Shifts extends haxe.unit.TestCase {
+	public function test03_Lsh36ToRadix() {
+		var i = BigInteger.ONE;
+		i = i.shl(36);
+		assertEquals("1000000000", i.toRadix(16)); // 68,719,476,736
+		//trace(i.toRadix(16));
+		//trace(i.toRadix(2));
+		//trace(i.toRadix(10));
+		assertEquals(true, true);
+	}
+
+	// 		Lest shifts one diplaying binary up to 60 lsh.
+	// 		Right shifts back tracing Hexadecimal
+	public function test05_RshLsh() {
 		var i = BigInteger.ONE;
 		//trace(i.toRadix(2));
 		for(x in 0...60) {
@@ -54,7 +67,7 @@ class Functions extends haxe.unit.TestCase {
 		assertEquals(true,i.eq(BigInteger.ONE));
 	}
 
-	public function testDlRshLsh() {
+	public function test06_DlRshLsh() {
 		var i = BigInteger.ONE;
 		//trace(i.toRadix(2));
 		for(x in 0...60) {
@@ -67,43 +80,81 @@ class Functions extends haxe.unit.TestCase {
 		}
 		assertEquals(true,i.eq(BigInteger.ONE));
 	}
+}
 
-	public function testLsh36ToRadix() {
-		var i = BigInteger.ONE;
-		i = i.shl(36);
-		assertEquals("1000000000", i.toRadix(16)); // 68,719,476,736
-		//trace(i.toRadix(16));
-		//trace(i.toRadix(2));
-		//trace(i.toRadix(10));
-		assertEquals(true, true);
+class MathFuncs extends haxe.unit.TestCase {
+	function test01() {
+		var n = BigInteger.ofInt(-61);
+		assertEquals(61, n.abs().toInt());
 	}
 
-	public function testAbs() {
-		var n = BigInteger.ofInt(45);
-		//assertEquals("-2d", n.toRadix(16));
-		assertEquals("2d", n.toRadix(16));
+	function test02() {
+		var n = BigInteger.ofInt(46);
+		//assertEquals("-2e", n.toRadix(16));
+		assertEquals("2e", n.toRadix(16));
 		n = n.shl(32);
 		assertEquals(n.toRadix(16), n.abs().toRadix(16));
 	}
+}
 
-	public function testSub() {
+class Functions extends haxe.unit.TestCase {
+
+	public static function decVal(i:BigInteger) {
+		return i.toRadix(10);
+	}
+
+	public static function hexVal(i:BigInteger) {
+		return i.toRadix(16);
+	}
+
+	public function test00() {
+		var i = BigInteger.ONE.add(BigInteger.ofInt(9));
+		var b = BigInteger.nbi();
+		//trace("fromString>>");
+		b.fromString("10",10);
+#if !neko
+		assertEquals(10, b.chunks[0]);
+#end
+		//trace("toRadix>>");
+		//i.eq(b);
+		b.toRadix(10);
+		//trace(b.chunks);
+		//trace("toString>>");
+		assertEquals("10",b.toString());
+	}
+
+	public function test01() {
+		var i = BigInteger.ONE.add(BigInteger.ofInt(9));
+		//trace(i.chunks);
+		var b = BigInteger.nbi();
+		b.fromString("10",10);
+		//trace(b.chunks);
+		assertEquals(true, i.eq(b));
+		assertEquals("10",decVal(b));
+	}
+
+
+
+	public function test02_Sub() {
 		var n = BigInteger.ofInt(10000);
 		n = n.sub(BigInteger.ofInt(1000));
+#if !neko
 		assertEquals(n.chunks[0], 9000);
+#end
 		for(x in 0...9) {
 			n = n.sub(BigInteger.ofInt(1000));
 		}
 		assertEquals("0", n.toRadix(16));
 	}
 
-	public function testSquare() {
+	public function test03_Square() {
 		var n = BigInteger.ofInt(5);
 		var i = BigInteger.ONE;
 		n.squareTo(i);
 		assertEquals("19", i.toRadix(16));
 	}
 
-	public function testZDiv1() {
+	public function test04_ZDiv1() {
 		var i = BigInteger.ofInt(2000);
 		var m = BigInteger.ofInt(4);
 		var q = BigInteger.nbi();
@@ -115,7 +166,7 @@ class Functions extends haxe.unit.TestCase {
 		assertEquals("500",decVal(rv));
 	}
 
-	public function testZDiv2() {
+	public function test05_ZDiv2() {
 		var i = BigInteger.nbi();
 		i.fromString("FFFFFFF0", 16);
 		var m = BigInteger.ofInt(80);
@@ -125,7 +176,7 @@ class Functions extends haxe.unit.TestCase {
 		assertEquals("3333333", rv.toRadix(16));
 	}
 
-	public function testZDivRemTo2() {
+	public function test06_ZDivRemTo2() {
 		var i = BigInteger.ofInt(65);
 		var m = BigInteger.ofInt(4);
 		var q = BigInteger.nbi();
@@ -140,7 +191,7 @@ class Functions extends haxe.unit.TestCase {
 	}
 
 
-	public function testSubOne() {
+	public function test07_SubOne() {
 		var i = BigInteger.nbv(1000000000);
 		var b = i.sub(BigInteger.ONE);
 		assertEquals("3b9ac9ff", b.toRadix(16));
@@ -149,7 +200,7 @@ class Functions extends haxe.unit.TestCase {
 		);
 	}
 
-	public function testTwo() {
+	public function test08_Two() {
 		var i = BigInteger.nbi();
 		i.fromString("10000000000",10); // 10 tril 34 bit
 		//trace(here.lineNumber);
@@ -158,12 +209,12 @@ class Functions extends haxe.unit.TestCase {
 		assertEquals(true,true);
 	}
 
-	public function testIntValue() {
+	public function test09_IntValue() {
 		var i = BigInteger.ofString("3FFFFFFF", 16);
 		assertEquals(0x3fffffff, i.toInt());
 	}
 
-	public function testRsaValues() {
+	public function test10_RsaValues() {
 		var bufh = "1ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff007768617420697320746865726520666f7220796f7520746f20646f3f0a";
 		var nh = "00bdb119666ebeeb1ffb9c6a304b4fb3eb0561d937d497582ca355b7a307e011cd8188c44227a266b29494bc81ae8cf81893dba4cedd4a87e472f5fc2f93aaf107b898188af926bf20644f8d33cd54afa83f59c3eed8bd1632a9277e3329aeb460d8272b66f5c7740535411e66df536a29c0f6602e9a32f93b22a34aa7bc9cd2f7";
 		var eh = "10001";
@@ -218,7 +269,6 @@ class Functions extends haxe.unit.TestCase {
 //trace(res.toRadix(16));
 
 	}
-
 }
 
 
@@ -242,6 +292,9 @@ class BigIntegerTest {
 		trace(b.chunks);
 */
 		var r = new haxe.unit.TestRunner();
+		r.add(new DecimalConversion());
+		r.add(new Shifts());
+		r.add(new MathFuncs());
 		r.add(new Functions());
 		r.run();
 	}
