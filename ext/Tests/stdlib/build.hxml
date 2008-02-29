@@ -1,0 +1,27 @@
+-cp ../../
+-js test.js
+-main MiscTest
+
+--next
+
+-cp ../../
+-neko test.n
+-main MiscTest
+
+--next
+
+-cp ../../
+-main MiscTest
+-swf-version 8
+-swf test8.swf
+-debug
+
+--next
+
+-cp ../../
+-main MiscTest
+-swf-version 9
+-swf test9.swf
+-debug
+
+
