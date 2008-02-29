@@ -79,7 +79,7 @@ class Std {
 		return (x !== 0 && x != null && x !== false);
 	}
 
-//BEGINPR/rw01/2008-02-28/Russell Weir/Changed docs and base handling for flash 8,9 and neko. This is to make parseInt actually work the same on all 3 platforms.
+//BEGINPR/rw01/2008-02-28//Russell Weir/Changed docs and base handling for flash 8,9 and neko. This is to make parseInt actually work the same on all 3 platforms.
 	/**
 		Convert a String to an Int, parsing different possible representations.
 		Strings beginning with 0x will be interpreted as hex, those starting with
