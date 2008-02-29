@@ -33,6 +33,7 @@ package math.reduction;
 
 import math.BigInteger;
 
+#if !neko
 /**
 	Modular reduction using "classic" algorithm
 **/
@@ -59,3 +60,4 @@ class Classic implements math.reduction.ModularReduction {
 
 
 }
+#end

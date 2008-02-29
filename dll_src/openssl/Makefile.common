@@ -1,0 +1,44 @@
+PROJECT:=openssl
+NDLL:=ndll/$(ARCH)/$(PROJECT).ndll
+
+HXTEST:=hashtest.n
+
+# for ndll
+SRC_PATHS:=src
+SRC_ARCH:=$(foreach PATH,$(ARCH_PATHS), $(wildcard $(PATH)/*.c))
+SRCS:=$(foreach PATH,$(SRC_PATHS), $(wildcard $(PATH)/*.c)) $(SRC_ARCH)
+HEADERS:=$(foreach PATH,$(SRC_PATHS), $(wildcard $(PATH)/*.h)) $(SRC_ARCH)
+
+HX_PATHS:=neko/net test
+HX_SRCS:=$(foreach PATH,$(HX_PATHS), $(wildcard $(PATH)/*.hx))
+
+$(NDLL): $(SRCS) $(HEADERS)
+	@echo path: $(SRC_PATHS)
+	@echo srcs: $(SRCS), headers: $(HEADERS)
+	$(CC) -DNEKO $(NEKO_FLAGS) $(LOCAL_FLAGS) -o $@ $(SRCS)
+	$(STRIP) --strip-unneeded $@
+
+$(LUADLL): $(SRCS) $(HEADERS)
+	$(CC) -DLUA $(LUA_FLAGS) $(LOCAL_FLAGS) -o $@ $(SRCS)
+
+tests: $(HXTEST)
+
+$(HXTEST): $(HX_SRCS)
+	haxe build.hmxl
+
+install:
+	cp $(NDLL) ../../ext/ndll/$(ARCH)/
+
+install-dev: $(NDLL)
+	cp $(NDLL) $(CAFFEINE_NDLL_DIR)
+
+clean:
+	$(RM) $(NDLL)
+	$(RM) $(HXTEST)
+	$(RM) obj/*
+	$(RM) core.*
+
+luatests:
+	cd tests && lua lua_test.lua
+
+dummy:

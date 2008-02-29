@@ -207,6 +207,17 @@ class ByteString {
 		return b;
 	}
 
+	/**
+		Create from an existing string of bytes
+	**/
+	public static function ofString(s : String) : ByteString {
+		var b = new ByteString();
+		for(i in 0...s.length) {
+			b._buf[i] = s.charCodeAt(i);
+		}
+		return b;
+	}
+
 /*
 	public static function ofHexString(s : String) : ByteString {
 		if(s.length % 2 != 0)

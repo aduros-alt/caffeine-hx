@@ -33,6 +33,7 @@ package math.reduction;
 
 import math.BigInteger;
 
+#if !neko
 class Barrett implements math.reduction.ModularReduction {
 	var m : BigInteger;
 	var mu : BigInteger;
@@ -77,3 +78,4 @@ class Barrett implements math.reduction.ModularReduction {
 		x.multiplyTo(y,r); reduce(r);
 	}
 }
+#end

@@ -25,24 +25,25 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
- * Derived from javascript implementation Copyright (c) 2005 Tom Wu
- */
+package crypt;
 
-package math.reduction;
+import math.prng.Random;
 
-import math.BigInteger;
-
-#if !neko
 /**
-	A "null" reducer
+	Pads string with random bytes
 **/
-class Null implements math.reduction.ModularReduction {
-	public function new() { }
-	public function convert(x:BigInteger) { return x; }
-	public function revert(x:BigInteger) { return x; }
-	public function mulTo(x:BigInteger,y:BigInteger,r:BigInteger) { x.multiplyTo(y,r); }
-	public function sqrTo(x:BigInteger,r:BigInteger) { x.squareTo(r); }
-	public function reduce(x:BigInteger) {}
+class PadPkcs1Type2 extends PadPkcs1Type1, implements IPad {
+	var rng : Random;
+
+	public function new( size : Int ) {
+		super(size);
+		typeByte = 2;
+		rng = new Random();
+	}
+
+	override function getPadByte() : Int {
+		var x: Int = 0;
+		while(x == 0) x = rng.getByte();
+		return x;
+	}
 }
-#end

@@ -37,6 +37,7 @@ import math.BigInteger;
 import neko.Int32;
 #end
 
+#if !neko
 /**
 	Montgomery reduction
 **/
@@ -182,3 +183,5 @@ class Montgomery implements math.reduction.ModularReduction {
 	}
 
 }
+#end
+

@@ -31,34 +31,69 @@
  */
 package math;
 
+
+#if neko
+enum HndBI {
+}
+import neko.Int32;
+#else true
 import math.reduction.ModularReduction;
 import math.reduction.Barrett;
 import math.reduction.Classic;
 import math.reduction.Montgomery;
-#if neko
-private enum HndBI {
-}
-import neko.Int32;
 #end
 
-class BigInteger {
 
+class BigInteger {
+#if neko
+	private var _hnd : HndBI;
+	private static var op_and 		: Int = 1;
+	private static var op_andnot 	: Int = 2;
+	private static var op_or 		: Int = 3;
+	private static var op_xor 		: Int = 4;
+#else true
 	/** number of chunks **/
 	public var t(default,null) : Int;
 	/** sign **/
 	public var sign(default,null) : Int;
 	/** data chunks **/
 	public var chunks(default,null) : Array<Int>; // chunks
+#end
 
 	public function new(?byInt : Int, ?str : String, ?radix : Int) {
 		if(BI_RC == null || BI_RC.length == 0)
 			initBiRc();
 		if(BI_RM.length == 0)
 			throw("BI_RM not initialized");
+#if neko
+		_hnd = bi_new();
+#else true
 		chunks = new Array<Int>();
+#end
 		if(byInt != null) fromInt(byInt);
 		else if( str != null && radix == null) fromString(str,256);
 	}
+
+/*
+	// (protected) alternate constructor
+	function fromNumber(a,b,c) {
+		if("number" == typeof b) {
+			// new BigInteger(int,int,RNG)
+			if(a < 2) fromInt(1);
+			else {
+				fromNumber(a,c);
+				if(!testBit(a-1))	// force MSB set
+					bitwiseTo(ONE.shl(a-1),op_or,this);
+				if(isEven()) dAddOffset(1,0); // force odd
+				while(!isProbablePrime(b)) {
+					dAddOffset(2,0);
+					if(bitLength() > a) 	subTo(ONE.shl(a-1),this);
+				}
+			}
+		}
+
+	}
+*/
 
 	//////////////////////////////////////////////////////////////
 	//                 Conversion methods                       //
@@ -68,31 +103,20 @@ class BigInteger {
 		be parsed through fromString.
 	**/
 	public function fromInt(x : Int) : Void {
-		t = 0;
-		var nb = nbits(x);
+#if neko
+		bi_from_int(_hnd, x);
+#else true
+		t = 1;
+		chunks[0] = 0;
 		sign = (x<0)?-1:0;
-		if(x > 0) {
-			if(nb > DB) {
-				var v = x;
-				chunks[0] = v & DM;
-				chunks[1] = v >>> DB;
-				t = 2;
-			}
-			else {
-				chunks[0] = x;
-				t = 1;
-			}
-		}
-		else if(x < -1) {
-			if(nb > DB) {
-				var abs = Std.int(Math.abs(x));
-				var s = StringTools.hex(abs);
-				fromString("-" + s, 16);
-				return;
-			}
+		if (x>0) {
+			chunks[0] = x;
+		} else if (x<-1) {
 			chunks[0] = x+DV;
-			t = 1;
+		} else {
+			t = 0;
 		}
+#end
 	}
 
 	/**
@@ -101,6 +125,9 @@ class BigInteger {
 		values will occur.
 	**/
 	public function toInt() : Int {
+#if neko
+		return bi_to_int(_hnd);
+#else true
 		if(sign < 0) {
 			if(t == 1) return chunks[0]-DV;
 			else if(t == 0) return -1;
@@ -109,12 +136,18 @@ class BigInteger {
 		else if(t == 0) return 0;
 		// assumes 16 < DB < 32
 		return ((chunks[1]&((1<<(32-DB))-1))<<DB)|chunks[0];
+#end
 	}
 
 	/**
 		Generate a random BigInteger of 'bits' length
 	**/
 	public function fromRandom(bits:Int, b:math.prng.Random) : Void {
+#if neko
+		seedRandom(bits, b);
+		var hrnd : Dynamic = bi_rand(bits, -1, 0);
+		bi_copy(_hnd, cast hrnd);
+#else true
 		if(bits < 2) {
 			fromInt(1);
 			return;
@@ -130,12 +163,26 @@ class BigInteger {
 		}
 		else x.set(0, 0);
 		fromString(x.toString(),256);
+#end
 	}
+
+#if neko
+	function seedRandom(bits:Int, b:math.prng.Random) : Void {
+		var x = new ByteString();
+		x.setLength((bits>>3)+1);
+		b.nextBytes(x);
+		bi_rand_seed(untyped x.__s);
+	}
+#end
 
 	/**
 		convert to bigendian byte array
 	**/
 	public function toByteArray() : Array<Int> {
+#if neko
+		throw "unimplemented";
+		return [];
+#else true
 		var i:Int = t;
 		var r = new Array();
 		r[0] = sign;
@@ -160,22 +207,30 @@ class BigInteger {
 			}
 		}
 		return r;
+#end
 	}
 
 	/**
 		convert from a bigendian byte array xxx
 	**/
 	public function fromByteArray(r:Array<Int>, ?pos:Int, ?len:Int) : Void {
-		sign = 0;
-		t = 0;
 		if(pos == null)
 			pos = 0;
 		if(len == null)
 			len = r.length - pos;
+#if neko
+		bi_copy(
+			_hnd,
+			bi_from_bin(ByteString.ofIntArray(r.slice(pos,len)).toString())
+		);
+		return;
+#else true
+		sign = 0;
+		t = 0;
 		var i:Int = pos+len;
 		var sh:Int = 0;
 		while (--i >= pos) {
-			var x:Int = i < r.length ? r[i]&0xff:0;
+			var x:Int = i < len ? r[i]&0xff:0;
 			if (sh == 0) {
 				chunks[t++] = x;
 			}
@@ -195,6 +250,7 @@ class BigInteger {
 			if(sh > 0) chunks[t-1] |= ((1<<(DB-sh))-1)<<sh;
 		}
 		clamp();
+#end
 	}
 
 
@@ -205,7 +261,7 @@ class BigInteger {
 		Return a base 10 string
 	**/
 	public function toString() : String {
-		return toRadixExt(10);
+		return toRadix(10);
 	}
 
 	/**
@@ -219,17 +275,55 @@ class BigInteger {
 		Return a ByteString
 	**/
 	public function toByteString() : ByteString {
+#if neko
+		return ByteString.ofString(toRadix(256));
+#else true
 		var i = toByteArray();
 		return ByteString.ofIntArray(i);
+#end
 	}
 
 	/**
 		return string representation in given radix.
-		This function handles radix values 2,4,8,16 and 32. If the
-		given radix is not one of those, toRadixExt is called, so you
-		may call toRadixExt directly to save time.
+		This function handles radix values 2-36.
 	**/
 	public function toRadix(b : Int) : String {
+		/**
+			convert to radix string, handles any base 2-36
+		**/
+		var toRadixExt = function(bi: BigInteger, ?b : Int) : String {
+			if(b < 2 || b > 36) {
+				throw("invalid base for conversion");
+				return "0";
+			}
+			if(bi.sigNum() == 0) return "0";
+			if(b == null) b = 10;
+			var cs: Int = Math.floor(0.6931471805599453*DB/Math.log(b));
+			var a:Int = Std.int(Math.pow(b,cs));
+			var d:BigInteger = nbv(a);
+			var y:BigInteger = nbi();
+			var z:BigInteger = nbi();
+			var r:String = "";
+			bi.divRemTo(d,y,z);
+			while(y.sigNum() > 0) {
+				r = I32.baseEncode31(a + z.toInt(), b).substr(1) + r;
+				y.divRemTo(d,y,z);
+			}
+			return I32.baseEncode31(z.toInt(), b) + r;
+		}
+
+		if(b < 2 || b > 36) {
+			throw("invalid base for conversion");
+			return "0";
+		}
+		if(sigNum() == 0) return "0";
+#if neko
+		switch(b) {
+		case 10: return new String(bi_to_decimal(_hnd));
+		case 16: return new String(bi_to_hex(_hnd)).toLowerCase();
+		}
+		throw "conversion to base "+b+" not yet supported";
+#else true
 		if(sign < 0) return "-"+neg().toRadix(b);
 		var k;
 		if(b == 16) k = 4;
@@ -245,7 +339,7 @@ class BigInteger {
 		else if(b == 2) k = 1;
 		else if(b == 32) k = 5;
 		else if(b == 4) k = 2;
-		else return toRadixExt(b);
+		else return toRadixExt(this, b);
 		var km = (1<<k)-1, d, m = false, r = "", i = t;
 		var p = DB-(i*DB)%k;
 		if(i-- > 0) {
@@ -264,33 +358,24 @@ class BigInteger {
 			}
 		}
 		return m?r:"0";
+#end
 	}
 
-	/**
-		convert to radix string, handles any base
-	**/
-	public function toRadixExt(?b : Int) : String {
-		if(b == null) b = 10;
-		if(b < 2 || b > 36) return "0";
-		var cs: Int = Math.floor(0.6931471805599453*DB/Math.log(b));
-		var a:Int = Std.int(Math.pow(b,cs));
-		var d:BigInteger = nbv(a);
-		var y:BigInteger = nbi();
-		var z:BigInteger = nbi();
-		var r:String = "";
-		divRemTo(d,y,z);
-		while(y.sigNum() > 0) {
-			r = I32.baseEncode31(a + z.toInt(), b).substr(1) + r;
-			y.divRemTo(d,y,z);
-		}
-		return I32.baseEncode31(z.toInt(), b) + r;
-	}
+
 
 	/**
 		set from string and radix. Bases != [2,4,8,16,32,256] are
 		handled through fromStringExt
 	**/
 	public function fromString(s : String, b : Int) : Void {
+#if neko
+		switch(b) {
+		case 10: bi_copy(_hnd, untyped bi_from_decimal(s.__s)); return;
+		case 16: bi_copy(_hnd, untyped bi_from_hex(s.__s)); return;
+		case 256:bi_copy(_hnd, untyped bi_from_bin(s.__s)); return;
+		}
+		throw "conversion from base "+b+" not yet supported";
+#else true
 		var k;
 		if(b == 16) k = 4;
 		else if(b == 10) { fromStringExt(s,b); return; }
@@ -327,12 +412,18 @@ class BigInteger {
 		}
 		clamp();
 		if(mi) ZERO.subTo(this,this);
+#end
 	}
 
 	/**
 		convert from radix string
 	**/
 	function fromStringExt(s : String, ?b : Int) : Void {
+#if neko
+		if(b == null) b = 10;
+		fromString(s,b);
+		return;
+#else true
 		fromInt(0);
 		if(b == null) b = 10;
 		var cs:Int = Math.floor(0.6931471805599453*DB/Math.log(b));
@@ -359,6 +450,7 @@ class BigInteger {
 			dAddOffset(w,0);
 		}
 		if(mi) ZERO.subTo(this,this);
+#end
 	}
 
 
@@ -367,17 +459,27 @@ class BigInteger {
 	//////////////////////////////////////////////////////////////
 	/** Absolute value **/
 	public function abs()  : BigInteger {
+#if neko
+		var h = bi_abs(_hnd);
+		return hndToBigInt(h);
+#else true
 		return (sign<0)?neg():this;
+#end
 	}
 
 	/** this + a **/
 	public function add(a : BigInteger) : BigInteger
-	{ var r = nbi(); addTo(a,r); return r; }
+	{
+		var r = nbi(); addTo(a,r); return r;
+	}
 
 	/**
 		<pre>return + if this > a, - if this < a, 0 if equal</pre>
 	**/
 	public function compare(a : BigInteger) : Int {
+#if neko
+		return bi_cmp(this._hnd, a._hnd);
+#else true
 		var r = sign-a.sign;
 		if(r != 0) return r;
 		var i:Int = t;
@@ -388,6 +490,7 @@ class BigInteger {
 			if(r != 0) return r;
 		}
 		return 0;
+#end
 	}
 
 	/** this / a **/
@@ -409,7 +512,12 @@ class BigInteger {
 
 	/** true if this is even **/
 	public function isEven() :Bool {
+#if neko
+		var i : Int = bi_is_odd(this._hnd);
+		return (i==0)?true:false;
+#else true
 		return ((t>0)?(chunks[0]&1):sign) == 0;
+#end
 	}
 
 	/**	Return the biggest of this and a **/
@@ -424,14 +532,22 @@ class BigInteger {
 
 	/** Modulus division bn % bn **/
 	public function mod(a : BigInteger) : BigInteger {
+#if neko
+		return hndToBigInt(bi_mod_inverse(this._hnd, a._hnd));
+#else true
 		var r = nbi();
 		abs().divRemTo(a,null,r);
 		if(sign < 0 && r.compare(ZERO) > 0) a.subTo(r,r);
 		return r;
+#end
 	}
 
 	/** <pre>this % n, n < 2^26</pre> **/
 	public function modInt(n : Int) : Int {
+#if neko
+		var b = BigInteger.ofInt(n);
+		return hndToBigInt(bi_mod_inverse(this._hnd, b._hnd)).toInt();
+#else true
 		if(n <= 0) return 0;
 		var d:Int = DV%n;
 		var r:Int = (sign<0)?n-1:0;
@@ -445,12 +561,16 @@ class BigInteger {
 				}
 			}
 		return r;
+#end
 	}
 
 	/**
 		1/this % m (HAC 14.61)
 	**/
 	public function modInverse(m : BigInteger) : BigInteger {
+#if neko
+		return hndToBigInt(bi_mod_inverse(this._hnd, m._hnd));
+#else true
 		var ac = m.isEven();
 		if((isEven() && ac) || m.sigNum() == 0) return ZERO;
 		var u : BigInteger = m.clone();
@@ -502,10 +622,15 @@ class BigInteger {
 		if(d.sigNum() < 0) d.addTo(m,d); else return d;
 		//if(d.sigNum() < 0) return d.add(m); else return d;
 		return d;
+#end
 	}
 
 	/** <pre>this^e % m (HAC 14.85)</pre> **/
 	public function modPow(e : BigInteger, m : BigInteger) : BigInteger {
+#if neko
+		var h : HndBI = bi_mod_exp(_hnd, e._hnd, m._hnd);
+		return hndToBigInt(h);
+#else true
 		var i:Int = e.bitLength();
 		var k : Int;
 		var r : BigInteger = nbv(1);
@@ -572,17 +697,22 @@ class BigInteger {
 			}
 		}
 		return z.revert(r);
+#end
 	}
 
 	/**
 		<pre>this^e % m, 0 <= e < 2^32</pre>
 	**/
 	public function modPowInt(e : Int, m : BigInteger) : BigInteger {
-trace(e);
+#if neko
+		var ebi = BigInteger.ofInt(e);
+		return modPow(ebi, m);
+#else true
 		var z : ModularReduction;
 		if(e < 256 || m.isEven()) z = new Classic(m);
 		else z = new Montgomery(m);
 		return exp(e,z);
+#end
 	}
 
 	/** this * a **/
@@ -600,7 +730,12 @@ trace(e);
 
 	/** this^e **/
 	public function pow(e : Int) : BigInteger {
+#if neko
+		var h = bi_pow(_hnd, BigInteger.ofInt(e)._hnd);
+		return hndToBigInt(h);
+#else true
 		return exp(e,new math.reduction.Null());
+#end
 	}
 
 	/** this % a **/
@@ -617,68 +752,91 @@ trace(e);
 	//////////////////////////////////////////////////////////////
 	/** this &amp; a **/
 	public function and(a : BigInteger) : BigInteger {
-		var r = nbi(); bitwiseTo(a,op_and,r);
+		var r = nbi();
+		bitwiseTo(a,op_and,r);
 		return r;
 	}
 
 	/** this &amp; ~a **/
 	public function andNot(a : BigInteger) : BigInteger {
-		var r = nbi(); bitwiseTo(a,op_andnot,r);
+		var r = nbi();
+		bitwiseTo(a,op_andnot,r);
 		return r;
 	}
 
 	/** return number of set bits **/
 	public function bitCount() : Int {
+#if neko
+		return bi_bits_set(_hnd);
+#else true
 		var r = 0, x = sign&DM;
 		for(i in 0...t) r += cbit(chunks[i]^x);
 		return r;
+#end
 	}
 
 	/**
 		return the number of bits in "this"
 	**/
 	public function bitLength() : Int {
+#if neko
+		return bi_bitlength(_hnd);
+#else true
 		if(t <= 0) return 0;
 		return DB*(t-1)+nbits(chunks[t-1]^(sign&DM));
+#end
 	}
 
 	/** alias for not() **/
 	public function complement() : BigInteger { return not(); }
 
 	/** <pre>this & ~(1<<n)</pre> **/
-	public function clearBit(n) : BigInteger { return changeBit(n,op_andnot); }
+	public function clearBit(n) : BigInteger {
+#if neko
+		var bi : BigInteger = clone();
+		bi_clear_bit(bi._hnd, n);
+		return bi;
+#else true
+		return changeBit(n,op_andnot);
+#end
+	}
 
 	/** <pre>this ^ (1<<n)</pre> **/
-	public function flipBit(n) : BigInteger { return changeBit(n,op_xor); }
+	public function flipBit(n) : BigInteger {
+#if neko
+		var bi = nbi();
+		bi_copy(bi._hnd, cast _hnd);
+		bi_flip_bit(bi._hnd, n);
+		return bi;
+#else true
+		return changeBit(n,op_xor);
+#end
+	}
 
 	/** returns index of lowest 1-bit (or -1 if none) **/
 	public function getLowestSetBit() : Int {
+#if neko
+		return bi_lowest_bit_set(_hnd);
+#else true
 		for(i in 0...t)
 			if(chunks[i] != 0) return i*DB+lbit(chunks[i]);
 		if(sign < 0) return t*DB;
 		return -1;
+#end
 	}
 
 	/** ~this **/
 	public function not() : BigInteger {
+#if neko
+		var h = bi_not(_hnd);
+		return hndToBigInt(h);
+#else true
 		var r = nbi();
-#if !neko
 		for(i in 0...t) r.chunks[i] = DM&~chunks[i];
 		r.t = t;
 		r.sign = ~sign;
-#else true
-		for(i in 0...t) {
-			r.chunks[i] =
-				Int32.toInt(
-				Int32.and(
-					Int32.ofInt(DM),
-					Int32.complement(Int32.ofInt(chunks[i]))
-				));
-		}
-		r.t = t;
-		r.sign = Int32.toInt(Int32.complement(Int32.ofInt(sign)));
-#end
 		return r;
+#end
 	}
 
 	/** this | a **/
@@ -687,43 +845,43 @@ trace(e);
 	}
 
 	/** <pre>this | (1<<n)</pre> **/
-	public function setBit(n : Int) : BigInteger { return changeBit(n,op_or); }
+	public function setBit(n : Int) : BigInteger {
+#if neko
+		var r : BigInteger = clone();
+		bi_set_bit(r._hnd, n);
+		return r;
+#else true
+		return changeBit(n,op_or);
+#end
+	}
 
 	/**
 		<pre>this << n</pre>
 	**/
 	public function shl(n : Int) : BigInteger {
-#if (neko && NDLL_MATH)
-		var biA : HndBI = mkBigInt(this);
-		var res = bi_shl(biA, n);
-		return mkFromHandle(res);
-#else true
 		var r = nbi();
 		if(n < 0) rShiftTo(-n,r); else lShiftTo(n,r);
 		return r;
-#end
 	}
 
 	/**
 		<pre>this >> n</pre>
 	**/
 	public function shr(n : Int) : BigInteger {
-#if (neko && NDLL_MATH)
-		var biA : HndBI = mkBigInt(this);
-		var res = bi_shr(biA, n);
-		return mkFromHandle(res);
-#else true
 		var r = nbi();
 		if(n < 0) lShiftTo(-n,r); else rShiftTo(n,r);
 		return r;
-#end
 	}
 
 	/** <pre>true iff nth bit is set</pre> **/
 	public function testBit(n:Int) : Bool {
+#if neko
+		return bi_test_bit(_hnd, n);
+#else true
 		var j = Math.floor(n/DB);
 		if(j >= t) return(sign!=0);
 		return((chunks[j]&(1<<(n%DB)))!=0);
+#end
 	}
 
 	/** this ^ a **/
@@ -741,6 +899,10 @@ trace(e);
 	//////////////////////////////////////////////////////////////
 	/** r = this + a **/
 	public function addTo(a:BigInteger,r:BigInteger) : Void {
+#if neko
+		bi_add_to(_hnd, a._hnd, r._hnd);
+		return;
+#else true
 		var i:Int = 0;
 		var c:Int = 0;
 		var m:Int = Std.int(Math.min(a.t,t));
@@ -772,14 +934,19 @@ trace(e);
 		else if(c < -1) r.chunks[i++] = DV+c;
 		r.t = i;
 		r.clamp();
+#end
 	}
 
 	/** copy this to r **/
 	public function copyTo(r : BigInteger) : Void {
+#if neko
+		bi_copy(r._hnd, cast _hnd);
+#else true
 		for(i in 0...chunks.length)
 			r.chunks[i] = chunks[i];
 		r.t = t;
 		r.sign = sign;
+#end
 	}
 	/**
 		divide this by m, quotient and remainder to q, r (HAC 14.20)
@@ -787,14 +954,10 @@ trace(e);
 	**/
 	public function divRemTo(m : BigInteger, q : BigInteger ,?r : BigInteger) : Void
 	{
-#if (neko && NDLL_MATH)
-		var biA : HndBI = mkBigInt(this);
-		var biM : HndBI = mkBigInt(m);
-		var res = bi_divide(biA,biM);
-		if(q != null)
-			popFromHandle(res[0], q);
-		if(r != null)
-			popFromHandle(res[1], r);
+#if neko
+		if(r == null) r = nbi();
+		bi_div_rem_to(this._hnd, m._hnd, q._hnd, r._hnd);
+		return;
 #else true
 		var pm : BigInteger = m.abs();
 		if(pm.t <= 0) return;
@@ -866,6 +1029,7 @@ trace(e);
 #end
 	}
 
+#if !neko
 	/**
 		(protected) r = lower n words of "this * a", <pre>a.t <= n</pre>
 		"this" should be the larger one if appropriate.
@@ -887,12 +1051,17 @@ trace(e);
 		}
 		r.clamp();
 	}
+#end
 
 	/**
 		<pre>r = this * a, r != this,a (HAC 14.12)</pre>
 		"this" should be the larger one if appropriate.
 	**/
 	public function multiplyTo(a : BigInteger, r : BigInteger) : Void {
+#if neko
+		var h = bi_mul_to(_hnd, a._hnd, r._hnd);
+		return;
+#else true
 		var x = abs(), y = a.abs();
 		var i:Int = x.t;
 		r.t = i+y.t;
@@ -901,8 +1070,10 @@ trace(e);
 		r.sign = 0;
 		r.clamp();
 		if(sign != a.sign) ZERO.subTo(r,r);
+#end
 	}
 
+#if !neko
 	/**
 		(protected) r = "this * a" without lower n words, <pre>n > 0</pre>
 		"this" should be the larger one if appropriate.
@@ -919,9 +1090,14 @@ trace(e);
 		r.clamp();
 		r.drShiftTo(1,r);
 	}
+#end
 
 	/** <pre>r = this^2, r != this (HAC 14.16)</pre> **/
 	public function squareTo(r : BigInteger) : Void {
+#if neko
+		bi_sqr_to(_hnd, r._hnd);
+		return;
+#else true
 		if(r == this)
 			throw("can not squareTo self");
 		var x = abs();
@@ -942,15 +1118,14 @@ trace(e);
 		}
 		r.sign = 0;
 		r.clamp();
+#end
 	}
 
 	/** <pre>r = this - a</pre> **/
 	public function subTo(a : BigInteger, r : BigInteger) : Void {
-#if neko //&& NDLL_MATH)
-		var biA : HndBI = mkBigInt(this);
-		var biB : HndBI = mkBigInt(a);
-		var res : HndBI = bi_subtract(biA,biB);
-		popFromHandle(res, r);
+#if neko
+		var h = bi_sub_to(_hnd, a._hnd, r._hnd);
+		return;
 #else true
 		var i: Int = 0;
 		var c: Int = 0;
@@ -982,8 +1157,8 @@ trace(e);
 		if(c < -1) r.chunks[i++] = DV+c;
 		else if(c > 0) r.chunks[i++] = c;
 		r.t = i;
-#end
 		r.clamp();
+#end
 	}
 
 
@@ -991,10 +1166,12 @@ trace(e);
 	//                    Misc methods                          //
 	//////////////////////////////////////////////////////////////
 	/** clamp off excess high words **/
+#if !neko
 	public function clamp() : Void {
 		var c = sign&DM;
 		while(t > 0 && chunks[t-1] == c) --t;
 	}
+#end
 
 	/** Clone a BigInteger **/
 	public function clone() : BigInteger {
@@ -1005,6 +1182,10 @@ trace(e);
 
 	// (public) gcd(this,a) (HAC 14.54)
 	public function gcd(a:BigInteger) : BigInteger {
+#if neko
+		var h = bi_gcd(_hnd, a._hnd);
+		return hndToBigInt(h);
+#else true
 		var x = (sign<0)?neg():clone();
 		var y = (a.sign<0)?a.neg():a.clone();
 		if(x.compare(y) < 0) { var t:BigInteger = x; x = y; y = t; }
@@ -1029,31 +1210,52 @@ trace(e);
 		}
 		if(g > 0) y.lShiftTo(g,y);
 		return y;
+#end
 	}
 
 	/**
 		Pads the chunk buffer to n chunks, left fill with 0.
 	**/
+#if !neko
 	public function padTo ( n : Int ) : Void {
 		while( t < n )	chunks[ t++ ] = 0;
 	}
+#end
 
 	/** return value as short (assumes DB &gt;= 16) **/
 	public function shortValue() : Int {
+#if neko
+		return toInt() & 0xffff;
+#else true
 		return (t==0)?sign:(chunks[0]<<16)>>16;
+#end
+	}
+
+	/** return value as byte **/
+	function byteValue() : Int {
+#if neko
+		return toInt() & 0xff;
+#else true
+		return (t==0)?sign:(chunks[0]<<24)>>24;
+#end
 	}
 
 	/** <pre>0 if this == 0, 1 if this > 0</pre>**/
 	public function sigNum() : Int {
+#if neko
+		return bi_signum(_hnd);
+#else true
 		if(sign < 0) return -1;
 		else if(t <= 0 || (t == 1 && chunks[0] <= 0)) return 0;
 		else return 1;
+#end
 	}
 
 
 	//////////////////////////////////////////////////////////////
 	//        Reduction public methods (move to private)        //
 	//////////////////////////////////////////////////////////////
+#if !neko
 	/**
 		<pre>this += n << w words, this >= 0</pre>
 	**/
@@ -1070,11 +1272,6 @@ trace(e);
 	/** <pre> r = this << n*DB </pre> **/
 	public function dlShiftTo(n : Int, r : BigInteger) :Void {
 		if(r == null) return;
-#if (neko && NDLL_MATH)
-		var biA : HndBI = mkBigInt(this);
-		var res = bi_dl_shift(biA, n);
-		popFromHandle(res, r);
-#else true
 		var i = t-1;
 		while(i >= 0) {
 			r.chunks[i+n] = chunks[i];
@@ -1087,17 +1284,11 @@ trace(e);
 		}
 		r.t = t+n;
 		r.sign = sign;
-#end
 	}
 
 	/** <pre>r = this >> n*DB</pre> **/
 	public function drShiftTo(n : Int, r : BigInteger) {
 		if(r == null) return;
-#if (neko && NDLL_MATH)
-		var biA : HndBI = mkBigInt(this);
-		var res = bi_dr_shift(biA, n);
-		popFromHandle(res, r);
-#else true
 		var i:Int = n;
 		while(i < t) {
 			r.chunks[i-n] = chunks[i];
@@ -1105,7 +1296,6 @@ trace(e);
 		}
 		r.t = Std.int( Math.max(t-n,0) );
 		r.sign = sign;
-#end
 	}
 
 	/**
@@ -1168,33 +1358,19 @@ trace(e);
 			while(bitLength()>bits) subTo(BigInteger.ONE.shl(bits-1),this);
 		}
 	}
+#end
 
 	//////////////////////////////////////////////////////////////
 	//					Private methods							//
 	//////////////////////////////////////////////////////////////
-
-/*
-	// (protected) alternate constructor
-	function fromNumber(a,b,c) {
-		if("number" == typeof b) {
-			// new BigInteger(int,int,RNG)
-			if(a < 2) fromInt(1);
-			else {
-				fromNumber(a,c);
-				if(!testBit(a-1))	// force MSB set
-					bitwiseTo(ONE.shl(a-1),op_or,this);
-				if(isEven()) dAddOffset(1,0); // force odd
-				while(!isProbablePrime(b)) {
-					dAddOffset(2,0);
-					if(bitLength() > a) 	subTo(ONE.shl(a-1),this);
-				}
-			}
-		}
-
-	}
-*/
 	// (protected) r = this op a (bitwise)
+#if neko
+	function bitwiseTo(a : BigInteger, op:Int, r:BigInteger) : Void {
+		bi_bitwise_to(_hnd, a._hnd, op, r._hnd);
+	}
+#else true
 	function bitwiseTo(a : BigInteger, op:Int->Int->Int, r:BigInteger) : Void {
+
 		var f : Int;
 		var m : Int = Std.int(Math.min(a.t,t));
 		for(i in 0...m) r.chunks[i] = op(chunks[i],a.chunks[i]);
@@ -1211,10 +1387,9 @@ trace(e);
 		r.sign = op(sign,a.sign);
 		r.clamp();
 	}
+#end
 
-	/** return value as byte **/
-	function byteValue() : Int { return (t==0)?sign:(chunks[0]<<24)>>24; }
-
+#if !neko
 	/** this op (1<<n) 	**/
 	function changeBit(n,op) : BigInteger {
 		var r = ONE.shl(n);
@@ -1282,6 +1457,7 @@ trace(e);
 		}
 		return true;
 	}
+#end
 
 	//////////////////////////////////////////////////////////////
 	//             'Result To' Bitwise methods                  //
@@ -1292,6 +1468,10 @@ trace(e);
 	//////////////////////////////////////////////////////////////
 	/** <pre>r = this << n </pre> **/
 	function lShiftTo(n : Int, r : BigInteger) : Void {
+#if neko
+		var h = bi_shl_to(_hnd, n, r._hnd);
+		return;
+#else true
 		var bs: Int = n%DB;
 		var cbs:Int = DB-bs;
 		var bm:Int = (1<<cbs)-1;
@@ -1310,10 +1490,15 @@ trace(e);
 		r.t = t+ds+1;
 		r.sign = sign;
 		r.clamp();
+#end
 	}
 
 	/** <pre>r = this >> n</pre> **/
 	function rShiftTo(n : Int, r : BigInteger) : Void {
+#if neko
+		var h = bi_shr_to(_hnd, n, r._hnd);
+		return;
+#else true
 		r.sign = sign;
 		var ds:Int = Math.floor(n/DB);
 		if(ds >= t) { r.t = 0; return; }
@@ -1329,6 +1514,7 @@ trace(e);
 		if(bs > 0) r.chunks[t-ds-1] |= (sign&bm)<<cbs;
 		r.t = t-ds;
 		r.clamp();
+#end
 	}
 
 /*
@@ -1370,24 +1556,11 @@ trace(e);
 		return c;
 	}
 */
+#if !neko
 	// This is the original am3 function
 	// Alternately, set max digit bits to 28 since some
 	// browsers slow down when dealing with 32-bit numbers.
 	public function am(i:Int,x:Int,w:BigInteger,j:Int,c:Int,n:Int) : Int {
-#if (neko && NDLL_MATH)
-		var biA : HndBI = mkBigInt(this);
-		var biW : HndBI;
-		if(w == this)
-			biW = biA;
-		else
-			biW = mkBigInt(w);
-		var args : Array<Int> = [i,x,j,c,n];
-		var res : Int;
-
-		res = bi_am3(biA,biW,I32.mkNekoArray31(args));
-		popFromHandle(biW, w);
-		return res;
-#else true
 		var xl : Int = x&0x3fff;
 		var xh : Int = x>>14;
 		while(--n >= 0) {
@@ -1400,23 +1573,6 @@ trace(e);
 			j++;
 		}
 		return c;
-#end
-	}
-
-#if neko
-	public function amNeko(i:Int32,x:Int32,w:BigInteger,j:Int32,c:Int32,n:Int32) : Int {
-		var biA : HndBI = mkBigInt(this);
-		var biW : HndBI;
-		if(w == this)
-			biW = biA;
-		else
-			biW = mkBigInt(w);
-		var args : Array<Int32> = [i,x,j,c,n];
-		var res : Int;
-
-		res = bi_am3(biA, biW, I32.mkNekoArray(args));
-		popFromHandle(biW, w);
-		return res;
 	}
 #end
 
@@ -1557,20 +1713,11 @@ trace(e);
 	//////////////////////////////////////////////////////////////
 	//                  Operator functions                      //
 	//////////////////////////////////////////////////////////////
+#if !neko
 	public static function op_and(x:Int, y:Int) : Int { return x&y; }
 	public static function op_or(x:Int, y:Int) : Int { return x|y; }
 	public static function op_xor(x:Int, y:Int) : Int { return x^y; }
-#if !neko
-	public static function op_andnot(x:Int, y:Int) : Int { return x&~y; }
-#else true
-	public static function op_andnot(x:Int, y:Int) : Int {
-		return Int32.toInt(
-			Int32.and(
-				Int32.ofInt(x),
-				Int32.complement(Int32.ofInt(y))
-			)
-		);
-	}
+	public static function op_andnot(x:Int, y:Int) : Int { return x&(~y); }
 #end
 
 	//////////////////////////////////////////////////////////////
@@ -1616,24 +1763,28 @@ trace(e);
 		return r;
 	}
 
+#if !neko
 	static function dumpBi(r:BigInteger) : String {
 		var s = "sign: " + Std.string(r.sign);
 		s += " t: "+r.t;
 		s += Std.string(r.chunks);
 		return s;
 	}
+#end
 
-#if neko //&& NDLL_MATH)
+#if neko
+/*
 	static function mkBigInt(a:BigInteger) : HndBI {
 		return bi_create(DB, a.t, a.sign, I32.mkNekoArray31(a.chunks));
 	}
-
-	static function mkFromHandle(h : HndBI) : BigInteger {
+*/
+	static function hndToBigInt(h : HndBI) : BigInteger {
 		var rv = BigInteger.nbi();
-		popFromHandle(h, rv);
+		rv._hnd = h;
 		return rv;
 	}
 
+/*
 	static function popFromHandle(h : HndBI, r : BigInteger) {
 		if(r == null || h == null)
 			return;
@@ -1648,17 +1799,60 @@ trace(e);
 			}
 		}
 	}
+*/
 
-	private static var bi_create = neko.Lib.load("math","bi_create",4);
-	private static var bi_free = neko.Lib.load("math","bi_free",1);
-	private static var bi_subtract = neko.Lib.load("math","bi_subtract",2);
-	private static var bi_to_array = neko.Lib.load("math","bi_to_array",1);
-	private static var bi_am3 = neko.Lib.load("math","bi_am3",3);
-	private static var bi_divide = neko.Lib.load("math","bi_divide",2);
-	private static var bi_shl = neko.Lib.load("math","bi_shl",2);
-	private static var bi_shr = neko.Lib.load("math","bi_shr",2);
-	private static var bi_dr_shift = neko.Lib.load("math","bi_dr_shift",2);
-	private static var bi_dl_shift = neko.Lib.load("math","bi_dl_shift",2);
+	private static var bi_new=neko.Lib.load("openssl","bi_new",0);
+	private static var destroy_biginteger=neko.Lib.load("openssl","destroy_biginteger",1);
+	private static var bi_ZERO=neko.Lib.load("openssl","bi_ZERO",0);
+	private static var bi_ONE=neko.Lib.load("openssl","bi_ONE",0);
+	private static var bi_copy=neko.Lib.load("openssl","bi_copy",2);
+	private static var bi_generate_prime=neko.Lib.load("openssl","bi_generate_prime",1);
+	private static var bi_abs=neko.Lib.load("openssl","bi_abs",1);
+	private static var bi_add_to=neko.Lib.load("openssl","bi_add_to",3);
+	private static var bi_sub_to=neko.Lib.load("openssl","bi_sub_to",3);
+	private static var bi_mul_to=neko.Lib.load("openssl","bi_mul_to",3);
+	private static var bi_sqr_to=neko.Lib.load("openssl","bi_sqr_to",2);
+	private static var bi_div=neko.Lib.load("openssl","bi_div",2);
+	private static var bi_div_rem_to=neko.Lib.load("openssl","bi_div_rem_to",4);
+	private static var bi_mod=neko.Lib.load("openssl","bi_mod",2);
+	private static var bi_mod_exp=neko.Lib.load("openssl","bi_mod_exp",3);
+	private static var bi_mod_inverse=neko.Lib.load("openssl","bi_mod_inverse",2);
+	private static var bi_pow=neko.Lib.load("openssl","bi_pow",2);
+	private static var bi_gcd=neko.Lib.load("openssl","bi_gcd",2);
+	private static var bi_signum=neko.Lib.load("openssl","bi_signum",1);
+	private static var bi_cmp=neko.Lib.load("openssl","bi_cmp",2);
+	private static var bi_ucmp=neko.Lib.load("openssl","bi_ucmp",2);
+	private static var bi_is_zero=neko.Lib.load("openssl","bi_is_zero",1);
+	private static var bi_is_one=neko.Lib.load("openssl","bi_is_one",1);
+	private static var bi_is_odd=neko.Lib.load("openssl","bi_is_odd",1);
+	// random
+	private static var bi_rand_seed=neko.Lib.load("openssl","bi_rand_seed",1);
+	private static var bi_rand=neko.Lib.load("openssl","bi_rand",3);
+	private static var bi_pseudo_rand=neko.Lib.load("openssl","bi_pseudo_rand",3);
+	// conversion
+	private static var bi_to_hex=neko.Lib.load("openssl","bi_to_hex",1);
+	private static var bi_from_hex=neko.Lib.load("openssl","bi_from_hex",1);
+	private static var bi_to_decimal=neko.Lib.load("openssl","bi_to_decimal",1);
+	private static var bi_from_decimal=neko.Lib.load("openssl","bi_from_decimal",1);
+	private static var bi_to_bin=neko.Lib.load("openssl","bi_to_bin",1);
+	private static var bi_from_bin=neko.Lib.load("openssl","bi_from_bin",1);
+	private static var bi_from_int=neko.Lib.load("openssl","bi_from_int",2);
+	private static var bi_to_int=neko.Lib.load("openssl","bi_to_int",1);
+
+	// bitwise
+	private static var bi_shl_to=neko.Lib.load("openssl","bi_shl_to",3);
+	private static var bi_shr_to=neko.Lib.load("openssl","bi_shr_to",3);
+	private static var bi_bitlength=neko.Lib.load("openssl","bi_bitlength",1);
+	private static var bi_bytelength=neko.Lib.load("openssl","bi_bytelength",1);
+	private static var bi_bits_set=neko.Lib.load("openssl","bi_bits_set",1);
+	private static var bi_lowest_bit_set=neko.Lib.load("openssl","bi_lowest_bit_set",1);
+	private static var bi_set_bit=neko.Lib.load("openssl","bi_set_bit",2);
+	private static var bi_clear_bit=neko.Lib.load("openssl","bi_clear_bit",2);
+	private static var bi_flip_bit=neko.Lib.load("openssl","bi_flip_bit",2);
+	private static var bi_bitwise_to=neko.Lib.load("openssl","bi_bitwise_to",4);
+	private static var bi_not=neko.Lib.load("openssl","bi_not",1);
+	private static var bi_test_bit=neko.Lib.load("openssl","bi_test_bit",2);
+
 #end
 }
 

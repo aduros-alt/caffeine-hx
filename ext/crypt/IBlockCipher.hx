@@ -25,24 +25,11 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
- * Derived from javascript implementation Copyright (c) 2005 Tom Wu
- */
+package crypt;
 
-package math.reduction;
-
-import math.BigInteger;
-
-#if !neko
-/**
-	A "null" reducer
-**/
-class Null implements math.reduction.ModularReduction {
-	public function new() { }
-	public function convert(x:BigInteger) { return x; }
-	public function revert(x:BigInteger) { return x; }
-	public function mulTo(x:BigInteger,y:BigInteger,r:BigInteger) { x.multiplyTo(y,r); }
-	public function sqrTo(x:BigInteger,r:BigInteger) { x.squareTo(r); }
-	public function reduce(x:BigInteger) {}
+interface IBlockCipher {
+	//var blockSize : Int;
+	var blockSize(getBlockSize,null) : Int;
+	function encryptBlock( plain : String ) : String;
+	function decryptBlock( enc : String ) : String;
 }
-#end

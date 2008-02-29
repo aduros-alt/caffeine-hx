@@ -1,0 +1,9 @@
+ARCH=Linux
+ARCH_PATHS:=
+
+CC:=gcc -Isrc
+NEKO_FLAGS:=-fPIC -shared -L/usr/lib -lneko -ldl -lssl
+LOCAL_FLAGS:=-Iinclude -Isrc/linux -DLINUX
+STRIP:=strip
+
+include Makefile.common
