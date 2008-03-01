@@ -17,7 +17,9 @@ static void destroy_biginteger( value bi );
 static value bi_ZERO();
 static value bi_ONE();
 static value bi_copy(value TO, value FROM);
-static value bi_generate_prime(value nbits);
+// primes
+static value bi_generate_prime(value NBITS, value SAFE);
+static value bi_is_prime(value A, value ITERATIONS, value DIV_TRIAL);
 // math
 static value bi_abs(value A);
 static value bi_add_to(value A, value B, value R);

@@ -87,13 +87,7 @@ DEFINE_PRIM(destroy_biginteger,1);
 **/
 static value bi_ZERO() {
 	BIGNUM *bi = BN_new();
-// 	#define BN_zero_ex(a) \
-// 	do { \
-// 		BIGNUM *_tmp_bn = (a); \
-// 		_tmp_bn->top = 0; \
-// 		_tmp_bn->neg = 0; \
-// 	} while(0)
-	BN_zero(bi);
+	BN_zero_ex(bi);
 	return bi_allocate(bi);
 }
 DEFINE_PRIM(bi_ZERO,0);
@@ -120,19 +114,57 @@ static value bi_copy(value TO, value FROM) {
 }
 DEFINE_PRIM(bi_copy,2);
 
+
+//////////////////////////////////////////////////////////////
+//                 PRIME methods                            //
+//////////////////////////////////////////////////////////////
 /**
-	Generate a prime of the specified number of bits
-	WARNING is deprecated
+	Generate a prime of the specified number of bits.
+	If safe is true
+	@PARAM SAFE Set to true if (n-1)/2 should be prime as well.
+	WARNING BN_generate_prime is deprecated, uses BN_generate_prime_ex
 */
-static value bi_generate_prime(value nbits) {
+static value bi_generate_prime(value NBITS, value SAFE) {
+	val_check(NBITS, int);
+	val_check(SAFE, bool);
 	value BI = bi_new();
-	val_check(nbits, int);
+	int nbits = val_int(NBITS);
+	int safe = val_bool(SAFE);
+	BN_GENCB *cb = NULL;
 	if(nbits < 0)
 		THROW("nbits < 0");
-	BN_generate_prime(val_biginteger(BI), val_int(nbits), 1, NULL,NULL,status_ignore,NULL);
+	//BN_generate_prime(val_biginteger(BI), val_int(nbits), 1, NULL,NULL,status_ignore,NULL);
+	if(!BN_generate_prime_ex(val_biginteger(BI),nbits,safe,NULL,NULL,cb))
+		THROW("error");
 	return BI;
 }
-DEFINE_PRIM(bi_generate_prime,1);
+DEFINE_PRIM(bi_generate_prime,2);
+
+/**
+	Check if a number is prime.
+	BigInteger->Int->Int->Bool
+	@PARAM ITERATIONS The number of iterations for Miller Rabin
+	@PARAM DIV_TRIAL Set to true to do small prime divisions as a first pass
+	WARNING BN_is_prime_fasttest is deprecated, uses BN_is_prime_fasttest_ex
+**/
+static value bi_is_prime(value A, value ITERATIONS, value DIV_TRIAL) {
+	val_check_kind(A, k_biginteger);
+	BIGNUM *a = val_biginteger(A);
+	int checks = val_int(ITERATIONS);
+	int trial_division = val_bool(DIV_TRIAL);
+	BN_GENCB *cb = NULL;
+
+	assert(trial_division == 0 || trial_division == 1);
+	NEW_CTX(ctx);
+	int rv = BN_is_prime_fasttest_ex(a, checks, ctx, trial_division, cb);
+	FREE_CTX(ctx);
+	if(rv < 0)
+		THROW("error");
+	if(rv == 0)
+		return val_false;
+	return val_true;
+}
+DEFINE_PRIM(bi_is_prime,3);
 
 //////////////////////////////////////////////////////////////
 //                MATH methods                              //
@@ -517,11 +549,22 @@ DEFINE_PRIM(bi_to_bin,1);
 /** BigEndian base 256 string -> R BigInteger where first char is 0 or 0x80 (-) **/
 static value bi_from_bin(value S) {
 	val_check(S, string);
+	BIGNUM *bi = NULL;
 	int neg = 0;
-	const unsigned char *s = (const unsigned char *)val_string(S);
 
-	BIGNUM *bi = BN_bin2bn(s+1, (int)val_strlen(s)-1, NULL);
-	if(s[0] == 0x80)
+	if(val_strlen(S) == 0)
+		return bi_ZERO();
+	const unsigned char *sp = (const unsigned char *)val_string(S);
+	if(val_strlen(S) > 1) {
+		bi = BN_bin2bn(sp+1, (int)val_strlen(S)-1, NULL);
+		if(bi == NULL)
+			THROW("b256 decode error");
+	}
+	else {
+		bi = BN_new();
+		BN_zero_ex(bi);
+	}
+	if(sp[0] & 0x80)
 		bi->neg = 1;
 	return bi_allocate(bi);
 }
