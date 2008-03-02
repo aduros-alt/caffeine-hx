@@ -36,7 +36,7 @@ import math.BigInteger;
 	Full RSA encryption class. For encryption only, the base class
 	RSAEncrypt can be used instead.
 **/
-class RSA extends RSAEncrypt {
+class RSA extends RSAEncrypt, implements IBlockCipher {
 	// private key
 	public var d : BigInteger;
 	public var p : BigInteger;
@@ -45,7 +45,7 @@ class RSA extends RSAEncrypt {
 	public var dmq1 : BigInteger;
 	public var coeff: BigInteger;
 
-	public function new(?N:String,?E:String,?D:String) {
+	public function new(?nHex:String,?eHex:String,?dHex:String) {
 		super(null,null);
 		this.d = null; // private exponent
 		this.p = null;
@@ -53,8 +53,8 @@ class RSA extends RSAEncrypt {
 		this.dmp1 = null;
 		this.dmq1 = null;
 		this.coeff = null;
-		if(N != null)
-			setPrivate(N,E,D);
+		if(nHex != null)
+			setPrivate(nHex,eHex,dHex);
 	}
 
 	/**
@@ -73,14 +73,8 @@ class RSA extends RSAEncrypt {
 		key.e = Std.parseInt("0x" + E);
 		var ee : BigInteger = BigInteger.ofString(E,16);
 		while(true) {
-			while(true) {
-				key.p = genRandom(B-qs,rng);
-				if(key.p.sub(BigInteger.ONE).gcd(ee).compare(BigInteger.ONE) == 0 && key.p.isProbablePrime(10)) break;
-			}
-			while(true) {
-				key.q = genRandom(qs,rng);
-				if(key.q.sub(BigInteger.ONE).gcd(ee).compare(BigInteger.ONE) == 0 && key.q.isProbablePrime(10)) break;
-			}
+			key.p = BigInteger.randomPrime(B-qs, ee, 10, true, rng);
+			key.q = BigInteger.randomPrime(qs, ee, 10, true, rng);
 			if(key.p.compare(key.q) <= 0) {
 				var t = key.p;
 				key.p = key.q;
@@ -101,21 +95,16 @@ class RSA extends RSAEncrypt {
 		return key;
 	}
 
-	static function genRandom(bits:Int, rng:math.prng.Random) : BigInteger {
-		var i = BigInteger.ofRandom(bits, rng);
-		i.primify(bits, 1);
-		return i;
-	}
-
 	/**
 		Set the private key fields N (modulus), E (public exponent)
 		and D (private exponent) from hex strings.
 		Throws exception if inputs are invalid.
 	**/
-	public function setPrivate(N:String,E:String,D:String) : Void {
-		super.setPublic(N, E);
-		if(D != null && D.length > 0) {
-			this.d = parseBigInt(cleanFormat(D),16);
+	public function setPrivate(nHex:String,eHex:String,dHex:String) : Void {
+		super.setPublic(nHex, eHex);
+		if(dHex != null && dHex.length > 0) {
+			var s = cleanFormat(dHex);
+			d = BigInteger.ofString(s, 16);
 		}
 		else
 			throw("Invalid RSA private key");
@@ -133,11 +122,16 @@ class RSA extends RSAEncrypt {
 		if(P != null && Q != null && DP != null && DQ != null && C != null &&
 			P.length > 0 && Q.length > 0 && DP.length > 0 && DQ.length > 0 && C.length > 0)
 		{
-			this.p = parseBigInt(cleanFormat(P),16);
-			this.q = parseBigInt(cleanFormat(Q),16);
-			this.dmp1 = parseBigInt(cleanFormat(DP),16);
-			this.dmq1 = parseBigInt(cleanFormat(DQ),16);
-			this.coeff = parseBigInt(cleanFormat(C),16);
+			var s : String = cleanFormat(P);
+			this.p = BigInteger.ofString(s, 16);
+			s = cleanFormat(Q);
+			this.q = BigInteger.ofString(s,16);
+			s = cleanFormat(DP);
+			this.dmp1 = BigInteger.ofString(s,16);
+			s = cleanFormat(DQ);
+			this.dmq1 = BigInteger.ofString(s,16);
+			s = cleanFormat(C);
+			this.coeff = BigInteger.ofString(s,16);
 		}
 		else
 			throw("Invalid RSA private key ex");
@@ -149,18 +143,12 @@ class RSA extends RSAEncrypt {
 		is a plain string.
 	**/
 	public function decrypt(ctext : String) : String {
-		var c = parseBigInt(ctext, 16);
-		var m = doPrivate(c);
-		if(m == null) {
-			throw "doPrivate error";
-			return null;
-		}
-		return pkcs1unpad2(m, (n.bitLength()+7)>>3);
+		return doDecrypt(ctext, doPrivate, 0x02);
 	}
 
 	override public function decryptBlock( enc : String ) : String {
-		var c = parseBigInt(enc, 256);
-		var m = doPrivate(c);
+		var c : BigInteger = BigInteger.ofString(enc, 256);
+		var m : BigInteger = doPrivate(c);
 		if(m == null) {
 			throw "doPrivate error";
 			return null;
@@ -170,20 +158,51 @@ class RSA extends RSAEncrypt {
 		var ba = m.toByteArray();
 		while(ba.length < blockSize)
 			ba.unshift(0);
+		while(ba.length > blockSize) {
+			var i = ba.shift();
+			if(i != 0)
+				throw "decryptBlock length error";
+		}
 		return ByteString.ofIntArray(ba).toString();
 	}
 
 	//////////////////////////////////////////////////
 	//               Private                        //
 	//////////////////////////////////////////////////
+	function doDecrypt(src: String, f : BigInteger->BigInteger, padType : Int)
+	{
+		var bs = blockSize;
+		var pf : IPad;
+		if(padType == 0x02)
+			pf = new PadPkcs1Type2(bs);
+		else
+			pf = new PadPkcs1Type1(bs);
+		bs *= 2; // hex string, 2 bytes per char
+		var ts : Int = bs - 11;
+		var idx : Int = 0;
+		var msg = new StringBuf();
+		while(idx < src.length) {
+			var s : String = src.substr(idx,bs);
+			var c : BigInteger= BigInteger.ofString(s, 16);
+			var m = f(c);
+			if(m == null)
+				return null;
+			var up:String = pf.unpad(m.toRadix(256));
+			if(up.length > ts)
+				throw "block text length error";
+			msg.add(up);
+			idx += bs;
+		}
+		return msg.toString();
+	}
+
 	/**
 		Perform raw private operation on "x": return x^d (mod n)
 	**/
 	function doPrivate( x:BigInteger ) : BigInteger {
-trace(this.d);
-trace(this.n);
-		if(this.p == null || this.q == null)
+		if(this.p == null || this.q == null) {
 			return x.modPow(this.d, this.n);
+		}
 
 		// TODO: re-calculate any missing CRT params
 		var xp = x.mod(this.p).modPow(this.dmp1, this.p);
@@ -193,30 +212,5 @@ trace(this.n);
 			xp = xp.add(this.p);
 		return xp.sub(xq).mul(this.coeff).mod(this.p).mul(this.q).add(xq);
 	}
-
-	//////////////////////////////////////////////////
-	//               Padding                        //
-	//////////////////////////////////////////////////
-	/**
-		Undo PKCS#1 (type 2, random) padding and, if valid, return the plaintext
-	**/
-	function pkcs1unpad2(d : BigInteger, n:Int) : String {
-		var b : Array<Int> = d.toByteArray();
-		var i = 0;
-trace(b.length);
-		while(i < b.length && b[i] == 0) ++i;
-		if(b.length-i != n-1 || b[i] != 2) {
-			throw("Length error b.length: "+b.length+" i:"+i+" n:"+n+" b:"+Std.string(b));
-			return null;
-		}
-		++i;
-		var sb = new StringBuf();
-		while(++i < b.length) {
-			try	sb.addChar((b[i])) catch(e:Dynamic) return null;
-		}
-		return sb.toString();
-	}
 }
-
-
 

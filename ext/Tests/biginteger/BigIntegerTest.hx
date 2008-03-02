@@ -109,9 +109,7 @@ class Functions extends haxe.unit.TestCase {
 
 	public function test00() {
 		var i = BigInteger.ONE.add(BigInteger.ofInt(9));
-		var b = BigInteger.nbi();
-		//trace("fromString>>");
-		b.fromString("10",10);
+		var b = BigInteger.ofString("10",10);
 #if !neko
 		assertEquals(10, b.chunks[0]);
 #end
@@ -126,8 +124,7 @@ class Functions extends haxe.unit.TestCase {
 	public function test01() {
 		var i = BigInteger.ONE.add(BigInteger.ofInt(9));
 		//trace(i.chunks);
-		var b = BigInteger.nbi();
-		b.fromString("10",10);
+		var b = BigInteger.ofString("10",10);
 		//trace(b.chunks);
 		assertEquals(true, i.eq(b));
 		assertEquals("10",decVal(b));
@@ -167,8 +164,7 @@ class Functions extends haxe.unit.TestCase {
 	}
 
 	public function test05_ZDiv2() {
-		var i = BigInteger.nbi();
-		i.fromString("FFFFFFF0", 16);
+		var i = BigInteger.ofString("FFFFFFF0", 16);
 		var m = BigInteger.ofInt(80);
 		var q = BigInteger.nbi();
 		var r = BigInteger.nbi();
@@ -201,8 +197,7 @@ class Functions extends haxe.unit.TestCase {
 	}
 
 	public function test08_Two() {
-		var i = BigInteger.nbi();
-		i.fromString("10000000000",10); // 10 tril 34 bit
+		var i = BigInteger.ofString("10000000000",10); // 10 tril 34 bit
 		//trace(here.lineNumber);
 		//trace(i.chunks);
 		//assertEquals("10000000000", i.toString());
@@ -216,6 +211,7 @@ class Functions extends haxe.unit.TestCase {
 
 	public function test10_RsaValues() {
 		var bufh = "1ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff007768617420697320746865726520666f7220796f7520746f20646f3f0a";
+		var bufh2 = "271a4c189acfa1fcc7364a74eb5d64e53358deb648611d67ba6ec0331c14212fba90e9ac12e9f760210e45505a88b577ecc074a5884f9332b0efbab8b7191588db69fb536861c45f3ba5319b96209319810a87342aafb682427955340e1ac077211a95564810ec6c12e4927bac9aea8b8485358f8da8f53bd8a2900796f0a";
 		var nh = "00bdb119666ebeeb1ffb9c6a304b4fb3eb0561d937d497582ca355b7a307e011cd8188c44227a266b29494bc81ae8cf81893dba4cedd4a87e472f5fc2f93aaf107b898188af926bf20644f8d33cd54afa83f59c3eed8bd1632a9277e3329aeb460d8272b66f5c7740535411e66df536a29c0f6602e9a32f93b22a34aa7bc9cd2f7";
 		var eh = "10001";
 		var dh = "3766f339349d3444fa12dbfcd0f22d65360437121458439b7df4fa1676a55dedbca87a51ac0bc59ce0c27430180ffa220b853a246503709f2b6866c86a83a1b39371d3dbc8f9de9d3acab256d1cb1948a3422af77457fca29b509aa90f95b09f0f9017f2c6684c191d27f8e2ee7e50271575dd744f8abe57c26e69b87cde8341";
@@ -230,9 +226,6 @@ class Functions extends haxe.unit.TestCase {
 
 		var biPriv = BigInteger.ofString(dh, 16);
 		assertEquals(ds, biPriv.toString());
-		var biPriv2 = BigInteger.nbi();
-		biPriv2.fromString(dh, 16);
-		assertEquals(ds, biPriv2.toString());
 
 		var rsa = new RSAEncrypt(nh, eh);
 		assertEquals(ns, rsa.n.toString());
@@ -256,6 +249,17 @@ class Functions extends haxe.unit.TestCase {
 
 		var res = biBuf.modPowInt(65537, biMod);
 		assertEquals(target, res.toRadix(16));
+		assertEquals(bufh, res.modPow(biPriv,biMod).toRadix(16));
+
+		// to ByteArray and back
+		var ba = BigInteger.ofString(bufh,16).toByteArray();
+		assertEquals(bufh, BigInteger.ofByteArray(ba).toRadix(16));
+
+		// buf 2 test
+		var biBuf2 = BigInteger.ofString(bufh2,16);
+		res = biBuf2.modPowInt(65537, biMod);
+		assertEquals(bufh2, res.modPow(biPriv,biMod).toRadix(16));
+
 // 		trace("");
 // 		for(x in 0...100) {
 

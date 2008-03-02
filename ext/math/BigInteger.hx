@@ -71,7 +71,9 @@ class BigInteger {
 		chunks = new Array<Int>();
 #end
 		if(byInt != null) fromInt(byInt);
-		else if( str != null && radix == null) fromString(str,256);
+		else if( str != null && radix == null) {
+			ofString(str,256).copyTo(this);
+		}
 	}
 
 /*
@@ -140,52 +142,20 @@ class BigInteger {
 	}
 
 	/**
-		Generate a random BigInteger of 'bits' length
-	**/
-	public function fromRandom(bits:Int, b:math.prng.Random) : Void {
-#if neko
-		seedRandom(bits, b);
-		var hrnd : Dynamic = bi_rand(bits, -1, 0);
-		bi_copy(_hnd, cast hrnd);
-#else true
-		if(bits < 2) {
-			fromInt(1);
-			return;
-		}
-		var x = new ByteString();
-		var t : Int = bits&7;
-		x.setLength((bits>>3)+1);
-		b.nextBytes(x);
-		if(t > 0) {
-			var v = x.get(0);
-			v &= ((1<<t)-1);
-			x.set(0, v);
-		}
-		else x.set(0, 0);
-		fromString(x.toString(),256);
-#end
-	}
-
-#if neko
-	function seedRandom(bits:Int, b:math.prng.Random) : Void {
-		var x = new ByteString();
-		x.setLength((bits>>3)+1);
-		b.nextBytes(x);
-		bi_rand_seed(untyped x.__s);
-	}
-#end
-
-	/**
 		convert to bigendian byte array
 	**/
 	public function toByteArray() : Array<Int> {
 #if neko
-		throw "unimplemented";
-		return [];
+		var i = toRadix(256);
+		var a = new Array<Int>();
+		for(x in 0...i.length) {
+			a.push(i.charCodeAt(x));
+		}
+		return a;
 #else true
 		var i:Int = t;
 		var r = new Array();
-		r[0] = sign;
+		r[0] = (sign == 0)?0:0x80;
 		var p:Int = DB-(i*DB)%8;
 		var d:Int;
 		var k:Int = 0;
@@ -209,50 +179,6 @@ class BigInteger {
 		return r;
 #end
 	}
-
-	/**
-		convert from a bigendian byte array xxx
-	**/
-	public function fromByteArray(r:Array<Int>, ?pos:Int, ?len:Int) : Void {
-		if(pos == null)
-			pos = 0;
-		if(len == null)
-			len = r.length - pos;
-#if neko
-		bi_copy(
-			_hnd,
-			bi_from_bin(ByteString.ofIntArray(r.slice(pos,len)).toString())
-		);
-		return;
-#else true
-		sign = 0;
-		t = 0;
-		var i:Int = pos+len;
-		var sh:Int = 0;
-		while (--i >= pos) {
-			var x:Int = i < len ? r[i]&0xff:0;
-			if (sh == 0) {
-				chunks[t++] = x;
-			}
-			else if (sh+8 > DB) {
-				chunks[t-1] |= (x&((1<<(DB-sh))-1))<<sh;
-				chunks[t++] = x>>(DB-sh);
-			}
-			else {
-				chunks[t-1] |= x<<sh;
-			}
-			sh += 8;
-			if (sh >= DB)
-				sh -= DB;
-		}
-		if((r[0] & 0x80) != 0) {
-			sign = -1;
-			if(sh > 0) chunks[t-1] |= ((1<<(DB-sh))-1)<<sh;
-		}
-		clamp();
-#end
-	}
-
 
 	//////////////////////////////////////////////////////////////
 	//            String conversion methods                     //
@@ -285,7 +211,7 @@ class BigInteger {
 
 	/**
 		return string representation in given radix.
-		This function handles radix values 2-36.
+		This function handles radix values 2-36 and 256.
 	**/
 	public function toRadix(b : Int) : String {
 		/**
@@ -312,7 +238,7 @@ class BigInteger {
 			return I32.baseEncode31(z.toInt(), b) + r;
 		}
 
-		if(b < 2 || b > 36) {
+		if((b < 2 || b > 36) && b != 256) {
 			throw("invalid base for conversion");
 			return "0";
 		}
@@ -321,6 +247,7 @@ class BigInteger {
 		switch(b) {
 		case 10: return new String(bi_to_decimal(_hnd));
 		case 16: return new String(bi_to_hex(_hnd)).toLowerCase();
+		case 256: return new String(bi_to_bin(_hnd));
 		}
 		throw "conversion to base "+b+" not yet supported";
 #else true
@@ -358,98 +285,6 @@ class BigInteger {
 			}
 		}
 		return m?r:"0";
-#end
-	}
-
-
-
-	/**
-		set from string and radix. Bases != [2,4,8,16,32,256] are
-		handled through fromStringExt
-	**/
-	public function fromString(s : String, b : Int) : Void {
-#if neko
-		switch(b) {
-		case 10: bi_copy(_hnd, untyped bi_from_decimal(s.__s)); return;
-		case 16: bi_copy(_hnd, untyped bi_from_hex(s.__s)); return;
-		case 256:bi_copy(_hnd, untyped bi_from_bin(s.__s)); return;
-		}
-		throw "conversion from base "+b+" not yet supported";
-#else true
-		var k;
-		if(b == 16) k = 4;
-		else if(b == 10) { fromStringExt(s,b); return; }
-		else if(b == 256) k = 8; // byte array
-		else if(b == 8) k = 3;
-		else if(b == 2) k = 1;
-		else if(b == 32) k = 5;
-		else if(b == 4) k = 2;
-		else { fromStringExt(s,b); return; }
-		t = 0;
-		sign = 0;
-		var i = s.length, mi = false, sh = 0;
-		while(--i >= 0) {
-			var x = (k==8)?s.charCodeAt( i )&0xff:intAt(s,i);
-			if(x < 0) {
-				if(s.charAt(i) == "-") mi = true;
-				continue;
-			}
-			mi = false;
-			if(sh == 0)
-				chunks[t++] = x;
-			else if(sh+k > DB) {
-				chunks[t-1] |= (x&((1<<(DB-sh))-1))<<sh;
-				chunks[t++] = (x>>(DB-sh));
-			}
-			else
-				chunks[t-1] |= x<<sh;
-			sh += k;
-			if(sh >= DB) sh -= DB;
-		}
-		if(k == 8 && (s.charCodeAt( 0 )&0x80) != 0) {
-			sign = -1;
-			if(sh > 0) chunks[t-1] |= ((1<<(DB-sh))-1)<<sh;
-		}
-		clamp();
-		if(mi) ZERO.subTo(this,this);
-#end
-	}
-
-	/**
-		convert from radix string
-	**/
-	function fromStringExt(s : String, ?b : Int) : Void {
-#if neko
-		if(b == null) b = 10;
-		fromString(s,b);
-		return;
-#else true
-		fromInt(0);
-		if(b == null) b = 10;
-		var cs:Int = Math.floor(0.6931471805599453*DB/Math.log(b));
-		var d:Int = Std.int( Math.pow(b,cs) );
-		var mi:Bool = false;
-		var j:Int = 0;
-		var w:Int = 0;
-		for(i in 0...s.length) {
-			var x = intAt(s,i);
-			if(x < 0) {
-				if(s.charAt(i) == "-" && sign == 0) mi = true;
-				continue;
-			}
-			w = b*w+x;
-			if(++j >= cs) {
-				dMultiply( d );
-				dAddOffset(w,0);
-				j = 0;
-				w = 0;
-			}
-		}
-		if(j > 0) {
-			dMultiply(Std.int( Math.pow(b,j) ));
-			dAddOffset(w,0);
-		}
-		if(mi) ZERO.subTo(this,this);
 #end
 	}
 
@@ -631,9 +466,9 @@ class BigInteger {
 		var h : HndBI = bi_mod_exp(_hnd, e._hnd, m._hnd);
 		return hndToBigInt(h);
 #else true
-		var i:Int = e.bitLength();
+		var i : Int = e.bitLength();
 		var k : Int;
-		var r : BigInteger = nbv(1);
+		var r : BigInteger = BigInteger.nbv(1);
 		var z : ModularReduction;
 		if(i <= 0) return r;
 		else if(i < 18) k = 1;
@@ -649,16 +484,16 @@ class BigInteger {
 			z = new Montgomery(m);
 
 		// precomputation
-		var g : Array<BigInteger> = new Array();
+		var g : Array<BigInteger> = new Array<BigInteger>();
 		var n : Int = 3;
 		var k1 : Int = k-1;
 		var km : Int = (1<<k)-1;
 		g[1] = z.convert(this);
 		if(k > 1) {
-			var g2 : BigInteger = nbi();
+			var g2 : BigInteger = BigInteger.nbi();
 			z.sqrTo(g[1],g2);
 			while(n <= km) {
-				g[n] = nbi();
+				g[n] = BigInteger.nbi();
 				z.mulTo(g2,g[n-2],g[n]);
 				n += 2;
 			}
@@ -667,18 +502,21 @@ class BigInteger {
 		var j : Int = e.t-1;
 		var w : Int;
 		var is1 : Bool = true;
-		var r2 : BigInteger = nbi();
+		var r2 : BigInteger = BigInteger.nbi();
 		var t : BigInteger;
 		i = nbits(e.chunks[j])-1;
+
 		while(j >= 0) {
-			if(i >= k1) w = (e.chunks[j]>>(i-k1))&km;
+			if(i >= k1) {
+				w = (e.chunks[j]>>(i-k1))&km;
+			}
 			else {
 				w = (e.chunks[j]&((1<<(i+1))-1))<<(k1-i);
 				if(j > 0) w |= e.chunks[j-1]>>(DB+i-k1);
 			}
-
 			n = k;
 			while((w&1) == 0) { w >>= 1; --n; }
+
 			if((i -= n) < 0) { i += DB; --j; }
 			if(is1) {	// ret == 1, don't bother squaring or multiplying it
 				g[w].copyTo(r);
@@ -690,12 +528,16 @@ class BigInteger {
 				else { t = r; r = r2; r2 = t; }
 				z.mulTo(r2,g[w],r);
 			}
-
-			while(j >= 0 && (e.chunks[j]&(1<<i)) == 0) {
-				z.sqrTo(r,r2); t = r; r = r2; r2 = t;
+			// chnk as part of the while loop creates a verify error.
+			var chnk : Int = e.chunks[j];
+			while(j >= 0 && (chnk&(1<<i) == 0)) {
+				z.sqrTo(r,r2);
+				t = r; r = r2; r2 = t;
 				if(--i < 0) { i = DB-1; --j; }
+				chnk = e.chunks[j];
 			}
 		}
+
 		return z.revert(r);
 #end
 	}
@@ -704,6 +546,8 @@ class BigInteger {
 		<pre>this^e % m, 0 <= e < 2^32</pre>
 	**/
 	public function modPowInt(e : Int, m : BigInteger) : BigInteger {
+		if(m == null)
+			throw "m is null";
 #if neko
 		var ebi = BigInteger.ofInt(e);
 		return modPow(ebi, m);
@@ -954,8 +798,9 @@ class BigInteger {
 	**/
 	public function divRemTo(m : BigInteger, q : BigInteger ,?r : BigInteger) : Void
 	{
-#if neko
+		if(q == null) q = nbi();
 		if(r == null) r = nbi();
+#if neko
 		bi_div_rem_to(this._hnd, m._hnd, q._hnd, r._hnd);
 		return;
 #else true
@@ -967,7 +812,6 @@ class BigInteger {
 			if(r != null) copyTo(r);
 			return;
 		}
-		if(r == null) r = nbi();
 		var y:BigInteger = nbi();
 		var ts:Int = sign;
 		var ms:Int = m.sign;
@@ -1255,20 +1099,27 @@ class BigInteger {
 	//////////////////////////////////////////////////////////////
 	//        Reduction public methods (move to private)        //
 	//////////////////////////////////////////////////////////////
-#if !neko
 	/**
 		<pre>this += n << w words, this >= 0</pre>
 	**/
 	public function dAddOffset(n : Int, w : Int) :Void {
-	  while(t <= w) chunks[t++] = 0;
-	  chunks[w] += n;
-	  while(chunks[w] >= DV) {
-	    chunks[w] -= DV;
-	    if(++w >= t) chunks[t++] = 0;
-	    ++chunks[w];
-	  }
+#if neko
+		var bi = BigInteger.ofInt(w);
+		if(w != 0)
+			bi = bi.shl(w*32);
+		addTo(bi, this);
+#else true
+		while(t <= w) chunks[t++] = 0;
+		chunks[w] += n;
+		while(chunks[w] >= DV) {
+			chunks[w] -= DV;
+			if(++w >= t) chunks[t++] = 0;
+			++chunks[w];
+		}
+#end
 	}
 
+#if !neko
 	/** <pre> r = this << n*DB </pre> **/
 	public function dlShiftTo(n : Int, r : BigInteger) :Void {
 		if(r == null) return;
@@ -1324,9 +1175,13 @@ class BigInteger {
 		// we really want the negative inverse, and -DV < y < DV
 		return (y>0)?DV-y:-y;
 	}
+#end
 
 	/** <pre>test primality with certainty >= 1-.5^t</pre> **/
 	public function isProbablePrime(v : Int) : Bool {
+#if neko
+		return bi_is_prime(_hnd, v, true);
+#else true
 		var i:Int;
 		var x = abs();
 		if(x.t == 1 && x.chunks[0] <= lowprimes[lowprimes.length-1]) {
@@ -1344,6 +1199,7 @@ class BigInteger {
 			while(i < j) if(m%lowprimes[i++] == 0) return false;
 		}
 		return x.millerRabin(v);
+#end
 	}
 
 	public function primify(bits:Int, ta:Int) : Void {
@@ -1353,12 +1209,13 @@ class BigInteger {
 		if (isEven()) {
 			dAddOffset(1,0);    // force odd
 		}
+		while(bitLength()>bits) subTo(BigInteger.ONE.shl(bits-1),this);
 		while (!isProbablePrime(ta)) {
 			dAddOffset(2,0);
 			while(bitLength()>bits) subTo(BigInteger.ONE.shl(bits-1),this);
 		}
 	}
-#end
+
 
 	//////////////////////////////////////////////////////////////
 	//					Private methods							//
@@ -1676,11 +1533,85 @@ class BigInteger {
 	/**
 		Construct a BigInteger from a string in a given base
 	**/
-	public static function ofString(s : String, base : Int) : BigInteger
-	{
-		var i = nbi();
-		i.fromString(s, base);
-		return i;
+	public static function ofString(s : String, base : Int) : BigInteger {
+#if neko
+		return switch(base) {
+		case 10: hndToBigInt(bi_from_decimal(untyped  s.__s));
+		case 16: hndToBigInt(bi_from_hex(untyped s.__s));
+		case 256:hndToBigInt(bi_from_bin(untyped s.__s));
+		default:
+			throw "conversion from base "+base+" not yet supported";
+		}
+#else true
+		var me = nbi();
+		// convert from radix string
+		var fromStringExt = function(s : String, b : Int) : BigInteger {
+			me.fromInt(0);
+			var cs:Int = Math.floor(0.6931471805599453*DB/Math.log(b));
+			var d:Int = Std.int( Math.pow(b,cs) );
+			var mi:Bool = false;
+			var j:Int = 0;
+			var w:Int = 0;
+			for(i in 0...s.length) {
+				var x = intAt(s,i);
+				if(x < 0) {
+					if(s.charAt(i) == "-" && me.sign == 0) mi = true;
+					continue;
+				}
+				w = b*w+x;
+				if(++j >= cs) {
+					me.dMultiply( d );
+					me.dAddOffset(w,0);
+					j = 0;
+					w = 0;
+				}
+			}
+			if(j > 0) {
+				me.dMultiply(Std.int( Math.pow(b,j) ));
+				me.dAddOffset(w,0);
+			}
+			if(mi) ZERO.subTo(me,me);
+			return me;
+		}
+		//Bases != [2,4,8,16,32,256] are handled through fromStringExt
+		var k : Int;
+		if(base == 16) k = 4;
+		else if(base == 10) { return fromStringExt(s,base); }
+		else if(base == 256) k = 8; // byte array
+		else if(base == 8) k = 3;
+		else if(base == 2) k = 1;
+		else if(base == 32) k = 5;
+		else if(base == 4) k = 2;
+		else { return fromStringExt(s,base); }
+		me.t = 0;
+		me.sign = 0;
+		var i = s.length, mi = false, sh = 0;
+		while(--i >= 0) {
+			var x = (k==8)?s.charCodeAt( i )&0xff:intAt(s,i);
+			if(x < 0) {
+				if(s.charAt(i) == "-") mi = true;
+				continue;
+			}
+			mi = false;
+			if(sh == 0)
+				me.chunks[me.t++] = x;
+			else if(sh+k > DB) {
+				me.chunks[me.t-1] |= (x&((1<<(DB-sh))-1))<<sh;
+				me.chunks[me.t++] = (x>>(DB-sh));
+			}
+			else
+				me.chunks[me.t-1] |= x<<sh;
+			sh += k;
+			if(sh >= DB) sh -= DB;
+		}
+		if(k == 8 && (s.charCodeAt( 0 )&0x80) != 0) {
+			me.sign = -1;
+			if(sh > 0) me.chunks[me.t-1] |= ((1<<(DB-sh))-1)<<sh;
+		}
+		me.clamp();
+		if(mi) ZERO.subTo(me,me);
+		return me;
+#end
 	}
 
 	/**
@@ -1696,18 +1627,103 @@ class BigInteger {
 		Construct a BigInteger from a ByteString
 	**/
 	public static function ofByteString(b : ByteString) : BigInteger {
-		var i = nbi();
-		i.fromString(b.toString(), 256);
+		var i = ofString(b.toString(), 256);
 		return i;
 	}
 
 	/**
-		Construct from random number source
+		Construct from a bigendian byte array. First byte must either be
+		0 for positive or 0x80 for negative.
 	**/
-	public static function ofRandom(bits:Int, rng:math.prng.Random) : BigInteger {
-		var i = nbi();
-		i.fromRandom(bits, rng);
-		return i;
+	public static function ofByteArray(r:Array<Int>, ?pos:Int, ?len:Int) : BigInteger {
+		if(pos == null)
+			pos = 0;
+		if(len == null)
+			len = r.length - pos;
+		if(len == null)
+			return ZERO;
+#if neko
+		return hndToBigInt(bi_from_bin(untyped ByteString.ofIntArray(r.slice(pos,len)).toString().__s));
+#else true
+		var bi : BigInteger = nbi();
+		bi.sign = 0;
+		bi.t = 0;
+		var i:Int = pos+len;
+		var sh:Int = 0;
+		while (--i >= pos) {
+			var x:Int = i < len ? r[i]&0xff:0;
+			if (sh == 0) {
+				bi.chunks[bi.t++] = x;
+			}
+			else if (sh+8 > DB) {
+				bi.chunks[bi.t-1] |= (x&((1<<(DB-sh))-1))<<sh;
+				bi.chunks[bi.t++] = x>>(DB-sh);
+			}
+			else {
+				bi.chunks[bi.t-1] |= x<<sh;
+			}
+			sh += 8;
+			if (sh >= DB)
+				sh -= DB;
+		}
+		if((r[0] & 0x80) != 0) {
+			bi.sign = -1;
+			if(sh > 0) bi.chunks[bi.t-1] |= ((1<<(DB-sh))-1)<<sh;
+		}
+		bi.clamp();
+		return bi;
+#end
+	}
+
+	/**
+		Generate a random BigInteger of 'bits' length
+	**/
+	public static function random(bits:Int, ?rng:math.prng.Random) : BigInteger {
+		if(rng == null)
+			rng = new math.prng.Random();
+		if(bits < 2)
+			return ofInt(1);
+#if neko
+		seedRandom(bits, rng);
+		var hrnd : Dynamic = bi_rand(bits, -1, 0);
+		return hndToBigInt(hrnd);
+#else true
+		var x = new ByteString();
+		var t : Int = bits&7;
+		x.setLength((bits>>3)+1);
+		rng.nextBytes(x);
+		if(t > 0) {
+			var v = x.get(0);
+			v &= ((1<<t)-1);
+			x.set(0, v);
+		}
+		else x.set(0, 0);
+		return ofString("0"+x.toString(),256);
+#end
+	}
+
+	public static function randomPrime(bits:Int, gcdExp : BigInteger, iterations:Int, forceLength : Bool, ?rng:math.prng.Random) : BigInteger {
+		if(rng == null)
+			rng = new math.prng.Random();
+#if neko
+		seedRandom(bits, rng);
+#end
+		if(iterations < 1)
+			iterations = 1;
+		while(true) {
+#if neko
+			var i : BigInteger = hndToBigInt(bi_generate_prime(bits, false));
+#else true
+			var i : BigInteger = BigInteger.random(bits, rng);
+#end
+			if(forceLength)
+				i.primify(bits, 1);
+			if(i.sub(BigInteger.ONE).gcd(gcdExp).compare(BigInteger.ONE) == 0
+				&& i.isProbablePrime(iterations))
+					return i;
+		}
+		return null;
+
 	}
 
 	//////////////////////////////////////////////////////////////
@@ -1773,40 +1789,26 @@ class BigInteger {
 #end
 
 #if neko
-/*
-	static function mkBigInt(a:BigInteger) : HndBI {
-		return bi_create(DB, a.t, a.sign, I32.mkNekoArray31(a.chunks));
-	}
-*/
 	static function hndToBigInt(h : HndBI) : BigInteger {
 		var rv = BigInteger.nbi();
 		rv._hnd = h;
 		return rv;
 	}
 
-/*
-	static function popFromHandle(h : HndBI, r : BigInteger) {
-		if(r == null || h == null)
-			return;
-		var a = bi_to_array(h);
-		if(a == null)
-			throw "error";
-		untyped	{
-			r.t = a[0];
-			r.sign = a[1];
-			for(x in 0...r.t) {
-				r.chunks[x] = a[x+2];
-			}
-		}
+	static function seedRandom(bits:Int, b:math.prng.Random) : Void {
+		var x = new ByteString();
+		x.setLength((bits>>3)+1);
+		b.nextBytes(x);
+		bi_rand_seed(untyped x.__s);
 	}
-*/
 
 	private static var bi_new=neko.Lib.load("openssl","bi_new",0);
 	private static var destroy_biginteger=neko.Lib.load("openssl","destroy_biginteger",1);
 	private static var bi_ZERO=neko.Lib.load("openssl","bi_ZERO",0);
 	private static var bi_ONE=neko.Lib.load("openssl","bi_ONE",0);
 	private static var bi_copy=neko.Lib.load("openssl","bi_copy",2);
-	private static var bi_generate_prime=neko.Lib.load("openssl","bi_generate_prime",1);
+	private static var bi_generate_prime=neko.Lib.load("openssl","bi_generate_prime",2);
+	private static var bi_is_prime=neko.Lib.load("openssl","bi_is_prime",3);
 	private static var bi_abs=neko.Lib.load("openssl","bi_abs",1);
 	private static var bi_add_to=neko.Lib.load("openssl","bi_add_to",3);
 	private static var bi_sub_to=neko.Lib.load("openssl","bi_sub_to",3);

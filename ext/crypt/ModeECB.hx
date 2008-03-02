@@ -74,11 +74,11 @@ class ModeECB implements IMode {
 				rv = buf.substr(offset, tsize);
 				offset += bsize;
 			}
-			//if(rv.length != bsize)
-			//	throw "padded length error";
+
 // trace(rv.length);
 trace(ByteStringTools.hexDump(rv, false));
 			var enc = cipher.encryptBlock(rv);
+trace(ByteStringTools.hexDump(cipher.decryptBlock(enc),false));
 trace(ByteStringTools.hexDump(enc,false));
 			if(enc.length != bsize)
 				throw("block encryption to wrong block size");

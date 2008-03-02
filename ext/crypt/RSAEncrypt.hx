@@ -47,24 +47,30 @@ class RSAEncrypt implements IBlockCipher {
 	public var e : Int;
 	public var blockSize(getBlockSize,null) : Int;
 
-	public function new(?N:String,?E:String) {
+	public function new(?nHex:String,?eHex:String) {
 		this.n = null;
 		this.e = 0;
-		if(N != null)
-			setPublic(N, E);
+		if(nHex != null)
+			setPublic(nHex, eHex);
 	}
 
 	/**
 		Set the public key fields N (modulus) and E (public exponent)
 		from hex strings.
 	**/
-	public function setPublic(N : String, E:String) : Void {
-		if(N != null && E != null && N.length > 0 && E.length > 0) {
-			this.n = parseBigInt(cleanFormat(N),16);
-			this.e = Std.parseInt("0x" + cleanFormat(E));
+	public function setPublic(nHex : String, eHex:String) : Void {
+		try {
+			if(nHex == null || eHex == null || nHex.length == 0 || eHex.length == 0)
+				throw 1;
+			var s : String = cleanFormat(nHex);
+			n = BigInteger.ofString(s, 16);
+			if(n == null) throw 2;
+			var ie : Null<Int> = Std.parseInt("0x" + cleanFormat(eHex));
+			if(ie == null || ie == 0) throw 3;
+			e = ie;
 		}
-		else
-			throw("Invalid RSA public key");
+		catch(e:Dynamic)
+			throw("Invalid RSA public key: " + e);
 	}
 
 	/**
@@ -81,14 +87,15 @@ class RSAEncrypt implements IBlockCipher {
 		if(block.length != bsize)
 			throw("bad block size");
 
-		var biv = BigInteger.nbi();
-		biv.fromString(block, 256);
+		var biv = BigInteger.ofString(block, 256);
 trace("BI of Block: " + biv.toRadix(16));
 trace("e: " + StringTools.hex(e));
 trace("n: " + n.toRadix(16));
-var biRes = doPublic(biv);
+trace(n.bitLength());
+		var biRes = doPublic(biv);
 trace("result: " + biRes.toRadix(16));
-		var ba = doPublic(biv).toByteArray();
+		var ba = biRes.toByteArray();
+trace(ba);
 
 		while(ba.length > bsize) {
 			if(ba[0] == 0)
@@ -123,67 +130,35 @@ trace("result: " + biRes.toRadix(16));
 
 	function doEncrypt(src:String, f : BigInteger->BigInteger, padType : Int)
 	{
-trace(src);
-trace(src.length);
+trace("source: " + src);
 		var bs = blockSize;
+		var pf : IPad;
+		if(padType == 0x02)
+			pf = new PadPkcs1Type2(bs);
+		else
+			pf = new PadPkcs1Type1(bs);
 		var ts : Int = bs - 11;
-trace("Blocksize : "+bs);
 		var idx : Int = 0;
 		var msg = new StringBuf();
 		while(idx < src.length) {
-			var m = pkcs1pad2(src.substr(idx,ts), bs);
-trace(m.bitCount());
+			var m = BigInteger.ofString(pf.pad(src.substr(idx,ts)),256);
+trace("padded: " + m.toRadix(16));
 			if(m == null) return null;
 			var c = f(m);
-//trace(c.chunks);
 			if(c == null) return null;
 			var h = c.toRadix(16);
-trace(h.length);
-			msg.add(if((h.length & 1) == 0) h; else "0" + h);
+			if((h.length & 1) != 0)
+				msg.add( "0" );
+trace("crypted: " + h);
+			msg.add(h);
 			idx += ts;
 		}
-trace(msg.toString().length);
 		return msg.toString();
 	}
 
 	// Perform raw public operation on "x": return x^e (mod n)
 	function doPublic(x : BigInteger) : BigInteger {
 		return x.modPowInt(this.e, this.n);
-	}
-
-	//////////////////////////////////////////////////
-	//               Padding                        //
-	//////////////////////////////////////////////////
-	/**
-		PKCS#1 (type 2, random) pad input string s to n bytes,
-		and return a bigint
-	**/
-	function pkcs1pad2(s : String, n : Int) : BigInteger {
-		if(n < s.length + 11) {
-			throw("Message too long for RSA");
-			return null;
-		}
-		var ba = new Array<Int>();
-		var i = s.length - 1;
-		while(i >= 0 && n > 0)
-			ba[--n] = s.charCodeAt(i--);
-		ba[--n] = 0;
-		var rng = new Random();
-		var x = new Array<Int>();
-		while(n > 2) { // random non-zero pad
-			x[0] = 0;
-			while(x[0] == 0) rng.nextBytesArray(x);
-			ba[--n] = x[0];
-		}
-		ba[--n] = 2;
-		ba[--n] = 0;
-trace(ba);
-trace(ba.length);
-		var bv = BigInteger.nbi();
-		bv.fromByteArray(ba,0,ba.length);
-trace(bv.toByteArray());
-trace(bv.toByteArray().length);
-		return bv;
 	}
 
 	//////////////////////////////////////////////////
@@ -198,27 +173,18 @@ trace(bv.toByteArray().length);
 	//////////////////////////////////////////////////
 	//               Convenience                    //
 	//////////////////////////////////////////////////
-	// convert a (hex) string to a bignum object
-	function parseBigInt(str:String, r : Int) : BigInteger {
-		var bi = BigInteger.nbi();
-		bi.fromString(str,r);
-		return bi;
-	}
-
 	/**
 		Cleans out all carriage returns and colons
 		from input hex strings
 	**/
 	function cleanFormat(s : String) : String {
+		var e : String = StringTools.replace(s, ":", "");
 #if (neko || flash9 || js)
-		var e = StringTools.replace(s, ":", "");
-
 		var ereg : EReg = ~/([\s]*)/g;
 		e = ereg.replace(e, "");
 #else true
-		var e = s;
 		var ol : Int = 0;
-		var nl : Int = s.length;
+		var nl : Int = e.length;
 		while(nl != ol) {
 			ol = nl;
 			e = StringTools.replace(e, "\r", "");

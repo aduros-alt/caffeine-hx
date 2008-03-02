@@ -267,66 +267,46 @@ class PadFunctions extends haxe.unit.TestCase {
 }
 
 class RSAFunctions extends haxe.unit.TestCase {
-	static var modulus : String = "
-		00:bd:b1:19:66:6e:be:eb:1f:fb:9c:6a:30:4b:4f:
-		b3:eb:05:61:d9:37:d4:97:58:2c:a3:55:b7:a3:07:
-		e0:11:cd:81:88:c4:42:27:a2:66:b2:94:94:bc:81:
-		ae:8c:f8:18:93:db:a4:ce:dd:4a:87:e4:72:f5:fc:
-		2f:93:aa:f1:07:b8:98:18:8a:f9:26:bf:20:64:4f:
-		8d:33:cd:54:af:a8:3f:59:c3:ee:d8:bd:16:32:a9:
-		27:7e:33:29:ae:b4:60:d8:27:2b:66:f5:c7:74:05:
-		35:41:1e:66:df:53:6a:29:c0:f6:60:2e:9a:32:f9:
-		3b:22:a3:4a:a7:bc:9c:d2:f7";
+	static var modulus : String = "00:bd:b1:19:66:6e:be:eb:1f:fb:9c:6a:30:4b:4f:b3:eb:05:61:d9:37:d4:97:58:2c:a3:55:b7:a3:07:e0:11:cd:81:88:c4:42:27:a2:66:b2:94:94:bc:81:ae:8c:f8:18:93:db:a4:ce:dd:4a:87:e4:72:f5:fc:2f:93:aa:f1:07:b8:98:18:8a:f9:26:bf:20:64:4f:8d:33:cd:54:af:a8:3f:59:c3:ee:d8:bd:16:32:a9:27:7e:33:29:ae:b4:60:d8:27:2b:66:f5:c7:74:05:35:41:1e:66:df:53:6a:29:c0:f6:60:2e:9a:32:f9:3b:22:a3:4a:a7:bc:9c:d2:f7";
 	static var exp : String = "10001";
-	static var pexp: String = "
-		37:66:f3:39:34:9d:34:44:fa:12:db:fc:d0:f2:2d:
-		65:36:04:37:12:14:58:43:9b:7d:f4:fa:16:76:a5:
-		5d:ed:bc:a8:7a:51:ac:0b:c5:9c:e0:c2:74:30:18:
-		0f:fa:22:0b:85:3a:24:65:03:70:9f:2b:68:66:c8:
-		6a:83:a1:b3:93:71:d3:db:c8:f9:de:9d:3a:ca:b2:
-		56:d1:cb:19:48:a3:42:2a:f7:74:57:fc:a2:9b:50:
-		9a:a9:0f:95:b0:9f:0f:90:17:f2:c6:68:4c:19:1d:
-		27:f8:e2:ee:7e:50:27:15:75:dd:74:4f:8a:be:57:
-		c2:6e:69:b8:7c:de:83:41";
+	static var pexp: String = "37:66:f3:39:34:9d:34:44:fa:12:db:fc:d0:f2:2d:65:36:04:37:12:14:58:43:9b:7d:f4:fa:16:76:a5:5d:ed:bc:a8:7a:51:ac:0b:c5:9c:e0:c2:74:30:18:0f:fa:22:0b:85:3a:24:65:03:70:9f:2b:68:66:c8:6a:83:a1:b3:93:71:d3:db:c8:f9:de:9d:3a:ca:b2:56:d1:cb:19:48:a3:42:2a:f7:74:57:fc:a2:9b:50:9a:a9:0f:95:b0:9f:0f:90:17:f2:c6:68:4c:19:1d:27:f8:e2:ee:7e:50:27:15:75:dd:74:4f:8a:be:57:c2:6e:69:b8:7c:de:83:41";
 
-	function dtest0() {
+	function test0() {
 		var r = new RSA(modulus, exp, pexp);
+#if neko
 		for(s in AesTestFunctions.msgs) {
-trace(s);
+#else true
+		var s = AesTestFunctions.msgs[0];
+#end
 			var e = r.encrypt(s);
-trace(e.length);
-trace(e);
 			//trace(ByteStringTools.hexDump(e));
 			var u = r.decrypt(e);
-trace(u);
 			assertTrue(u == s);
+#if neko
 		}
+#end
 	}
-
-	function test1() {
-		//var s = "Whoa there nellie. Have some tea";
-		var s = "Message";
-
-		var r = new RSA(modulus, exp, pexp);
 /*
-trace('');
-var te = t.encryptBlock( s );
-trace("Hex dump");
-trace(ByteStringTools.hexDump(te));
-var td = t.decryptBlock(te);
-trace("Raw td");
-trace(td);
-trace("Hex dump");
-trace(ByteStringTools.hexDump(td));
-*/
+	function test1() {
+		var s = "Message";
+		var r = new RSA(modulus, exp, pexp);
+// trace('');
+// var te = t.encryptBlock( s );
+// trace("Hex dump");
+// trace(ByteStringTools.hexDump(te));
+// var td = t.decryptBlock(te);
+// trace("Raw td");
+// trace(td);
+// trace("Hex dump");
+// trace(ByteStringTools.hexDump(td));
 		var rsa = new ModeECB( r, new PadPkcs1Type1(r.blockSize) );
 		for(s in AesTestFunctions.msgs) {
 			var e = rsa.encrypt(s);
-			trace(ByteStringTools.hexDump(e));
 			var u = rsa.decrypt(e);
 			assertTrue(u == s);
 		}
 	}
+*/
 
 /*
 	function test2() {

@@ -62,8 +62,9 @@ class PadPkcs1Type1 implements IPad {
 	}
 
 	public function unpad( s : String ) : String {
-		if(s.length % blockSize != 0)
-			throw "crypt.padpkcs1 unpad: buffer length "+s.length+" not multiple of block size " + blockSize;
+		// src string may be shorter than block size. This happens when
+		// converting to BigIntegers then to padded string before calling
+		// unpad.
 		var i : Int = 0;
 trace(ByteStringTools.hexDump(s));
 		var sb = new StringBuf();
