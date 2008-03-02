@@ -425,6 +425,7 @@ MUST be called before using the rand functions.
 static value bi_rand_seed(value data) {
 	val_check(data, string);
 	RAND_seed(val_string(data), val_strlen(data));
+	return val_true;
 }
 DEFINE_PRIM(bi_rand_seed,1);
 
