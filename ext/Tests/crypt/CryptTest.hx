@@ -284,7 +284,7 @@ class RSAFunctions extends haxe.unit.TestCase {
 	static var coefficient:String = "48:ba:40:c3:e7:ce:91:1c:c5:51:3b:e1:3c:72:31:12:07:1b:20:5e:c2:2d:c6:d2:7c:68:62:85:3b:95:4a:49:86:fa:23:fa:ed:24:e9:40:4e:04:56:f9:4a:f2:48:4e:39:ca:05:75:a5:11:5f:5e:d3:c1:36:bd:fa:71:b5:19";
 
 
-
+/*
 	function test0() {
 		var r = new RSA(modulus, publicExponent, privateExponent);
 		//r.setPrivateEx(modulus, publicExponent,privateExponent,prime1,prime2,null,null,coefficient);
@@ -301,6 +301,7 @@ class RSAFunctions extends haxe.unit.TestCase {
 		}
 #end
 	}
+*/
 /*
 	function test1() {
 		var s = "Message";
@@ -322,7 +323,7 @@ class RSAFunctions extends haxe.unit.TestCase {
 		}
 	}
 */
-
+/*
 	function test02() {
 trace(here.methodName);
 		var msg = "Hello";
@@ -332,7 +333,7 @@ trace(rsa);
 		var u = rsa.decrypt(e);
 		assertEquals(msg,u);
 	}
-
+*/
 	function test03() {
 trace(here.methodName);
 		var msg = "Hello";

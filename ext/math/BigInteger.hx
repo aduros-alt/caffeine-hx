@@ -379,7 +379,7 @@ class BigInteger {
 	/** Modulus division bn % bn **/
 	public function mod(a : BigInteger) : BigInteger {
 #if neko
-		return hndToBigInt(bi_mod_inverse(this._hnd, a._hnd));
+		return hndToBigInt(bi_mod(this._hnd, a._hnd));
 #else true
 		var r = nbi();
 		abs().divRemTo(a,null,r);
@@ -392,7 +392,7 @@ class BigInteger {
 	public function modInt(n : Int) : Int {
 #if neko
 		var b = BigInteger.ofInt(n);
-		return hndToBigInt(bi_mod_inverse(this._hnd, b._hnd)).toInt();
+		return hndToBigInt(bi_mod(this._hnd, b._hnd)).toInt();
 #else true
 		if(n <= 0) return 0;
 		var d:Int = DV%n;

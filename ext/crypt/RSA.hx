@@ -122,8 +122,6 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 	{
 trace(here.methodName);
 		setPrivate(N, E, D);
-// 		if(P != null && Q != null && DP != null && DQ != null && C != null &&
-// 			P.length > 0 && Q.length > 0 && DP.length > 0 && DQ.length > 0 && C.length > 0)
 		if(P != null && Q != null && C != null &&
 			P.length > 0 && Q.length > 0 && C.length > 0)
 		{
@@ -143,6 +141,7 @@ trace(dmp1);
 				s = cleanFormat(DP);
 				dmp1 = BigInteger.ofString(s,16);
 			}
+trace(here.lineNumber);
 			if(DQ == null) {
 				var pq1 = q.sub(BigInteger.ONE);
 				dmq1 = d.mod(pq1);
