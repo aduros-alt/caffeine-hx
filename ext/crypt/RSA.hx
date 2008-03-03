@@ -39,22 +39,22 @@ import math.BigInteger;
 class RSA extends RSAEncrypt, implements IBlockCipher {
 	// private key
 	public var d : BigInteger;
-	public var p : BigInteger;
-	public var q : BigInteger;
+	public var p : BigInteger;		// prime 1
+	public var q : BigInteger;		// prime 2
 	public var dmp1 : BigInteger;
 	public var dmq1 : BigInteger;
 	public var coeff: BigInteger;
 
-	public function new(?nHex:String,?eHex:String,?dHex:String) {
+	public function new(?N:String,?E:String,?D:String) {
 		super(null,null);
-		this.d = null; // private exponent
-		this.p = null;
-		this.q = null;
-		this.dmp1 = null;
-		this.dmq1 = null;
+		this.d = null;		// private exponent
+		this.p = null;		// prime 1
+		this.q = null;		// prime 2
+		this.dmp1 = null;	// d % (p-1)
+		this.dmq1 = null;	// d % (q -1)
 		this.coeff = null;
-		if(nHex != null)
-			setPrivate(nHex,eHex,dHex);
+		if(N != null)
+			setPrivate(N,E,D);
 	}
 
 	/**
@@ -63,6 +63,7 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 		is just not practical. If you need large keys, generate them with
 		openssl and load them into RSA.<br />
 		<b>openssl genrsa -des3 -out user.key 1024</b><br />
+		<b>openssl genrsa -3 -out user.key 1024</b> no password, 3 as exponent<br />
 		will generate a 1024 bit key, which can be displayed with<br />
 		<b>openssl rsa -in user.key -noout -text</b>
 	*/
@@ -71,7 +72,8 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 		var key:RSA = new RSA(); // new RSA(null,0,null);
 		var qs : Int = B>>1;
 		key.e = Std.parseInt("0x" + E);
-		var ee : BigInteger = BigInteger.ofString(E,16);
+		//var ee : BigInteger = BigInteger.ofString(E,16);
+		var ee : BigInteger = BigInteger.ofInt(key.e);
 		while(true) {
 			key.p = BigInteger.randomPrime(B-qs, ee, 10, true, rng);
 			key.q = BigInteger.randomPrime(qs, ee, 10, true, rng);
@@ -100,10 +102,10 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 		and D (private exponent) from hex strings.
 		Throws exception if inputs are invalid.
 	**/
-	public function setPrivate(nHex:String,eHex:String,dHex:String) : Void {
-		super.setPublic(nHex, eHex);
-		if(dHex != null && dHex.length > 0) {
-			var s = cleanFormat(dHex);
+	public function setPrivate(N:String,E:String,D:String) : Void {
+		super.setPublic(N, E);
+		if(D != null && D.length > 0) {
+			var s = cleanFormat(D);
 			d = BigInteger.ofString(s, 16);
 		}
 		else
@@ -118,20 +120,40 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 			N:String,E:String,D:String,P:String,
 			Q:String,DP:String,DQ:String,C:String) : Void
 	{
+trace(here.methodName);
 		setPrivate(N, E, D);
-		if(P != null && Q != null && DP != null && DQ != null && C != null &&
-			P.length > 0 && Q.length > 0 && DP.length > 0 && DQ.length > 0 && C.length > 0)
+// 		if(P != null && Q != null && DP != null && DQ != null && C != null &&
+// 			P.length > 0 && Q.length > 0 && DP.length > 0 && DQ.length > 0 && C.length > 0)
+		if(P != null && Q != null && C != null &&
+			P.length > 0 && Q.length > 0 && C.length > 0)
 		{
+trace(here.lineNumber);
 			var s : String = cleanFormat(P);
-			this.p = BigInteger.ofString(s, 16);
+			p = BigInteger.ofString(s, 16);
 			s = cleanFormat(Q);
-			this.q = BigInteger.ofString(s,16);
-			s = cleanFormat(DP);
-			this.dmp1 = BigInteger.ofString(s,16);
-			s = cleanFormat(DQ);
-			this.dmq1 = BigInteger.ofString(s,16);
+			q = BigInteger.ofString(s,16);
+			if(DP == null) {
+trace(here.lineNumber);
+				var one = BigInteger.ONE;
+				var pm1 : BigInteger = p.sub(one);
+				dmp1 = d.mod(pm1);
+trace(dmp1);
+			}
+			else {
+				s = cleanFormat(DP);
+				dmp1 = BigInteger.ofString(s,16);
+			}
+			if(DQ == null) {
+				var pq1 = q.sub(BigInteger.ONE);
+				dmq1 = d.mod(pq1);
+trace(dmq1);
+			}
+			else {
+				s = cleanFormat(DQ);
+				dmq1 = BigInteger.ofString(s,16);
+			}
 			s = cleanFormat(C);
-			this.coeff = BigInteger.ofString(s,16);
+			coeff = BigInteger.ofString(s,16);
 		}
 		else
 			throw("Invalid RSA private key ex");
@@ -204,6 +226,16 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 			return x.modPow(this.d, this.n);
 		}
 
+		/* CRT where p > q
+		dP = (1/e) mod (p-1)
+		dQ = (1/e) mod (q-1)
+		qInv = (1/q) mod p
+
+		m1 = c^dP mod p
+		m2 = c^dQ mod q
+		h = qInv(m1 - m2) mod p
+		m = m2 + hq
+		*/
 		// TODO: re-calculate any missing CRT params
 		var xp = x.mod(this.p).modPow(this.dmp1, this.p);
 		var xq = x.mod(this.q).modPow(this.dmq1, this.q);

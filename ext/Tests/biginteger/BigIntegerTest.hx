@@ -198,10 +198,7 @@ class Functions extends haxe.unit.TestCase {
 
 	public function test08_Two() {
 		var i = BigInteger.ofString("10000000000",10); // 10 tril 34 bit
-		//trace(here.lineNumber);
-		//trace(i.chunks);
-		//assertEquals("10000000000", i.toString());
-		assertEquals(true,true);
+		assertEquals("10000000000", i.toString());
 	}
 
 	public function test09_IntValue() {
@@ -296,9 +293,9 @@ class BigIntegerTest {
 		trace(b.chunks);
 */
 		var r = new haxe.unit.TestRunner();
-		r.add(new DecimalConversion());
-		r.add(new Shifts());
-		r.add(new MathFuncs());
+ 		r.add(new DecimalConversion());
+ 		r.add(new Shifts());
+ 		r.add(new MathFuncs());
 		r.add(new Functions());
 		r.run();
 	}
