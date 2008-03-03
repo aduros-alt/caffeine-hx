@@ -45,8 +45,6 @@ class Montgomery implements math.reduction.ModularReduction {
 	private var mpl : Int;
 	private var mph : Int;
 	private var um : Int;
-	private var DM : Int;
-	//private static var bi_am3 = neko.Lib.load("math","bi_am3",3);
 
 	public function new(x:BigInteger) {
 		m = x;
@@ -55,7 +53,6 @@ class Montgomery implements math.reduction.ModularReduction {
 		mph = mp>>15;
 		um = (1<<(BigInteger.DB-15))-1;
 		mt2 = 2*m.t;
-		DM = BigInteger.DM;
 	}
 
 	// xR mod m
@@ -84,8 +81,9 @@ class Montgomery implements math.reduction.ModularReduction {
 		while( i < m.t) {
 			// faster way of calculating u0 = x[i]*mp mod DV
 			var j : Int = x.chunks[i]&0x7fff;
-			//(j*mpl+(((j*mph+(x.chunks[i]>>15)*mpl)&um)<<15))&BigInteger.DM;
-		    // (u7 )   (          u6                        )
+			var u0 : Int = (j*mpl+(((j*mph+(x.chunks[i]>>15)*mpl)&um)<<15))&BigInteger.DM;
+		    //               (u7 )   (          u6                        )
+/*
 			var u1 : Int = (x.chunks[i]>>15);
 			var u2 : Int = j*mph;
 			var u3 : Int = u1*mpl;
@@ -95,6 +93,7 @@ class Montgomery implements math.reduction.ModularReduction {
 			var u7 : Int = j*mpl;
 			var u8 : Int = u7+u6;
 			var u0 : Int = u8 & BigInteger.DM;
+*/
 			// use am to combine the multiply-shift-add into one call
 			j = i+m.t;
 			x.chunks[j] += m.am(0,u0,x,i,0,m.t);
