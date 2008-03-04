@@ -192,19 +192,18 @@ class Reflect {
 	/**
 		Tells if a value is a function or not.
 	**/
-	public static inline function isFunction( f : Dynamic ) : Bool {
-		return untyped
+	public static function isFunction( f : Dynamic ) : Bool {
 		#if flash9
-			__typeof__(f) == "function"
+			return untyped __typeof__(f) == "function";
 		#else flash
-			__typeof__(f) == "function" && f.__name__ == null
+			return untyped __typeof__(f) == "function" && f.__name__ == null;
 		#else js
-			__js__("typeof(f)") == "function" && f.__name__ == null
+			var f = f;
+			return untyped __js__("typeof(f)") == "function" && f.__name__ == null;
 		#else neko
-			__dollar__typeof(f) == __dollar__tfunction
+			return untyped __dollar__typeof(f) == __dollar__tfunction;
 		#else error
 		#end
-			;
 	}
 
 	/**
@@ -274,21 +273,27 @@ class Reflect {
 	public static inline function deleteField( o : Dynamic, f : String ) : Bool {
 		#if flash9
 			untyped {
-				if( o.hasOwnProperty(f) != true ) return false;
-				__delete__(o,f);
-				return true;
+				return if( o.hasOwnProperty(f) != true != true ) false
+				else {
+					__delete__(o,f);
+					true;
+				}
 			}
 		#else flash
 			untyped {
-				if( this["hasOwnProperty"]["call"](o,f) != true ) return false;
-				__delete__(o,f);
-				return true;
+				return if( this["hasOwnProperty"]["call"](o,f) != true ) false
+				else {
+					__delete__(o,f);
+					true;
+				}
 			}
 		#else js
 			untyped {
-				if( !hasField(o,f) ) return false;
-				__js__("delete")(o[f]);
-				return true;
+				return if( !hasField(o,f) ) false 
+				else {
+					__js__("delete")(o[f]);
+					true;
+				}
 			}
 		#else neko
 			return untyped __dollar__objremove(o,__dollar__hash(f.__s))

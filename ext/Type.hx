@@ -79,7 +79,9 @@ class Type {
 				return null;
 			return c;
 		#else flash
-			return if( o.__enum__ != null ) o.__class__;
+			// Needs var obj; because of inline
+			var obj = if( o.__enum__ != null ) null else o.__class__;
+			return obj;
 		#else js
 			return if( o != null && o.__enum__ == null ) o.__class__;
 		#else neko
@@ -107,9 +109,7 @@ class Type {
 		#else flash
 			return o.__enum__;
 		#else js
-			if( o == null )
-				return null;
-			return o.__enum__;
+			return if( o == null ) null else o.__enum__;
 		#else neko
 			return if( __dollar__typeof(o) == __dollar__tobject ) o.__enum__;
 		#else error
@@ -123,9 +123,8 @@ class Type {
 	public static inline function getSuperClass( c : Class<Dynamic> ) : Class<Dynamic> untyped {
 		#if flash9
 			var cname = __global__["flash.utils.getQualifiedSuperclassName"](c);
-			if( cname == "Object" )
-				return null;
-			return __as__(__global__["flash.utils.getDefinitionByName"](cname),Class);
+			var sc = if( cname == "Object" ) null else __as__(__global__["flash.utils.getDefinitionByName"](cname),Class);
+			return sc;
 		#else true
 			return c.__super__;
 		#end
