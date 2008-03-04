@@ -132,15 +132,14 @@ trace(here.lineNumber);
 			q = BigInteger.ofString(s,16);
 			if(DP == null) {
 trace(here.lineNumber);
-				var one = BigInteger.ONE;
-				var pm1 : BigInteger = p.sub(one);
+				var pm1 : BigInteger = p.sub(BigInteger.ONE);
 				dmp1 = d.mod(pm1);
-trace(dmp1);
 			}
 			else {
 				s = cleanFormat(DP);
 				dmp1 = BigInteger.ofString(s,16);
 			}
+trace(dmp1);
 trace(here.lineNumber);
 			if(DQ == null) {
 				var pq1 = q.sub(BigInteger.ONE);
@@ -242,6 +241,19 @@ trace(dmq1);
 		while(xp.compare(xq) < 0)
 			xp = xp.add(this.p);
 		return xp.sub(xq).mul(this.coeff).mod(this.p).mul(this.q).add(xq);
+	}
+
+	public function toString() {
+		var sb = new StringBuf();
+		sb.add(super.toString());
+		sb.add("Private:\n");
+		sb.add("D:\t" + d.toRadix(16) + "\n");
+		sb.add("P:\t" + p.toRadix(16) + "\n");
+		sb.add("Q:\t" + q.toRadix(16) + "\n");
+		sb.add("DMP1:\t" + dmp1.toRadix(16) + "\n");
+		sb.add("DMQ1:\t" + dmq1.toRadix(16) + "\n");
+		sb.add("COEFF:\t" + coeff.toRadix(16) + "\n");
+		return sb.toString();
 	}
 }
 

@@ -197,5 +197,12 @@ trace("crypted: " + h);
 		return e;
 	}
 
+	public function toString() {
+		var sb = new StringBuf();
+		sb.add("Public:\n");
+		sb.add("N:\t" + n.toRadix(16) + "\n");
+		sb.add("E:\t" + BigInteger.ofInt(e).toRadix(16) + "\n");
+		return sb.toString();
+	}
 }
 

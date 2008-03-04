@@ -1,24 +1,28 @@
 -cp ../../
 -neko test.n
--main CryptTest
+-main Test256
 
 --next
 
 -cp ../../
 -js test.js
--main CryptTest
+-main Test256
 
 --next
 
 -cp ../../
 -swf test9.swf
 -swf-version 9
--main CryptTest
+-main Test256
+#-debug
 
 --next
 
 -cp ../../
 -swf test8.swf
 -swf-version 8
--main CryptTest
+-main Test256
+#-debug
+
+
 

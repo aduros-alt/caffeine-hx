@@ -61,7 +61,7 @@ class BigInteger {
 	public var am : Int->Int->BigInteger->Int->Int->Int->Int; // am function
 #end
 
-	public function new(?byInt : Int, ?str : String, ?radix : Int) {
+	public function new() {
 		if(BI_RC == null || BI_RC.length == 0)
 			initBiRc();
 		if(BI_RM.length == 0)
@@ -70,17 +70,25 @@ class BigInteger {
 		_hnd = bi_new();
 #else true
 		chunks = new Array<Int>();
-		am = switch(defaultAm) {
-		case 1: am1;
-		case 2: am2;
-		case 3: am3;
+#end
+
+#if js
+		switch(defaultAm) {
+		case 1: am = am1;
+		case 2: am = am2;
+		case 3: am = am3;
 		default: { throw "am error"; null;}
 		}
+#else flash
+		am = am2;
 #end
+
+/*
 		if(byInt != null) fromInt(byInt);
 		else if( str != null && radix == null) {
 			ofString(str,256).copyTo(this);
 		}
+*/
 	}
 
 /*
@@ -1396,6 +1404,7 @@ class BigInteger {
 	}
 
 #if !neko
+#if js
 	// am1: use a single mult and divide to get the high bits,
 	// max digit bits should be 26 because
 	// max internal value = 2*dvalue^2-2*dvalue (< 2^53)
@@ -1409,7 +1418,8 @@ class BigInteger {
 		}
 		return c;
 	}
-
+#end
+#if (flash || js)
 	// am: Compute w_j += (x*this_i), propagate carries,
 	// c is initial carry, returns final carry.
 	// c < 3*dvalue, x < 2*dvalue, this_i < dvalue
@@ -1432,8 +1442,8 @@ class BigInteger {
 		}
 		return c;
 	}
-
-	// This is the original am3 function
+#end
+#if js
 	// Alternately, set max digit bits to 28 since some
 	// browsers slow down when dealing with 32-bit numbers.
 	public function am3(i:Int,x:Int,w:BigInteger,j:Int,c:Int,n:Int) : Int {
@@ -1451,6 +1461,7 @@ class BigInteger {
 		}
 		return c;
 	}
+#end
 #end
 
 	//////////////////////////////////////////////////////////////
@@ -1488,9 +1499,7 @@ class BigInteger {
 	static function __init__() {
 		// Bits per chunk
 		var dbits : Int;
-#if flash
-		dbits = 30;
-#else js
+#if js
 		// JavaScript engine analysis
 		var j_lm : Bool;
 		untyped {
@@ -1505,7 +1514,7 @@ class BigInteger {
 		else // Mozilla/Netscape seems to prefer
 			dbits = 28;
 #else true
-		dbits = 28;
+		dbits = 30;
 #end
 		switch(dbits) {
 		case 30: defaultAm = 2;
@@ -1579,7 +1588,7 @@ class BigInteger {
 		return new, unset BigInteger
 	**/
 	public static function nbi() : BigInteger {
-		return new BigInteger(null);
+		return new BigInteger();
 	}
 
 	/**
