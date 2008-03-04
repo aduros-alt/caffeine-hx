@@ -85,8 +85,10 @@ class Type {
 		#else js
 			return if( o != null && o.__enum__ == null ) o.__class__;
 		#else neko
-			var p = __dollar__objgetproto(o);
-			return if( p != null ) p.__class__;
+			return if( __dollar__typeof(o) != __dollar__tobject ) null else {
+				var p = __dollar__objgetproto(o);
+				if( p != null ) p.__class__;
+			}
 		#else error
 		#end
 	}
@@ -109,7 +111,7 @@ class Type {
 		#else flash
 			return o.__enum__;
 		#else js
-			return if( o == null ) null else o.__enum__;
+			return if( o != null ) o.__enum__;
 		#else neko
 			return if( __dollar__typeof(o) == __dollar__tobject ) o.__enum__;
 		#else error
@@ -123,7 +125,8 @@ class Type {
 	public static inline function getSuperClass( c : Class<Dynamic> ) : Class<Dynamic> untyped {
 		#if flash9
 			var cname = __global__["flash.utils.getQualifiedSuperclassName"](c);
-			var sc = if( cname == "Object" ) null else __as__(__global__["flash.utils.getDefinitionByName"](cname),Class);
+			// Needed sc to force the Class<Dynamic> type, or flash gives a reconcile error...
+			var sc:Class<Dynamic> = if( cname == "Object" ) null else __as__(__global__["flash.utils.getDefinitionByName"](cname),Class);
 			return sc;
 		#else true
 			return c.__super__;
@@ -136,11 +139,12 @@ class Type {
 	**/
 	public static inline function getClassName( c : Class<Dynamic> ) : String {
 		#if flash9
-			var str : String = untyped __global__["flash.utils.getQualifiedClassName"](c);
-			return str.split("::").join(".");
+			return if( c != null ) {
+				var str : String = untyped __global__["flash.utils.getQualifiedClassName"](c);
+				str.split("::").join(".");
+			}
 		#else true
-			var a : Array<String> = untyped c.__name__;
-			return a.join(".");
+			return if( c != null ) untyped c.__name__.join(".");
 		#end
 	}
 

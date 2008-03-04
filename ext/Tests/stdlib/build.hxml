@@ -16,6 +16,7 @@
 -main MiscTest
 -swf-version 8
 -swf test8.swf
+-swf-header 800:600:1:FFFFFF
 -debug
 
 --next
@@ -24,6 +25,7 @@
 -main MiscTest
 -swf-version 9
 -swf test9.swf
+-swf-header 800:600:1:FFFFFF
 -debug
 
 

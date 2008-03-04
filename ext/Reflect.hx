@@ -270,36 +270,29 @@ class Reflect {
 	/**
 		Delete an object field.
 	**/
-	public static inline function deleteField( o : Dynamic, f : String ) : Bool {
+	public static inline function deleteField( o : Dynamic, f : String ) : Bool untyped {
 		#if flash9
-			untyped {
-				return if( o.hasOwnProperty(f) != true != true ) false
-				else {
-					__delete__(o,f);
-					true;
-				}
+			return if( o.hasOwnProperty(f) ) {
+				__delete__(o,f);
+				true;
 			}
+			else false;
 		#else flash
-			untyped {
-				return if( this["hasOwnProperty"]["call"](o,f) != true ) false
-				else {
-					__delete__(o,f);
-					true;
-				}
+			return if( this["hasOwnProperty"]["call"](o,f) ) {
+				__delete__(o,f);
+				true;
 			}
+			else false;
 		#else js
-			untyped {
-				return if( !hasField(o,f) ) false 
-				else {
-					__js__("delete")(o[f]);
-					true;
-				}
+			return if( hasField(o,f) ) {
+				__js__("delete")(o[f]);
+				true;
 			}
+			else false;
 		#else neko
-			return untyped __dollar__objremove(o,__dollar__hash(f.__s))
+			return __dollar__objremove(o,__dollar__hash(f.__s));
 		#else error
 		#end
-			;
 	}
 
 	/**
