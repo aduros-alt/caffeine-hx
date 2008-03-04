@@ -6,11 +6,16 @@ class StdParseInt extends haxe.unit.TestCase {
 		assertEquals(-12, Std.parseInt("-12"));
 	}
 
-	// neko fails on all octal
+	function testNotOctal() {
+		assertEquals(-13, Std.parseInt("-013"));
+		assertEquals(13, Std.parseInt("+013")); // F9=13
+		assertEquals(13, Std.parseInt("013"));  
+	}
+
 	function testOctal() {
-		assertEquals(-11, Std.parseInt("-013"));
-		assertEquals(11, Std.parseInt("+013")); // F9=13
-		assertEquals(11, Std.parseInt("013"));  
+		assertEquals(-11, Std.parseOctal("-013"));
+		assertEquals(11, Std.parseOctal("+013")); // F9=13
+		assertEquals(11, Std.parseOctal("013"));  
 	}
 
 	function testHex() {

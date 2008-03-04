@@ -34,6 +34,8 @@ class ByteString implements IString {
 	public static var BIG_ENDIAN : String = "bigEndian";
 	public static var LITTLE_ENDIAN : String = "littleEndian";
 
+	/** Number of bytes available to be read **/
+	public var bytesAvailable(getBytesAvailable, null) : Int;
 	/** the length. To modify use setLength **/
 	public var length(default, null) : Int;
 	/** the read/write position pointer. **/
@@ -367,6 +369,12 @@ class ByteString implements IString {
 		return v;
 	}
 
+	function getBytesAvailable() : Int {
+		if(position >= length)
+			return 0;
+		return length - position;
+	}
+
 	function setEndian(s : String) : String {
 		if(s == BIG_ENDIAN || s == LITTLE_ENDIAN)
 			endian = s;
@@ -411,19 +419,29 @@ class ByteString implements IString {
 		return b;
 	}
 
-/*
-	public static function ofHexString(s : String) : ByteString {
-		if(s.length % 2 != 0)
-			throw "string length must be multiple of 2";
+	/**
+		Parse a hex string into a ByteString. The hex string
+		may start with 0x, may contain spaces, and may contain
+		: delimiters.
+	**/
+	public static function ofHex(hs : String) : ByteString {
+		var s : String = StringTools.stripWhite(hs);
+		s = StringTools.replaceAll(s, "|", "").toLowerCase();
+		if(StringTools.startsWith(s, "0x"))
+			s = s.substr(2);
+		if (s.length&1==1) s="0"+s;
+
 		var b = new ByteString();
-		for(x in 0...Std.int(s.length/2)) {
-			var ch = s.substr(x * 2, 2).toLowerCase();
-			b._buf[x] = StringTools.baseDecode(ch, Constants.DIGITS_HEXL);
+		var l = Std.int(s.length/2);
+		for(x in 0...l) {
+			var ch = s.substr(x * 2, 2);
+			b._buf[x] = Std.parseInt("0x"+ch);
 			if(b._buf[x] > 0xff)
 				throw "error";
 		}
+		b.update();
 		return b;
 	}
-*/
+
 }
 

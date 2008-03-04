@@ -79,61 +79,64 @@ class Std {
 		return (x !== 0 && x != null && x !== false);
 	}
 
-//BEGINPR/rw01/2008-02-28//Russell Weir/Changed docs and base handling for flash 8,9 and neko. This is to make parseInt actually work the same on all 3 platforms.
+//BEGINPR/rw01/2008-02-28//Russell Weir/Changed docs and base handling for flash 8,9 and neko. This is to make parseInt actually work the same on all 3 platforms. Removes any potential Octal processing and ensures + and - prefixes work on all platforms.
 	/**
 		Convert a String to an Int, parsing different possible representations.
 		Strings beginning with 0x will be interpreted as hex, those starting with
-		0 will be interpreted as octal. Returns [null] if could not be parsed.
+		0 will be interpreted as Decimal, not Octal (see parseOctal). Returns [null] if could not be parsed.
 	**/
 	public static function parseInt( x : String ) : Null<Int> {
-		untyped {
-		#if flash9
-		var n : Int = 0;
-		var octal : Bool = false;
-		var s = StringTools.ltrim(x);
-		var neg = false;
-		var pos : Int = 0;
-		while(n < s.length) {
-			var c = s.charAt(n);
-			if(c == "+")
-				pos = n+1;
-			else if(c == "-") {
-				pos = n+1;
+		// remove leading 0s
+		var preParse = function(ns:String) : { neg:Bool, str: String}
+		{
+			var neg = false;
+			var s = StringTools.ltrim(ns);
+			if(s.charAt(0) == "-") {
 				neg = true;
+				s = s.substr(1);
 			}
-			else if(c >= "0" || c <= "9" ) {
-				if(c == "0" && n < s.length-1 && s.charAt(n+1) != "x")
-					octal = true;
-				else
-					octal = false;
-				break;
+			else if(s.charAt(0) == "+")
+				s = s.substr(1);
+			if(!StringTools.isNum(s, 0))
+				return {str:null, neg:false};
+
+			if(!StringTools.startsWith(s,"0x")) {
+				var l = s.length;
+				var p : Int = -1;
+				var c : Null<Int> = 0;
+				while(c == 0 && p < l-1) {
+					p++;
+					c = StringTools.num(s, p);
+					if(c == null)
+						return null;
+				}
+				s = s.substr(p);
 			}
-			n++;
+			return {str: s, neg:neg };
 		}
-		var v =
-			if(octal)
-				__global__["parseInt"](s.substr(pos), 8);
-			else
-				__global__["parseInt"](s.substr(pos));
+
+		#if flash9
+		untyped {
+		var v = __global__["parseInt"](x);
 		if( __global__["isNaN"](v) )
 			return null;
-		if(neg)
-			return 0-v;
 		return v;
-		#else flash
-		var s = StringTools.ltrim(x);
-		var neg = false;
-		if(StringTools.startsWith(s,"-0x")) {
-			s = s.substr(1);
-			neg = true;
 		}
-		var v = _global["parseInt"](s);
+
+		#else flash
+		var res = preParse(x);
+		if(res.str == null) return null;
+		untyped {
+		var v = _global["parseInt"](res.str);
 		if( Math.isNaN(v) )
 			return null;
-		if(neg)
+		if(res.neg)
 			return 0-v;
 		return v;
+		}
+
 		#else neko
+		untyped {
 		var t = __dollar__typeof(x);
 		if( t == __dollar__tint )
 			return x;
@@ -141,64 +144,75 @@ class Std {
 			return __dollar__int(x);
 		if( t != __dollar__tobject )
 			return null;
-		// octal processing
-		var neg = false;
-		var n : Int = 0;
-		var octal = false;
-		var s = StringTools.ltrim(x);
-		var accum : Int = 0;
-		while(n < s.length) {
-			if(s.charAt(n) == "-") {
-				if(octal)
-					break;
-				neg = true;
-				if(s.charAt(n+1) == "0") {
-					if(s.charAt(n+2) == "x") {
-						n++;
-						break;
-					}
-				}
-				else {
-					n++;
-					break;
-				}
-				octal = true;
-			}
-			else if(s.charAt(n) == "+") {
-				if(s.charAt(n+1) != "0" || octal) break;
-				octal = true;
-			}
-			else if(octal && s.charAt(n) >= "0" && s.charAt(n) < "8") {
-				accum <<= 3;
-				accum += (s.charCodeAt(n) - Std.ord("0"));
-			}
-			else if(!octal && s.charAt(n) == "0") {
-				if(s.charAt(n+1) != "x")
-					octal = true;
-				else break;
-			}
-			else break;
-			n++;
 		}
-		if(octal) {
-			if(neg)
-				return 0-accum;
-			return accum;
-		}
-		s = s.substr(n);
-		var v = __dollar__int(s.__s);
-		if(neg)
+		var res = preParse(x);
+		if(res.str == null) return null;
+		untyped {
+		var v = __dollar__int(res.str.__s);
+		if(res.neg)
 			return 0-v;
 		return v;
+		}
+
 		#else js
-		var v = __js__("parseInt")(x);
+		var res = preParse(x);
+		untyped {
+		var v = __js__("parseInt")(res.str);
 		if( Math.isNaN(v) )
 			return null;
+		if(res.neg)
+			return 0-v;
 		return v;
+		}
 		#else true
 		return 0;
 		#end
+	}
+
+	/**
+		Convert an Octal String to an Int. Will return null if it can not be parsed.
+	**/
+	public static function parseOctal( x : String ) : Null<Int> {
+		#if flash9
+		untyped {
+		var v = __global__["parseInt"](x, 8);
+		if( __global__["isNaN"](v) )
+			return null;
+		return v;
 		}
+		#else true
+		var neg = false;
+		var n : Int = 0;
+		var s = StringTools.ltrim(x);
+		var accum : Int = 0;
+		var l = s.length;
+
+		if(!StringTools.isNum(s,0)) {
+			if(s.charAt(0) == "-")
+				neg = true;
+			else if(s.charAt(0) == "+")
+				neg = false;
+			else
+				return null;
+			n ++;
+			if(n == s.length || !StringTools.isNum(s,n))
+				return null;
+		}
+
+		while(n < l) {
+			var c : Null<Int> = StringTools.num(s, n);
+			if( c == null )
+				break;
+			if( c > 7 )
+				return null;
+			accum <<= 3;
+			accum += c;
+			n++;
+		}
+		if(neg)
+			return 0-accum;
+		return accum;
+		#end
 	}
 //ENDPR/rw01///
 
