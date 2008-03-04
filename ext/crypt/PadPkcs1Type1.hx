@@ -109,7 +109,7 @@ trace(ByteStringTools.hexDump(s));
 		return x;
 	}
 
-	function setBlockSize( x : Int ) : Int {
+	private function setBlockSize( x : Int ) : Int {
 		this.blockSize = x;
 		this.textSize = x - 3 - padCount;
 		if(textSize <= 0)
@@ -117,11 +117,11 @@ trace(ByteStringTools.hexDump(s));
 		return x;
 	}
 
-	function getPadByte() : Int {
+	#if as3gen public #end function getPadByte() : Int {
 		return this.padByte;
 	}
 
-	function setPadByte(x : Int) : Int {
+	private function setPadByte(x : Int) : Int {
 		this.padByte = x & 0xFF;
 		return x;
 	}

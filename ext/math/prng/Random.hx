@@ -35,7 +35,7 @@
 package math.prng;
 
 class Random {
-	var state : IPrng;
+	var state : #if as3gen Dynamic #else true IPrng #end;
 	var pool : Array<Int>;
 	var pptr : Int;
 	var initialized: Bool;

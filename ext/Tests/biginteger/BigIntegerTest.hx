@@ -276,7 +276,7 @@ class Functions extends haxe.unit.TestCase {
 class BigIntegerTest {
 	static function main()
 	{
-#if !neko
+#if js
 		if(haxe.Firebug.detect()) {
 			haxe.Firebug.redirectTraces();
 		}

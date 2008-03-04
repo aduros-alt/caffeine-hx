@@ -235,7 +235,7 @@ class BigInteger {
 		/**
 			convert to radix string, handles any base 2-36
 		**/
-		var toRadixExt = function(bi: BigInteger, ?b : Int) : String {
+		var toRadixExt = function(bi:BigInteger, ?b : Int) : String {
 			if(b < 2 || b > 36) {
 				throw("invalid base for conversion");
 				return "0";
@@ -312,7 +312,7 @@ class BigInteger {
 	//                    Math methods                          //
 	//////////////////////////////////////////////////////////////
 	/** Absolute value **/
-	public function abs()  : BigInteger {
+	public function abs() : BigInteger {
 #if neko
 		var h = bi_abs(_hnd);
 		return hndToBigInt(h);
@@ -322,7 +322,7 @@ class BigInteger {
 	}
 
 	/** this + a **/
-	public function add(a : BigInteger) : BigInteger
+	public function add(a:BigInteger) : BigInteger
 	{
 		var r = nbi(); addTo(a,r); return r;
 	}
@@ -330,7 +330,7 @@ class BigInteger {
 	/**
 		<pre>return + if this > a, - if this < a, 0 if equal</pre>
 	**/
-	public function compare(a : BigInteger) : Int {
+	public function compare(a:BigInteger) : Int {
 #if neko
 		return bi_cmp(this._hnd, a._hnd);
 #else true
@@ -352,7 +352,7 @@ class BigInteger {
 	{ var r = nbi(); divRemTo(a,r,null); return r; }
 
 	/** <pre>[this/a,this%a]</pre> **/
-	public function divideAndRemainder(a : BigInteger) : Array<BigInteger> {
+	public function divideAndRemainder(a:BigInteger) : Array<BigInteger> {
 		var q = nbi();
 		var r = nbi();
 		divRemTo(a,q,r);
@@ -360,7 +360,7 @@ class BigInteger {
 	}
 
 	/** this == a **/
-	public function eq(a : BigInteger) : Bool {
+	public function eq(a:BigInteger) : Bool {
 		return compare(a) == 0;
 	}
 
@@ -375,21 +375,21 @@ class BigInteger {
 	}
 
 	/**	Return the biggest of this and a **/
-	public function max(a : BigInteger) : BigInteger {
+	public function max(a:BigInteger) : BigInteger {
 		return (compare(a)>0)?this:a;
 	}
 
 	/**	Return the smallest of this and a **/
-	public function min(a : BigInteger) : BigInteger {
+	public function min(a:BigInteger) : BigInteger {
 		return (compare(a)<0)?this:a;
 	}
 
 	/** Modulus division bn % bn **/
-	public function mod(a : BigInteger) : BigInteger {
+	public function mod(a:BigInteger) : BigInteger {
 #if neko
 		return hndToBigInt(bi_mod(this._hnd, a._hnd));
 #else true
-		var r = nbi();
+		var r:BigInteger = nbi();
 		abs().divRemTo(a,null,r);
 		if(sign < 0 && r.compare(ZERO) > 0) a.subTo(r,r);
 		return r;
@@ -421,18 +421,18 @@ class BigInteger {
 	/**
 		1/this % m (HAC 14.61)
 	**/
-	public function modInverse(m : BigInteger) : BigInteger {
+	public function modInverse(m:BigInteger) : BigInteger {
 #if neko
 		return hndToBigInt(bi_mod_inverse(this._hnd, m._hnd));
 #else true
 		var ac = m.isEven();
 		if((isEven() && ac) || m.sigNum() == 0) return ZERO;
-		var u : BigInteger = m.clone();
-		var v : BigInteger = clone();
-		var a : BigInteger = nbv(1);
-		var b : BigInteger = nbv(0);
-		var c : BigInteger = nbv(0);
-		var d : BigInteger = nbv(1);
+		var u:BigInteger = m.clone();
+		var v:BigInteger = clone();
+		var a:BigInteger = nbv(1);
+		var b:BigInteger = nbv(0);
+		var c:BigInteger = nbv(0);
+		var d:BigInteger = nbv(1);
 		while(u.sigNum() != 0) {
 			while(u.isEven()) {
 				u.rShiftTo(1,u);
@@ -480,7 +480,7 @@ class BigInteger {
 	}
 
 	/** <pre>this^e % m (HAC 14.85)</pre> **/
-	public function modPow(e : BigInteger, m : BigInteger) : BigInteger {
+	public function modPow(e:BigInteger, m:BigInteger) : BigInteger {
 #if neko
 		var h : HndBI = bi_mod_exp(_hnd, e._hnd, m._hnd);
 		return hndToBigInt(h);
@@ -561,7 +561,7 @@ class BigInteger {
 	/**
 		<pre>this^e % m, 0 <= e < 2^32</pre>
 	**/
-	public function modPowInt(e : Int, m : BigInteger) : BigInteger {
+	public function modPowInt(e:Int, m:BigInteger) : BigInteger {
 		if(m == null)
 			throw "m is null";
 #if neko
@@ -576,7 +576,7 @@ class BigInteger {
 	}
 
 	/** this * a **/
-	public function mul(a : BigInteger) : BigInteger
+	public function mul(a:BigInteger) : BigInteger
 	{ var r = nbi(); multiplyTo(a,r); return r; }
 
 	/**
@@ -599,11 +599,11 @@ class BigInteger {
 	}
 
 	/** this % a **/
-	public function remainder(a : BigInteger) : BigInteger
+	public function remainder(a:BigInteger) : BigInteger
 	{ var r = nbi(); divRemTo(a,null,r); return r; }
 
 	/** this - a **/
-	public function sub(a : BigInteger) : BigInteger
+	public function sub(a:BigInteger) : BigInteger
 	{ var r = nbi(); subTo(a,r); return r; }
 
 
@@ -611,14 +611,14 @@ class BigInteger {
 	//                  Bitwise Operators                       //
 	//////////////////////////////////////////////////////////////
 	/** this &amp; a **/
-	public function and(a : BigInteger) : BigInteger {
+	public function and(a:BigInteger) : BigInteger {
 		var r = nbi();
 		bitwiseTo(a,op_and,r);
 		return r;
 	}
 
 	/** this &amp; ~a **/
-	public function andNot(a : BigInteger) : BigInteger {
+	public function andNot(a:BigInteger) : BigInteger {
 		var r = nbi();
 		bitwiseTo(a,op_andnot,r);
 		return r;
@@ -653,7 +653,7 @@ class BigInteger {
 	/** <pre>this & ~(1<<n)</pre> **/
 	public function clearBit(n) : BigInteger {
 #if neko
-		var bi : BigInteger = clone();
+		var bi:BigInteger = clone();
 		bi_clear_bit(bi._hnd, n);
 		return bi;
 #else true
@@ -664,7 +664,7 @@ class BigInteger {
 	/** <pre>this ^ (1<<n)</pre> **/
 	public function flipBit(n) : BigInteger {
 #if neko
-		var bi = nbi();
+		var bi:BigInteger = nbi();
 		bi_copy(bi._hnd, cast _hnd);
 		bi_flip_bit(bi._hnd, n);
 		return bi;
@@ -686,12 +686,12 @@ class BigInteger {
 	}
 
 	/** ~this **/
-	public function not() : BigInteger {
+	public function not():BigInteger {
 #if neko
 		var h = bi_not(_hnd);
 		return hndToBigInt(h);
 #else true
-		var r = nbi();
+		var r:BigInteger = nbi();
 		for(i in 0...t) r.chunks[i] = DM&~chunks[i];
 		r.t = t;
 		r.sign = ~sign;
@@ -700,12 +700,12 @@ class BigInteger {
 	}
 
 	/** this | a **/
-	public function or(a : BigInteger) : BigInteger {
+	public function or(a:BigInteger) : BigInteger {
 		var r = nbi(); bitwiseTo(a,op_or,r); return r;
 	}
 
 	/** <pre>this | (1<<n)</pre> **/
-	public function setBit(n : Int) : BigInteger {
+	public function setBit(n:Int) : BigInteger {
 #if neko
 		var r : BigInteger = clone();
 		bi_set_bit(r._hnd, n);
@@ -719,7 +719,7 @@ class BigInteger {
 		<pre>this << n</pre>
 	**/
 	public function shl(n : Int) : BigInteger {
-		var r = nbi();
+		var r:BigInteger = nbi();
 		if(n < 0) rShiftTo(-n,r); else lShiftTo(n,r);
 		return r;
 	}
@@ -728,7 +728,7 @@ class BigInteger {
 		<pre>this >> n</pre>
 	**/
 	public function shr(n : Int) : BigInteger {
-		var r = nbi();
+		var r:BigInteger = nbi();
 		if(n < 0) lShiftTo(-n,r); else rShiftTo(n,r);
 		return r;
 	}
@@ -745,8 +745,8 @@ class BigInteger {
 	}
 
 	/** this ^ a **/
-	public function xor(a : BigInteger) : BigInteger {
-		var r = nbi();
+	public function xor(a:BigInteger) : BigInteger {
+		var r:BigInteger = nbi();
 		bitwiseTo(a,op_xor,r);
 		return r;
 	}
@@ -801,7 +801,7 @@ class BigInteger {
 	}
 
 	/** copy this to r **/
-	public function copyTo(r : BigInteger) : Void {
+	public function copyTo(r:BigInteger) : Void {
 #if neko
 		bi_copy(r._hnd, cast _hnd);
 #else true
@@ -816,7 +816,7 @@ class BigInteger {
 		divide this by m, quotient and remainder to q, r (HAC 14.20)
 		<pre>r != q, this != m.  q or r may be null.</pre>
 	**/
-	public function divRemTo(m : BigInteger, q : BigInteger ,?r : BigInteger) : Void
+	public function divRemTo(m:BigInteger, q:Null<BigInteger>, ?r:Null<BigInteger>) : Void
 	{
 #if neko
 		if(r == null) r = nbi();
@@ -824,21 +824,25 @@ class BigInteger {
 		bi_div_rem_to(this._hnd, m._hnd, q._hnd, r._hnd);
 		return;
 #else true
-		var pm : BigInteger = m.abs();
+		var pm:BigInteger = m.abs();
 		if(pm.t <= 0) return;
-		var pt : BigInteger = abs();
+		var pt:BigInteger = abs();
 		if(pt.t < pm.t) {
 			if(q != null) q.fromInt(0);
 			if(r != null) copyTo(r);
 			return;
 		}
 		if(r == null) r = nbi();
-		var y:BigInteger = nbi();
+	#if flash9
+		var y : Dynamic = nbi(); // Weird VerifyError workaround
+		//var y : BigInteger = nbi();
+	#else true
+		var y : BigInteger = nbi();
+	#end
 		var ts:Int = sign;
 		var ms:Int = m.sign;
-
+		
 		var nsh: Int = DB-nbits(pm.chunks[pm.t-1]);	// normalize modulus
-
 		if(nsh > 0) {
 			pt.lShiftTo(nsh,r);
 			pm.lShiftTo(nsh,y);
@@ -873,8 +877,8 @@ class BigInteger {
 		while(--j >= 0) {
 			// Estimate quotient digit
 			var qd:Int;
-			--i;
-			if(r.chunks[i]==y0)
+			// --i;
+			if(r.chunks[--i] == y0)
 				qd = DM;
 			else
 				qd = Math.floor((r.chunks[i]*1.0) * d1 + ((r.chunks[i-1]*1.0) + e) *d2);
@@ -885,12 +889,14 @@ class BigInteger {
 				while(r.chunks[i] < --qd) { r.subTo(t,r); }
 			}
 		}
+
 		if(q != null) {
 			r.drShiftTo(ys,q);
 			if(ts != ms) ZERO.subTo(q,q);
 		}
 		r.t = ys;
 		r.clamp();
+
 		if(nsh > 0) r.rShiftTo(nsh,r);	// Denormalize remainder
 		if(ts < 0) ZERO.subTo(r,r);
 #end
@@ -924,7 +930,7 @@ class BigInteger {
 		<pre>r = this * a, r != this,a (HAC 14.12)</pre>
 		"this" should be the larger one if appropriate.
 	**/
-	public function multiplyTo(a : BigInteger, r : BigInteger) : Void {
+	public function multiplyTo(a:BigInteger, r:BigInteger) : Void {
 #if neko
 		var h = bi_mul_to(_hnd, a._hnd, r._hnd);
 		return;
@@ -960,7 +966,7 @@ class BigInteger {
 #end
 
 	/** <pre>r = this^2, r != this (HAC 14.16)</pre> **/
-	public function squareTo(r : BigInteger) : Void {
+	public function squareTo(r:BigInteger) : Void {
 #if neko
 		bi_sqr_to(_hnd, r._hnd);
 		return;
@@ -989,7 +995,7 @@ class BigInteger {
 	}
 
 	/** <pre>r = this - a</pre> **/
-	public function subTo(a : BigInteger, r : BigInteger) : Void {
+	public function subTo(a:BigInteger, r:BigInteger) : Void {
 #if neko
 		var h = bi_sub_to(_hnd, a._hnd, r._hnd);
 		return;
@@ -1044,20 +1050,20 @@ class BigInteger {
 #end
 
 	/** Clone a BigInteger **/
-	public function clone() : BigInteger {
+	public function clone():BigInteger {
 		var r = nbi();
 		copyTo(r);
 		return r;
 	}
 
 	// (public) gcd(this,a) (HAC 14.54)
-	public function gcd(a:BigInteger) : BigInteger {
+	public function gcd(a:BigInteger):BigInteger {
 #if neko
 		var h = bi_gcd(_hnd, a._hnd);
 		return hndToBigInt(h);
 #else true
-		var x = (sign<0)?neg():clone();
-		var y = (a.sign<0)?a.neg():a.clone();
+		var x:BigInteger = (sign<0)?neg():clone();
+		var y:BigInteger = (a.sign<0)?a.neg():a.clone();
 		if(x.compare(y) < 0) { var t:BigInteger = x; x = y; y = t; }
 		var i:Int = x.getLowestSetBit(), g:Int = y.getLowestSetBit();
 		if(g < 0) return x;
@@ -1130,7 +1136,7 @@ class BigInteger {
 	**/
 	public function dAddOffset(n : Int, w : Int) :Void {
 #if neko
-		var bi = BigInteger.ofInt(w);
+		var bi:BigInteger = BigInteger.ofInt(w);
 		if(w != 0)
 			bi = bi.shl(w*32);
 		addTo(bi, this);
@@ -1147,7 +1153,7 @@ class BigInteger {
 
 #if !neko
 	/** <pre> r = this << n*DB </pre> **/
-	public function dlShiftTo(n : Int, r : BigInteger) :Void {
+	public function dlShiftTo(n : Int, r:BigInteger) :Void {
 		if(r == null) return;
 		var i = t-1;
 		while(i >= 0) {
@@ -1164,7 +1170,7 @@ class BigInteger {
 	}
 
 	/** <pre>r = this >> n*DB</pre> **/
-	public function drShiftTo(n : Int, r : BigInteger) {
+	public function drShiftTo(n : Int, r:BigInteger) {
 		if(r == null) return;
 		var i:Int = n;
 		while(i < t) {
@@ -1251,11 +1257,11 @@ class BigInteger {
 	//////////////////////////////////////////////////////////////
 	// (protected) r = this op a (bitwise)
 #if neko
-	function bitwiseTo(a : BigInteger, op:Int, r:BigInteger) : Void {
+	function bitwiseTo(a:BigInteger, op:Int, r:BigInteger) : Void {
 		bi_bitwise_to(_hnd, a._hnd, op, r._hnd);
 	}
 #else true
-	function bitwiseTo(a : BigInteger, op:Int->Int->Int, r:BigInteger) : Void {
+	function bitwiseTo(a:BigInteger, op:Int->Int->Int, r:BigInteger) : Void {
 
 		var f : Int;
 		var m : Int = Std.int(Math.min(a.t,t));
@@ -1304,9 +1310,9 @@ class BigInteger {
 #else true
 		if(e < 1) return ONE;
 #end
-		var r:BigInteger = nbi();
+		var r:BigInteger  = nbi();
 		var r2:BigInteger = nbi();
-		var g:BigInteger = z.convert(this);
+		var g:BigInteger  = z.convert(this);
 //trace(g);
 		var i:Int = nbits(e)-1;
 //trace(i);
@@ -1325,10 +1331,11 @@ class BigInteger {
 		var n1:BigInteger = sub(ONE);
 		var k:Int = n1.getLowestSetBit();
 		if(k <= 0) return false;
+		
 		var r:BigInteger = n1.shr(k);
 		v = (v+1)>>1;
 		if(v > lowprimes.length) v = lowprimes.length;
-		var a : BigInteger = nbi();
+		var a:BigInteger = nbi();
 		for(i in 0...v) {
 			a.fromInt(lowprimes[i]);
 			var y:BigInteger = a.modPow(r,this);
@@ -1353,7 +1360,7 @@ class BigInteger {
 	// be done as a rsh. Use shl() and shr()                    //
 	//////////////////////////////////////////////////////////////
 	/** <pre>r = this << n </pre> **/
-	function lShiftTo(n : Int, r : BigInteger) : Void {
+	function lShiftTo(n:Int, r:BigInteger) : Void {
 #if neko
 		var h = bi_shl_to(_hnd, n, r._hnd);
 		return;
@@ -1380,7 +1387,7 @@ class BigInteger {
 	}
 
 	/** <pre>r = this >> n</pre> **/
-	function rShiftTo(n : Int, r : BigInteger) : Void {
+	function rShiftTo(n : Int, r:BigInteger) : Void {
 #if neko
 		var h = bi_shr_to(_hnd, n, r._hnd);
 		return;
@@ -1485,12 +1492,12 @@ class BigInteger {
 	public static var ONE(getONE, null)		: BigInteger;
 
 	// Digit conversions
-	static var BI_RM : String;
-	static var BI_RC : Array<Int>;
+	#if as3gen public #end static var BI_RM : String;
+	#if as3gen public #end static var BI_RC : Array<Int>;
 
 	public static var lowprimes : Array<Int>;
-	static var lplim : Int;
-	static var defaultAm : Int; // am function
+	#if as3gen public #end static var lplim : Int;
+	#if as3gen public #end static var defaultAm : Int; // am function
 
 	//////////////////////////////////////////////////////////////
 	//                   Static methods                         //
@@ -1539,7 +1546,7 @@ class BigInteger {
 
 	}
 
-	static function initBiRc() : Void {
+	#if as3gen public #end static function initBiRc() : Void {
 		BI_RC = new Array<Int>();
 		var rr : Int = Std.ord("0"); //.charCodeAt(0);
 		for(vv in 0...10) {
@@ -1604,7 +1611,7 @@ class BigInteger {
 			throw "conversion from base "+base+" not yet supported";
 		}
 #else true
-		var me = nbi();
+		var me:BigInteger = nbi();
 		// convert from radix string
 		var fromStringExt = function(s : String, b : Int) : BigInteger {
 			me.fromInt(0);
@@ -1768,7 +1775,7 @@ class BigInteger {
 #end
 	}
 
-	public static function randomPrime(bits:Int, gcdExp : BigInteger, iterations:Int, forceLength : Bool, ?rng:math.prng.Random) : BigInteger {
+	public static function randomPrime(bits:Int, gcdExp:BigInteger, iterations:Int, forceLength:Bool, ?rng:math.prng.Random) : BigInteger {
 		if(rng == null)
 			rng = new math.prng.Random();
 #if neko
@@ -1778,9 +1785,9 @@ class BigInteger {
 			iterations = 1;
 		while(true) {
 #if neko
-			var i : BigInteger = hndToBigInt(bi_generate_prime(bits, false));
+			var i:BigInteger = hndToBigInt(bi_generate_prime(bits, false));
 #else true
-			var i : BigInteger = BigInteger.random(bits, rng);
+			var i:BigInteger = BigInteger.random(bits, rng);
 #end
 			if(forceLength)
 				i.primify(bits, 1);
@@ -1855,7 +1862,7 @@ class BigInteger {
 #end
 
 #if neko
-	static function hndToBigInt(h : HndBI) : BigInteger {
+	static function hndToBigInt(h:HndBI) : BigInteger {
 		var rv = BigInteger.nbi();
 		rv._hnd = h;
 		return rv;

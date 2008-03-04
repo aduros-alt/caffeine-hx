@@ -102,7 +102,7 @@ class Std {
 				neg = true;
 			}
 			else if(c >= "0" || c <= "9" ) {
-				if(c == 0 && n < s.length-1 && s.charAt(n+1) != "x")
+				if(c == "0" && n < s.length-1 && s.charAt(n+1) != "x")
 					octal = true;
 				else
 					octal = false;

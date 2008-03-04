@@ -82,9 +82,9 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 				key.p = key.q;
 				key.q = t;
 			}
-			var p1 = key.p.sub(BigInteger.ONE);
-			var q1 = key.q.sub(BigInteger.ONE);
-			var phi = p1.mul(q1);
+			var p1:BigInteger = key.p.sub(BigInteger.ONE);
+			var q1:BigInteger = key.q.sub(BigInteger.ONE);
+			var phi:BigInteger = p1.mul(q1);
 			if(phi.gcd(ee).compare(BigInteger.ONE) == 0) {
 				key.n = key.p.mul(key.q);
 				key.d = ee.modInverse(phi);

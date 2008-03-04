@@ -87,7 +87,7 @@ class RSAEncrypt implements IBlockCipher {
 		if(block.length != bsize)
 			throw("bad block size");
 
-		var biv = BigInteger.ofString(block, 256);
+		var biv:BigInteger = BigInteger.ofString(block, 256);
 trace("BI of Block: " + biv.toRadix(16));
 trace("e: " + StringTools.hex(e));
 trace("n: " + n.toRadix(16));
@@ -141,10 +141,10 @@ trace("source: " + src);
 		var idx : Int = 0;
 		var msg = new StringBuf();
 		while(idx < src.length) {
-			var m = BigInteger.ofString(pf.pad(src.substr(idx,ts)),256);
+			var m:BigInteger = BigInteger.ofString(pf.pad(src.substr(idx,ts)),256);
 trace("padded: " + m.toRadix(16));
 			if(m == null) return null;
-			var c = f(m);
+			var c:BigInteger = f(m);
 			if(c == null) return null;
 			var h = c.toRadix(16);
 			if((h.length & 1) != 0)

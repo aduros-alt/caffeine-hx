@@ -376,7 +376,7 @@ trace(rsa);
 class CryptTest {
 
 	public static function main() {
-#if !neko
+#if js
 		if(haxe.Firebug.detect()) {
 			haxe.Firebug.redirectTraces();
 		}

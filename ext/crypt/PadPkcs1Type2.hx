@@ -41,7 +41,7 @@ class PadPkcs1Type2 extends PadPkcs1Type1, implements IPad {
 		rng = new Random();
 	}
 
-	override function getPadByte() : Int {
+	#if as3gen public #end function getPadByte() : Int {
 		var x: Int = 0;
 		while(x == 0) x = rng.getByte();
 		return x;

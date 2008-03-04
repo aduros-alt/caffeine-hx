@@ -304,10 +304,9 @@ class ByteString implements IString {
 		Add a byte to the beginning of the buffer.
 	**/
 	public function unshift(v : Int ) : Void {
-		var r = _buf.unshift(v);
+		_buf.unshift(v);
 		position++;
 		update();
-		return r;
 	}
 
 	/**
