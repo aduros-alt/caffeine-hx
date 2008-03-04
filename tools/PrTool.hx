@@ -300,8 +300,20 @@ class PrTool {
 
 	static function createStdLibPatch(file:String, caf:String, path:String ) {
 		var hf = haxe_cur + path;
-		var hs = neko.io.File.getContent(hf);
-		var fdate = neko.FileSystem.stat(hf).mtime;
+		var hs : String;
+		try {
+			hs = neko.io.File.getContent(hf);
+		}
+		catch(e:Dynamic) {
+			hs = "";
+		}
+		var fdate : Date;
+		try {
+			fdate = neko.FileSystem.stat(hf).mtime;
+		}
+		catch(e:Dynamic) {
+			fdate = Date.now();
+		}
 
 		var ofile = "haxe.orig/std" + path;
 		var nfile = "haxe/std" + path;

@@ -1,0 +1,21 @@
+PATCH REQUESTS
+==============
+Any time a std library file (one that is part of Haxe distribution) is edited, the changes must
+be surrounded by a PR tag. The tool prtool.n can be run to write a full patch request for
+submitting. The patch output is writtend to stdout, and information messages to stderr.
+It is built with tools.hxml in the root directory.
+
+
+A patch request comment follows this format:
+
+//BEGINPR/rw01/2008-02-07//My Name/A good commment describing the need for the change
+...code...
+//ENDPR/rw01///
+
+rw01: A distinct (per file) code.
+2008-02-07: the date the patch was created
+//: null field filled in when the patch is submitted
+
+The ENDPR tag should have the same code.
+
+Please note that PR tags may not be embedded within another.
