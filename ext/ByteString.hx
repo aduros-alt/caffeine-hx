@@ -25,9 +25,23 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-class ByteString {
-	public var length(getLength, setLength) : Int;
+/**
+	A class that represents arrays of bytes. Has methods from String
+	class, as well as from Flash9 util.ByteArray
+**/
+// TODO: implement as flash.util.ByteArray for flash 9
+class ByteString implements IString {
+	public static var BIG_ENDIAN : String = "bigEndian";
+	public static var LITTLE_ENDIAN : String = "littleEndian";
+
+	/** the length. To modify use setLength **/
+	public var length(default, null) : Int;
+	/** the read/write position pointer. **/
+	public var position(default, setPosition) : Int;
+	/** sets or reads the endianess of the buffer. bigEndian or littleEndian **/
+	public var endian(default, setEndian) : String;
 	var _buf : Array<Int>;
+
 
 	public function new(?s : String) {
 		_buf = new Array();
@@ -36,34 +50,9 @@ class ByteString {
 				_buf.push(s.charCodeAt(i));
 			length = s.length;
 		}
-	}
-
-	/**
-		Set position to a byte value. Only the lower 8 bits
-		of the integer are used. Attempts to set values beyond
-		the buffer length will throw an exception. Setting
-	**/
-	public function set(pos: Int, value:Int) {
-		if(pos > _buf.length)
-			throw "index error";
-		_buf[pos] = value & 0xff;
-		length = _buf.length;
-	}
-
-	/**
-		Get the value at position pos. Same as charCodeAt
-	**/
-	public function get(pos : Int) : Null<Int> {
-		if(pos >= _buf.length || pos < 0)
-			throw "index error";
-		return _buf[pos];
-	}
-
-	/**
-		Alias for set.
-	**/
-	public function setCodeAt(pos: Int, value:Int) : Void {
-		set(pos, value);
+		position = 0;
+		endian = BIG_ENDIAN;
+		update();
 	}
 
 	public function charAt( index : Int ) : String {
@@ -75,21 +64,17 @@ class ByteString {
 		return a;
 	}
 
-	public function toString() : String {
-		var sb = new StringBuf();
-		for(x in 0..._buf.length)
-			sb.addChar(_buf[x]);
-		return sb.toString();
+	/**
+		Get the value at position pos. Same as charCodeAt
+	**/
+	public function get(pos : Int) : Null<Int> {
+		if(pos >= _buf.length || pos < 0)
+			throw "index error";
+		return _buf[pos];
 	}
 
-	public function toUpperCase() : String {
-		throw "unimplemented";
-		return "";
-	}
-
-	public function toLowerCase() : String {
-		throw "unimplemented";
-		return "";
+	public function getLength() : Int {
+		return _buf.length;
 	}
 
 	public function indexOf( value : String, ?startIndex : Int ) : Int {
@@ -105,11 +90,12 @@ class ByteString {
 	**/
 	public function pop() : Null<Int> {
 		if(_buf.length == 0) {
-			length = 0;
+			update();
 			return null;
 		}
-		length--;
-		return _buf.pop();
+		var i = _buf.pop();
+		update();
+		return i;
 	}
 
 	/**
@@ -117,9 +103,100 @@ class ByteString {
 		new length.
 	**/
 	public function push(v : Int) : Int {
-		_buf.push(v & 0xFF);
-		length = _buf.length;
+		_buf.push(cleanValue(v));
+		update();
 		return length;
+	}
+
+	/**
+		Read the next byte in stream, and returns false if it is 0
+		or true otherwise.
+	**/
+	public function readBoolean() : Bool {
+		var i = readByte();
+		if(i == 0)
+			return false;
+		return true;
+	}
+
+	/**
+		Read the next available byte as an signed integer.
+	**/
+	public function readByte() : Int {
+		checkEof();
+		var i = _buf[position++];
+		if(i & 0x80 != 0) {
+			i &= 0x7f;
+			i ^= 0xff;
+			i = 0 -i;
+		}
+		return i;
+	}
+
+	/**
+		Read bytes from ByteString b into this ByteString
+	**/
+	public function readBytes(b:ByteString, ?offset:Int, ?length:Int): Void
+	{
+		if(offset == null)
+			offset = 0;
+		if(length == null)
+			length = b._buf.length;
+		if(offset + length > b._buf.length)
+			throwEof();
+		for(i in offset...length) {
+			_buf[position] = b._buf[i];
+			position++;
+		}
+	}
+
+	/**
+		Read from the buffer using the specified multibyte char set.
+	**/
+	// TODO: Lots.
+	function readMultiByte(len : Int, set:String) : String {
+		checkEof();
+		if(len + position > length)
+			throwEof();
+		var cset = set.toLowerCase();
+		switch(cset) {
+		case "latin1":
+		case "us-ascii":
+		default:
+			throw set+" not supported";
+		}
+		return toString().substr(position, len);
+		position += len;
+	}
+
+	/**
+		Read the next available byte as an unsigned.
+	**/
+	public function readUnsignedByte() : Int {
+		checkEof();
+		var i : Int = _buf[position++];
+		return i;
+	}
+
+	/**
+		Set position to a byte value. Only the lower 8 bits
+		of the integer are used. Attempts to set values beyond
+		the buffer length NULL fill the buffer to that point.
+	**/
+	public function set(pos: Int, value:Int) {
+		if(pos > _buf.length) {
+			for(i in _buf.length...pos)
+				_buf[i] = 0;
+		}
+		_buf[pos] = cleanValue(value);
+		update();
+	}
+
+	/**
+		Alias for set.
+	**/
+	public function setCodeAt(pos: Int, value:Int) : Void {
+		set(pos, value);
 	}
 
 	/**
@@ -139,11 +216,8 @@ class ByteString {
 			return i;
 		}
 		_buf = _buf.slice(0, i);
+		update();
 		return i;
-	}
-
-	public function getLength() : Int {
-		return _buf.length;
 	}
 
 	/**
@@ -151,19 +225,23 @@ class ByteString {
 	**/
 	public function shift() : Null<Int> {
 		var r = _buf.shift();
-		length = _buf.length;
+		update();
 		return r;
 	}
 
+	/**
+		Split into array of binary strings, using delimiter which
+		also may be a binary string.
+	**/
 	public function split( delimiter : String ) : Array<String> {
-		return toString().split( delimiter );
+		return toString().split( delimiter.toString() );
 	}
 
 	/**
 		Split a ByteString into an array of ByteStrings. The delimiter may
 		be another ByteString;
 	**/
-	public function splitB( delimiter : String ) : Array<ByteString> {
+	public function splitB( delimiter : IString ) : Array<ByteString> {
 		var a = toString().split( delimiter.toString() );
 		var r = new Array<ByteString>();
 		for( i in a )
@@ -189,21 +267,136 @@ class ByteString {
 	{
 		return _buf.copy();
 	}
+
+	/**
+		Return a hex representation of the data.
+	**/
+	public function toHex() : String {
+		var s = ByteStringTools.byteArrayToString(_buf);
+		if(s.length % 2 != 0)
+			s = "0"+s;
+		return s;
+	}
+
+	/** Unimplemented **/
+	public function toLowerCase() : String {
+		throw "unimplemented";
+		return "";
+	}
+
+	/**
+		Return binary string. May have embedded NULL chars.
+	*/
+	public function toString() : String {
+		var sb = new StringBuf();
+		for(x in 0..._buf.length)
+			sb.addChar(_buf[x]);
+		return sb.toString();
+	}
+
+	/** Unimplemented **/
+	public function toUpperCase() : String {
+		throw "unimplemented";
+		return "";
+	}
+
 	/**
 		Add a byte to the beginning of the buffer.
 	**/
 	public function unshift(v : Int ) : Void {
 		var r = _buf.unshift(v);
-		length = _buf.length;
+		position++;
+		update();
 		return r;
 	}
 
+	/**
+		Pushes a byte into the string
+	**/
+	public function writeByte(v : Int) : Void {
+		_buf.push(cleanValue(v));
+		update();
+	}
+
+	/**
+		Pushes a byte into the string
+	**/
+	public function writeBytes(v : IString) : Void {
+		if(Std.is(v, ByteString)) {
+			_buf = _buf.concat(untyped v.buf);
+			update();
+			return;
+		}
+		else if(Std.is(v, String)) {
+			for(i in 0...v.length) {
+				_buf[i] = v.charCodeAt(i);
+			}
+			return;
+		}
+		else
+			throw "Unable to add "+Type.getClassName(Type.getClass(v));
+	}
+
+
+	/////////////////////////////////////////////////////
+	//                Private methods                  //
+	/////////////////////////////////////////////////////
+	/**
+		reset position pointer to 1 past array length
+	*/
+	function update() {
+		length = _buf.length;
+		if(position > _buf.length)
+			position = _buf.length;
+	}
+
+	function checkEof() {
+		if(position >= _buf.length)
+			throwEof();
+	}
+
+	private static function cleanValue(v : Int) : Int {
+		var neg = false;
+		if(v < 0) {
+			if(v < -128)
+				throw "not a byte";
+			neg = true;
+			v = (v & 0xff) | 0x80;
+		}
+		if(v > 0xff)
+			throw "not a byte";
+		return v;
+	}
+
+	function setEndian(s : String) : String {
+		if(s == BIG_ENDIAN || s == LITTLE_ENDIAN)
+			endian = s;
+		else
+			throw "unsupported";
+		return s;
+	}
+
+	function setPosition(p : Int) : Int {
+		if(p > _buf.length)
+			set(p, 0);
+		position = p;
+		update();
+		return p;
+	}
+
+	function throwEof() : Void {
+		throw "eof";
+	}
+
+	/////////////////////////////////////////////////////
+	//            Public Static methods                //
+	/////////////////////////////////////////////////////
 	public static function ofIntArray(a : Array<Int>) : ByteString {
 		var b = new ByteString();
-		b._buf = a.copy();
-		for(i in 0...b._buf.length) {
-			b._buf[i] &= 0xff;
+		for(i in 0... a.length) {
+			b._buf[i] = cleanValue(a[i]);
 		}
+		b.update();
 		return b;
 	}
 
@@ -215,6 +408,7 @@ class ByteString {
 		for(i in 0...s.length) {
 			b._buf[i] = s.charCodeAt(i);
 		}
+		b.update();
 		return b;
 	}
 
