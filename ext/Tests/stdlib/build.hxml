@@ -1,12 +1,14 @@
 -cp ../../
 -js test.js
 -main MiscTest
+-debug
 
 --next
 
 -cp ../../
 -neko test.n
 -main MiscTest
+-debug
 
 --next
 

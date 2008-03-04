@@ -23,13 +23,27 @@ class StdParseInt extends haxe.unit.TestCase {
 class MiscTest {
 	static function main()
 	{
-#if !neko
+#if js	// JS Only, cause of sandbox violations for local flash files...
 		if(haxe.Firebug.detect()) {
 			haxe.Firebug.redirectTraces();
 		}
 #end
+		// Before any other tests, make sure isFunction actually works
+		try {
+			var t = new ReflectTest();
+			t.currentTest = new haxe.unit.TestStatus();
+			t.test_isFunction();
+		}
+		catch(e:Dynamic) {
+			trace("Reflect.isFunction failed and threw exception: "+e);
+			for(f in Reflect.fields(e)) trace(f +': '+ Reflect.field(e,f) );
+		}
+		
 		var r = new haxe.unit.TestRunner();
 		r.add(new StdParseInt());
+		r.add(new ReflectTest());
+		r.add(new TestReflect());
+		r.add(new TypeTest());
 		r.run();
 	}
 }
