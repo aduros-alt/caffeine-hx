@@ -111,14 +111,14 @@ class TestRunner {
 		#end
 	}
 
+//BEGINPR/rw01/2008-02-20/Russell Weir/customTrace soes not co-operate with Firebug. Also, sort fields alphabetically so they can be executed in order.
 	function runCase( t:TestCase ) : Void 	{
-//BEGINPR/rw01/2008-02-20/Russell Weir/Does not co-operate with Firebug
 //		var old = haxe.Log.trace;
 //		haxe.Log.trace = customTrace;
-//ENDPR/rw01////
 
 		var cl = Type.getClass(t);
 		var fields = Type.getInstanceFields(cl);
+		fields.sort(sortFields);
 
 		print( "Class: "+Type.getClassName(cl)+" ");
 		for ( f in fields ){
@@ -163,8 +163,13 @@ class TestRunner {
 		}
 
 		print("\n");
-//BEGINPR/rw02/2008-02-20/Russell Weir/Does not co-operate with Firebug
 		//haxe.Log.trace = old;
-//ENDPR/rw02////
 	}
+
+	function sortFields(a:String, b:String) : Int {
+		if(a > b) return 1;
+		if(a < b) return -1;
+		return 0;
+	}
+//ENDPR/rw01////
 }

@@ -1,5 +1,0 @@
-CAFFEINE_HAXE_CVS
-	The local path to a current Haxe CVS tree. Used by PrTool.hx for creating PRs.
-
-CAFFEINE_NDLL_DIR
-	Local ndll install path for 'make install-dev' target. ndlls will be copied here for testing. Makefiles in the dll_src directory should use this variable.

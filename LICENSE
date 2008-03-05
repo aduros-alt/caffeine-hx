@@ -29,6 +29,9 @@ Code in the /ext directory is licensed as follows:
  * http://www-cs-students.stanford.edu/~tjw/jsbn/
  * Copyright (c) 2003-2005  Tom Wu
  * All Rights Reserved.
+ * and from AS3 implementation
+ * Copyright (c) 2007 Henri Torgemane
+ * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the

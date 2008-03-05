@@ -19,3 +19,12 @@ rw01: A distinct (per file) code.
 The ENDPR tag should have the same code.
 
 Please note that PR tags may not be embedded within another.
+
+
+ENVIRONMENT VARIABLES
+=====================
+CAFFEINE_HAXE_CVS
+	The local path to a current Haxe CVS tree. Used by PrTool.hx for creating PRs.
+
+CAFFEINE_NDLL_DIR
+	Local ndll install path for 'make install-dev' target. ndlls will be copied here for testing. Makefiles in the dll_src directory should use this variable.
