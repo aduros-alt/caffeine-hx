@@ -49,7 +49,7 @@ class DERByteString extends ByteString,  implements IAsn1Type {
 		this.len = length;
 	}
 
-	public function getLength():Int
+	override public function getLength():Int
 	{
 		return len;
 	}

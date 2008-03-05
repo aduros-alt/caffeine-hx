@@ -35,6 +35,7 @@ import DateTools;
 import EReg;
 import Hash;
 import I32;
+import I64;
 import IntHash;
 import IntIter;
 import Lambda;
@@ -57,12 +58,30 @@ import crypt.IV;
 import crypt.ModeCBC;
 import crypt.ModeECB;
 import crypt.PadNull;
+import crypt.PadPkcs1Type1;
+import crypt.PadPkcs1Type2;
 import crypt.PadPkcs5;
 import crypt.RSA;
 import crypt.RSAEncrypt;
 import crypt.Tea;
+import crypt.cert.X509CertificateCollection;
+import crypt.cert.X509Certificate;
+import crypt.cert.MozillaRootCertificates;
 
 import dates.GmtDate;
+
+import formats.Base64;
+import formats.der.DERByteString;
+import formats.der.DER;
+import formats.der.Integer;
+import formats.der.ObjectIdentifier;
+import formats.der.OID;
+import formats.der.PEM;
+import formats.der.PrintableString;
+import formats.der.Sequence;
+import formats.der.Set;
+import formats.der.Type;
+import formats.der.UTCTime;
 
 import hash.HMAC;
 import hash.Md5;
@@ -563,9 +582,11 @@ import neko.io.StringOutput;
 import neko.io.TmpFile;
 
 import neko.zip.Compress;
-import neko.zip.File;
+import neko.zip.CRC32;
 import neko.zip.Flush;
+import neko.zip.Reader;
 import neko.zip.Uncompress;
+import neko.zip.Writer;
 
 import neko.db.Connection;
 import neko.db.Manager;

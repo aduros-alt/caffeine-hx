@@ -28,10 +28,11 @@
 package crypt;
 
 class PadNull implements IPad {
-	public var blockSize : Int;
+	public var blockSize(default,setBlockSize) : Int;
+	public var textSize(default,null) : Int;
 
 	public function new( blockSize : Int ) {
-		this.blockSize = blockSize;
+		setBlockSize(blockSize);
 	}
 
 	public function pad( s : String ) : String {
@@ -45,5 +46,21 @@ class PadNull implements IPad {
 	**/
 	public function unpad( s : String ) : String {
 		return s;
+	}
+
+	/** pads by block? **/
+	public function isBlockPad() : Bool { return false; }
+
+	/** number of bytes padding needs per block **/
+	public function blockOverhead() : Int { return 0; }
+
+	public function calcNumBlocks(len : Int) : Int {
+		return Math.ceil(len/blockSize);
+	}
+
+	private function setBlockSize( x : Int ) : Int {
+		this.blockSize = x;
+		this.textSize = x;
+		return x;
 	}
 }

@@ -28,6 +28,8 @@
 /**
 	64 bit Integers. Implemented as BigInteger for all platforms currently.
 **/
+import math.BigInteger;
+
 class I64 {
 	public static var MAX : BigInteger;
 	public static var MIN : BigInteger;
@@ -37,13 +39,13 @@ class I64 {
 	public function new() {
 	}
 
-	public function __init()__ {
-		//MAX = BigInteger("0x7fffffffffffffff", 16);
-		//MIN = BigInteger("0x8000000000000000",16);
+	static function __init__() {
+		MAX = BigInteger.ofString("0x7fffffffffffffff", 16);
+		MIN = BigInteger.ZERO.sub(BigInteger.ofString("0x8000000000000000",16));
 	}
 
 	public function toString() {
-		return bnToRadixString(10);
+		return bnToRadixString(value,10);
 	}
 
 	public function toRadixString(radix : Int) {

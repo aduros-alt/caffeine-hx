@@ -33,7 +33,7 @@
  *
  * A class to store and index X509 Certificates by Subject.
  */
-package crypto.cert;
+package crypt.cert;
 
 class X509CertificateCollection {
 	private var _map : Dynamic;
@@ -51,7 +51,7 @@ class X509CertificateCollection {
 		* @param pem		PEM encoded certificate data
 		*
 		*/
-	public function addPEMCertificate(name:String, subject:String, pem:String):void {
+	public function addPEMCertificate(name:String, subject:String, pem:String):Void {
 		_map.subject = new X509Certificate(pem);
 	}
 
@@ -62,7 +62,7 @@ class X509CertificateCollection {
 		* @param cert		A X509 certificate
 		*
 		*/
-	public function addCertificate(cert:X509Certificate):void {
+	public function addCertificate(cert:X509Certificate):Void {
 		var subject:String = cert.getSubjectPrincipal();
 		_map.subject = cert;
 	}

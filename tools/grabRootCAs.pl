@@ -82,6 +82,7 @@ package crypt.cert;
 
 class MozillaRootCertificates extends X509CertificateCollection {
 	public function new() {
+		super();
 DONE
   foreach (@certs) {
     my %c = %$_;
@@ -93,10 +94,10 @@ DONE
   }
   $class .= <<"DONE";
 	}
-	override public function addPEMCertificate(name:String,subject:String,pem:String):void {
+	override public function addPEMCertificate(name:String,subject:String,pem:String):Void {
 		throw "Cannot add certificates to the Root CA store.";
 	}
-	override public function addCertificate(cert:X509Certificate):void {
+	override public function addCertificate(cert:X509Certificate):Void {
 		throw "Cannot add certificates to the Root CA store.";
 	}
 }

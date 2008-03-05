@@ -117,11 +117,11 @@ trace(ByteStringTools.hexDump(s));
 		return x;
 	}
 
-	#if as3gen public #end function getPadByte() : Int {
+	public function getPadByte() : Int {
 		return this.padByte;
 	}
 
-	private function setPadByte(x : Int) : Int {
+	public function setPadByte(x : Int) : Int {
 		this.padByte = x & 0xFF;
 		return x;
 	}

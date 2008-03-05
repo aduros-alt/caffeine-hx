@@ -32,15 +32,17 @@
  * X509Certificate
  *
  **/
-package crypto.cert;
+package crypt.cert;
 
 import hash.IHash;
-import hash.MD5;
-import hash.SHA1;
+import hash.Md5;
+import hash.Sha1;
 import crypt.RSA;
+import crypt.RSAEncrypt;
 import formats.Base64;
 import formats.der.DERByteString;
 import formats.der.DER;
+import formats.der.IAsn1Type;
 import formats.der.OID;
 import formats.der.ObjectIdentifier;
 import formats.der.PEM;
@@ -126,14 +128,14 @@ class X509Certificate {
 		var oid:String;
 		switch (algo) {
 		case OID.SHA1_WITH_RSA_ENCRYPTION:
-			hash = new SHA1;
+			hash = new SHA1();
 			oid = OID.SHA1_ALGORITHM;
 		case OID.MD2_WITH_RSA_ENCRYPTION:
 			throw "can not verify md2";
 			//hash = new MD2;
 			//oid = OID.MD2_ALGORITHM;
 		case OID.MD5_WITH_RSA_ENCRYPTION:
-			hash = new MD5;
+			hash = new MD5();
 			oid = OID.MD5_ALGORITHM;
 		default:
 			return false;
@@ -162,27 +164,27 @@ class X509Certificate {
 	* @return
 	*
 	*/
-	private function signCertificate(key:RSAKey, algo:String):ByteString {
+	private function signCertificate(key:RSA, algo:String):ByteString {
 		var hash:IHash;
 		var oid:String;
 		switch (algo) {
 		case OID.SHA1_WITH_RSA_ENCRYPTION:
-			hash = new SHA1;
+			hash = new SHA1();
 			oid = OID.SHA1_ALGORITHM;
 		case OID.MD2_WITH_RSA_ENCRYPTION:
 			throw "Can not parse MD2";
 // 				hash = new MD2;
 // 				oid = OID.MD2_ALGORITHM;
 		case OID.MD5_WITH_RSA_ENCRYPTION:
-			hash = new MD5;
+			hash = new MD5();
 			oid = OID.MD5_ALGORITHM;
 		default:
-			return null
+			return null;
 		}
 		var data:ByteString = _obj.signedCertificate_bin;
 		data = ByteString.ofString(hash.calculate(data, true));
-		var seq1:Sequence = new Sequence;
-		seq1[0] = new Sequence;
+		var seq1:Sequence = new Sequence();
+		seq1[0] = new Sequence();
 		seq1[0][0] = new ObjectIdentifier(0,0, oid);
 		seq1[0][1] = null;
 		seq1[1] = new DERByteString();
@@ -195,7 +197,7 @@ class X509Certificate {
 
 	public function getPublicKey():RSAEncrypt {
 		load();
-		var pk:ByteString = _obj.signedCertificate.subjectPublicKeyInfo.subjectPublicKey as ByteString;
+		var pk:ByteString = cast(_obj.signedCertificate.subjectPublicKeyInfo.subjectPublicKey, ByteString);
 		pk.position = 0;
 		var rsaKey:Object = DER.parse(pk, [{name:"N"},{name:"E"}]);
 		return new RSAEncrypt(rsaKey.N, rsaKey.E.valueOf());

@@ -243,7 +243,7 @@ trace(dmq1);
 		return xp.sub(xq).mul(this.coeff).mod(this.p).mul(this.q).add(xq);
 	}
 
-	public function toString() {
+	override public function toString() {
 		var sb = new StringBuf();
 		sb.add(super.toString());
 		sb.add("Private:\n");
