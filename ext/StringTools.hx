@@ -251,6 +251,19 @@ class StringTools {
 	}
 //ENDPR/rw02///
 
+//BEGINPR/rw04/2008-03-02//Russell Weir/Found in mtwin.mail.Tools should be a StringTool
+	public static function splitLines( str : String ) : Array<String> {
+		var ret = str.split("\n");
+		for( i in 0...ret.length ){
+				var l = ret[i];
+				if( l.substr(-1,1) == "\r" ){
+						ret[i] = l.substr(0,-1);
+				}
+		}
+		return ret;
+	}
+//ENDPR/rw04///
+
 	/**
 		Encode a string using the specified base. The base length must be a power of two.
 	**/
@@ -326,9 +339,11 @@ class StringTools {
 		#end
 	}
 
+//BEGINPR/rw05/2008-03-05//Russell Weir/Documentation wording change
 	/**
-		Encode a number into a hexadecimal representation, with an optional number of zeros for left padding.
+		Encode a number into a hexadecimal representation, optionally left zero padded to [digits] width.
 	**/
+//ENDPR/rw05////
 	public static function hex( n : Int, ?digits : Int ) {
 		var neg = false;
 		if( n < 0 ) {

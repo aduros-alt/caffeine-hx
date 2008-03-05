@@ -33,11 +33,11 @@
  *
  * An ASN1 type for an Integer, represented with a BigInteger
  */
-package protocols.der;
+package formats.der;
 import math.BigInteger;
 import ByteString;
 
-class Integer extends BigInteger implements IAsn1Type
+class Integer extends BigInteger, implements IAsn1Type
 {
 	private var type:Int;
 	private var len:Int;
@@ -45,7 +45,14 @@ class Integer extends BigInteger implements IAsn1Type
 	public function new(type:Int, length:Int, b:ByteString) {
 		this.type = type;
 		this.len = length;
-		super(b);
+		super();
+if(b.length <20) {
+	trace(ByteString.hexDump(b));
+	trace(ByteString.hexDump(b.toString()));
+}
+		var bi = BigInteger.ofByteString(b);
+		bi.copyTo(this);
+trace(this.toRadix(16));
 	}
 
 	public function getLength():Int

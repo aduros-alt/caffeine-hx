@@ -38,20 +38,22 @@ package formats.der;
 import ByteString;
 
 
-class Sequence implements IAsn1Type
+class Sequence implements IAsn1Type, implements IContainer
 {
 	var type:Int;
 	var len:Int;
 	var _buf : Array<Dynamic>;
+	var _hash : Hash<Dynamic>;
 
-	public function Sequence(?type:Int, ?length:Int) {
-		if(type == null)
-			type = 0x30;
+	public function new(?iType:Int, ?length:Int) {
+		if(iType == null)
+			iType = 0x30;
 		if(length == null)
 			length = 0x00;
-		this.type = type;
-		this.len = length;
-		this._buf = new Array();
+		type = iType;
+		len = length;
+		_buf = new Array();
+		_hash = new Hash();
 	}
 
 	public function getLength():Int
@@ -66,7 +68,7 @@ class Sequence implements IAsn1Type
 
 	public function toDER():ByteString {
 		var tmp:ByteString = new ByteString();
-		for (var i:Int=0;i<length;i++) {
+		for ( i in 0 ... len) {
 			var e:IAsn1Type = _buf[i];
 			if (e == null) { // XXX Arguably, I could have a der.Null class instead
 				tmp.writeByte(0x05);
@@ -85,8 +87,9 @@ class Sequence implements IAsn1Type
 		for(i in 0..._buf.length) {
 			if (_buf[i]==null) continue;
 			var found:Bool = false;
-			for (var key:String in this) {
-				if ( (i.toString()!=key) && _buf[i]==_buf[key]) {
+			for(key in _hash.keys()) {
+//TODO: certainly wrong
+				if ( (Std.string(i) != key) && _buf[i] == _hash.get(key)) {
 					t += key+": "+_buf[i]+"\n";
 					found = true;
 					break;
@@ -102,15 +105,18 @@ class Sequence implements IAsn1Type
 	/////////
 
 	public function findAttributeValue(oid:String):IAsn1Type {
-		for each (var set:* in this) {
-			if (set is Set) {
-				var child:* = set[0];
-				if (child is Sequence) {
-					var tmp:* = child[0];
-					if (tmp is ObjectIdentifier) {
-						var id:ObjectIdentifier = tmp as ObjectIdentifier;
+		//for each (var set:* in this) {
+		for(key in _hash.keys()) {
+			var set = _hash.get(key);
+			if ( Std.is(set, Set) ) {
+				var child:IAsn1Type = set.get(0);
+				if ( Std.is(child, Sequence)) {
+					var sc:Sequence = cast child;
+					var tmp:IAsn1Type = sc.get(0);
+					if ( Std.is(tmp, ObjectIdentifier)) {
+						var id:ObjectIdentifier = cast tmp;
 						if (id.toString()==oid) {
-							return child[1] as IAsn1Type;
+							return sc.get(1);
 						}
 					}
 				}
@@ -118,4 +124,25 @@ class Sequence implements IAsn1Type
 		}
 		return null;
 	}
+
+	public function push(v:Dynamic) : Void {
+		_buf.push(v);
+	}
+
+	public function get(i : Int) : Dynamic {
+		return _buf[i];
+	}
+
+	public function getContainer(i : Int ) : IContainer {
+		return cast _buf[i];
+	}
+
+	public function setKey(k:String, v:Dynamic) : Void {
+		_hash.set(k, v);
+	}
+
+	public function getKey(k:String) : Dynamic {
+		return _hash.get(k);
+	}
+
 }

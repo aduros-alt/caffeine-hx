@@ -25,16 +25,33 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-class Constants {
-	public static var DIGITS_BASE10 : String = "0123456789";
-	public static var DIGITS_HEXU : String = "0123456789ABCDEF";
-	public static var DIGITS_HEXL : String = "0123456789abcdef";
-	public static var DIGITS_OCTAL : String = "01234567";
-	public static var DIGITS_BN : String = "0123456789abcdefghijklmnopqrstuvwxyz";
-	public static var DIGITS_BASE64 : String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+package formats;
 
-	public static var PROTO_HTTP : String = "http://";
-	public static var PROTO_FILE : String = "file://";
-	public static var PROTO_FTP : String = "ftp://";
-	public static var PROTO_RTMP : String = "rtmp://";
+class Base64 {
+
+	/**
+		Encodes any IString to base64
+	**/
+	public static function encode(s : IString) : String {
+		var ext : String = switch (s.length % 3) {
+		case 1: "==";
+		case 2: "=";
+		case 0: "";
+		}
+		return StringTools.baseEncode( s.toString(), Constants.DIGITS_BASE64 ) + ext;
+	}
+
+	/**
+		Attempt to decode a base64 encoded String. If the String can not
+		be decoded, null will be returned.
+	**/
+	public static function decode(s : String) : String {
+		s = StringTools.stripWhite(s);
+		s = StringTools.replace(s,"=","");
+		return
+			try StringTools.baseDecode( s, Constants.DIGITS_BASE64 )
+			catch( e:Dynamic) null;
+	}
+
 }
+

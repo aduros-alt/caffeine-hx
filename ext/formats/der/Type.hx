@@ -35,9 +35,9 @@
  */
 package formats.der;
 
-public class Type
+class Type
 {
-	public static TLS_CERT:Array = [
+	public static var TLS_CERT:Array<Dynamic> = [
 		{name:"signedCertificate", extract:true, value: [
 			{name:"versionHolder", optional:true, value: [
 				{name:"version"}
@@ -45,7 +45,7 @@ public class Type
 					var s:Sequence = new Sequence(0, 0);
 					var v:Integer = new Integer(2,1, ByteString.ofHex("00"));
 					s.push(v);
-					s.version = v;
+					s.setKey("version", v);
 					return s;
 				}()
 			},
@@ -77,7 +77,7 @@ public class Type
 		]},
 		{name:"encrypted", value:null}
 	];
-	public static CERTIFICATE:Array = [
+	public static var CERTIFICATE:Array<Dynamic> = [
 		{name:"tbsCertificate", value:[
 			{name:"tag0", value:[
 				{name:"version"}
@@ -104,11 +104,11 @@ public class Type
 		{name:"signatureAlgorithm"},
 		{name:"signatureValue"}
 	];
-	public static RSA_PUBLIC_KEY:Array = [
+	public static var RSA_PUBLIC_KEY:Array<Dynamic> = [
 		{name:"modulus"},
 		{name:"publicExponent"}
 	];
-	public static RSA_SIGNATURE:Array = [
+	public static var RSA_SIGNATURE:Array<Dynamic> = [
 		{name:"algorithm", value:[
 			{name:"algorithmId"}
 			]},

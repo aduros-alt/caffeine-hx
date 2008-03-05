@@ -35,7 +35,7 @@
  */
 package formats.der;
 
-class Set extends Sequence, implements IAsn1Type
+class Set extends Sequence, implements IAsn1Type, implements IContainer
 {
 	public function new(?type:Int, ?length:Int) {
 		if(type == null)
@@ -48,7 +48,7 @@ class Set extends Sequence, implements IAsn1Type
 	public override function toString():String {
 		var s:String = DER.indent;
 		DER.indent += "    ";
-		var t:String = join("\n");
+		var t:String = _buf.join("\n");
 		DER.indent= s;
 		return DER.indent+"Set["+type+"]["+len+"][\n"+t+"\n"+s+"]";
 	}

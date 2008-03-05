@@ -37,24 +37,24 @@ package formats.der;
 class OID
 {
 
-	public static RSA_ENCRYPTION:String				= "1.2.840.113549.1.1.1";
-	public static MD2_WITH_RSA_ENCRYPTION:String	= "1.2.840.113549.1.1.2";
-	public static MD5_WITH_RSA_ENCRYPTION:String 	= "1.2.840.113549.1.1.4";
-	public static SHA1_WITH_RSA_ENCRYPTION:String	= "1.2.840.113549.1.1.5";
-	public static MD2_ALGORITHM:String 				= "1.2.840.113549.2.2";
-	public static MD5_ALGORITHM:String				= "1.2.840.113549.2.5";
-	public static DSA:String						= "1.2.840.10040.4.1";
-	public static DSA_WITH_SHA1:String				= "1.2.840.10040.4.3";
-	public static DH_PUBLIC_NUMBER:String			= "1.2.840.10046.2.1";
-	public static SHA1_ALGORITHM:String				= "1.3.14.3.2.26";
+	public static var RSA_ENCRYPTION:String				= "1.2.840.113549.1.1.1";
+	public static var MD2_WITH_RSA_ENCRYPTION:String	= "1.2.840.113549.1.1.2";
+	public static var MD5_WITH_RSA_ENCRYPTION:String 	= "1.2.840.113549.1.1.4";
+	public static var SHA1_WITH_RSA_ENCRYPTION:String	= "1.2.840.113549.1.1.5";
+	public static var MD2_ALGORITHM:String 				= "1.2.840.113549.2.2";
+	public static var MD5_ALGORITHM:String				= "1.2.840.113549.2.5";
+	public static var DSA:String						= "1.2.840.10040.4.1";
+	public static var DSA_WITH_SHA1:String				= "1.2.840.10040.4.3";
+	public static var DH_PUBLIC_NUMBER:String			= "1.2.840.10046.2.1";
+	public static var SHA1_ALGORITHM:String				= "1.3.14.3.2.26";
 
-	public static COMMON_NAME:String				= "2.5.4.3";
-	public static SURNAME:String					= "2.5.4.4";
-	public static COUNTRY_NAME:String				= "2.5.4.6";
-	public static LOCALITY_NAME:String				= "2.5.4.7";
-	public static STATE_NAME:String					= "2.5.4.8";
-	public static ORGANIZATION_NAME:String			= "2.5.4.10";
-	public static ORG_UNIT_NAME:String				= "2.5.4.11";
-	public static TITLE:String						= "2.5.4.12";
+	public static var COMMON_NAME:String				= "2.5.4.3";
+	public static var SURNAME:String					= "2.5.4.4";
+	public static var COUNTRY_NAME:String				= "2.5.4.6";
+	public static var LOCALITY_NAME:String				= "2.5.4.7";
+	public static var STATE_NAME:String					= "2.5.4.8";
+	public static var ORGANIZATION_NAME:String			= "2.5.4.10";
+	public static var ORG_UNIT_NAME:String				= "2.5.4.11";
+	public static var TITLE:String						= "2.5.4.12";
 
 }

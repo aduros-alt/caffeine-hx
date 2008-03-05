@@ -25,16 +25,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-class Constants {
-	public static var DIGITS_BASE10 : String = "0123456789";
-	public static var DIGITS_HEXU : String = "0123456789ABCDEF";
-	public static var DIGITS_HEXL : String = "0123456789abcdef";
-	public static var DIGITS_OCTAL : String = "01234567";
-	public static var DIGITS_BN : String = "0123456789abcdefghijklmnopqrstuvwxyz";
-	public static var DIGITS_BASE64 : String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+package formats.der;
 
-	public static var PROTO_HTTP : String = "http://";
-	public static var PROTO_FILE : String = "file://";
-	public static var PROTO_FTP : String = "ftp://";
-	public static var PROTO_RTMP : String = "rtmp://";
+interface IContainer {
+	function push(v:Dynamic) : Void;
+	function get(i : Int) : Dynamic;
+	function getContainer(i : Int ) : IContainer;
+	function setKey(k:String, v:Dynamic) : Void;
+	function getKey(k:String) : Dynamic;
 }

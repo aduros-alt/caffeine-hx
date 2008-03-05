@@ -64,7 +64,7 @@ sub extractCerts($) {
 sub generateAs3Class(@) {
   my @certs = @_;
   my $class = <<"DONE";
-/* THIS IS A GENERATED FILE */
+/* THIS IS A GENERATED FILE DO NOT EDIT */
 /**
  * MozillaRootCertificates
  *
@@ -77,6 +77,9 @@ sub generateAs3Class(@) {
  * 
  * See LICENSE for full license information.
  */
+
+package crypt.cert;
+
 class MozillaRootCertificates extends X509CertificateCollection {
 	public function new() {
 DONE

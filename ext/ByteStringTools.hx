@@ -194,9 +194,10 @@ class ByteStringTools {
 	*/
 
 	/**
-		Dump a string into hex bytes
+		Dump a string into hex bytes.
+		DEPRECATED: moving to ByteString.hx
 	**/
-	public static function hexDump(data : String, ?noSpace:Bool) {
+	public static function hexDump(data : IString, ?noSpace:Bool) {
 		var sb = new StringBuf();
 		for(i in 0...data.length) {
 			sb.add(StringTools.hex(data.charCodeAt(i),2));

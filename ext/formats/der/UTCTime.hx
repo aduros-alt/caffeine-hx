@@ -42,7 +42,7 @@ class UTCTime implements IAsn1Type
 	private var len:Int;
 	public var date:Date;
 
-	public function UTCTime(type:Int, len:Int)
+	public function new(type:Int, len:Int)
 	{
 		this.type = type;
 		this.len = len;
@@ -58,7 +58,7 @@ class UTCTime implements IAsn1Type
 		return type;
 	}
 
-	public function setUTCTime(str:String):void {
+	public function setUTCTime(str:String):Void {
 
 		var year:Int = Std.parseInt(str.substr(0, 2));
 		if (year<50) {
@@ -71,7 +71,7 @@ class UTCTime implements IAsn1Type
 		var hour:Int = Std.parseInt(str.substr(6,2));
 		var minute:Int = Std.parseInt(str.substr(8,2));
 		// TODO: this could be off by up to a day. parse the rest. someday.
-		date = new Date(year, month-1, day, hour, minute);
+		date = new Date(year, month-1, day, hour, minute, 0);
 	}
 
 

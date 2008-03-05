@@ -841,7 +841,7 @@ class BigInteger {
 	#end
 		var ts:Int = sign;
 		var ms:Int = m.sign;
-		
+
 		var nsh: Int = DB-nbits(pm.chunks[pm.t-1]);	// normalize modulus
 		if(nsh > 0) {
 			pt.lShiftTo(nsh,r);
@@ -1331,7 +1331,7 @@ class BigInteger {
 		var n1:BigInteger = sub(ONE);
 		var k:Int = n1.getLowestSetBit();
 		if(k <= 0) return false;
-		
+
 		var r:BigInteger = n1.shr(k);
 		v = (v+1)>>1;
 		if(v > lowprimes.length) v = lowprimes.length;
@@ -1599,7 +1599,10 @@ class BigInteger {
 	}
 
 	/**
-		Construct a BigInteger from a string in a given base
+		Construct a BigInteger from a string in a given base. Negative
+		values in base256 are stored as (0x80 << (bytes *8)) | abs().
+		Positive values that have the high bit set should be prefixed
+		with a 0 byte.
 	**/
 	public static function ofString(s : String, base : Int) : BigInteger {
 #if neko
@@ -1695,7 +1698,9 @@ class BigInteger {
 	}
 
 	/**
-		Construct a BigInteger from a ByteString
+		Construct a BigInteger from a ByteString. This is abs() encoded
+		just like ofString().
+		TODO: Two's complement ByteString handling for ASN1
 	**/
 	public static function ofByteString(b : ByteString) : BigInteger {
 		var i = ofString(b.toString(), 256);

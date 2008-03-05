@@ -34,7 +34,6 @@
  * An ASN1 type for an ObjectIdentifier
  */
 package formats.der;
-import flash.utils.ByteString;
 
 class ObjectIdentifier implements IAsn1Type
 {
@@ -42,7 +41,7 @@ class ObjectIdentifier implements IAsn1Type
 	private var len:Int;
 	private var oid:Array<Int>;
 
-	public function ObjectIdentifier(type:Int, length:Int, b:Dynamic) {
+	public function new(type:Int, length:Int, b:Dynamic) {
 		this.type = type;
 		this.len = length;
 		if (Std.is(b, ByteString)) {
@@ -50,12 +49,16 @@ class ObjectIdentifier implements IAsn1Type
 		} else if (Std.is(b, String)) {
 			generate(cast b);
 		} else {
-			throw new Error("Invalid call to new ObjectIdentifier");
+			throw "Invalid call to new ObjectIdentifier";
 		}
 	}
 
 	private function generate(s:String):Void {
-		oid = s.split(".");
+		var p = s.split(".");
+		oid = new Array();
+		for(i in p) {
+			oid.push(Std.parseInt(i));
+		}
 	}
 
 	private function parse(b:ByteString):Void {
@@ -68,7 +71,7 @@ class ObjectIdentifier implements IAsn1Type
 		var v:Int = 0;
 		while (b.bytesAvailable>0) {
 			o = b.readUnsignedByte();
-			var last:Boolean = (o&0x80)==0;
+			var last:Bool = (o&0x80)==0;
 			o &= 0x7f;
 			v = v*128 + o;
 			if (last) {
@@ -92,8 +95,8 @@ class ObjectIdentifier implements IAsn1Type
 	public function toDER():ByteString {
 		var tmp:Array<Int> = [];
 		tmp[0] = oid[0]*40 + oid[1];
-		for (var i:int=2;i<oid.length;i++) {
-			var v:int = parseInt(oid[i]);
+		for(i in 2 ... oid.length) {
+			var v:Int = oid[i];
 			if (v<128) {
 				tmp.push(v);
 			} else if (v<128*128) {
@@ -119,9 +122,9 @@ class ObjectIdentifier implements IAsn1Type
 		tmp.unshift(len); // assume length is small enough to fit here.
 		tmp.unshift(type);
 		var b:ByteString = new ByteString();
-		for (i=0;i<tmp.length;i++) {
+		var l = tmp.length;
+		for(i in 0...l)
 			b.set(i, tmp[i]);
-		}
 		return b;
 	}
 

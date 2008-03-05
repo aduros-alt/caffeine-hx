@@ -43,7 +43,7 @@ class PrintableString implements IAsn1Type
 	private var len:Int;
 	private var str:String;
 
-	public function PrintableString(type:Int, length:Int) {
+	public function new(type:Int, length:Int) {
 		this.type = type;
 		this.len = length;
 	}
@@ -58,7 +58,7 @@ class PrintableString implements IAsn1Type
 		return type;
 	}
 
-	public function setString(s:String):void {
+	public function setString(s:String):Void {
 		str = s;
 	}
 	public function getString():String {

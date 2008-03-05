@@ -40,6 +40,7 @@ class DERByteString extends ByteString,  implements IAsn1Type {
 	private var len:Int;
 
 	public function new(?type:Int, ?length:Int) {
+		super();
 		if(type == null)
 			type = 0x04;
 		if(length == null)

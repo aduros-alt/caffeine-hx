@@ -142,19 +142,19 @@ class ByteString implements IString {
 
 	/**
 		Read bytes from this into ByteString [b]. [offset] is the starting offset
-		in [b] where the data will be written to, the [length] is the number of
+		in [b] where the data will be written to, the [len] is the number of
 		bytes to send, and if 0 all remaining data from [this] will be sent.
 	**/
-	public function readBytes(b:ByteString, ?offset:Int, ?length:Int): Void
+	public function readBytes(b:ByteString, ?offset:Int, ?len:Int): Void
 	{
 		if(offset == null)
 			offset = 0;
-		if(length == null)
-			length = _buf.length - position;
-		checkEof(length);
+		if(len == null)
+			len = _buf.length - position;
+		checkEof(len);
 
-		var m = offset + length;
-		if(offset > b._buf.length)
+		var m = offset + len;
+		if(offset >= b._buf.length)
 			b.set(offset,0);
 		for(i in offset...m) {
 			b._buf[i] = _buf[position++];
@@ -181,7 +181,7 @@ class ByteString implements IString {
 		Read from the buffer using the specified multibyte char set.
 	**/
 	// TODO: Lots.
-	function readMultiByte(len : Int, set:String) : String {
+	public function readMultiByte(len : Int, set:String) : String {
 		checkEof();
 		if(len + position > length)
 			throwEof();
@@ -316,7 +316,8 @@ class ByteString implements IString {
 	*/
 	public function toString() : String {
 		var sb = new StringBuf();
-		for(x in 0..._buf.length)
+		var l = _buf.length;
+		for(x in 0...l)
 			sb.addChar(_buf[x]);
 		return sb.toString();
 	}
@@ -345,16 +346,26 @@ class ByteString implements IString {
 	}
 
 	/**
-		Pushes a byte into the string
+		Writes [length] bytes from the ByteString [v] to this, starting
+		at [offset] in [v]. [offset] defaults to 0, and if null or 0,
+		length will be everything starting at [offset]. If either param
+		is out of bounds, it will be set to the beginning or end respectively.
 	**/
-	public function writeBytes(v : IString) : Void {
+	public function writeBytes(v : IString, ?offset:Int, ?length:Int) : Void {
+		if(offset == null || offset < 0 || offset >= v.length)
+			offset = 0;
+		if(length == null || length == 0 )
+			length = v.length;
+		if(offset + length > v.length)
+			length = v.length - offset;
+
 		if(Std.is(v, ByteString)) {
-			_buf = _buf.concat(untyped v.buf);
+			_buf = _buf.concat(untyped v._buf.slice(offset, offset+length));
 			update();
 			return;
 		}
 		else if(Std.is(v, String)) {
-			for(i in 0...v.length) {
+			for(i in offset...length) {
 				_buf[i] = v.charCodeAt(i);
 			}
 			update();
@@ -394,7 +405,7 @@ class ByteString implements IString {
 
 	function checkEof(?required : Int) {
 		if(required == null) required = 0;
-		if(position + required >= _buf.length)
+		if(position + required > _buf.length)
 			throwEof();
 	}
 
@@ -440,6 +451,35 @@ class ByteString implements IString {
 	/////////////////////////////////////////////////////
 	//            Public Static methods                //
 	/////////////////////////////////////////////////////
+	/**
+		Tests if two ByteStrings are equal.
+	**/
+	public static function eq(a:ByteString, b:ByteString) : Bool {
+		if (a.length != b.length)
+			return false;
+		var l = a.length;
+		for( i in 0...l)
+		if (a._buf[i] != b._buf[i])
+				return false;
+		return true;
+	}
+
+	/**
+		Dump a string to hex bytes. By default, will be seperated with
+		spaces. To have no seperation, use the empty string as a seperator.
+	**/
+	public static function hexDump(data : IString, ?seperator:IString) {
+		if(seperator == null)
+			seperator = " ";
+		var sb = new StringBuf();
+		var l = data.length;
+		for(i in 0...l) {
+			sb.add(StringTools.hex(data.charCodeAt(i),2));
+			sb.add(seperator);
+		}
+		return StringTools.rtrim(sb.toString());
+	}
+
 	public static function ofIntArray(a : Array<Int>) : ByteString {
 		var b = new ByteString();
 		for(i in 0... a.length) {
@@ -454,7 +494,8 @@ class ByteString implements IString {
 	**/
 	public static function ofString(s : String) : ByteString {
 		var b = new ByteString();
-		for(i in 0...s.length) {
+		var l = s.length;
+		for(i in 0...l) {
 			b._buf[i] = s.charCodeAt(i);
 		}
 		b.update();

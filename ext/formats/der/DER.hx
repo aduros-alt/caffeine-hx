@@ -52,17 +52,22 @@ class DER {
 
 	public static var indent:String = "";
 
-	public static function parse(der:ByteString, ?structure:Dynamic) : IAsn1Type {
-/* 			if (der.position==0) {
-			trace("DER.parse: "+Hex.fromArray(der));
+	public static function parse(der:ByteString, ?structure:Dynamic):IAsn1Type
+	{
+#if CAFFEINE_DEBUG
+ 		if (der.position == 0) {
+			trace("DER.parse: "+ByteStringTools.hexDump(der));
+			trace("DERlength: "+der.length);
 		}
-*/			// type
+#end
 		var type:Int = der.readUnsignedByte();
+var otype  = type;
 		var constructed:Bool = (type&0x20)!=0;
 		type &=0x1F;
 		// length
 		var len:Int = der.readUnsignedByte();
 		if (len>=0x80) {
+			// TODO: may fail in neko.
 			// long form of length
 			var count:Int = len & 0x7f;
 			len = 0;
@@ -71,6 +76,11 @@ class DER {
 				count--;
 			}
 		}
+#if CAFFEINE_DEBUG
+var ts = "TYPE: 0x"+StringTools.hex(otype,2)+"/0x" + StringTools.hex(type,2) + " Len: "+len;
+if(constructed) ts += " constructed ";
+trace(ts);
+#end
 		// data
 		var b:ByteString;
 		switch (type) {
@@ -81,33 +91,41 @@ class DER {
 			// treat as an array
 			var p:Int = der.position;
 			var o:Sequence = new Sequence(type, len);
-			var arrayStruct:Array = structure as Array;
-			if (arrayStruct!=null) {
-				// copy the array, as we destroy it later.
+			var arrayStruct:Array<Dynamic> = null;
+			try { arrayStruct = cast(structure, Array<Dynamic>); }
+			catch(e:Dynamic) {}
+
+			// copy the array, as we destroy it later.
+			if (arrayStruct != null)
 				arrayStruct = arrayStruct.concat([]);
-			}
+trace("arrayStruct: " + arrayStruct);
+trace("");
+
 			while (der.position < p+len) {
-				var tmpStruct:Object = null;
-				if (arrayStruct!=null) {
+trace("SEQUENCE DER pos: " +der.position + "/" + Std.string(p+len));
+				var tmpStruct:Dynamic = null;
+				if (arrayStruct != null)
 					tmpStruct = arrayStruct.shift();
-				}
-				if (tmpStruct!=null) {
-					while (tmpStruct && tmpStruct.optional) {
+
+				if (tmpStruct != null) {
+					while (tmpStruct && (untyped tmpStruct.optional != null && tmpStruct.optional))
+					{
 						// make sure we have something that looks reasonable. XXX I'm winging it here..
-						var wantConstructed:Bool = (tmpStruct.value is Array);
+						var wantConstructed:Bool = Std.is(tmpStruct.value, Array);
 						var isConstructed:Bool = isConstructedType(der);
 						if (wantConstructed!=isConstructed) {
 							// not found. put default stuff, or null
 							o.push(tmpStruct.defaultValue);
-							o[tmpStruct.name] = tmpStruct.defaultValue;
+							o.setKey(tmpStruct.name, tmpStruct.defaultValue);
 							// try the next thing
 							tmpStruct = arrayStruct.shift();
-						} else {
+						}
+						else {
 							break;
 						}
 					}
 				}
-				if (tmpStruct!=null) {
+				if (tmpStruct != null) {
 					var name:String = tmpStruct.name;
 					var value:Dynamic = tmpStruct.value;
 					if (tmpStruct.extract) {
@@ -115,18 +133,22 @@ class DER {
 						var size:Int = getLengthOfNextElement(der);
 						var ba:ByteString = new ByteString();
 						ba.writeBytes(der, der.position, size);
-						o[name+"_bin"] = ba;
+						o.setKey(name+"_bin", ba);
 					}
 					var obj:IAsn1Type = DER.parse(der, value);
 					o.push(obj);
-					o[name] = obj;
-				} else {
+					o.setKey(name, obj);
+				}
+				else {
+trace("=== Parsing next element ==");
 					o.push(DER.parse(der));
+trace("===========================");
 				}
 			}
+trace(">>> SEQUENCE complete at position " + der.position+ "\n");
 			return o;
 		case 0x11: // SET/SET OF
-			p = der.position;
+			var p:Int = der.position;
 			var s:Set = new Set(type, len);
 			while (der.position < p+len) {
 				s.push(DER.parse(der));
@@ -134,17 +156,21 @@ class DER {
 			return s;
 		case 0x02: // INTEGER
 			// put in a BigInteger
-			b = new ByteString;
+			b = new ByteString();
+trace("INTEGER of length "+len + " buf rem: " +der.bytesAvailable);
 			der.readBytes(b,0,len);
 			b.position=0;
 			return new Integer(type, len, b);
 		case 0x06: // OBJECT IDENTIFIER:
-			b = new ByteString;
+			b = new ByteString();
 			der.readBytes(b,0,len);
 			b.position=0;
 			return new ObjectIdentifier(type, len, b);
-		case 0x03, 0x04: // BIT STRING, OCTET STRING
-			if (type == 0x03 && der[der.position]==0) {
+		default: // 0x03, 0x04: // BIT STRING, OCTET STRING
+			// see case 0x03, 0x04
+			if(type != 0x03 && type != 0x04)
+				trace("Cannot process DER TYPE "+type + " at position " + der.position);
+			if (type != 0x04 && der.get(der.position) == 0) {
 				//trace("Horrible Bit String pre-padding removal hack.");
 				// I wish I had the patience to find a spec for this.
 				der.position++;
@@ -153,31 +179,26 @@ class DER {
 			// stuff in a ByteString for now.
 			var bs:DERByteString = new DERByteString(type, len);
 			der.readBytes(bs,0,len);
+trace(ByteString.hexDump(bs,":"));
 			return bs;
 		case 0x05: // NULL
 			// if len!=0, something's horribly wrong.
-			// should I check?
+			if(len != 0)
+				throw "unexpected length: type 0x05";
 			return null;
 		case 0x13: // PrintableString
 			var ps:PrintableString = new PrintableString(type, len);
 			ps.setString(der.readMultiByte(len, "US-ASCII"));
 			return ps;
 		//case 0x22: // XXX look up what this is. openssl uses this to store my email.
-		case case 0x22, 0x14: // T61String - an horrible format we don't even pretend to support correctly
-			ps = new PrintableString(type, len);
+		case 0x22, 0x14: // T61String - an horrible format we don't even pretend to support correctly
+			var ps = new PrintableString(type, len);
 			ps.setString(der.readMultiByte(len, "latin1"));
 			return ps;
 		case 0x17: // UTCTime
 			var ut:UTCTime = new UTCTime(type, len);
 			ut.setUTCTime(der.readMultiByte(len, "US-ASCII"));
 			return ut;
-		default:
-			// see case 0x03, 0x04
-			trace("I DONT KNOW HOW TO HANDLE DER stuff of TYPE "+type);
-			if (der[der.position]==0) {
-				der.position++;
-				len--;
-			}
 		}
 	}
 
@@ -188,6 +209,7 @@ class DER {
 		var len:Int = b.readUnsignedByte();
 		if (len>=0x80) {
 			// long form of length
+			// TODO: neko may fail
 			var count:Int = len & 0x7f;
 			len = 0;
 			while (count>0) {
@@ -206,7 +228,7 @@ class DER {
 	}
 
 	public static function wrapDER(type:Int, data:ByteString):ByteString {
-		var d:ByteString = new ByteString;
+		var d:ByteString = new ByteString();
 		d.writeByte(type);
 		var len:Int = data.length;
 		if (len<128) {

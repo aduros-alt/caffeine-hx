@@ -1,0 +1,32 @@
+-cp ../../
+-js test.js
+-main Formats
+-debug
+
+--next
+
+-cp ../../
+-D CAFFEINE_DEBUG
+-neko test.n
+-main Formats
+-debug
+
+--next
+
+-cp ../../
+-main Formats
+-swf-version 8
+-swf test8.swf
+-swf-header 800:600:1:FFFFFF
+-debug
+
+--next
+
+-cp ../../
+-main Formats
+-swf-version 9
+-swf test9.swf
+-swf-header 800:600:1:FFFFFF
+-debug
+
+

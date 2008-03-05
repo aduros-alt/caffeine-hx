@@ -63,9 +63,11 @@ class Cleaner {
 					continue;
 			}
 			if(!neko.FileSystem.isFile(d)) {
-				Maintain.exitError("file " + d + " is not a regular file!");
+				if(!neko.FileSystem.isDirectory(d))
+					Maintain.exitError("file " + d + " is not a regular file!");
 			}
-			b.push(d);
+			else
+				b.push(d);
 		}
 		return b;
 	}
