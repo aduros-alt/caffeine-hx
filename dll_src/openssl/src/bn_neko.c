@@ -537,6 +537,7 @@ DEFINE_PRIM(bi_from_decimal,1);
 static value bi_to_bin(value A) {
 	val_check_kind(A, k_biginteger);
 	BIGNUM *a = val_biginteger(A);
+/*
 	value buf = alloc_empty_string(BN_num_bytes(a) + 1);
 	if(a->neg != 0)
 		val_string(buf)[0] = 0x80;
@@ -544,6 +545,16 @@ static value bi_to_bin(value A) {
 		val_string(buf)[0] = 0x00;
 	BN_bn2bin(a, val_string(buf)+1);
 	return buf;
+*/
+	unsigned char *to = (unsigned char *) malloc(BN_num_bytes(a) + 10);
+	int buflen = BN_bn2mpi(a, to);
+	if(buflen <= 4) {
+		free(to);
+		THROW("bi_to_bin conversion error");
+	}
+	value rv = copy_string(&(to[4]), buflen-4);
+	free(to);
+	return rv;
 }
 DEFINE_PRIM(bi_to_bin,1);
 
@@ -556,6 +567,7 @@ static value bi_from_bin(value S) {
 	if(val_strlen(S) == 0)
 		return bi_ZERO();
 	const unsigned char *sp = (const unsigned char *)val_string(S);
+/*
 	if(val_strlen(S) > 1) {
 		bi = BN_bin2bn(sp+1, (int)val_strlen(S)-1, NULL);
 		if(bi == NULL)
@@ -567,6 +579,20 @@ static value bi_from_bin(value S) {
 	}
 	if(sp[0] & 0x80)
 		bi->neg = 1;
+*/
+	unsigned int slen = (unsigned int)val_strlen(S);
+	unsigned char *buf = (unsigned char *) malloc(slen + 4);
+	buf[0] = (slen >> 24) & 0xff;
+	buf[1] = (slen >> 16) & 0xff;
+	buf[2] = (slen >> 8) & 0xff;
+	buf[3] = slen & 0xff;
+	memcpy(&buf[4], val_string(S), slen);
+	bi = BN_mpi2bn(buf, slen + 4, NULL);
+	if(bi == NULL) {
+		free(buf);
+		THROW("b256 decode error");
+	}
+	free(buf);
 	return bi_allocate(bi);
 }
 DEFINE_PRIM(bi_from_bin,1);
