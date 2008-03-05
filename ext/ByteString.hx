@@ -29,6 +29,11 @@
 	A class that represents arrays of bytes. Has methods from String
 	class, as well as from Flash9 util.ByteArray
 **/
+
+#if neko
+import neko.Int32;
+#end
+
 // TODO: implement as flash.util.ByteArray for flash 9
 class ByteString implements IString {
 	public static var BIG_ENDIAN : String = "bigEndian";
@@ -42,8 +47,8 @@ class ByteString implements IString {
 	public var position(default, setPosition) : Int;
 	/** sets or reads the endianess of the buffer. bigEndian or littleEndian **/
 	public var endian(default, setEndian) : String;
-	var _buf : Array<Int>;
 
+	private var _buf : Array<Int>;
 
 	public function new(?s : String) {
 		_buf = new Array();
@@ -136,20 +141,40 @@ class ByteString implements IString {
 	}
 
 	/**
-		Read bytes from ByteString b into this ByteString
+		Read bytes from this into ByteString [b]. [offset] is the starting offset
+		in [b] where the data will be written to, the [length] is the number of
+		bytes to send, and if 0 all remaining data from [this] will be sent.
 	**/
 	public function readBytes(b:ByteString, ?offset:Int, ?length:Int): Void
 	{
 		if(offset == null)
 			offset = 0;
 		if(length == null)
-			length = b._buf.length;
-		if(offset + length > b._buf.length)
-			throwEof();
-		for(i in offset...length) {
-			_buf[position] = b._buf[i];
-			position++;
+			length = _buf.length - position;
+		checkEof(length);
+
+		var m = offset + length;
+		if(offset > b._buf.length)
+			b.set(offset,0);
+		for(i in offset...m) {
+			b._buf[i] = _buf[position++];
 		}
+		b.update();
+	}
+
+	/**
+		Read a 32 bit signed integer from the buffer.
+	**/
+#if neko
+	public function readInt() : Int32 {
+#else true
+	public function readInt() : Int {
+#end
+		var b = new ByteString();
+		readBytes(b, 0, 4);
+		if(endian == BIG_ENDIAN)
+			return(I32.decodeBE(b.toString()));
+		return I32.decodeLE(b.toString());
 	}
 
 	/**
@@ -332,12 +357,28 @@ class ByteString implements IString {
 			for(i in 0...v.length) {
 				_buf[i] = v.charCodeAt(i);
 			}
+			update();
 			return;
 		}
 		else
 			throw "Unable to add "+Type.getClassName(Type.getClass(v));
 	}
 
+	/**
+		Write a 32 bit integer. It will be written in the byte order according to
+		the 'endian' setting.
+	**/
+#if neko
+	public function writeInt(v : Int32) : Void {
+#else true
+	public function writeInt(v : Int) : Void {
+#end
+		if(endian == BIG_ENDIAN)
+			writeBytes(I32.encodeBE(v));
+		else
+			writeBytes(I32.encodeLE(v));
+		update();
+	}
 
 	/////////////////////////////////////////////////////
 	//                Private methods                  //
@@ -351,8 +392,9 @@ class ByteString implements IString {
 			position = _buf.length;
 	}
 
-	function checkEof() {
-		if(position >= _buf.length)
+	function checkEof(?required : Int) {
+		if(required == null) required = 0;
+		if(position + required >= _buf.length)
 			throwEof();
 	}
 
