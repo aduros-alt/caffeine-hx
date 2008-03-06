@@ -3,6 +3,7 @@
 -xml neko.xml
 --override
 -cp .
+--no-output
 haxe.ImportAll
 
 --next
@@ -14,6 +15,7 @@ haxe.ImportAll
 -D flash_v9
 --override
 -cp .
+--no-output
 haxe.ImportAll
 
 --next
@@ -22,6 +24,7 @@ haxe.ImportAll
 -xml js.xml
 --override
 -cp .
+--no-output
 haxe.ImportAll
 
 --next
@@ -33,6 +36,7 @@ haxe.ImportAll
 -xml flash_strict.xml
 --override
 -cp .
+--no-output
 haxe.ImportAll
 
 
@@ -44,4 +48,5 @@ haxe.ImportAll
 -swf-version 9
 --override
 -cp .
+--no-output
 haxe.ImportAll
