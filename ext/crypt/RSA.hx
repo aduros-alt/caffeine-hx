@@ -72,7 +72,6 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 		var key:RSA = new RSA(); // new RSA(null,0,null);
 		var qs : Int = B>>1;
 		key.e = Std.parseInt("0x" + E);
-		//var ee : BigInteger = BigInteger.ofString(E,16);
 		var ee : BigInteger = BigInteger.ofInt(key.e);
 		while(true) {
 			key.p = BigInteger.randomPrime(B-qs, ee, 10, true, rng);
@@ -120,18 +119,15 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 			N:String,E:String,D:String,P:String,
 			Q:String,DP:String,DQ:String,C:String) : Void
 	{
-trace(here.methodName);
 		setPrivate(N, E, D);
 		if(P != null && Q != null && C != null &&
 			P.length > 0 && Q.length > 0 && C.length > 0)
 		{
-trace(here.lineNumber);
 			var s : String = cleanFormat(P);
 			p = BigInteger.ofString(s, 16);
 			s = cleanFormat(Q);
 			q = BigInteger.ofString(s,16);
 			if(DP == null) {
-trace(here.lineNumber);
 				var pm1 : BigInteger = p.sub(BigInteger.ONE);
 				dmp1 = d.mod(pm1);
 			}
@@ -139,12 +135,9 @@ trace(here.lineNumber);
 				s = cleanFormat(DP);
 				dmp1 = BigInteger.ofString(s,16);
 			}
-trace(dmp1);
-trace(here.lineNumber);
 			if(DQ == null) {
 				var pq1 = q.sub(BigInteger.ONE);
 				dmq1 = d.mod(pq1);
-trace(dmq1);
 			}
 			else {
 				s = cleanFormat(DQ);

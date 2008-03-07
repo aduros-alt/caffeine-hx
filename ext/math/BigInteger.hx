@@ -1238,9 +1238,6 @@ class BigInteger {
 	}
 
 	public function primify(bits:Int, ta:Int) : Void {
-		if (!testBit(bits-1)) { // force MSB set
-			bitwiseTo(BigInteger.ONE.shl(bits-1), op_or, this);
-		}
 		if (isEven()) {
 			dAddOffset(1,0);    // force odd
 		}
@@ -1776,7 +1773,7 @@ class BigInteger {
 			x.set(0, v);
 		}
 		else x.set(0, 0);
-		return ofString("0"+x.toString(),256);
+		return ofString(x.toHex(), 16);
 #end
 	}
 
@@ -1794,8 +1791,12 @@ class BigInteger {
 #else true
 			var i:BigInteger = BigInteger.random(bits, rng);
 #end
-			if(forceLength)
-				i.primify(bits, 1);
+			if(forceLength) {
+				if (!i.testBit(bits-1)) {
+					i.bitwiseTo(BigInteger.ONE.shl(bits-1), op_or, i);
+				}
+			}
+			i.primify(bits, 1);
 			if(i.sub(BigInteger.ONE).gcd(gcdExp).compare(BigInteger.ONE) == 0
 				&& i.isProbablePrime(iterations))
 					return i;
