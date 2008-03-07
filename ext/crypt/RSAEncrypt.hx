@@ -79,7 +79,11 @@ class RSAEncrypt implements IBlockCipher {
 		TODO: Return Binary string, not text. Use padding etc...
 	**/
 	public function encrypt( text : String ) : String {
-		return doEncrypt(text, doPublic, 0x02);
+		return doEncrypt(text, doPublic, new PadPkcs1Type2(blockSize));
+	}
+
+	public function verify( text : String ) : String {
+		return doDecrypt(text, doPublic, new PadPkcs1Type1(blockSize));
 	}
 
 	public function encryptBlock( block : String ) : String {
@@ -127,16 +131,10 @@ trace(ba);
 	//////////////////////////////////////////////////
 	//               Private                        //
 	//////////////////////////////////////////////////
-
-	function doEncrypt(src:String, f : BigInteger->BigInteger, padType : Int)
+	function doEncrypt(src:String, f : BigInteger->BigInteger, pf : IPad) : String
 	{
 trace("source: " + src);
 		var bs = blockSize;
-		var pf : IPad;
-		if(padType == 0x02)
-			pf = new PadPkcs1Type2(bs);
-		else
-			pf = new PadPkcs1Type1(bs);
 		var ts : Int = bs - 11;
 		var idx : Int = 0;
 		var msg = new StringBuf();
@@ -155,6 +153,29 @@ trace("crypted: " + h);
 		}
 		return msg.toString();
 	}
+
+	function doDecrypt(src: String, f : BigInteger->BigInteger, pf : IPad) : String
+	{
+		var bs = blockSize;
+		bs *= 2; // hex string, 2 bytes per char
+		var ts : Int = bs - 11;
+		var idx : Int = 0;
+		var msg = new StringBuf();
+		while(idx < src.length) {
+			var s : String = src.substr(idx,bs);
+			var c : BigInteger= BigInteger.ofString(s, 16);
+			var m = f(c);
+			if(m == null)
+				return null;
+			var up:String = pf.unpad(m.toRadix(256));
+			if(up.length > ts)
+				throw "block text length error";
+			msg.add(up);
+			idx += bs;
+		}
+		return msg.toString();
+	}
+
 
 	// Perform raw public operation on "x": return x^e (mod n)
 	function doPublic(x : BigInteger) : BigInteger {

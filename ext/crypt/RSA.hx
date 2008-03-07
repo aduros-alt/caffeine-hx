@@ -163,7 +163,14 @@ trace(dmq1);
 		is a plain string.
 	**/
 	public function decrypt(ctext : String) : String {
-		return doDecrypt(ctext, doPrivate, 0x02);
+		return doDecrypt(ctext, doPrivate, new PadPkcs1Type2(blockSize));
+	}
+
+	/**
+		Sign a certificate
+	**/
+	public function sign( text : IString ) : String {
+		return doEncrypt(text.toString(), doPrivate, new PadPkcs1Type1(blockSize));
 	}
 
 	override public function decryptBlock( enc : String ) : String {
@@ -189,33 +196,6 @@ trace(dmq1);
 	//////////////////////////////////////////////////
 	//               Private                        //
 	//////////////////////////////////////////////////
-	function doDecrypt(src: String, f : BigInteger->BigInteger, padType : Int)
-	{
-		var bs = blockSize;
-		var pf : IPad;
-		if(padType == 0x02)
-			pf = new PadPkcs1Type2(bs);
-		else
-			pf = new PadPkcs1Type1(bs);
-		bs *= 2; // hex string, 2 bytes per char
-		var ts : Int = bs - 11;
-		var idx : Int = 0;
-		var msg = new StringBuf();
-		while(idx < src.length) {
-			var s : String = src.substr(idx,bs);
-			var c : BigInteger= BigInteger.ofString(s, 16);
-			var m = f(c);
-			if(m == null)
-				return null;
-			var up:String = pf.unpad(m.toRadix(256));
-			if(up.length > ts)
-				throw "block text length error";
-			msg.add(up);
-			idx += bs;
-		}
-		return msg.toString();
-	}
-
 	/**
 		Perform raw private operation on "x": return x^d (mod n)
 	**/

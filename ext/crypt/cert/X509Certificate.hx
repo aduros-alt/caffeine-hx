@@ -35,6 +35,7 @@
 package crypt.cert;
 
 import hash.IHash;
+import hash.Md2;
 import hash.Md5;
 import hash.Sha1;
 import crypt.RSA;
@@ -43,43 +44,29 @@ import formats.Base64;
 import formats.der.DERByteString;
 import formats.der.DER;
 import formats.der.IAsn1Type;
+import formats.der.IContainer;
 import formats.der.OID;
 import formats.der.ObjectIdentifier;
 import formats.der.PEM;
 import formats.der.PrintableString;
 import formats.der.Sequence;
-import formats.der.Type;
+import formats.der.Types;
 
 class X509Certificate {
 
 	private var _loaded:Bool;
-	private var _param:Dynamic;
-	private var _obj:IAsn1Type;
+	private var _param:IString;
+	private var _obj:IContainer;
 
-	public function new(p:Dynamic) {
+	public function new(p:IString) {
 		_loaded = false;
 		_param = p;
 		// avoid unnecessary parsing of every builtin CA at start-up.
 	}
 
-	private function load():Void {
-		if (_loaded) return;
-		var p:Dynamic = _param;
-		var b:ByteString;
-		if (Std.is(p, String))
-			b = PEM.readCertIntoArray(cast p);
-		else if ( Std.is(p, ByteString))
-			b = p;
-
-		if (b != null) {
-			_obj = DER.parse(b, Type.TLS_CERT);
-			_loaded = true;
-		}
-		else {
-			throw "Invalid x509 Certificate parameter: "+p;
-		}
-	}
-
+	/**
+		Check if a certificate is signed by an authority in an X509CertificateCollection.
+	**/
 	public function isSigned(store:X509CertificateCollection, CAs:X509CertificateCollection, ?time:Date):Bool
 	{
 		load();
@@ -107,7 +94,7 @@ class X509Certificate {
 		if (parent == this) { // pathological case. aVoid infinite loop
 			return false; // isSigned() returns false if we're self-signed.
 		}
-		if (!(parentIsAuthoritative&&parent.isSelfSigned(time)) &&
+		if (!(parentIsAuthoritative && parent.isSelfSigned()) &&
 			!parent.isSigned(store, CAs, time)) {
 			return false;
 		}
@@ -115,41 +102,49 @@ class X509Certificate {
 		return verifyCertificate(key);
 	}
 
-	public function isSelfSigned(time:Date):Bool {
+	/**
+		Check if this certificate is self-signed.
+	**/
+	public function isSelfSigned():Bool {
 		load();
 
 		var key:RSAEncrypt = getPublicKey();
 		return verifyCertificate(key);
 	}
 
-	private function verifyCertificate(key:RSAEncrypt):Bool {
+	/**
+		Directly verify a certificate with a public key. Use this when you
+		have a public key from a specific CA. To verify from a collection
+		of CA's, use isSigned()
+	**/
+	public function verifyCertificate(key:RSAEncrypt):Bool {
 		var algo:String = getAlgorithmIdentifier();
-		var hash:IHash;
+		var fHash:IHash;
 		var oid:String;
 		switch (algo) {
 		case OID.SHA1_WITH_RSA_ENCRYPTION:
-			hash = new SHA1();
+			fHash = new Sha1();
 			oid = OID.SHA1_ALGORITHM;
 		case OID.MD2_WITH_RSA_ENCRYPTION:
-			throw "can not verify md2";
-			//hash = new MD2;
-			//oid = OID.MD2_ALGORITHM;
+			fHash = new Md2();
+			oid = OID.MD2_ALGORITHM;
 		case OID.MD5_WITH_RSA_ENCRYPTION:
-			hash = new MD5();
+			fHash = new Md5();
 			oid = OID.MD5_ALGORITHM;
 		default:
 			return false;
 		}
-		var data:ByteString = _obj.signedCertificate_bin;
-		var buf:ByteString = new ByteString();
-		key.verify(_obj.encrypted, buf, _obj.encrypted.length);
+		var data:ByteString = cast _obj.getKey("signedCertificate_bin");
+		var bs : ByteString = cast _obj.getKey("encrypted");
+		var rv = key.verify(bs.toHex());
+		var buf:ByteString = ByteString.ofString(rv);
 		buf.position=0;
-		data = ByteString.ofString(hash.calculate(data, true));
-		var obj:Object = DER.parse(buf, Type.RSA_SIGNATURE);
-		if (obj.algorithm.algorithmId.toString() != oid) {
+		data = fHash.calcBin(data);
+		var obj:IContainer = cast DER.parse(buf, Types.RSA_SIGNATURE);
+		if (obj.getKey("algorithm").getKey("algorithmId").toString() != oid) {
 			return false; // wrong algorithm
 		}
-		if (!ByteString.eq(obj.hash, data))
+		if (!ByteString.eq(obj.getKey("hash"), data))
 			return false; // hashes don't match
 		return true;
 	}
@@ -165,42 +160,46 @@ class X509Certificate {
 	*
 	*/
 	private function signCertificate(key:RSA, algo:String):ByteString {
-		var hash:IHash;
+		var fHash:IHash;
 		var oid:String;
 		switch (algo) {
 		case OID.SHA1_WITH_RSA_ENCRYPTION:
-			hash = new SHA1();
+			fHash = new Sha1();
 			oid = OID.SHA1_ALGORITHM;
 		case OID.MD2_WITH_RSA_ENCRYPTION:
-			throw "Can not parse MD2";
-// 				hash = new MD2;
-// 				oid = OID.MD2_ALGORITHM;
+			fHash = new Md2();
+			oid = OID.MD2_ALGORITHM;
 		case OID.MD5_WITH_RSA_ENCRYPTION:
-			hash = new MD5();
+			fHash = new Md5();
 			oid = OID.MD5_ALGORITHM;
 		default:
 			return null;
 		}
-		var data:ByteString = _obj.signedCertificate_bin;
-		data = ByteString.ofString(hash.calculate(data, true));
+		var data:ByteString = cast _obj.getKey("signedCertificate_bin");
+		data = fHash.calcBin(data);
 		var seq1:Sequence = new Sequence();
-		seq1[0] = new Sequence();
-		seq1[0][0] = new ObjectIdentifier(0,0, oid);
-		seq1[0][1] = null;
-		seq1[1] = new DERByteString();
-		seq1[1].writeBytes(data);
+		seq1.set(0, new Sequence());
+		seq1.get(0).set(0, new ObjectIdentifier(0,0, oid));
+		seq1.get(0).set(1, null);
+		seq1.set(1, new DERByteString());
+		seq1.get(1).writeBytes(data);
 		data = seq1.toDER();
-		var buf:ByteString = new ByteString();
-		key.sign(data, buf, data.length);
+		var buf:ByteString = ByteString.ofString(key.sign(data));
 		return buf;
 	}
 
+	/**
+		Returns the RSA public key from the certificate.
+	**/
 	public function getPublicKey():RSAEncrypt {
 		load();
-		var pk:ByteString = cast(_obj.signedCertificate.subjectPublicKeyInfo.subjectPublicKey, ByteString);
+		var o = _obj.getKey("signedCertificate").getKey("subjectPublicKeyInfo").getKey("subjectPublicKey");
+		var pk:ByteString = cast o;
 		pk.position = 0;
-		var rsaKey:Object = DER.parse(pk, [{name:"N"},{name:"E"}]);
-		return new RSAEncrypt(rsaKey.N, rsaKey.E.valueOf());
+		var rsaKey:Dynamic = DER.parse(pk, [{name:"N"},{name:"E"}]);
+		var n : String = rsaKey.getKey("N").toRadix(16);
+		var e : String = rsaKey.getKey("E").toRadix(16);
+		return new RSAEncrypt(n, e);
 	}
 
 	/**
@@ -213,7 +212,7 @@ class X509Certificate {
 	*/
 	public function getSubjectPrincipal():String {
 		load();
-		return Base64.encodeByteString(_obj.signedCertificate.subject_bin);
+		return Base64.encode(cast(_obj.getKey("signedCertificate").getKey("subject_bin"), ByteString));
 	}
 
 	/**
@@ -226,24 +225,52 @@ class X509Certificate {
 	*/
 	public function getIssuerPrincipal():String {
 		load();
-		return Base64.encodeByteString(_obj.signedCertificate.issuer_bin);
+		return Base64.encode(_obj.getKey("signedCertificate").getKey("issuer_bin"));
 	}
 
 	public function getAlgorithmIdentifier():String {
-		return _obj.algorithmIdentifier.algorithmId.toString();
+		return _obj.getKey("algorithmIdentifier").getKey("algorithmId").toString();
 	}
 
+	/**
+		Returns the starting date for a cert.
+	**/
 	public function getNotBefore():Date {
-		return _obj.signedCertificate.validity.notBefore.date;
+		return _obj.getKey("signedCertificate").getKey("validity").getKey("notBefore").getKey("date");
 	}
 
+	/**
+		Returns the expiry date of a cert.
+	**/
 	public function getNotAfter():Date {
-		return _obj.signedCertificate.validity.notAfter.date;
+		return _obj.getKey("signedCertificate").getKey("validity").getKey("notAfter").getKey("date");
 	}
 
 	public function getCommonName():String {
-		var subject:Sequence = _obj.signedCertificate.subject;
-		var ps : PrintableString = cast subject.findAttributeValue(OID.COMMON_NAME);
+		var subject:Sequence = cast _obj.getKey("signedCertificate").getKey("subject");
+		var ps : PrintableString = try cast subject.findAttributeValue(OID.COMMON_NAME) catch(e:Dynamic) null;
+		if(ps == null)
+			return null;
 		return ps.getString();
+	}
+
+	////////////////////////////////////////////////////////
+	//               Private methods                      //
+	////////////////////////////////////////////////////////
+	private function load():Void {
+		if (_loaded) return;
+		var b:ByteString;
+		if (Std.is(_param, String))
+			b = PEM.readCertIntoArray(_param);
+		else if ( Std.is(_param, ByteString))
+			b = cast _param;
+
+		if (b != null) {
+			_obj = cast DER.parse(b, Types.TLS_CERT);
+			_loaded = true;
+		}
+		else {
+			throw "Invalid x509 Certificate parameter: "+_param;
+		}
 	}
 }

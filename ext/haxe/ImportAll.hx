@@ -80,7 +80,7 @@ import formats.der.PEM;
 import formats.der.PrintableString;
 import formats.der.Sequence;
 import formats.der.Set;
-import formats.der.Type;
+import formats.der.Types;
 import formats.der.UTCTime;
 
 import hash.HMAC;

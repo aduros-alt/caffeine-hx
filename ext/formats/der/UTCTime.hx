@@ -59,7 +59,6 @@ class UTCTime implements IAsn1Type
 	}
 
 	public function setUTCTime(str:String):Void {
-
 		var year:Int = Std.parseInt(str.substr(0, 2));
 		if (year<50) {
 			year+=2000;

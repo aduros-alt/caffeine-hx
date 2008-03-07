@@ -38,12 +38,12 @@ package formats.der;
 typedef AsnStruct = {
 	var name : String;
 	var optional : Bool;
-	var extract : Bool;
+	var extract : Bool; // if a binary copy needs to be kept
 	var value : Dynamic;
 	var defaultValue : Dynamic;
 };
 
-class Type
+class Types
 {
 	public static var TLS_CERT:Array<AsnStruct> = [
 		{

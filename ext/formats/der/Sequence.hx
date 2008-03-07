@@ -88,16 +88,14 @@ class Sequence implements IAsn1Type, implements IContainer
 			if (_buf[i]==null) continue;
 			var found:Bool = false;
 			for(key in _hash.keys()) {
-//TODO: certainly wrong
 				if ( (Std.string(i) != key) && _buf[i] == _hash.get(key)) {
-					t += key+": "+_buf[i]+"\n";
+					t += DER.indent + key+": "+_buf[i]+"\n";
 					found = true;
 					break;
 				}
 			}
-			if (!found) t+=_buf[i]+"\n";
+			if (!found) t+=Std.string(_buf[i])+"\n";
 		}
-//			var t:String = join("\n");
 		DER.indent= s;
 		return DER.indent+"Sequence["+type+"]["+len+"][\n"+t+"\n"+s+"]";
 	}
@@ -105,9 +103,7 @@ class Sequence implements IAsn1Type, implements IContainer
 	/////////
 
 	public function findAttributeValue(oid:String):IAsn1Type {
-		//for each (var set:* in this) {
-		for(key in _hash.keys()) {
-			var set = _hash.get(key);
+		for(set in _buf) {
 			if ( Std.is(set, Set) ) {
 				var child:IAsn1Type = set.get(0);
 				if ( Std.is(child, Sequence)) {
@@ -131,6 +127,10 @@ class Sequence implements IAsn1Type, implements IContainer
 
 	public function get(i : Int) : Dynamic {
 		return _buf[i];
+	}
+
+	public function set(i : Int, v:Dynamic) : Void {
+		_buf[i] = v;
 	}
 
 	public function getContainer(i : Int ) : IContainer {

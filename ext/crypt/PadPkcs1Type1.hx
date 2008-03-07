@@ -66,7 +66,9 @@ class PadPkcs1Type1 implements IPad {
 		// converting to BigIntegers then to padded string before calling
 		// unpad.
 		var i : Int = 0;
-trace(ByteStringTools.hexDump(s));
+		#if CAFFEINE_DEBUG
+		trace(ByteStringTools.hexDump(s));
+		#end
 		var sb = new StringBuf();
 		while(i < s.length) {
 			while( i < s.length && s.charCodeAt(i) == 0) ++i;

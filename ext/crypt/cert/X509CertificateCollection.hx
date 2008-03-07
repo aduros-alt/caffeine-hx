@@ -31,7 +31,9 @@
 /**
  * X509CertificateCollection
  *
- * A class to store and index X509 Certificates by Subject.
+ * A class to store and index X509 Certificates by Subject. To create your
+ * own certificate collection, you will need a PEM encoded certificate, along
+ * with the Base64 encoded subject from X509Certificate.getSubjectPrincipal()
  */
 package crypt.cert;
 

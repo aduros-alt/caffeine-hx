@@ -58,6 +58,10 @@ class Sha1 implements IHash {
 		return encode(msg, false);
 	}
 
+	public function calcBin( msg:IString ) : ByteString {
+		return ByteString.ofString(encode(msg.toString(), true));
+	}
+
 	public function getLengthBytes() : Int {
 		return 20;
 	}

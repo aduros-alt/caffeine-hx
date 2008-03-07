@@ -182,9 +182,7 @@ class ByteString implements IString {
 	**/
 	// TODO: Lots.
 	public function readMultiByte(len : Int, set:String) : String {
-		checkEof();
-		if(len + position > length)
-			throwEof();
+		checkEof(len);
 		var cset = set.toLowerCase();
 		switch(cset) {
 		case "latin1":
@@ -192,8 +190,9 @@ class ByteString implements IString {
 		default:
 			throw set+" not supported";
 		}
-		return toString().substr(position, len);
+		var s = toString().substr(position, len);
 		position += len;
+		return s;
 	}
 
 	/**
@@ -298,9 +297,16 @@ class ByteString implements IString {
 	/**
 		Return a hex representation of the data.
 	**/
-	public function toHex() : String {
-		var s = ByteStringTools.byteArrayToString(_buf);
-		if(s.length % 2 != 0)
+	public function toHex(?sep:String,?pos:Int, ?len:Int) : String {
+		if(sep == null)
+			sep = "";
+		if(pos == null)
+			pos = 0;
+		if(len == null)
+			len = _buf.length - pos;
+		var bs = ofIntArray(_buf.slice(pos,pos+len));
+		var s = hexDump(bs, sep);
+		if(sep == "" && s.length % 2 != 0)
 			s = "0"+s;
 		return s;
 	}
@@ -474,7 +480,7 @@ class ByteString implements IString {
 		var sb = new StringBuf();
 		var l = data.length;
 		for(i in 0...l) {
-			sb.add(StringTools.hex(data.charCodeAt(i),2));
+			sb.add(StringTools.hex(data.charCodeAt(i),2).toLowerCase());
 			sb.add(seperator);
 		}
 		return StringTools.rtrim(sb.toString());

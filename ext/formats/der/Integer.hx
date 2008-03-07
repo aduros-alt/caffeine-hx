@@ -46,13 +46,16 @@ class Integer extends BigInteger, implements IAsn1Type
 		this.type = type;
 		this.len = length;
 		super();
-if(b.length <20) {
-	trace(ByteString.hexDump(b));
-	trace(ByteString.hexDump(b.toString()));
-}
+		#if CAFFEINE_DEBUG
+		if(b.length <50) {
+			trace(DER.indent + ByteString.hexDump(b));
+		}
+		#end
 		var bi = BigInteger.ofByteString(b);
 		bi.copyTo(this);
-trace(this.toRadix(16));
+		#if CAFFEINE_DEBUG
+		trace(DER.indent + this.toRadix(16));
+		#end
 	}
 
 	public function getLength():Int
