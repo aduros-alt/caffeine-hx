@@ -35,13 +35,30 @@
  */
 package formats.der;
 
+typedef AsnStruct = {
+	var name : String;
+	var optional : Bool;
+	var extract : Bool;
+	var value : Dynamic;
+	var defaultValue : Dynamic;
+};
+
 class Type
 {
-	public static var TLS_CERT:Array<Dynamic> = [
-		{name:"signedCertificate", extract:true, value: [
-			{name:"versionHolder", optional:true, value: [
+	public static var TLS_CERT:Array<AsnStruct> = [
+		{
+		name:"signedCertificate",
+		optional:false,
+		extract:true,
+		defaultValue : null,
+		value: [
+			{
+				name:"versionHolder",
+				optional:true,
+				value: [
 				{name:"version"}
-			], defaultValue: function():Sequence{
+				],
+				defaultValue: function():Sequence{
 					var s:Sequence = new Sequence(0, 0);
 					var v:Integer = new Integer(2,1, ByteString.ofHex("00"));
 					s.push(v);
@@ -71,14 +88,33 @@ class Type
 			]},
 			{name:"extensions", value: [
 			]}
-		]},
-		{name:"algorithmIdentifier",value:[
+			]
+		},
+		{
+		name:"algorithmIdentifier",
+		optional:false,
+		extract : false,
+		defaultValue : null,
+		value: 	[
 			{name:"algorithmId"}
-		]},
-		{name:"encrypted", value:null}
+			]
+		},
+		{
+		name:"encrypted",
+		optional:false,
+		extract : false,
+		defaultValue : null,
+		value:null
+		}
 	];
-	public static var CERTIFICATE:Array<Dynamic> = [
-		{name:"tbsCertificate", value:[
+
+	public static var CERTIFICATE:Array<AsnStruct> = [
+		{
+		name:"tbsCertificate",
+		optional:false,
+		extract : false,
+		defaultValue : null,
+		value:[
 			{name:"tag0", value:[
 				{name:"version"}
 			]},
@@ -101,18 +137,32 @@ class Type
 			{name:"subjectUniqueID"},
 			{name:"extensions"}
 		]},
-		{name:"signatureAlgorithm"},
-		{name:"signatureValue"}
+		{
+		name:"signatureAlgorithm",
+		optional:false,
+		extract : false,
+		defaultValue : null,
+		value : null
+		},
+		{
+		name:"signatureValue",
+		optional:false,
+		extract : false,
+		defaultValue : null,
+		value : null
+		}
 	];
-	public static var RSA_PUBLIC_KEY:Array<Dynamic> = [
-		{name:"modulus"},
-		{name:"publicExponent"}
+
+	public static var RSA_PUBLIC_KEY:Array<AsnStruct> = [
+		{name:"modulus",optional:false,extract:false,defaultValue:null,value:null},
+		{name:"publicExponent",optional:false,extract:false,defaultValue:null,value:null}
 	];
-	public static var RSA_SIGNATURE:Array<Dynamic> = [
-		{name:"algorithm", value:[
+
+	public static var RSA_SIGNATURE:Array<AsnStruct> = [
+		{name:"algorithm",optional:false,extract:false,defaultValue:null,value:[
 			{name:"algorithmId"}
-			]},
-		{name:"hash"}
+		]},
+		{name:"hash",optional:false,extract:false,defaultValue:null,value:null}
 	];
 
 }
