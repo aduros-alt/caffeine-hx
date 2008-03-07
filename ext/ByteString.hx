@@ -239,6 +239,7 @@ class ByteString implements IString {
 			for(x in o...i) {
 				_buf[x] = 0;
 			}
+			update();
 			return i;
 		}
 		_buf = _buf.slice(0, i);
