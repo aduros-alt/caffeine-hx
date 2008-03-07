@@ -55,13 +55,15 @@ import formats.der.Types;
 class X509Certificate {
 
 	private var _loaded:Bool;
-	private var _param:IString;
+	private var _param:Dynamic;
 	private var _obj:IContainer;
 
-	public function new(p:IString) {
+	public function new(p:Dynamic) {
 		_loaded = false;
 		_param = p;
 		// avoid unnecessary parsing of every builtin CA at start-up.
+		if(!Std.is(_param, String) && !Std.is(_param, ByteString))
+			throw("Must be a string or bytestring");
 	}
 
 	/**
@@ -248,7 +250,10 @@ class X509Certificate {
 
 	public function getCommonName():String {
 		var subject:Sequence = cast _obj.getKey("signedCertificate").getKey("subject");
-		var ps : PrintableString = try cast subject.findAttributeValue(OID.COMMON_NAME) catch(e:Dynamic) null;
+		var ps : PrintableString;
+		try {
+			ps = cast( subject.findAttributeValue(OID.COMMON_NAME), PrintableString);
+		} catch(e:Dynamic) {}
 		if(ps == null)
 			return null;
 		return ps.getString();
@@ -261,7 +266,7 @@ class X509Certificate {
 		if (_loaded) return;
 		var b:ByteString;
 		if (Std.is(_param, String))
-			b = PEM.readCertIntoArray(_param);
+			b = PEM.readCertIntoArray(cast _param);
 		else if ( Std.is(_param, ByteString))
 			b = cast _param;
 

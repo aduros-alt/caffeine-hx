@@ -1,4 +1,5 @@
 -cp ../../
+-D FIREBUG
 -js test.js
 -main HashTest
 
@@ -11,6 +12,7 @@
 --next
 
 -cp ../../
+-D FIREBUG
 -main HashTest
 -swf-version 8
 -swf test8.swf
@@ -18,6 +20,7 @@
 --next
 
 -cp ../../
+-D FIREBUG
 -main HashTest
 -swf-version 9
 -swf test9.swf

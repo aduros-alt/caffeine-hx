@@ -127,8 +127,8 @@ class PEM
 		}
 	}
 
-	public static function readCertIntoArray(str:IString):ByteString {
-		var tmp:ByteString = extractBinary(CERTIFICATE_HEADER, CERTIFICATE_FOOTER, str.toString());
+	public static function readCertIntoArray(str:String):ByteString {
+		var tmp:ByteString = extractBinary(CERTIFICATE_HEADER, CERTIFICATE_FOOTER, str);
 		return tmp;
 	}
 

@@ -299,7 +299,7 @@ class ByteString implements IString {
 	**/
 	public function toHex(?sep:String,?pos:Int, ?len:Int) : String {
 		if(sep == null)
-			sep = "";
+			sep = new String("");
 		if(pos == null)
 			pos = 0;
 		if(len == null)
@@ -474,7 +474,7 @@ class ByteString implements IString {
 		Dump a string to hex bytes. By default, will be seperated with
 		spaces. To have no seperation, use the empty string as a seperator.
 	**/
-	public static function hexDump(data : IString, ?seperator:IString) {
+	public static function hexDump(data : IString, ?seperator:Dynamic) {
 		if(seperator == null)
 			seperator = " ";
 		var sb = new StringBuf();
