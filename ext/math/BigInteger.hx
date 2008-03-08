@@ -1490,7 +1490,7 @@ class BigInteger {
 	#if as3gen public #end static var BI_RC : Array<Int>;
 
 	public static var lowprimes : Array<Int>;
-	#if as3gen public #end static var lplim : Int;
+	public static var lplim : Int;
 	#if as3gen public #end static var defaultAm : Int; // am function
 
 	//////////////////////////////////////////////////////////////
