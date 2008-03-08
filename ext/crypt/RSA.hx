@@ -162,8 +162,8 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 	/**
 		Sign a certificate
 	**/
-	public function sign( text : IString ) : String {
-		return doEncrypt(text.toString(), doPrivate, new PadPkcs1Type1(blockSize));
+	public function sign( content : ByteString ) : String {
+		return doEncrypt(content.toString(), doPrivate, new PadPkcs1Type1(blockSize));
 	}
 
 	override public function decryptBlock( enc : String ) : String {

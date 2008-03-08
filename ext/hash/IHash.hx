@@ -36,7 +36,7 @@ interface IHash {
 	/**
 		Return the binary hash value in a ByteString
 	**/
-	function calcBin( msg:IString ) : ByteString;
+	function calcBin( msg:ByteString ) : ByteString;
 
 	/**
 		Returns the length of the hash in bytes

@@ -26,7 +26,6 @@ package haxe;
 
 // std
 import Array;
-import ByteStringTools;
 import ByteString;
 import Class;
 import Constants;

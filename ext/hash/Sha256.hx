@@ -54,7 +54,7 @@ class Sha256 implements IHash {
 		return encode(msg, false);
 	}
 
-	public function calcBin( msg:IString ) : ByteString {
+	public function calcBin( msg:ByteString ) : ByteString {
 		return ByteString.ofString(encode(msg.toString(), true));
 	}
 

@@ -30,9 +30,10 @@ package formats;
 class Base64 {
 
 	/**
-		Encodes any IString to base64
+		Encodes any String object to base64
 	**/
-	public static function encode(s : IString) : String {
+	public static function encode(obj : Dynamic) : String {
+		var s = Std.string(obj);
 		var ext : String = switch (s.length % 3) {
 		case 1: "==";
 		case 2: "=";

@@ -214,7 +214,7 @@ class X509Certificate {
 	*/
 	public function getSubjectPrincipal():String {
 		load();
-		return Base64.encode(cast(_obj.getKey("signedCertificate").getKey("subject_bin"), ByteString));
+		return Base64.encode(_obj.getKey("signedCertificate").getKey("subject_bin"));
 	}
 
 	/**

@@ -37,7 +37,7 @@ import neko.Int32;
 #end
 
 // TODO: implement as flash.util.ByteArray for flash 9
-class ByteString implements IString {
+class ByteString {
 	public static var BIG_ENDIAN : String = "bigEndian";
 	public static var LITTLE_ENDIAN : String = "littleEndian";
 
@@ -267,10 +267,9 @@ class ByteString implements IString {
 	}
 
 	/**
-		Split a ByteString into an array of ByteStrings. The delimiter may
-		be another ByteString;
+		Split a ByteString into an array of ByteStrings. The delimiter is another ByteString;
 	**/
-	public function splitB( delimiter : IString ) : Array<ByteString> {
+	public function splitB( delimiter : ByteString ) : Array<ByteString> {
 		var a = toString().split( delimiter.toString() );
 		var r = new Array<ByteString>();
 		for( i in a )
@@ -360,7 +359,7 @@ class ByteString implements IString {
 		length will be everything starting at [offset]. If either param
 		is out of bounds, it will be set to the beginning or end respectively.
 	**/
-	public function writeBytes(v : IString, ?offset:Int, ?length:Int) : Void {
+	public function writeBytes(v : Dynamic, ?offset:Int, ?length:Int) : Void {
 		if(offset == null || offset < 0 || offset >= v.length)
 			offset = 0;
 		if(length == null || length == 0 )
@@ -515,7 +514,8 @@ class ByteString implements IString {
 		Dump a string to hex bytes. By default, will be seperated with
 		spaces. To have no seperation, use the empty string as a seperator.
 	**/
-	public static function hexDump(data : IString, ?seperator:Dynamic) {
+	public static function hexDump(obj : Dynamic, ?seperator:Dynamic) {
+		var data = Std.string(obj);
 		if(seperator == null)
 			seperator = " ";
 		var sb = new StringBuf();
