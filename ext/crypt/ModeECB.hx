@@ -76,10 +76,10 @@ class ModeECB implements IMode {
 			}
 
 // trace(rv.length);
-trace(ByteStringTools.hexDump(rv, false));
+trace(ByteString.hexDump(rv, ""));
 			var enc = cipher.encryptBlock(rv);
-trace(ByteStringTools.hexDump(cipher.decryptBlock(enc),false));
-trace(ByteStringTools.hexDump(enc,false));
+trace(ByteString.hexDump(cipher.decryptBlock(enc),false));
+trace(ByteString.hexDump(enc,""));
 			if(enc.length != bsize)
 				throw("block encryption to wrong block size");
 			sb.add(enc);
@@ -100,7 +100,7 @@ trace(ByteStringTools.hexDump(enc,false));
 		var sb = new StringBuf();
 		for (i in 0...numBlocks) {
 			var rv : String = cipher.decryptBlock(s.substr(offset, bsize));
-trace(ByteStringTools.hexDump(rv));
+trace(ByteString.hexDump(rv));
 			if(!padBlocks)
 				sb.add(rv);
 			else

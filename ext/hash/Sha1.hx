@@ -165,8 +165,8 @@ class Sha1 implements IHash {
 		for(i in 0...N) {
 			M[i] = new Array<Int>();
 			for(j in 0...16) { // encode 4 chars per integer, big-endian encoding
-				M[i][j] = (ByteStringTools.charCodeAt(msg,i*64+j*4)<<24) | (ByteStringTools.charCodeAt(msg,i*64+j*4+1)<<16) |
-					(ByteStringTools.charCodeAt(msg,i*64+j*4+2)<<8) | (ByteStringTools.charCodeAt(msg,i*64+j*4+3));
+				M[i][j] = (ByteString.codeAt(msg,i*64+j*4)<<24) | (ByteString.codeAt(msg,i*64+j*4+1)<<16) |
+					(ByteString.codeAt(msg,i*64+j*4+2)<<8) | (ByteString.codeAt(msg,i*64+j*4+3));
 			}
 		}
 

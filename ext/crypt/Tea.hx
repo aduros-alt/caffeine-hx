@@ -44,12 +44,12 @@ class Tea implements IBlockCipher {
 
 	public function new(key : String) {
 #if !neko
-		k = ByteStringTools.strToInt32(
-				ByteStringTools.nullPadString(key.substr(0,16), 16)
+		k = ByteString.strToInt32(
+				ByteString.nullPadString(key.substr(0,16), 16)
 		);
 #else true
-		var m = ByteStringTools.strToInt32(
-				ByteStringTools.nullPadString(key.substr(0,16), 16)
+		var m = ByteString.strToInt32(
+				ByteString.nullPadString(key.substr(0,16), 16)
 		);
 		k = xxtea_create_key(I32.mkNekoArray(m));
 #end
@@ -74,7 +74,7 @@ class Tea implements IBlockCipher {
 #if neko
 	public function encryptBlock(plaintext : String) : String {
 		if (plaintext.length == 0) return('');
-		var v : Array<neko.Int32> = ByteStringTools.strToInt32(plaintext);
+		var v : Array<neko.Int32> = ByteString.strToInt32(plaintext);
 		var n = v.length;
 		if (n == 1)
 			v[n++] = neko.Int32.ofInt(0);
@@ -87,7 +87,7 @@ class Tea implements IBlockCipher {
 #else true
 	public function encryptBlock(plaintext : String) : String {
 		if (plaintext.length == 0) return('');
-		var v = ByteStringTools.strToInt32(plaintext);
+		var v = ByteString.strToInt32(plaintext);
 		var n = v.length;
 		if (n == 1)
 			v[n++] = 0;
@@ -114,14 +114,14 @@ class Tea implements IBlockCipher {
 			y = v[0];
 			z = v[n-1] += (z>>>5 ^ y<<2) + (y>>>3 ^ z<<4) ^ (sum^y) + (k[p&3^e]^z);
 		}
-		return ByteStringTools.int32ToString(v);
+		return ByteString.int32ToString(v);
 	}
 #end
 
 #if neko
 	public function decryptBlock(ciphertext : String) : String {
 		if (ciphertext.length == 0) return('');
-		var v = ByteStringTools.strToInt32(ciphertext);
+		var v = ByteString.strToInt32(ciphertext);
 		var n = v.length;
 		var rv = xxtea_decrypt_block(
 				I32.mkNekoArray(v),
@@ -133,7 +133,7 @@ class Tea implements IBlockCipher {
 	public function decryptBlock(ciphertext : String) : String
 	{
 		if (ciphertext.length == 0) return('');
-		var v = ByteStringTools.strToInt32(ciphertext);
+		var v = ByteString.strToInt32(ciphertext);
 		var n = v.length;
 
 		var delta = 0x9e3779B9;
@@ -158,7 +158,7 @@ class Tea implements IBlockCipher {
 			y = v[0] -= (z>>>5 ^ y<<2) + (y>>>3 ^ z<<4) ^ (sum^y) + (k[p&3^e]^z);
 			sum -= delta;
 		}
-		return ByteStringTools.int32ToString(v);
+		return ByteString.int32ToString(v);
 	}
 #end
 

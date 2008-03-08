@@ -67,7 +67,7 @@ class PadPkcs1Type1 implements IPad {
 		// unpad.
 		var i : Int = 0;
 		#if CAFFEINE_DEBUG
-		trace(ByteStringTools.hexDump(s));
+		trace(ByteString.hexDump(s));
 		#end
 		var sb = new StringBuf();
 		while(i < s.length) {
@@ -76,7 +76,7 @@ class PadPkcs1Type1 implements IPad {
 				throw("Unexpected short message");
 			}
 			if(s.charCodeAt(i) != typeByte)
-				throw("Expected marker "+ typeByte + " at position "+i + " [" + ByteStringTools.hexDump(s) + "]");
+				throw("Expected marker "+ typeByte + " at position "+i + " [" + ByteString.hexDump(s) + "]");
 			if(++i >= s.length)
 				return sb.toString();
 			while(i < s.length && s.charCodeAt(i) != 0) ++i;

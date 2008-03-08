@@ -80,7 +80,7 @@ class Sha256 implements IHash {
 		var rv = Util.binb2hex(core_sha256(Util.str2binb(s, 8), s.length * charSize));
 		if(!binary)
 			return rv;
-		return ByteStringTools.hexBytesToBinary(rv);
+		return ByteString.ofHex(rv).toString();
 	}
 
 	static function S (X, n) {return ( X >>> n ) | (X << (32 - n));}

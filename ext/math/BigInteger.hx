@@ -1238,9 +1238,6 @@ class BigInteger {
 	}
 
 	public function primify(bits:Int, ta:Int) : Void {
-		if (isEven()) {
-			dAddOffset(1,0);    // force odd
-		}
 		while(bitLength()>bits) subTo(BigInteger.ONE.shl(bits-1),this);
 		while (!isProbablePrime(ta)) {
 			dAddOffset(2,0);
@@ -1795,6 +1792,9 @@ class BigInteger {
 				if (!i.testBit(bits-1)) {
 					i.bitwiseTo(BigInteger.ONE.shl(bits-1), op_or, i);
 				}
+			}
+			if (i.isEven()) {
+				i.dAddOffset(1,0);
 			}
 			i.primify(bits, 1);
 			if(i.sub(BigInteger.ONE).gcd(gcdExp).compare(BigInteger.ONE) == 0

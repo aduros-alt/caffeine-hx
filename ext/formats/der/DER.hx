@@ -61,7 +61,7 @@ class DER {
 	{
 		#if CAFFEINE_DEBUG
 		if (der.position == 0) {
-			trace("DER.parse: "+ByteStringTools.hexDump(der));
+			trace("DER.parse: "+ByteString.hexDump(der));
 			trace("DERlength: "+der.length);
 		}
 		#end

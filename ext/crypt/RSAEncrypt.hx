@@ -105,7 +105,7 @@ trace(ba);
 			if(ba[0] == 0)
 				ba.shift();
 			else {
-				trace(ByteStringTools.hexDump(ByteString.ofIntArray(ba).toString()));
+				trace(ByteString.hexDump(ByteString.ofIntArray(ba).toString()));
 				throw("encoded length was "+ba.length);
 			}
 		}
@@ -113,7 +113,7 @@ trace(ba);
 			ba.unshift(0); // = Std.chr(0) + buf;
 
 		var rv = ByteString.ofIntArray(ba).toString();
-		trace(ByteStringTools.hexDump(rv));
+		trace(ByteString.hexDump(rv));
 		return rv;
 	}
 

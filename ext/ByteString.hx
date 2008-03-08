@@ -29,6 +29,8 @@
 	A class that represents arrays of bytes. Has methods from String
 	class, as well as from Flash9 util.ByteArray
 **/
+// 0x12345678 in Big Endian (network byte order) is stored 12 34 56 78
+// 0x12345678 in Little Endian (Intel architecture) is stored 78 56 34 12
 
 #if neko
 import neko.Int32;
@@ -459,6 +461,44 @@ class ByteString implements IString {
 	//            Public Static methods                //
 	/////////////////////////////////////////////////////
 	/**
+		Return a hex representation of the byte b. If
+		b > 255 only the lowest 8 bits are used.
+	**/
+	public static function byte2Hex(b : Int) {
+		b = b & 0xFF;
+		return StringTools.hex(b,2).toLowerCase();
+	}
+
+	/**
+		Transform an array of integers x where 0xFF >= x >= 0 to
+		a string of binary data, optionally padded to a multiple of
+		padToBytes. 0 length input returns 0 length output, not
+		padded.
+	**/
+	public static function byteArrayToString(a: Array<Int>, ?padToBytes:Int) :String  {
+		var sb = new StringBuf();
+		for(i in a) {
+			if(i > 0xFF || i < 0)
+				throw "Value out of range";
+			sb.add(Std.chr(i));
+		}
+		if(padToBytes != null && padToBytes > 0) {
+			return nullPadString(sb.toString(), padToBytes);
+		}
+		return sb.toString();
+	}
+
+	/**
+		Return the character code from a string at the given position.
+		If pos is past the end of the string, 0 (null) is returned.
+	**/
+	public static function codeAt(s, pos) {
+		if(pos >= s.length)
+			return 0;
+		return Std.ord(s.substr(pos,1));
+	}
+
+	/**
 		Tests if two ByteStrings are equal.
 	**/
 	public static function eq(a:ByteString, b:ByteString) : Bool {
@@ -485,6 +525,58 @@ class ByteString implements IString {
 			sb.add(seperator);
 		}
 		return StringTools.rtrim(sb.toString());
+	}
+
+	/**
+		Convert an array of 32bit integers to a little endian string<br />
+	**/
+#if neko
+	public static function int32ToString(l : Array<Int32>) : String
+#else true
+	public static function int32ToString(l : Array<Int>) : String
+#end
+	{
+		return I32.packLE(l);
+	}
+
+	/*
+	public static function intsToPaddedString(a : Array<Int>, ?padTo : Int) {
+		var sb = new StringBuf();
+		if(padTo > 0) {
+			var r = padTo - (a.length % padTo);
+			for(i in 0...r) {
+				sb.add(Std.chr(0));
+			}
+		}
+		return sb.toString();
+	}
+	*/
+
+	/**
+		Pad a string with NULLs to the specified chunk length. Note
+		that 0 length strings passed to this will not be padded. See also
+		nullString()
+	**/
+	public static function nullPadString(s : String, chunkLen: Int) : String {
+		var r = chunkLen - (s.length % chunkLen);
+		if(r == chunkLen)
+			return s;
+		var sb = new StringBuf();
+		sb.add(s);
+		for(x in 0...r) {
+			sb.add(Std.chr(0));
+		}
+		return sb.toString();
+	}
+
+	/**
+		Create a string initialized to nulls of length len
+	**/
+	public static function nullString( len : Int ) : String {
+		var sb = new StringBuf();
+		for(i in 0...len)
+			sb.addChar(0);
+		return sb.toString();
 	}
 
 	public static function ofIntArray(a : Array<Int>) : ByteString {
@@ -531,6 +623,51 @@ class ByteString implements IString {
 		}
 		b.update();
 		return b;
+	}
+
+	/**
+		Transform  a string into an array of integers x where
+		0xFF >= x >= 0, optionally padded to a multiple of
+		padToBytes. 0 length input returns 0 length output, not
+		padded.
+	**/
+	public static function stringToByteArray( s : String, ?padToBytes:Int) : Array<Int> {
+		var a = new Array();
+		var len = s.length;
+		for(x in 0...s.length) {
+			a.push(s.charCodeAt(x));
+		}
+		if(padToBytes != null && padToBytes > 0) {
+			var r = padToBytes - (a.length % padToBytes);
+			if(r != padToBytes) {
+				for(x in 0...r) {
+					a.push(0);
+				}
+			}
+		}
+		return a;
+	}
+
+	/**
+		Convert a string containing 32bit integers to an array of ints<br />
+		If the string length is not a multiple of 4, it will be NULL padded
+		at the end.
+	**/
+#if neko
+	public static function strToInt32(s : String) : Array<neko.Int32>
+#else true
+	public static function strToInt32(s : String) : Array<Int>
+#end
+	{
+		return I32.unpackLE(nullPadString(s,4));
+	}
+
+	/**
+		Remove nulls at the end of a string
+	**/
+	public static function unNullPadString(s : String) {
+		var er : EReg = ~/\0+$/;
+		return er.replace(s, '');
 	}
 
 }

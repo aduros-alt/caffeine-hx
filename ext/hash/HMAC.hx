@@ -60,7 +60,7 @@ class HMAC {
 		if(K.length > B) {
 			K = hash.calculate(K);
 		}
-		K = ByteStringTools.nullPadString(K, B).substr(0, B);
+		K = ByteString.nullPadString(K, B).substr(0, B);
 
 		var Ki = new StringBuf();
 		var Ko = new StringBuf();

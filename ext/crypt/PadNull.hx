@@ -36,7 +36,7 @@ class PadNull implements IPad {
 	}
 
 	public function pad( s : String ) : String {
-		return ByteStringTools.nullPadString(s, blockSize);
+		return ByteString.nullPadString(s, blockSize);
 	}
 
 	/**

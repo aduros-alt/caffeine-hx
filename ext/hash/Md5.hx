@@ -63,7 +63,7 @@ class Md5 implements IHash {
 	public static function encode(msg : String, ?binary:Bool) : String {
 		var s = haxe.Md5.encode(msg);
 		if(binary) {
-			s = ByteStringTools.hexBytesToBinary( s );
+			s = ByteString.ofHex( s ).toString();
 		}
 		return s;
 	}

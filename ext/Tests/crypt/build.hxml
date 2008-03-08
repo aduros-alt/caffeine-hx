@@ -11,6 +11,7 @@
 --next
 
 -cp ../../
+-D FIREBUG
 -swf test9.swf
 -swf-version 9
 -main CryptTest
