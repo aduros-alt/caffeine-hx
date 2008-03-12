@@ -1,6 +1,6 @@
 -debug
--cp /Data/Projects/haXe/Caffeine-hx/ext
--cp /Data/Projects/haXe/hxBase/src
+-cp ../ext
+#-cp /Data/Projects/haXe/hxBase/src
 -neko specs.n
 -main dbee.DBeeSpecs
 -resource dbee/MemoryPersistenceManagerMacro.neko@MemoryPersistenceMacro.neko

@@ -4,7 +4,7 @@ import math.BigInteger;
 class PrimeGen {
 	static var complete : Bool = false;
 	public function new() {
-		var pg = new PrimeGenerator(640, true, BigInteger.ofInt(3),waiting,done);
+		var pg = new PrimeGenerator(28, true, BigInteger.ofInt(3),waiting,done);
 		pg.run();
 #if neko
 		while(!complete) {}
@@ -13,7 +13,7 @@ class PrimeGen {
 
 	function waiting(v : PrimeGenerator) : Void {
 		var i:Int = untyped v._pos;
-		trace("waiting..."+ i);
+		//trace("waiting..."+ i);
 	}
 
 	function done(i:BigInteger) : Void {

@@ -1,5 +1,6 @@
 -cp ../../
 -js test_primegen.js
+-D CAFFEINE_DEBUG
 -main PrimeGen
 
 --next
@@ -22,6 +23,7 @@
 -main PrimeGen
 -swf-version 9
 -swf test_primegen9.swf
+-D CAFFEINE_DEBUG
 -debug
 
 

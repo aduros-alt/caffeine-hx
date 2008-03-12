@@ -265,6 +265,8 @@ class Type {
 		#else js
 			if( args.length >= 6 ) throw "Too many arguments";
 			return untyped __new__(cl,args[0],args[1],args[2],args[3],args[4],args[5]);
+		#else lua
+			return untyped __new__(cl, args);
 		#else error
 		#end
 	}

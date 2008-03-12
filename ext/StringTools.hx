@@ -44,6 +44,8 @@ class StringTools {
 		return new String(_urlEncode(untyped s.__s));
 		#else js
 		return untyped encodeURIComponent(s);
+		#else lua
+		return new String(_urlEncode(untyped s.__s));
 		#else error
 		#end
 	}
@@ -60,6 +62,8 @@ class StringTools {
 		return new String(_urlDecode(untyped s.__s));
 		#else js
 		return untyped decodeURIComponent(s.split("+").join(" "));
+		#else lua
+		return new String(_urlDecode(untyped s.__s));
 		#else error
 		#end
 	}
@@ -270,6 +274,8 @@ class StringTools {
 	public static function baseEncode( s : String, base : String ) : String {
 		#if neko
 		return new String(_baseEncode(untyped s.__s,untyped base.__s));
+		#else lua
+		return new String(_baseEncode(untyped s.__s,untyped base.__s));
 		#else true
 		var len = base.length;
 		var nbits = 1;
@@ -304,6 +310,8 @@ class StringTools {
 	**/
 	public static function baseDecode( s : String, base : String ) : String {
 		#if neko
+		return new String(_baseDecode(untyped s.__s,untyped base.__s));
+		#else lua
 		return new String(_baseDecode(untyped s.__s,untyped base.__s));
 		#else true
 		var len = base.length;
@@ -374,6 +382,11 @@ class StringTools {
 	private static var _urlDecode = neko.Lib.load("std","url_decode",1);
 	private static var _baseEncode = neko.Lib.load("std","base_encode",2);
 	private static var _baseDecode = neko.Lib.load("std","base_decode",2);
+	#else lua
+	private static var _urlEncode = lua.Lib.load("std","url_encode",1);
+	private static var _urlDecode = lua.Lib.load("std","url_decode",1);
+	private static var _baseEncode = lua.Lib.load("std","base_encode",2);
+	private static var _baseDecode = lua.Lib.load("std","base_decode",2);
 	#end
 
 }
