@@ -393,7 +393,7 @@ and gen_expr ctx e =
 		()
 	| TVars vl ->
 		spr ctx "local ";
-		concat ctx ", " (fun (n,_,e) ->
+		concat ctx "; local " (fun (n,_,e) ->
 			spr ctx (ident n);
 			match e with
 			| None -> ()
@@ -412,16 +412,14 @@ and gen_expr ctx e =
 		let bend = open_block ctx in
 		newline ctx;
 		gen_expr ctx e;
+			(*  Franco  *)
 		(match eelse with
 		| None -> ()
+		| Some e when e.eexpr = TConst(TNull) -> ()
 		| Some e ->
-			(*  Franco  *)
-			(match e.eexpr with
-			| TConst n when n = TNull -> ()
-			| _ ->
-				newline ctx;
-				spr ctx "else ";
-				gen_expr ctx e));
+			newline ctx;
+			spr ctx "else ";
+			gen_expr ctx e);
 		bend();
 		newline ctx;
 		spr ctx "end ";
@@ -555,29 +553,41 @@ and gen_expr ctx e =
 		);
 		spr ctx "}"
 	| TSwitch (e,cases,def) ->
-		spr ctx "switch";
+		(* Generate a temp local var *)
+		spr ctx "local switch = ";
 		gen_value ctx (parent e);
-		spr ctx " {";
+		spr ctx ";";
 		newline ctx;
-		List.iter (fun (el,e2) ->
+
+		(* TSwitch of texpr * (texpr list * texpr) list * texpr option *)
+		(* pop and create first case *)
+		let b = (List.hd cases) in
+		List.iter (fun e ->
+			spr ctx "if (switch ==";
+			gen_value ctx e;
+			spr ctx ") then ";
+		) (fst b);
+		gen_expr ctx (block (snd b));
+		newline ctx;
+
+		List.iter (fun (tail,e2) ->
 			List.iter (fun e ->
-				spr ctx "case ";
+				spr ctx "elseif (switch ==";
 				gen_value ctx e;
-				spr ctx ":";
-			) el;
+				spr ctx ") then ";
+			) tail;
 			gen_expr ctx (block e2);
-			print ctx "break";
 			newline ctx;
-		) cases;
+		) (List.tl cases);
 		(match def with
 		| None -> ()
 		| Some e ->
-			spr ctx "default:";
+			spr ctx "else ";
 			gen_expr ctx (block e);
-			print ctx "break";
 			newline ctx;
 		);
-		spr ctx "}"
+		spr ctx "end; -- end of switch";
+		newline ctx
 
 and ms_unop op ctx e post =
 	match op with
