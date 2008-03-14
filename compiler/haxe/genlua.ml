@@ -1,6 +1,7 @@
 (*
  *  Haxe Compiler
- *  Copyright (c)2005 Nicolas Cannasse
+ *  Copyright (c)2008 Russell Weir
+ *  based on and including code by (c)2005-2008 Nicolas Cannasse
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,7 +21,7 @@ open Type
 open Ast
 
 type ctx = {
-	buf : Buffer.t;
+	mutable buf : Buffer.t;
 	packages : (string list,unit) Hashtbl.t;
 	mutable curclass : tclass;
 	mutable statics : (tclass * string * texpr) list;
@@ -32,6 +33,7 @@ type ctx = {
 	mutable id_counter : int;
 	debug : bool;
 	mutable curmethod : (string * bool);
+	commentcode : bool;
 }
 
 let s_path = function
@@ -49,8 +51,10 @@ let kwds =
 	];
 	h
 
+
+let member s = ":" ^ s
 let field s = if Hashtbl.mem kwds s then "[\"" ^ s ^ "\"]" else "." ^ s
-let ident s = if Hashtbl.mem kwds s then "$" ^ s else s
+let ident s = if Hashtbl.mem kwds s then "___" ^ s else s
 (*
 Neko version
 let ident p s =
@@ -81,6 +85,35 @@ let newline ctx =
 		);
 	| _ -> print ctx "\n%s" ctx.tabs
 
+
+(*
+prefix ++
+(function() r = r + 1; return r; end)()
+postfix ++
+(function() local __ = r; r = r + 1; return __; end)()
+prefix --
+(function() r = r - 1; return r; end)()
+postfix --
+(function() local __ = r; r = r - 1; return __; end)()
+
+http://lua-users.org/wiki/TernaryOperator
+
+	e++ -> (e = e + 1)
+*)
+let unop_string post adding repl =
+	match post with
+	| true ->
+		(match adding with
+		| true ->  Printf.sprintf "(function() local _ = %s; %s = %s + 1; return _; end)()" repl repl repl
+		| false ->  Printf.sprintf "(function() local _ = %s; %s = %s - 1; return _; end)()" repl repl repl
+		);
+	| false ->
+		(match adding with
+		| true ->  Printf.sprintf "(function() %s = %s + 1; return %s; end)()" repl repl repl
+		| false ->  Printf.sprintf "(function() %s = %s - 1; return %s; end)()" repl repl repl
+		);
+	;;
+
 let rec s_binop = function
 	| OpAdd -> "+"
 	| OpMult -> "*"
@@ -104,7 +137,7 @@ let rec s_binop = function
 	| OpUShr -> ">>>"
 	| OpShl -> "<<"
 	| OpMod -> "%"
-	| OpAssignOp op -> s_binop op ^ "="
+	| OpAssignOp op -> "" ^ s_binop op ^ ""
 	| OpInterval -> "..."
 
 
@@ -117,12 +150,6 @@ let rec concat ctx s f = function
 		concat ctx s f l
 
 let block = Transform.block
-(*
-let block e =
-	match e.eexpr with
-	| TBlock (_ :: _) -> e
-	| _ -> mk (TBlock [e]) e.etype e.epos
-*)
 
 let fun_block ctx f =
 	if ctx.debug then
@@ -139,6 +166,11 @@ let open_block ctx =
 	let oldt = ctx.tabs in
 	ctx.tabs <- "\t" ^ ctx.tabs;
 	(fun() -> ctx.tabs <- oldt)
+
+let temp_ctx_buf ctx =
+	let oldbuf = ctx.buf in
+	ctx.buf <- Buffer.create 500;
+	(fun() -> ctx.buf <- oldbuf)
 
 let rec iter_switch_break in_switch e =
 	match e.eexpr with
@@ -168,13 +200,12 @@ let handle_break ctx e =
 
 let this ctx =
 	if ctx.in_constructor then "new" else
-		if ctx.in_value then "$this" else "self"
+		if ctx.in_value then "this" else "self"
 
 let gen_constant ctx p = function
 	| TInt i -> print ctx "%ld" i
 	| TFloat s -> spr ctx s
 	| TString s ->
-		if String.contains s '\000' then Typer.error "A String cannot contain \\0 characters" p;
 		print ctx "\"%s\"" (Ast.s_escape s)
 	| TBool b -> spr ctx (if b then "true" else "false")
 	| TNull -> spr ctx "nil"
@@ -251,14 +282,42 @@ and gen_expr ctx e =
 		gen_value ctx e2;
 		spr ctx "]";
 	| TBinop (op,{ eexpr = TField (e1,s) },e2) ->
-		gen_value_op ctx e1;
-		spr ctx (field s);
-		print ctx " %s " (s_binop op);
-		gen_value_op ctx e2;
+		(match op with
+		| OpAssignOp o ->
+			print ctx "-- OpAssignOp1";
+			newline ctx;
+			gen_value_op ctx e1;
+			spr ctx (field s);
+			print ctx " = ";
+			gen_value_op ctx e1;
+			spr ctx (field s);
+			print ctx " %s " (s_binop op);
+			print ctx "(";
+			gen_value_op ctx e2;
+			print ctx ")";
+		| _ ->
+			gen_value_op ctx e1;
+			spr ctx (field s);
+			print ctx " %s " (s_binop op);
+			gen_value_op ctx e2;
+		)
 	| TBinop (op,e1,e2) ->
-		gen_value_op ctx e1;
-		print ctx " %s " (s_binop op);
-		gen_value_op ctx e2;
+		(match op with
+		| OpAssignOp o ->
+			print ctx "-- OpAssignOp2";
+			newline ctx;
+			gen_value_op ctx e1;
+			print ctx " = ";
+			gen_value_op ctx e1;
+			print ctx " %s " (s_binop op);
+			print ctx "(";
+			gen_value_op ctx e2;
+			print ctx ")";
+		| _ ->
+			gen_value_op ctx e1;
+			print ctx " %s " (s_binop op);
+			gen_value_op ctx e2;
+		)
 	| TField (x,s) ->
 		(match follow e.etype with
 		| TFun _ ->
@@ -291,7 +350,7 @@ and gen_expr ctx e =
 		if ctx.in_value then unsupported e.epos;
 		spr ctx "continue"
 	| TBlock [] ->
-		spr ctx "nil"
+		spr ctx "gen_expr TBlock [] nil"
 	| TBlock el ->
 		print ctx "do";
 		let bend = open_block ctx in
@@ -300,16 +359,24 @@ and gen_expr ctx e =
 		newline ctx;
 		print ctx "end";
 	| TFunction f ->
+(*
+		if ctx.in_function then
+			print ctx "function";
+*)
 		let old = ctx.in_value in
 		let old_meth = ctx.curmethod in
+(*		let old_infunc = ctx.in_function in *)
 		ctx.in_value <- false;
-		if snd ctx.curmethod then
-			ctx.curmethod <- (fst ctx.curmethod ^ "@" ^ string_of_int (Lexer.get_error_line e.epos), true)
+		if snd ctx.curmethod then begin
+			ctx.curmethod <- (fst ctx.curmethod ^ "@" ^ string_of_int (Lexer.get_error_line e.epos), true);
+			print ctx "function";
+		end
 		else
 			ctx.curmethod <- (fst ctx.curmethod, true);
 		print ctx "(%s) " (String.concat "," (List.map ident (List.map arg_name f.tf_args)));
 		newline ctx;
 		gen_expr ctx (fun_block ctx f);
+(*		ctx.in_function <- old_infunc; *)
 		ctx.curmethod <- old_meth;
 		ctx.in_value <- old;
 	| TCall (e,el) ->
@@ -341,7 +408,7 @@ and gen_expr ctx e =
 	| TIf (cond,e,eelse) ->
 		spr ctx "if";
 		gen_value ctx (parent cond);
-		spr ctx " ";
+		spr ctx " then ";
 		gen_expr ctx e;
 		(match eelse with
 		| None -> ()
@@ -349,12 +416,11 @@ and gen_expr ctx e =
 			newline ctx;
 			spr ctx "else ";
 			gen_expr ctx e);
+		spr ctx " end ";
 	| TUnop (op,Ast.Prefix,e) ->
-		spr ctx (Ast.s_unop op);
-		gen_value ctx e
+		spr ctx (ms_unop op ctx e false);
 	| TUnop (op,Ast.Postfix,e) ->
-		gen_value ctx e;
-		spr ctx (Ast.s_unop op)
+		spr ctx (ms_unop op ctx e true);
 	| TWhile (cond,e,Ast.NormalWhile) ->
 		let handle_break = handle_break ctx e in
 		spr ctx "while";
@@ -370,19 +436,23 @@ and gen_expr ctx e =
 		gen_value ctx (parent cond);
 		handle_break();
 	| TObjectDecl fields ->
-		spr ctx "-- TObjectDecl { ";
+		if ctx.commentcode then begin
+			spr ctx "-- TObjectDecl";
+			newline ctx;
+		end;
+		spr ctx " { ";
 		newline ctx;
-		concat ctx ", " (fun (f,e) -> print ctx "%s : " f; gen_value ctx e) fields;
-		spr ctx "-- TObjectDecl }";
+		concat ctx ", " (fun (f,e) -> print ctx "%s = " f; gen_value ctx e) fields;
+		spr ctx " }";
 		newline ctx
 	| TFor (v,_,it,e) ->
 		let handle_break = handle_break ctx e in
 		let id = ctx.id_counter in
 		ctx.id_counter <- ctx.id_counter + 1;
-		print ctx "TFor { var $it%d = " id;
+		print ctx "TFor { var ___it%d = " id;
 		gen_value ctx it;
 		newline ctx;
-		print ctx "while( $it%d.hasNext() ) { var %s = $it%d.next()" id (ident v) id;
+		print ctx "while( ___it%d.hasNext() ) { var %s = ___it%d.next()" id (ident v) id;
 		newline ctx;
 		gen_expr ctx e;
 		newline ctx;
@@ -418,7 +488,7 @@ and gen_expr ctx e =
 				spr ctx "do";
 				let bend = open_block ctx in
 				newline ctx;
-				print ctx "local %s = $e%d" v id;
+				print ctx "local %s = ___e%d" v id;
 				newline ctx;
 				gen_expr ctx e;
 				bend();
@@ -430,22 +500,22 @@ and gen_expr ctx e =
 				spr ctx ") ) {";
 				let bend = open_block ctx in
 				newline ctx;
-				print ctx "local %s = $e%d" v id;
+				print ctx "local %s = ___e%d" v id;
 				newline ctx;
 				gen_expr ctx e;
 				bend();
 				newline ctx;
 				spr ctx "} else "
 		) catchs;
-		if not !last then print ctx "throw($e%d)" id;
+		if not !last then print ctx "throw(___e%d)" id;
 		bend();
 		newline ctx;
 		spr ctx "end";
 	| TMatch (e,(estruct,_),cases,def) ->
-		spr ctx "local $e = ";
+		spr ctx "local ___e = ";
 		gen_value ctx e;
 		newline ctx;
-		spr ctx "switch( $e[1] ) {";
+		spr ctx "switch( ___ee[1] ) {";
 		newline ctx;
 		List.iter (fun (cl,params,e) ->
 			List.iter (fun c ->
@@ -462,7 +532,7 @@ and gen_expr ctx e =
 				| l ->
 					spr ctx "local ";
 					concat ctx ", " (fun (v,n) ->
-						print ctx "%s = $e[%d]" v n;
+						print ctx "%s = ___e[%d]" v n;
 					) l;
 					newline ctx);
 			gen_expr ctx (block e);
@@ -503,22 +573,59 @@ and gen_expr ctx e =
 		);
 		spr ctx "}"
 
+and ms_unop op ctx e post =
+	match op with
+	| Increment ->
+		let b = temp_ctx_buf ctx in
+		gen_value ctx e;
+		let bc = Buffer.contents ctx.buf in
+		let s = unop_string post (true) bc in
+		b();
+		s;
+	| Decrement ->
+		let b = temp_ctx_buf ctx in
+		gen_value ctx e;
+		let bc = Buffer.contents ctx.buf in
+		let s = unop_string post (false) bc in
+		b();
+		s;
+	| Not ->
+		let b = temp_ctx_buf ctx in
+		spr ctx " not ";
+		gen_value ctx e;
+		let bc = Buffer.contents ctx.buf in
+		b();
+		bc;
+	| Neg ->
+		let b = temp_ctx_buf ctx in
+		spr ctx "-";
+		gen_value ctx e;
+		let bc = Buffer.contents ctx.buf in
+		b();
+		bc;
+	| NegBits ->
+		let b = temp_ctx_buf ctx in
+		spr ctx "~";
+		gen_value ctx e;
+		let bc = Buffer.contents ctx.buf in
+		b();
+		bc;
+
 and gen_value ctx e =
 	let assign e =
 		mk (TBinop (Ast.OpAssign,
-			mk (TLocal "$r") t_dynamic e.epos,
+			mk (TLocal "r") t_dynamic e.epos,
 			e
 		)) e.etype e.epos
 	in
 	let value block =
 		let old = ctx.in_value in
 		ctx.in_value <- true;
-		spr ctx "($this) ";
+		spr ctx "(function(this) ";
 		let b = if block then begin
-			spr ctx "{";
 			let b = open_block ctx in
 			newline ctx;
-			spr ctx "local $r";
+			spr ctx "local r";
 			newline ctx;
 			b
 		end else
@@ -527,10 +634,10 @@ and gen_value ctx e =
 		(fun() ->
 			if block then begin
 				newline ctx;
-				spr ctx "return $r";
+				spr ctx "return r";
 				b();
 				newline ctx;
-				spr ctx "}";
+				spr ctx "end)";
 			end;
 			ctx.in_value <- old;
 			print ctx "(%s)" (this ctx)
@@ -587,7 +694,7 @@ and gen_value ctx e =
 		gen_value ctx e;
 		spr ctx ":";
 		(match eo with
-		| None -> spr ctx "nil"
+		| None -> spr ctx "gen_value TIf nil"
 		| Some e -> gen_value ctx e);
 		spr ctx ")"
 	| TSwitch (cond,cases,def) ->
@@ -605,11 +712,15 @@ and gen_value ctx e =
 		)) e.etype e.epos);
 		v()
 	| TTry (b,catchs) ->
+		print ctx "-- TTry";
+		newline ctx;
 		let v = value true in
 		gen_expr ctx (mk (TTry (assign b,
 			List.map (fun (v,t,e) -> v, t , assign e) catchs
 		)) e.etype e.epos);
 		v()
+
+
 
 let generate_package_create ctx (p,_) =
 	let rec loop acc = function
@@ -619,17 +730,56 @@ let generate_package_create ctx (p,_) =
 			Hashtbl.add ctx.packages (p :: acc) ();
 			(match acc with
 			| [] ->
-				print ctx "567 %s = {}" p;
+				print ctx "-- package create\n";
+				print ctx "%s = {}" p;
 			| _ ->
-				print ctx "569 %s%s = {}" (String.concat "." (List.rev acc)) (field p));
+				print ctx "-- package create\n";
+				print ctx "%s%s = {}" (String.concat "." (List.rev acc)) (field p));
 			newline ctx;
 			loop (p :: acc) l
 	in
 	loop [] p
 
+(*
+	Generates a function body. No do or end will be added
+	and it is assumed that the indentation is already setup
+	ctx -> tfunc -> Void
+*)
+let gen_function_body ctx f =
+	let e = (fun_block ctx f) in
+	match e.eexpr with
+	| TBlock el ->
+		(* let bend = open_block ctx in *)
+		List.iter (fun e -> newline ctx; gen_expr ctx e) el;
+		(* bend(); *)
+		newline ctx
+	| _ ->
+		assert false
+
+(*
+let gen_field_body ctx e =
+	match e.eexpr with
+	| TBlock el ->
+		(* let bend = open_block ctx in *)
+		List.iter (fun e -> newline ctx; gen_expr ctx e) el;
+		(* bend(); *)
+		newline ctx
+	| TFunction f ->
+		print ctx "-- HERE BE FUNCTION";
+		gen_value ctx e;
+		print ctx "-- AYE, I BE DONE";
+		newline ctx
+	| _ ->
+		assert false
+*)
+
 let gen_class_static_field ctx c f =
 	match f.cf_expr with
 	| None ->
+		if ctx.commentcode then begin
+			print ctx "-- gen_class_static_field1";
+			newline ctx;
+		end;
 		print ctx "%s%s = nil" (s_path c.cl_path) (field f.cf_name);
 		newline ctx
 	| Some e ->
@@ -637,11 +787,24 @@ let gen_class_static_field ctx c f =
 		match e.eexpr with
 		| TFunction _ ->
 			ctx.curmethod <- (f.cf_name,false);
-			print ctx "%s%s = " (s_path c.cl_path) (field f.cf_name);
-			gen_value ctx e;
-			newline ctx
+			if ctx.commentcode then begin
+				print ctx "-- gen_class_static_field2";
+				newline ctx;
+			end;
+			print ctx "function %s%s " (s_path c.cl_path) (field f.cf_name);
+			(* gen_value ctx e; *)
+			let bend = open_block ctx in
+				(*gen_function_body ctx e; *)
+				gen_value ctx e;
+			bend();
+			newline ctx;
+			print ctx "end";
+			newline ctx;
 		| _ ->
 			ctx.statics <- (c,f.cf_name,e) :: ctx.statics
+
+
+
 
 (*
 let generate_field ctx static f =
@@ -710,41 +873,32 @@ let generate_field ctx static f =
 		end
 *)
 
+(*
+	context->tclass->tclass_field->Void
+*)
 let gen_class_field ctx c f =
-	print ctx "function %s%s " (s_path c.cl_path) (field f.cf_name);
+	if ctx.commentcode then begin
+		print ctx "-- gen_class_field %s%s " (s_path c.cl_path) (member f.cf_name);
+		newline ctx;
+	end;
 	(match f.cf_expr with
 	| None ->
-		print ctx "nil";
+		print ctx "%s%s = nil" (s_path c.cl_path) (field f.cf_name);
 		newline ctx;
 	| Some e ->
+		print ctx "function %s%s " (s_path c.cl_path) (member f.cf_name);
 		ctx.curmethod <- (f.cf_name,false);
 		gen_value ctx (Transform.block_vars e);
+		(* gen_field_body ctx (Transform.block_vars e); *)
 		newline ctx;
+		print ctx "end";
 	);
-	print ctx "end";
+	newline ctx;
 	newline ctx
 
 let generate_class ctx c =
 	ctx.curclass <- c;
 	ctx.curmethod <- ("new",true);
-
-(*
-Account = {balance = 0}
-
-function Account:new (o)
-	o = o or {}
-	setmetatable(o, self)
-	self.__index = self
-	return o
-end
-
-function Account:deposit (v)
-	self.balance = self.balance + v
-end
-
-a = Account:new{balance = 0}
-a:deposit(100.00)
-*)
 
 	let p = s_path c.cl_path in
 	generate_package_create ctx c.cl_path;
@@ -777,11 +931,9 @@ a:deposit(100.00)
 			let bend = open_block ctx in
 				newline ctx;
 				print ctx "local new =%s:new()" p;
-				newline ctx;
 				ctx.in_constructor <- true;
-				gen_expr ctx (fun_block ctx f);
+				gen_function_body ctx f;
 				ctx.in_constructor <- false;
-				newline ctx;
 				print ctx "return new";
 			bend();
 			newline ctx;
@@ -789,7 +941,7 @@ a:deposit(100.00)
 			newline ctx;
 		| _ -> assert false)
 	| _ ->
-		print ctx ":__construct__ ()\n";
+		print ctx ":new ()\n";
 		print ctx "\tlocal new =%s:new()\n" p;
 		print ctx "\treturn new\nend\n");
 	newline ctx;
@@ -798,8 +950,6 @@ a:deposit(100.00)
 	| Some (csup,_) ->
 		let psup = s_path csup.cl_path in
 		print ctx "%s.__super__ = %s" p psup;
-		newline ctx;
-		print ctx "for(var k in %s.prototype ) %s.prototype[k] = %s.prototype[k]" psup p psup;
 		newline ctx;
 	);
 	List.iter (gen_class_static_field ctx c) c.cl_ordered_statics;
@@ -821,7 +971,7 @@ let generate_enum ctx e =
 		(match f.ef_type with
 		| TFun (args,_) ->
 			let sargs = String.concat "," (List.map arg_name args) in
-			print ctx "(%s) { var $x = [\"%s\",%d,%s]; $x.__enum__ = %s; $x.toString = $estr; return $x; }" sargs f.ef_name f.ef_index sargs p;
+			print ctx "(%s) { var ___x = [\"%s\",%d,%s]; ___x.__enum__ = %s; ___x.toString = $estr; return ___x; }" sargs f.ef_name f.ef_index sargs p;
 		| _ ->
 			print ctx "[\"%s\",%d]" f.ef_name f.ef_index;
 			newline ctx;
@@ -866,14 +1016,17 @@ print_endline ("Doing lua in : " ^ file);
 		debug = Plugin.defined "debug";
 		id_counter = 0;
 		curmethod = ("",false);
+		commentcode = false;
 	} in
 	let t = Plugin.timer "generate lua" in
-	print ctx "$estr = function() { return js.Boot.__string_rec(this,''); }";
-	newline ctx;
+
 	List.iter (generate_type ctx) types;
-	print ctx "$_ = {}";
+
+	print ctx "--\n";
+	print ctx "-- Boot generation";
+	print ctx "--\n";
 	newline ctx;
-	print ctx "js.Boot.__res = {}";
+	print ctx "lua.Boot.__res = {}";
 	newline ctx;
 	if ctx.debug then begin
 		print ctx "%s = []" Transform.stack_var;
@@ -882,17 +1035,18 @@ print_endline ("Doing lua in : " ^ file);
 		newline ctx;
 	end;
 	Hashtbl.iter (fun name data ->
-		if String.contains data '\000' then failwith ("Resource " ^ name ^ " contains \\0 characters that can't be used in JavaScript");
-		print ctx "js.Boot.__res[\"%s\"] = \"%s\"" (Ast.s_escape name) (Ast.s_escape data);
+		print ctx "lua.Boot.__res[\"%s\"] = \"%s\"" (Ast.s_escape name) (Ast.s_escape data);
 		newline ctx;
 	) hres;
-	print ctx "js.Boot.__init()";
+	print ctx "lua.Boot.__init()";
 	newline ctx;
 	List.iter (fun e ->
 		gen_expr ctx e;
 		newline ctx;
 	) (List.rev ctx.inits);
 	List.iter (generate_static ctx) (List.rev ctx.statics);
+
+	(* Write out program *)
 	let ch = open_out file in
 	output_string ch (Buffer.contents ctx.buf);
 	close_out ch;

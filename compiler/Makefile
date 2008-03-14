@@ -7,4 +7,5 @@ clean:
 	find . -name "*.cmi" -exec rm {} \;
 	find . -name "*.cmx" -exec rm {} \;
 	find . -name "*.o" -exec rm {} \;
+	find . -name "*.a" -exec rm {} \;
  

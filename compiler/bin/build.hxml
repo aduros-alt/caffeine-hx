@@ -1,15 +1,4 @@
 -main Test.hx
 -lua test.lua
--v
 -cp ../../ext
 
---next
---neko-source
--main Test.hx
--neko nekover.n
--cp ../../ext
-
---next
--main Test.hx
--js jsver.js
--cp ../../ext
