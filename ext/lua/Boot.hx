@@ -60,12 +60,12 @@ class Boot {
 			    return "null";
 			if( s.length >= 5 )
 				return "<...>"; // too much deep recursion
-			var t = __js__("typeof(o)");
+			var t = __lua__("type(o)");
 			if( t == "function" && (o.__name__ != null || o.__ename__ != null) )
 				t = "object";
 			switch( t ) {
 			case "object":
-				if( __js__("o instanceof Array") ) {
+				if( __lua__("o instanceof Array") ) {
 					if( o.__enum__ != null ) {
 						if( o.length == 2 )
 							return o[0];
@@ -95,7 +95,7 @@ class Boot {
 					// strange error on IE
 					return "???";
 				}
-				if( tostr != null && tostr != __js__("Object.toString") ) {
+				if( tostr != null && tostr != __lua__("Object.toString") ) {
 					var s2 = o.toString();
 					if( s2 != "[object Object]")
 						return s2;
@@ -104,15 +104,15 @@ class Boot {
 				var str = "{\n";
 				s += "\t";
 				var hasp = (o.hasOwnProperty != null);
-				__js__("for( var k in o ) { ");
+				__lua__("for( var k in o ) { ");
 					if( hasp && !o.hasOwnProperty(k) )
-						__js__("continue");
+						__lua__("continue");
 					if( k == "prototype" || k == "__class__" || k == "__super__" || k == "__interfaces__" )
-						__js__("continue");
+						__lua__("continue");
 					if( str.length != 2 )
 						str += ", \n";
 					str += s + k + " : "+__string_rec(o[k],s);
-				__js__("}");
+				__lua__("}");
 				s = s.substring(1);
 				str += "\n" + s + "}";
 				return str;
@@ -144,7 +144,7 @@ class Boot {
 	private static function __instanceof(o : Dynamic,cl) {
 		untyped {
 			try {
-				if( __js__("o instanceof cl") ) {
+				if( __lua__("o instanceof cl") ) {
 					if( cl == Array )
 						return (o.__enum__ == null);
 					return true;
@@ -159,11 +159,11 @@ class Boot {
 			case Int:
 				return (Math.ceil(o) === o) && isFinite(o);
 			case Float:
-				return __js__("typeof(o)") == "number";
+				return __lua__("typeof(o)") == "number";
 			case Bool:
 				return (o === true || o === false);
 			case String:
-				return __js__("typeof(o)") == "string";
+				return __lua__("typeof(o)") == "string";
 			case Dynamic:
 				return true;
 			default:
@@ -186,7 +186,7 @@ class Boot {
 			Bool = __lua__("boolean");
 			Bool["true"] = true;
 			Bool["false"] = false;
-			__lua__("$closure = js.Boot.__closure");
+			__lua__("$closure = lua.Boot.__closure");
 		}
 	}
 

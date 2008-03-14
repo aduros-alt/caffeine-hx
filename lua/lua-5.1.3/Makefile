@@ -36,10 +36,10 @@ MKDIR= mkdir
 PLATS= aix ansi bsd freebsd generic linux macosx mingw posix solaris
 
 # What to install.
-TO_BIN= lua luac
+TO_BIN= halelua haleluac
 TO_INC= lua.h luaconf.h lualib.h lauxlib.h ../etc/lua.hpp
-TO_LIB= liblua.a
-TO_MAN= lua.1 luac.1
+TO_LIB= libhalelua.a
+TO_MAN= halelua.1 haleluac.1
 
 # Lua version and release.
 V= 5.1
@@ -51,7 +51,7 @@ $(PLATS) clean:
 	cd src && $(MAKE) $@
 
 test:	dummy
-	src/lua test/hello.lua
+	src/halelua test/hello.lua
 
 install: dummy
 	cd src && $(MKDIR) -p $(INSTALL_BIN) $(INSTALL_INC) $(INSTALL_LIB) $(INSTALL_MAN) $(INSTALL_LMOD) $(INSTALL_CMOD)

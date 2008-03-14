@@ -312,7 +312,7 @@ and gen_expr ctx e =
 			print ctx " %s " (s_binop op);
 			print ctx "(";
 			gen_value_op ctx e2;
-			print ctx ")";
+			print ctx ");";
 		| _ ->
 			gen_value_op ctx e1;
 			print ctx " %s " (s_binop op);
@@ -409,14 +409,22 @@ and gen_expr ctx e =
 		spr ctx "if";
 		gen_value ctx (parent cond);
 		spr ctx " then ";
+		let bend = open_block ctx in
+		newline ctx;
 		gen_expr ctx e;
 		(match eelse with
 		| None -> ()
 		| Some e ->
-			newline ctx;
-			spr ctx "else ";
-			gen_expr ctx e);
-		spr ctx " end ";
+			(*  Franco  *)
+			(match e.eexpr with
+			| TConst n when n = TNull -> ()
+			| _ ->
+				newline ctx;
+				spr ctx "else ";
+				gen_expr ctx e));
+		bend();
+		newline ctx;
+		spr ctx "end ";
 	| TUnop (op,Ast.Prefix,e) ->
 		spr ctx (ms_unop op ctx e false);
 	| TUnop (op,Ast.Postfix,e) ->
@@ -441,10 +449,8 @@ and gen_expr ctx e =
 			newline ctx;
 		end;
 		spr ctx " { ";
-		newline ctx;
 		concat ctx ", " (fun (f,e) -> print ctx "%s = " f; gen_value ctx e) fields;
 		spr ctx " }";
-		newline ctx
 	| TFor (v,_,it,e) ->
 		let handle_break = handle_break ctx e in
 		let id = ctx.id_counter in
@@ -688,15 +694,15 @@ and gen_value ctx e =
 		loop el;
 		v();
 	| TIf (cond,e,eo) ->
-		spr ctx "(";
+		spr ctx "((";
 		gen_value ctx cond;
-		spr ctx "?";
+		spr ctx ") and (";
 		gen_value ctx e;
-		spr ctx ":";
+		spr ctx ") or (";
 		(match eo with
 		| None -> spr ctx "gen_value TIf nil"
 		| Some e -> gen_value ctx e);
-		spr ctx ")"
+		spr ctx "))"
 	| TSwitch (cond,cases,def) ->
 		let v = value true in
 		gen_expr ctx (mk (TSwitch (cond,
