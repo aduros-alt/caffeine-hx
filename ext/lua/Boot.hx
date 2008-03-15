@@ -26,6 +26,8 @@ package lua;
 
 class Boot {
 
+	static var __classes : Dynamic;
+
 	private static function __trace(v,i : haxe.PosInfos) {
 		untyped {
 			var msg = if( i != null ) i.fileName+":"+i.lineNumber+": " else "";
@@ -53,7 +55,7 @@ class Boot {
 			return f;
 		}
 	}
-
+/*
 	private static function __string_rec(o,s) {
 		untyped {
 			if( o == null )
@@ -125,6 +127,7 @@ class Boot {
 			}
 		}
 	}
+*/
 
 	private static function __interfLoop(cc : Dynamic,cl : Dynamic) {
 		if( cc == null )
@@ -144,7 +147,7 @@ class Boot {
 	private static function __instanceof(o : Dynamic,cl) {
 		untyped {
 			try {
-				if( __lua__("o instanceof cl") ) {
+				if( __lua__("instanceof(o, cl)") ) {
 					if( cl == Array )
 						return (o.__enum__ == null);
 					return true;
@@ -159,11 +162,11 @@ class Boot {
 			case Int:
 				return (Math.ceil(o) === o) && isFinite(o);
 			case Float:
-				return __lua__("typeof(o)") == "number";
+				return __lua__("type(o)") == "number";
 			case Bool:
 				return (o === true || o === false);
 			case String:
-				return __lua__("typeof(o)") == "string";
+				return __lua__("type(o)") == "string";
 			case Dynamic:
 				return true;
 			default:
@@ -176,17 +179,18 @@ class Boot {
 
 	private static function __init() {
 		untyped {
+			lua.Boot.__classes = __lua__("{}");
 			String = LuaString__;
 			lua.Boot.__classes.String = String;
 			Array = LuaArray__;
 			lua.Boot.__classes.Array = Array;
-			Int = __new__("number");
-			Dynamic = __new__("Object");
-			Float = __lua__("number");
-			Bool = __lua__("boolean");
+			Int = __lua__("{}");
+			Dynamic = __lua__("{}");
+			Float = __lua__("{}");
+			Bool = __lua__("{}");
 			Bool["true"] = true;
 			Bool["false"] = false;
-			__lua__("$closure = lua.Boot.__closure");
+			__lua__("closure = lua.Boot.__closure");
 		}
 	}
 

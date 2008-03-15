@@ -42,6 +42,8 @@ class Reflect {
 			__dollar__new(null)
 		#else js
 			__js__("{}")
+		#else lua
+			__lua__("{}")
 		#else error
 		#end
 			;
@@ -101,6 +103,8 @@ class Reflect {
 		#else neko
 			if( __dollar__typeof(o) == __dollar__tobject )
 				__dollar__objset(o,__dollar__hash(field.__s),value);
+		#else lua
+			o[field] = value;
 		#else error
 		#end
 	}
@@ -202,6 +206,8 @@ class Reflect {
 			return untyped __js__("typeof(f)") == "function" && f.__name__ == null;
 		#else neko
 			return untyped __dollar__typeof(f) == __dollar__tfunction;
+		#else lua
+			return __lua__("(type(f) == \"function\")");
 		#else error
 		#end
 	}

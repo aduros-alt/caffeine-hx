@@ -26,9 +26,7 @@ package lua;
 
 class LuaString__ implements String {
 
-	static var __name__ = ["String"];
-	private static var __split : Dynamic = Lib.load("std","string_split",2);
-
+	static var __name__ = "String";
 	public var length(default,null) : Int;
 
 	private function new(s) {

@@ -29,6 +29,7 @@ type ctx = {
 	mutable tabs : string;
 	mutable in_value : bool;
 	mutable in_constructor : bool;
+	mutable in_function : bool;
 	mutable handle_break : bool;
 	mutable id_counter : int;
 	debug : bool;
@@ -37,7 +38,7 @@ type ctx = {
 }
 
 let s_path = function
-	| ([],"@Main") -> "$Main"
+	| ([],"@Main") -> "Main"
 	| p -> Ast.s_type_path p
 
 let kwds =
@@ -350,7 +351,7 @@ and gen_expr ctx e =
 		if ctx.in_value then unsupported e.epos;
 		spr ctx "continue"
 	| TBlock [] ->
-		spr ctx "gen_expr TBlock [] nil"
+		spr ctx "-- gen_expr TBlock [] nil"
 	| TBlock el ->
 		print ctx "do";
 		let bend = open_block ctx in
@@ -365,18 +366,24 @@ and gen_expr ctx e =
 *)
 		let old = ctx.in_value in
 		let old_meth = ctx.curmethod in
-(*		let old_infunc = ctx.in_function in *)
+		let old_infunc = ctx.in_function in
 		ctx.in_value <- false;
 		if snd ctx.curmethod then begin
 			ctx.curmethod <- (fst ctx.curmethod ^ "@" ^ string_of_int (Lexer.get_error_line e.epos), true);
-			print ctx "function";
+			print ctx "function ";
+			ctx.in_function <- true;
 		end
 		else
 			ctx.curmethod <- (fst ctx.curmethod, true);
 		print ctx "(%s) " (String.concat "," (List.map ident (List.map arg_name f.tf_args)));
 		newline ctx;
 		gen_expr ctx (fun_block ctx f);
-(*		ctx.in_function <- old_infunc; *)
+		if ctx.in_function then begin
+			newline ctx;
+			print ctx "end -- end local function decl";
+			newline ctx;
+		end;
+		ctx.in_function <- old_infunc;
 		ctx.curmethod <- old_meth;
 		ctx.in_value <- old;
 	| TCall (e,el) ->
@@ -386,7 +393,7 @@ and gen_expr ctx e =
 		concat ctx "," (gen_value ctx) el;
 		spr ctx "]"
 	| TThrow e ->
-		spr ctx "error(";
+		spr ctx "throw(";
 		gen_value ctx e;
 		spr ctx ")";
 	| TVars [] ->
@@ -431,15 +438,17 @@ and gen_expr ctx e =
 		let handle_break = handle_break ctx e in
 		spr ctx "while";
 		gen_value ctx (parent cond);
-		spr ctx " ";
+		spr ctx " do ";
 		gen_expr ctx e;
+		spr ctx " end; ";
 		handle_break();
 	| TWhile (cond,e,Ast.DoWhile) ->
 		let handle_break = handle_break ctx e in
-		spr ctx "do ";
+		spr ctx "repeat ";
 		gen_expr ctx e;
-		spr ctx " while";
+		spr ctx " until(not ";
 		gen_value ctx (parent cond);
+		spr ctx ") -- DOWHILE";
 		handle_break();
 	| TObjectDecl fields ->
 		if ctx.commentcode then begin
@@ -468,10 +477,11 @@ and gen_expr ctx e =
 		newline ctx;
 		let id = ctx.id_counter in
 		ctx.id_counter <- ctx.id_counter + 1;
-		print ctx "catch e%d " id;
+		print ctx "catch e%d do " id;
 		let bend = open_block ctx in
 		newline ctx;
 		let last = ref false in
+		let openif = ref false in
 		List.iter (fun (v,t,e) ->
 			if !last then () else
 			let t = (match follow t with
@@ -489,32 +499,38 @@ and gen_expr ctx e =
 			match t with
 			| None ->
 				last := true;
-				spr ctx "do";
+				spr ctx " do --494";
 				let bend = open_block ctx in
 				newline ctx;
-				print ctx "local %s = ___e%d" v id;
+				print ctx "local %s = e%d.error" v id;
 				newline ctx;
 				gen_expr ctx e;
 				bend();
-				newline ctx;
-				spr ctx "end"
 			| Some t ->
-				print ctx "if( js.Boot.__instanceof($e%d," id;
+				openif := true;
+				print ctx "if( lua.Boot.__instanceof(e%d.error," id;
 				gen_value ctx (mk (TTypeExpr t) (mk_mono()) e.epos);
-				spr ctx ") ) {";
+				spr ctx ") ) then do";
 				let bend = open_block ctx in
 				newline ctx;
-				print ctx "local %s = ___e%d" v id;
+				print ctx "local %s = e%d.error;" v id;
 				newline ctx;
 				gen_expr ctx e;
 				bend();
 				newline ctx;
-				spr ctx "} else "
+				spr ctx "end; --512";
+				newline ctx;
+				spr ctx "else";
 		) catchs;
-		if not !last then print ctx "throw(___e%d)" id;
+		if not !last then print ctx "throw(e%d)" id;
+		newline ctx;
+		if !openif then print ctx "end; -- End If";
+		newline ctx;
+		spr ctx "end; -- end block";
 		bend();
 		newline ctx;
-		spr ctx "end";
+		spr ctx "end; -- End Catch";
+		newline ctx;
 	| TMatch (e,(estruct,_),cases,def) ->
 		spr ctx "local ___e = ";
 		gen_value ctx e;
@@ -572,7 +588,7 @@ and gen_expr ctx e =
 
 		List.iter (fun (tail,e2) ->
 			List.iter (fun e ->
-				spr ctx "elseif (switch ==";
+				spr ctx "elseif (switch == ";
 				gen_value ctx e;
 				spr ctx ") then ";
 			) tail;
@@ -946,7 +962,7 @@ let generate_class ctx c =
 			print ctx ":new (%s)" (String.concat "," (List.map ident args)) ;
 			let bend = open_block ctx in
 				newline ctx;
-				print ctx "local new =%s:new()" p;
+				print ctx "local new =%s:__construct__()" p;
 				ctx.in_constructor <- true;
 				gen_function_body ctx f;
 				ctx.in_constructor <- false;
@@ -972,9 +988,12 @@ let generate_class ctx c =
 	PMap.iter (fun _ f -> if f.cf_get <> ResolveAccess then gen_class_field ctx c f) c.cl_fields;
 	match c.cl_implements with
 	| [] -> ()
-	| l ->
+	| l -> ()
+
+(*
 		print ctx "%s.__interfaces__ = [%s]" p (String.concat "," (List.map (fun (i,_) -> s_path i.cl_path) l));
 		newline ctx
+*)
 
 let generate_enum ctx e =
 	let p = s_path e.e_path in
@@ -1028,6 +1047,7 @@ print_endline ("Doing lua in : " ^ file);
 		tabs = "";
 		in_value = false;
 		in_constructor = false;
+		in_function = false;
 		handle_break = false;
 		debug = Plugin.defined "debug";
 		id_counter = 0;
@@ -1039,11 +1059,11 @@ print_endline ("Doing lua in : " ^ file);
 	List.iter (generate_type ctx) types;
 
 	print ctx "--\n";
-	print ctx "-- Boot generation";
+	print ctx "-- Boot generation\n";
 	print ctx "--\n";
 	newline ctx;
-	print ctx "lua.Boot.__res = {}";
-	newline ctx;
+	print ctx "lua.Boot.__res = {}\n";
+	print ctx "lua.Boot.classes = {}\n";
 	if ctx.debug then begin
 		print ctx "%s = []" Transform.stack_var;
 		newline ctx;

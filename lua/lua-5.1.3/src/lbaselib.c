@@ -77,6 +77,21 @@ static int luaB_tonumber (lua_State *L) {
   return 1;
 }
 
+static int luaB_throw (lua_State *L) {
+	int level = luaL_optint(L, 2, 1);
+	if(level < 1) level = 1;
+	//1 is err obj
+	lua_settop(L, 1);
+	//2 is err tbl
+	lua_createtable(L,0,2);
+	luaL_where(L,level);
+	lua_setfield(L,2,"callinfo");
+	lua_pushvalue(L,1);
+	lua_setfield(L,2,"error");
+	lua_insert(L,1);
+	lua_settop(L, 1);
+	return lua_error(L);
+}
 
 static int luaB_error (lua_State *L) {
   int level = luaL_optint(L, 2, 1);
@@ -462,6 +477,7 @@ static const luaL_Reg base_funcs[] = {
   {"select", luaB_select},
   {"setfenv", luaB_setfenv},
   {"setmetatable", luaB_setmetatable},
+  {"throw", luaB_throw},
   {"tonumber", luaB_tonumber},
   {"tostring", luaB_tostring},
   {"type", luaB_type},

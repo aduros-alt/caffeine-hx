@@ -2,7 +2,21 @@ class Base {
 	static var guh : Int = 2;
 
 	public function new() {}
-	public function val() : Int { return guh; }
+	public function val() : Int {
+		var v = 0;
+		try {
+			v = 1;
+		}
+		catch(e:Int) {
+		}
+		catch(e:Float) {
+		}
+		catch(e:Test) {
+		}
+		catch(e:Dynamic) {
+		}
+		return guh;
+	}
 }
 
 class Test extends Base {
