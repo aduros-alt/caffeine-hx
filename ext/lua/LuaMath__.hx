@@ -27,11 +27,16 @@
 
 package lua;
 
-class LuaString__ {
-	static var __name__ = "String";
-
-	private function new(s) {
-		untyped __lua__("local v = s.__tostring(); do return v; end");
+class LuaMath__
+{
+	static function __init__() {
+		untyped __lua__("math.POSITIVE_INFINITY = 1/0");
+		untyped __lua__("math.NEGATIVE_INFINITY = -1/0");
+		untyped __lua__("math.NaN = 0/0");
+	 	untyped __lua__("math.PI = math.pi");
+		untyped __lua__("math.round = function(v) return math.floor(v + 0.5) end");
+		untyped __lua__("math.isNaN = function(v) return v == math.NaN; end");
+		untyped __lua__("math.isFinite = function(v) return v ~= math.NaN; end");
+		untyped __lua__("math.randomseed(os.time())");
 	}
-
 }

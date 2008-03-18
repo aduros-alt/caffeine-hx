@@ -50,8 +50,8 @@ class Boot {
 			if( m == null )
 				return null;
 			var f = function() { return m.apply(o,arguments); };
-			f.scope = o;
-			f.method = m;
+// 			f.scope = o;
+// 			f.method = m;
 			return f;
 		}
 	}
@@ -179,18 +179,120 @@ class Boot {
 
 	private static function __init() {
 		untyped {
+			__lua__("string__add = function(r,w) return(r..w) end");
+			__lua__("smt = getmetatable(\"\"); smt.__add = string__add");
+			__lua__("smt.length = string.len");
+			__lua__("
+			smt['haxe_charAt'] = function(s,p)
+				return string.char(s,p+1);
+			end
+			smt['haxe_charCodeAt'] = function(s,p)
+				return string.byte(s,p+1);
+			end
+			smt['haxe_indexOf'] = function(s,str,pos)
+				if(pos == nil) then pos = 0; end;
+				pos = pos + 1;
+				local i = string.find(s, str, pos, true);
+				if(i==nil) then do return -1 end end
+				return i - 1;
+			end
+			smt['haxe_lastIndexOf'] = function(s,str,pos)
+				local last = 0;
+				local r = -1;
+				if(pos == nil) then pos = string.len(s) + 1	end
+				while(true) do
+					try
+						r = string.find(s,str,last+1,true);
+						if(r== nil or r > pos) then
+							do return last end
+						end
+						last = r;
+					catch err do
+						do
+							return last-1;
+						end
+					end
+				end
+				return r-1;
+			end
+			smt['haxe_split'] = function(s,delim)
+				local a = Array:new()
+				local last = s.indexOf(delim,nil)
+				if(last == nil) then
+					do
+						a:push(s);
+						return a;
+					end
+				end
+				local pos = 1;
+				while(true) do
+					do
+						local first,last = string.find(s,delim,pos,true);
+						if(first) then
+							a:push(string.sub(s,pos,first - 1));
+							pos = last + 1;
+						else
+							a:push(string.sub(s,pos));
+							break;
+						end
+					end
+				end
+				return a;
+			end
+
+			smt['haxe_substr'] = function(s,pos,len)
+				if(len == nil) then len = string.len(s) end;
+				if(len == 0) then return \"\"; end;
+				if(pos == nil) then pos = 0; end;
+				if(pos >= 0) then pos = pos + 1; end;
+				return string.sub(s,pos,len);
+			end
+
+			smt['haxe_toLowerCase'] = function(s)
+				return string.lower(s);
+			end
+
+			smt['haxe_toUpperCase'] = function(s)
+				return string.upper(s)
+			end
+
+			smt['haxe_toString'] = function(s)
+				return s
+			end
+
+			smt['fromCharCode'] = function(c)
+				return string.char(c);
+			end
+
+
+			getmetatable (\"\").__index =
+			function (s, n)
+			if type (n) == \"number\" then
+				return sub (s, n, n)
+			elseif type (oldmeta) == \"function\" then
+				return smt (s, n)
+			else
+				return smt[n]
+			end
+			end
+
+			");
 			lua.Boot.__classes = __lua__("{}");
 			String = LuaString__;
 			lua.Boot.__classes.String = String;
 			Array = LuaArray__;
 			lua.Boot.__classes.Array = Array;
 			Int = __lua__("{}");
+			Data = LuaDate__;
 			Dynamic = __lua__("{}");
+			Math = __lua__("math");
 			Float = __lua__("{}");
 			Bool = __lua__("{}");
 			Bool["true"] = true;
 			Bool["false"] = false;
 			__lua__("closure = lua.Boot.__closure");
+			__lua__("string.__add = function(a,b) return(a .. b); end");
+			//__lua__("do local smt = getmetatable(\"\"); smt.__add = string__add; end;");
 		}
 	}
 

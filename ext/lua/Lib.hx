@@ -47,14 +47,14 @@ class Lib {
 		Print the specified value on the default output.
 	**/
 	public static function print( v : Dynamic ) : Void {
-		untyped __lua__("print(v);");
+		untyped __lua__("print(v)");
 	}
 
 	/**
 		Print the specified value on the default output followed by a newline character.
 	**/
 	public static function println( v : Dynamic ) : Void {
-		untyped __lua__("print(v,\"\\n\");");
+		untyped __lua__("print(v,\"\\n\")");
 	}
 
 	/**
@@ -62,7 +62,7 @@ class Lib {
 		to keep the previous exception stack.
 	**/
 	public static function rethrow( e : Dynamic ) : Dynamic {
-		return untyped __lua__("throw(e);");
+		return untyped __lua__("throw(e)");
 	}
 
 	/**

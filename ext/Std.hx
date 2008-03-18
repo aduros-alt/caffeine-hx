@@ -39,6 +39,8 @@ class Std {
 		neko.Boot.__instanceof(v,t);
 		#else js
 		js.Boot.__instanceof(v,t);
+		#else lua
+		lua.Boot.__instanceof(v,t);
 		#else true
 		false;
 		#end

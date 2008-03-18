@@ -67,6 +67,9 @@ class Reflect {
 			return false;
 		#else neko
 			return __dollar__typeof(o) == __dollar__tobject && __dollar__objfield(o,__dollar__hash(field.__s));
+		#else lua
+			throw "incomplete";
+			return false;
 		#else error
 		#end
 		}
@@ -86,6 +89,8 @@ class Reflect {
 				null;
 			else
 				__dollar__objget(o, __dollar__hash(field.__s))
+		#else lua
+			throw "incomplete"
 		#else error
 		#end
 			;
@@ -122,6 +127,8 @@ class Reflect {
 			func.apply(o,args)
 		#else neko
 			__dollar__call(func,o,args.__neko())
+		#else lua
+			throw "incomplete"
 		#else error
 		#end
 			;
@@ -188,6 +195,8 @@ class Reflect {
 				}
 				return Array.new1(a,l);
 			}
+		#else lua
+			throw "incomplete";
 		#else error
 		#end
 		}
@@ -207,7 +216,7 @@ class Reflect {
 		#else neko
 			return untyped __dollar__typeof(f) == __dollar__tfunction;
 		#else lua
-			return __lua__("(type(f) == \"function\")");
+			return untyped __lua__("(type(f) == \"function\")");
 		#else error
 		#end
 	}
@@ -236,6 +245,8 @@ class Reflect {
 		return untyped f1["f"] == f2["f"] && f1["o"] == f2["o"] && f1["f"] != null;
 		#else js
 		return f1.scope == f2.scope && f1.method == f2.method && f1.method != null;
+		#else lua
+		return untyped __lua__("f1 == f2");
 		#else true
 		return
 		#end
@@ -269,6 +280,9 @@ class Reflect {
 			return false;
 		var t = __js__("typeof(v)");
 		return (t == "string" || (t == "object" && !v.__enum__) || (t == "function" && v.__name__ != null));
+		#else lua
+			throw "incomplete";
+			return false;
 		#else error
 		#end
 	}
@@ -297,6 +311,9 @@ class Reflect {
 			else false;
 		#else neko
 			return __dollar__objremove(o,__dollar__hash(f.__s));
+		#else lua
+			throw "incomplete";
+			return false;
 		#else error
 		#end
 	}

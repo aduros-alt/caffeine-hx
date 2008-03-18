@@ -242,7 +242,7 @@ try
 			check_targets();
 			Typer.forbidden_packages := ["neko"; "flash"; "js"];
 			target := Lua file
-		),"<file> : compile code to JavaScript file");
+		),"<file> : compile code to Lua file");
 		("-as3",Arg.String (fun dir ->
 			check_targets();
 			swf_version := 9;

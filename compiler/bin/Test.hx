@@ -26,6 +26,11 @@ class Test extends Base {
 		a = va;
 	}
 
+	override public function val() : Int {
+		var v = super.val();
+		return v;
+	}
+
 	public static function main() {
 /*
 		trace("Hello world");
@@ -34,7 +39,15 @@ class Test extends Base {
 		neko.Lib.print("Hello world");
 #else lua
 		lua.Lib.print("Hello world");
-#end
+
 		var s = new Test(67);
+		var ms = "Hi";
+		var fs = ms + " there";
+		lua.Lib.print(fs);
+		var sb = new StringBuf();
+		sb.add("Hi");
+		lua.Lib.print(sb.toString());
+		lua.Lib.print(sb.toString().charCodeAt(1));
+#end
 	}
 }
