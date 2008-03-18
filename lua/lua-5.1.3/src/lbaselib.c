@@ -77,6 +77,11 @@ static int luaB_tonumber (lua_State *L) {
   return 1;
 }
 
+/**
+	For handling the 'throw' keyword. Creates a table
+	with 'error' holding the error message, and 'callinfo'
+	holding the stack trace.
+**/
 static int luaB_throw (lua_State *L) {
 	int level = luaL_optint(L, 2, 1);
 	if(level < 1) level = 1;

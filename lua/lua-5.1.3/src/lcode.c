@@ -671,7 +671,7 @@ static void codearith (FuncState *fs, OpCode op, expdesc *e1, expdesc *e2) {
   if (constfolding(op, e1, e2))
     return;
   else {
-	int o2 = (op != OP_UNM && op != OP_LEN && op != OP_BNOT) ? luaK_exp2RK(fs, e2) : 0;
+    int o2 = (op != OP_UNM && op != OP_LEN && op != OP_BNOT) ? luaK_exp2RK(fs, e2) : 0;
     int o1 = luaK_exp2RK(fs, e1);
     if (o1 > o2) {
       freeexp(fs, e1);
@@ -793,18 +793,18 @@ void luaK_posfix (FuncState *fs, BinOpr op, expdesc *e1, expdesc *e2) {
     case OPR_DIV: codearith(fs, OP_DIV, e1, e2); break;
     case OPR_MOD: codearith(fs, OP_MOD, e1, e2); break;
     case OPR_POW: codearith(fs, OP_POW, e1, e2); break;
-    case OPR_EQ: codecomp(fs, OP_EQ, 1, e1, e2); break;
-    case OPR_NE: codecomp(fs, OP_EQ, 0, e1, e2); break;
-    case OPR_LT: codecomp(fs, OP_LT, 1, e1, e2); break;
-    case OPR_LE: codecomp(fs, OP_LE, 1, e1, e2); break;
-    case OPR_GT: codecomp(fs, OP_LT, 0, e1, e2); break;
-    case OPR_GE: codecomp(fs, OP_LE, 0, e1, e2); break;
     case OPR_BOR: codearith(fs, OP_BOR, e1, e2); break;
     case OPR_BAND: codearith(fs, OP_BAND, e1, e2); break;
     case OPR_BXOR: codearith(fs, OP_BXOR, e1, e2); break;
     case OPR_BLSHFT: codearith(fs, OP_BLSHFT, e1, e2); break;
     case OPR_BRSHFT: codearith(fs, OP_BRSHFT, e1, e2); break;
     case OPR_INTDIV: codearith(fs, OP_INTDIV, e1, e2); break;
+    case OPR_EQ: codecomp(fs, OP_EQ, 1, e1, e2); break;
+    case OPR_NE: codecomp(fs, OP_EQ, 0, e1, e2); break;
+    case OPR_LT: codecomp(fs, OP_LT, 1, e1, e2); break;
+    case OPR_LE: codecomp(fs, OP_LE, 1, e1, e2); break;
+    case OPR_GT: codecomp(fs, OP_LT, 0, e1, e2); break;
+    case OPR_GE: codecomp(fs, OP_LE, 0, e1, e2); break;
     default: lua_assert(0);
   }
 }
