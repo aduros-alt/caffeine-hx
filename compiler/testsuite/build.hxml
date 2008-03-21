@@ -1,0 +1,4 @@
+-main Test.hx
+-lua test.lua
+-cp ../../ext
+
