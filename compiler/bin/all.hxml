@@ -1,6 +1,10 @@
 -main Test.hx
+-neko nekotest.n
+-cp ../../ext
+
+--next
+-main Test.hx
 -lua test.lua
--v
 -cp ../../ext
 
 --next
@@ -13,3 +17,4 @@
 -main Test.hx
 -js jsver.js
 -cp ../../ext
+
