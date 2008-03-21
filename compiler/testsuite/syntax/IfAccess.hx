@@ -32,7 +32,6 @@ class IfAccess {
 	  Assert.equals(2, a);
 	}
 	
-	/*
 	public function testBlockAssignament() {
 	  var a = if(true) { Assert.isTrue(true); 1; };
 	  Assert.equals(1, a);
@@ -41,5 +40,9 @@ class IfAccess {
 	  a = if(false) { Assert.isTrue(true); 1; } else { Assert.isTrue(true); 2; };
 	  Assert.equals(2, a);
 	}
-	*/
+
+	public function testNestedBlockAssignament() {
+	  var a = if(true) { if(false) { Assert.isTrue(false); 2; } else { Assert.isTrue(true); 1; }; };
+	  Assert.equals(1, a);
+	}	
 }

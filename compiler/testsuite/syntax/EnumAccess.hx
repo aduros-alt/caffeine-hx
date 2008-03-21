@@ -1,20 +1,9 @@
 package syntax;
 
 import unit.Assert;
-
-enum BasicEnum {
-	EOne;
-	ETwo;
-	EThree;
-}
-
-enum TypeEnum {
-	TInt(a:Int);
-	TFloat(f:Float);
-	TString(s:String);
-	TBool(b:Bool);
-	TType(te:TypeEnum);
-}
+import syntax.util.BasicEnum;
+import syntax.util.Quantity;
+import syntax.util.TypeEnum;
 
 class EnumAccess {
 	public function new() {}
@@ -48,17 +37,57 @@ class EnumAccess {
 		Assert.equals("Hello", recoverValue(s));
 	}
 
+	public function testQuantities() {
+	   Assert.equals("Unknown", quantityToString(Unknown));
+	   Assert.equals("None",    quantityToString(None));
+	   Assert.equals("One1",    quantityToString(One(1)));
+	   Assert.equals("Two12",   quantityToString(Two(1,2)));
+	}
+	
+	public function testDefault() {	   
+	   Assert.equals("None", noneOrSome(None));
+	   Assert.equals("Some", noneOrSome(Unknown));
+	   Assert.equals("Some", noneOrSome(One(1)));
+	   Assert.equals("Some", noneOrSome(Two(1,2)));
+	}
+	
+	public function testReturnSwitchBlock() {
+		Assert.equals("None", switch(None) {
+			case None: "None";
+			default:   "Some";
+		});
+		
+		Assert.equals("Some", switch(Two(1,2)) {
+			case None: "None";
+			default:   "Some";
+		});
+	}
 
 	static function recoverValue(e:TypeEnum) {
 		var r : Dynamic;
 		switch(e) {
-		case TInt(v): r = v;
-		case TFloat(v): r = v;
-		case TString(v): r = v;
-		case TBool(v): r = v;
-		case TType(te): r = recoverValue(te);
+			case TInt(v):    r = v;
+			case TFloat(v):  r = v;
+			case TString(v): r = v;
+			case TBool(v):   r = v;
+			case TType(te):  r = recoverValue(te);
 		}
 		return r;
 	}
 
+	static function quantityToString(e : Quantity<Int>) {
+		switch(e) {
+			case Unknown:     return "Unknown";
+			case None:        return "None";
+			case One(v):      return "One" + v;
+			case Two(v1, v2): return "Two" + v1 + v2;
+		}
+	}
+	
+	static function noneOrSome(e : Quantity<Int>) {
+		switch(e) {
+			case None: return "None";
+			default:   return "Some";
+		}
+	}
 }

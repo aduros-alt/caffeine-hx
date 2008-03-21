@@ -11,26 +11,34 @@ class AnonymousObject {
 	}
 	
 	public function testCreateObject() {
-		var o = { name : "Franco" };
+		var o = { name : "haXe" };
 		Assert.isNotNull(o);
 	}
 	
 	public function testAccessField() {
-		var o = { name : "Franco", lastname : "Ponticelli" };
-		Assert.equals("Franco", o.name);
-		Assert.equals("Ponticelli", o.lastname);
+		var o = { name : "haXe", lastname : "Neko" };
+		Assert.equals("haXe", o.name);
+		Assert.equals("Neko", o.lastname);
 	}
 	
 	public function testFunctionField() {
 		var o = { f : function(n){ return "Hello " + n + "!"; } };
 		Assert.isNotNull(o);
 		Assert.isNotNull(o.f);
-		Assert.equals("Hello Franco!", o.f("Franco"));
+		Assert.equals("Hello haXe!", o.f("haXe"));
 	}
 	
 	public function testObjectScope() {
 	    var o : Dynamic;
-		o = { name : "Franco", f : function() { return "Hello " + o.name + "!"; }};
-		Assert.equals("Hello Franco!", o.f());
-	}	
+		o = { name : "haXe", f : function() { return "Hello " + o.name + "!"; }};
+		Assert.equals("Hello haXe!", o.f());
+	}
+	
+	public function testNestedObjects() {
+	  var o = { name : "haXe", locations : [{ town : "Lisbon" }, { town : "Milan" }], current : { town : "Lisbon" }};
+	  Assert.equals("haXe", o.name);
+	  Assert.equals("Lisbon", o.current.town);
+	  Assert.equals("Lisbon", o.locations[0].town);
+	  Assert.equals("Milan", o.locations[1].town);
+	}
 }
