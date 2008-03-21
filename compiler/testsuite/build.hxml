@@ -2,3 +2,7 @@
 -lua test.lua
 -cp ../../ext
 
+--next
+-main Test.hx
+-js jstest.js
+-cp ../../ext
