@@ -72,11 +72,11 @@ class Runner {
 		  Reflect.callMethod(inst, Reflect.field(inst, test), []);
 		} catch(e : AssertException) {
 		  passed = false;
-		  messages.push("Test failed at line #" + e.pos.lineNumber + ", " + e.message);
+		  messages.push(test + " failed at line #" + e.pos.lineNumber + ", " + e.message);
 		} catch(e : Dynamic) {
 		  passed = false;
 		  error = true;
-		  messages.push("Error in code: " + Std.string(e));
+		  messages.push(test + " error: " + Std.string(e));
 		}
 		if(passed)
 		  print('.');
@@ -88,9 +88,9 @@ class Runner {
 	  }
 	  println('   ');
 	  if(messages.length > 0) {
-	    println("Huston we have a problem (or more than one):" + messages.length + " failed test(s) out of " + tot);
+	    println("!!! Huston we have a problem (maybe more): " + messages.length + " failed test(s) out of " + tot);
 		for(message in messages)
-		  println(message);
+		  println("!!! " + message);
 	  }
 	}
   }
