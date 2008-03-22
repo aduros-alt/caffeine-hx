@@ -51,7 +51,7 @@ class EnumAccess {
 	   Assert.equals("Some", noneOrSome(Two(1,2)));
 	}
 	
-	public function testReturnSwitchBlock() {
+	public function testSwitchBlock() {
 		Assert.equals("None", switch(None) {
 			case None: "None";
 			default:   "Some";

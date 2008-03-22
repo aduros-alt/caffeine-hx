@@ -3,30 +3,30 @@ class Test {
 	var runner = new unit.Runner();
 	runner.register(syntax.AnonymousObject);
 	runner.register(syntax.ArraySyntax);
-	// runner.register(syntax.Callback);
+	runner.register(syntax.Callback);
 	runner.register(syntax.ClassInheritance);
 	runner.register(syntax.CodeBlocks);
+	runner.register(syntax.DynamicClass);   
+	runner.register(syntax.DynamicFunction);
 	runner.register(syntax.EnumAccess);
 	runner.register(syntax.EnumSyntax);
-	//runner.register(syntax.EnumMatch);
 	runner.register(syntax.ForAccess);
-	// runner.register(syntax.FunctionDereference);
-	// runner.register(syntax.FunctionRedefinition);
 	runner.register(syntax.IfAccess);
-	// runner.register(syntax.ImplementsDynamic); // test multiple implements and Dynamic<T>
-	// runner.register(syntax.InlineFunction); // test nested inline functions too
-	// runner.register(syntax.InterfaceAccess);
+	runner.register(syntax.InterfaceAccess);
 #if php
-	runner.register(syntax.PhpDollarEscape); // test nested too
+	runner.register(syntax.PhpDollarEscape);
 	runner.register(syntax.PhpReservedWords);
 #end
-	// runner.register(syntax.PrivateClassAccess);
-	// runner.register(syntax.PropertyAccess);
-	// runner.register(syntax.StringSyntax); // test static method too
-	// runner.register(syntax.SwitchCaseAccess);
-	// runner.register(syntax.TryCatches);
-	// runner.register(syntax.TypedefAccess); // test what?
+	runner.register(syntax.PrivateClassAccess);
+	runner.register(syntax.PropertyAccess);
+	runner.register(syntax.SwitchCaseAccess);
+	runner.register(syntax.TryCatch);      
+	runner.register(syntax.TypedefAccess); 
 	runner.register(syntax.WhileAccess);  
+	
+	// __resolve
+	// __setfield
+	// __unprotect__
 	runner.run();
   }
 }
