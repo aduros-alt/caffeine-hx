@@ -18,78 +18,81 @@ class Runner {
 	static var tf : flash.TextField = null;
 #end
 
-  private function println(v : String) {
+  private function print(v : String) {
 #if php
-    php.Lib.print(v + "</br>");
+    php.Lib.print(v);
 #else flash9
 	if( tf == null ) {
 		tf = new flash.text.TextField();
 		tf.selectable = true;
 		tf.width = flash.Lib.current.stage.stageWidth;
 		tf.autoSize = flash.text.TextFieldAutoSize.LEFT;
-		tf.multiline = true;
 		flash.Lib.current.addChild(tf);
 	}
-	tf.htmlText += v + "</br>";
+	tf.text += v;
 #else flash
 	var root = flash.Lib.current;
 	if( tf == null ) {
 		root.createTextField("__tf",1048500,0,0,flash.Stage.width,flash.Stage.height+30);
 		tf = untyped root.__tf;
 		tf.selectable = true;
-		tf.html = true;
 		tf.multiline = true;
 	}
-	tf.htmlText += v + "</br>";
+	tf.text += v;
 #else neko
-	neko.Lib.print(v + "</br>");
+	neko.Lib.print(v);
 #else js
 	var d = js.Lib.document.getElementById("haxe:trace");
 	if( d == null )
 		js.Lib.alert("haxe:trace element not found")
 	else
-		d.innerHTML += v + "</br>";
+		d.innerHTML += v;
 #else lua
-	lua.Lib.println(v);
+	lua.Lib.print(v);
 #end
   }
 
+  private function println(v : String) {
+    print(v + "\n");
+  }
+
   public function run() {
-    println("<pre>classes to test: <b>" + test_classes.length + "</b>");
+    println("classes to test: " + test_classes.length + "");	
     for(t in test_classes) {
-	  println("   ");
-	  println("testing class: <b>" + Type.getClassName(t) + "</b>");
+	  var messages = [];
+	  print("testing class: " + Type.getClassName(t) + " ");
 	  var inst = Type.createInstance(t, []);
 	  var tests = getTestMethods(inst, t);
 	  var i = 1;
 	  var tot = tests.length;
-	  var failures = 0;
 	  for(test in tests) {
-	    var msg = "... test " + i + " of " + tot + ", <i>" + test + "</i>:";
 		var passed = true;
+		var error = false;
 		try {
 		  Reflect.callMethod(inst, Reflect.field(inst, test), []);
 		} catch(e : AssertException) {
 		  passed = false;
-		  msg += "<i>" + e.message + " at line #" + e.pos.lineNumber + "</i>";
-		  failures++;
+		  messages.push("Test failed at line #" + e.pos.lineNumber + ", " + e.message);
 		} catch(e : Dynamic) {
 		  passed = false;
-		  msg += "<i>" + "uncaught exception " + Std.string(e) + "</i>";
-		  failures++;
+		  error = true;
+		  messages.push("Error in code: " + Std.string(e));
 		}
 		if(passed)
-		  msg += " <b>OK</b>";
-
-		println(msg);
+		  print('.');
+		else if(error)
+		  print('E');
+		else
+		  print('F');
 		i++;
 	  }
-	  if(failures == 0)
-		println("<i>all tests passed</i>");
-	  else
-	    println("Huston we have a problem: <b>" + failures + " failed test(s)</b> out of " + tot);
+	  println('   ');
+	  if(messages.length > 0) {
+	    println("Huston we have a problem (or more than one):" + messages.length + " failed test(s) out of " + tot);
+		for(message in messages)
+		  println(message);
+	  }
 	}
-	println("</pre>");
   }
 
   private function getTestMethods(inst, cl) {
