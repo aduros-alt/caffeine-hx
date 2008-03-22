@@ -47,7 +47,7 @@ class Runner {
 		js.Lib.alert("haxe:trace element not found")
 	else
 		d.innerHTML += v;
-#else lua
+#else hllua
 	lua.Lib.print(v);
 #end
   }
@@ -57,7 +57,7 @@ class Runner {
   }
 
   public function run() {
-    println("classes to test: " + test_classes.length + "");	
+    println("classes to test: " + test_classes.length + "");
     for(t in test_classes) {
 	  var messages = [];
 	  print("testing class: " + Type.getClassName(t) + " ");
