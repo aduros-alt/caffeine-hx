@@ -36,6 +36,7 @@ const char *const luaP_opnames[NUM_OPCODES+1] = {
   "BAND",
   "OP_BXOR"
   "BLSHFT",
+  "BURSHFT",
   "BRSHFT",
   "BNOT",
   "INTDIV",
@@ -92,6 +93,7 @@ const lu_byte luaP_opmodes[NUM_OPCODES] = {
  ,opmode(0, 1, OpArgK, OpArgK, iABC)		/* OP_BAND */
  ,opmode(0, 1, OpArgK, OpArgK, iABC)		/* OP_BXOR */
  ,opmode(0, 1, OpArgK, OpArgK, iABC)		/* OP_BLSHFT */
+ ,opmode(0, 1, OpArgK, OpArgK, iABC)		/* OP_URLSHFT */
  ,opmode(0, 1, OpArgK, OpArgK, iABC)		/* OP_RLSHFT */
  ,opmode(0, 1, OpArgR, OpArgN, iABC)		/* OP_BNOT */
  ,opmode(0, 1, OpArgK, OpArgK, iABC)		/* OP_INTDIV */

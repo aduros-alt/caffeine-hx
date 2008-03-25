@@ -546,6 +546,7 @@
 #define luai_logand(r, a,b)	{ lua_Integer ai,bi; lua_number2int(ai,a); lua_number2int(bi,b); r = ai&bi; }
 #define luai_logxor(r, a,b)	{ lua_Integer ai,bi; lua_number2int(ai,a); lua_number2int(bi,b); r = ai^bi; }
 #define luai_lognot(r,a)	{ lua_Integer ai; lua_number2int(ai,a); r = ~ai; }
+#define luai_logurshft(r, a,b)	{ lua_Integer ai,bi; lua_number2int(ai,a); lua_number2int(bi,b); r = ((unsigned)ai)>>bi; }
 #define luai_logrshft(r, a,b)	{ lua_Integer ai,bi; lua_number2int(ai,a); lua_number2int(bi,b); r = ai>>bi; }
 #define luai_loglshft(r, a,b)	{ lua_Integer ai,bi; lua_number2int(ai,a); lua_number2int(bi,b); r = ai<<bi; }
 #endif

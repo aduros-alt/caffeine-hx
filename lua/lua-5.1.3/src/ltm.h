@@ -36,6 +36,7 @@ typedef enum {
   TM_BOR,
   TM_BAND,
   TM_BXOR,
+  TM_BURSHFT,
   TM_BRSHFT,
   TM_BLSHFT,
   TM_BNOT,

@@ -125,7 +125,7 @@ void luaV_gettable (lua_State *L, const TValue *t, TValue *key, StkId val) {
       callTMres(L, val, tm, t, key);
       return;
     }
-    t = tm;  /* else repeat with `tm' */ 
+    t = tm;  /* else repeat with `tm' */
   }
   luaG_runerror(L, "loop in gettable");
 }
@@ -152,7 +152,7 @@ void luaV_settable (lua_State *L, const TValue *t, TValue *key, StkId val) {
       callTM(L, tm, t, key, val);
       return;
     }
-    t = tm;  /* else repeat with `tm' */ 
+    t = tm;  /* else repeat with `tm' */
   }
   luaG_runerror(L, "loop in settable");
 }
@@ -344,6 +344,7 @@ static void Logic (lua_State *L, StkId ra, const TValue *rb,
     lua_Integer r;
     switch (op) {
       case TM_BLSHFT: luai_loglshft(r, nb, nc); break;
+      case TM_BURSHFT: luai_logurshft(r, nb, nc); break;
       case TM_BRSHFT: luai_logrshft(r, nb, nc); break;
       case TM_BOR: luai_logor(r, nb, nc); break;
       case TM_BAND: luai_logand(r, nb, nc); break;
@@ -584,6 +585,10 @@ void luaV_execute (lua_State *L, int nexeccalls) {
       }
       case OP_BLSHFT: {
         logic_op(luai_loglshft, TM_BRSHFT);
+        continue;
+      }
+      case OP_BURSHFT: {
+        logic_op(luai_logurshft, TM_BRSHFT);
         continue;
       }
       case OP_BRSHFT: {

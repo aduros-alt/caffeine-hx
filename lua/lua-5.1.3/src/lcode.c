@@ -654,6 +654,7 @@ static int constfolding (OpCode op, expdesc *e1, expdesc *e2) {
     case OP_BAND: luai_logand(r, v1, v2); break;
     case OP_BXOR: luai_logxor(r, v1, v2);  break;
     case OP_BRSHFT: luai_logrshft(r, v1, v2); break;
+    case OP_BURSHFT: luai_logurshft(r, v1, v2); break;
     case OP_BLSHFT: luai_loglshft(r, v1, v2); break;
     case OP_BNOT: luai_lognot(r, v1); break;
     case OP_INTDIV:
@@ -798,6 +799,7 @@ void luaK_posfix (FuncState *fs, BinOpr op, expdesc *e1, expdesc *e2) {
     case OPR_BXOR: codearith(fs, OP_BXOR, e1, e2); break;
     case OPR_BLSHFT: codearith(fs, OP_BLSHFT, e1, e2); break;
     case OPR_BRSHFT: codearith(fs, OP_BRSHFT, e1, e2); break;
+    case OPR_BURSHFT: codearith(fs, OP_BURSHFT, e1, e2); break;
     case OPR_INTDIV: codearith(fs, OP_INTDIV, e1, e2); break;
     case OPR_EQ: codecomp(fs, OP_EQ, 1, e1, e2); break;
     case OPR_NE: codecomp(fs, OP_EQ, 0, e1, e2); break;
