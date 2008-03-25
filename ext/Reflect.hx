@@ -42,7 +42,7 @@ class Reflect {
 			__dollar__new(null)
 		#else js
 			__js__("{}")
-		#else lua
+		#else hllua
 			__lua__("{}")
 		#else error
 		#end
@@ -52,7 +52,7 @@ class Reflect {
 	/**
 		Tells if an object has a field set. This doesn't take into account the object prototype (class methods).
 	**/
-	public static #if !js inline #end function hasField( o : Dynamic, field : String ) : Bool {
+	public static function hasField( o : Dynamic, field : String ) : Bool {
 		untyped{
 		#if flash9
 			return o.hasOwnProperty( field );
@@ -67,9 +67,8 @@ class Reflect {
 			return false;
 		#else neko
 			return __dollar__typeof(o) == __dollar__tobject && __dollar__objfield(o,__dollar__hash(field.__s));
-		#else lua
-			throw "incomplete";
-			return false;
+		#else hllua
+			return __hasOwnProperty__(o, field);
 		#else error
 		#end
 		}
@@ -89,8 +88,9 @@ class Reflect {
 				null;
 			else
 				__dollar__objget(o, __dollar__hash(field.__s))
-		#else lua
-			throw "incomplete"
+		#else hllua
+			return if(__typeof__(o) != "table") null;
+			else o[field]
 		#else error
 		#end
 			;
@@ -108,7 +108,7 @@ class Reflect {
 		#else neko
 			if( __dollar__typeof(o) == __dollar__tobject )
 				__dollar__objset(o,__dollar__hash(field.__s),value);
-		#else lua
+		#else hllua
 			o[field] = value;
 		#else error
 		#end
@@ -127,8 +127,8 @@ class Reflect {
 			func.apply(o,args)
 		#else neko
 			__dollar__call(func,o,args.__neko())
-		#else lua
-			throw "incomplete"
+		#else hllua
+			Haxe.callMethod(o, func, args)
 		#else error
 		#end
 			;
@@ -195,8 +195,16 @@ class Reflect {
 				}
 				return Array.new1(a,l);
 			}
-		#else lua
-			throw "incomplete";
+			#else hllua
+			var a : Array<String> = __keys__(o);
+			var i = 0;
+			while( i < a.length ) {
+				if( !__hasOwnProperty__(o, a[i]))
+					a.splice(i,1);
+				else
+					i = i + 1;
+			}
+			return a;
 		#else error
 		#end
 		}
@@ -215,8 +223,8 @@ class Reflect {
 			return untyped __js__("typeof(f)") == "function" && f.__name__ == null;
 		#else neko
 			return untyped __dollar__typeof(f) == __dollar__tfunction;
-		#else lua
-			return untyped __lua__("(type(f) == \"function\")");
+		#else hllua
+			return untyped __typeof__(f) == "function";
 		#else error
 		#end
 	}
@@ -245,7 +253,7 @@ class Reflect {
 		return untyped f1["f"] == f2["f"] && f1["o"] == f2["o"] && f1["f"] != null;
 		#else js
 		return f1.scope == f2.scope && f1.method == f2.method && f1.method != null;
-		#else lua
+		#else hllua
 		return untyped __lua__("f1 == f2");
 		#else true
 		return
@@ -280,9 +288,8 @@ class Reflect {
 			return false;
 		var t = __js__("typeof(v)");
 		return (t == "string" || (t == "object" && !v.__enum__) || (t == "function" && v.__name__ != null));
-		#else lua
-			throw "incomplete";
-			return false;
+		#else hllua
+		return __typeof__(v) == "table";
 		#else error
 		#end
 	}
@@ -290,7 +297,7 @@ class Reflect {
 	/**
 		Delete an object field.
 	**/
-	public static inline function deleteField( o : Dynamic, f : String ) : Bool untyped {
+	public static function deleteField( o : Dynamic, f : String ) : Bool untyped {
 		#if flash9
 			return if( o.hasOwnProperty(f) ) {
 				__delete__(o,f);
@@ -311,9 +318,12 @@ class Reflect {
 			else false;
 		#else neko
 			return __dollar__objremove(o,__dollar__hash(f.__s));
-		#else lua
-			throw "incomplete";
-			return false;
+		#else hllua
+			return if(__hasOwnProperty__(o, f)) {
+				__delete__(o, f);
+				true;
+			}
+			else false;
 		#else error
 		#end
 	}

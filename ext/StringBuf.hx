@@ -35,7 +35,7 @@ class StringBuf {
 	public function new() {
 		#if neko
 		b = __make();
-		#else lua
+		#else hllua
 		b = "";
 		#else flash
 		b = "";
@@ -72,7 +72,7 @@ class StringBuf {
 		b += s.substr(pos,len);
 		#else js
 		b += s.substr(pos,len);
-		#else lua
+		#else hllua
 		b += s.substr(pos,len);
 		#else error
 		#end
@@ -88,7 +88,7 @@ class StringBuf {
 		b += untyped String["fromCharCode"](c);
 		#else js
 		b += untyped String.fromCharCode(c);
-		#else lua
+		#else hllua
 		b += untyped String.fromCharCode(c);
 		#else error
 		#end
@@ -105,7 +105,7 @@ class StringBuf {
 		return b;
 		#else js
 		return b;
-		#else lua
+		#else hllua
 		return b;
 		#else error
 		#end

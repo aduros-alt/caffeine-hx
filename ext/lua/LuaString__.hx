@@ -28,8 +28,6 @@
 package lua;
 
 class LuaString__ {
-	static var __name__ = "String";
-
 	private function new(s) {
 		untyped __lua__("local v = s.__tostring(); do return v; end");
 	}

@@ -39,9 +39,9 @@ class Std {
 		neko.Boot.__instanceof(v,t);
 		#else js
 		js.Boot.__instanceof(v,t);
-		#else lua
+		#else hllua
 		lua.Boot.__instanceof(v,t);
-		#else true
+		#else error
 		false;
 		#end
 	}
@@ -57,6 +57,8 @@ class Std {
 		new String(__dollar__string(s));
 		#else js
 		js.Boot.__string_rec(s,"");
+		#else hllua
+		lua.Boot.__string_rec(s,"");
 		#else true
 		"";
 		#end

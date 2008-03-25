@@ -34,27 +34,20 @@ class Lib {
 		return untyped loadfile(lib);
 	}
 
-/*
-	public static function loadLazy(lib,prim,nargs) : Dynamic {
-		try {
-			return load(lib,prim,nargs);
-		} catch( e : Dynamic ) {
-			return untyped __lua__varargs(function(_) { throw e; });
-		}
-	}
-*/
 	/**
 		Print the specified value on the default output.
 	**/
 	public static function print( v : Dynamic ) : Void {
-		untyped __lua__("print(v)");
+		untyped __lua__("if v!= nil then io.stdout:write(v) end");
+		//var s = Std.string(v);
+		//untyped __lua__("_G.print(v)");
 	}
 
 	/**
 		Print the specified value on the default output followed by a newline character.
 	**/
 	public static function println( v : Dynamic ) : Void {
-		untyped __lua__("print(v,\"\\n\")");
+		untyped __lua__("if v ~= nil then io.stdout:write(v..\"\\n\"); io.stdout:flush() end");
 	}
 
 	/**

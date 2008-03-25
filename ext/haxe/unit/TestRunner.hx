@@ -75,6 +75,8 @@ class TestRunner {
 			else
 				d.innerHTML += msg;
 		}
+		#else lua
+		untyped __lua__("print(tostring(v))");
 		#else error
 		#end
 	}

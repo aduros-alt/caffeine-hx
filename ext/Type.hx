@@ -51,7 +51,7 @@ class Type {
 	**/
 	public static function toClass( t : Dynamic ) : Class<Dynamic> untyped {
 		try {
-		#if flash9
+		#if (flash9 || hllua)
 			if( !t.hasOwnProperty("prototype") )
 				return null;
 		#else true
@@ -89,6 +89,8 @@ class Type {
 				var p = __dollar__objgetproto(o);
 				if( p != null ) p.__class__;
 			}
+		#else hllua
+			return if( o != null && o.__enum__ == null ) o.__class__;
 		#else error
 		#end
 	}
@@ -114,6 +116,8 @@ class Type {
 			return if( o != null ) o.__enum__;
 		#else neko
 			return if( __dollar__typeof(o) == __dollar__tobject ) o.__enum__;
+		#else hllua
+			return if( o != null ) o.__enum__;
 		#else error
 		#end
 	}
@@ -137,12 +141,14 @@ class Type {
 	/**
 		Returns the complete name of a class.
 	**/
-	public static inline function getClassName( c : Class<Dynamic> ) : String {
+	public static function getClassName( c : Class<Dynamic> ) : String {
 		#if flash9
 			return if( c != null ) {
 				var str : String = untyped __global__["flash.utils.getQualifiedClassName"](c);
 				str.split("::").join(".");
 			}
+		#else hllua
+			return if( c != null ) untyped __global__["Haxe.getQualifiedClassName"](c);
 		#else true
 			return if( c != null ) untyped c.__name__.join(".");
 		#end
@@ -183,9 +189,13 @@ class Type {
 			} catch( e : Dynamic ) {
 				cl = null;
 			}
-		#else neko
+		#else (neko || hllua)
 			var path = name.split(".");
-			cl = Reflect.field(untyped neko.Boot.__classes,path[0]);
+			#if hllua
+			cl = Reflect.field(untyped lua.Boot.__classes,path[0]);
+			#else true
+			cl = Reflect.field(untyped package.loaded,path[0]);
+			#end
 			var i = 1;
 			while( cl != null && i < path.length ) {
 				cl = Reflect.field(cl,path[i]);
@@ -225,14 +235,23 @@ class Type {
 			} catch( e : Dynamic ) {
 				e = null;
 			}
-		#else neko
+		#else (neko || hllua)
 			var path = name.split(".");
+			#if hllua
+			e = Reflect.field(lua.Boot.__classes,path[0]);
+			#else true
 			e = Reflect.field(neko.Boot.__classes,path[0]);
+			#end
 			var i = 1;
 			while( e != null && i < path.length ) {
 				e = Reflect.field(e,path[i]);
 				i += 1;
 			}
+		#else hllua
+			// lua enums are registered at the global scope
+			var path = name.split(".");
+			var name = path.pop();
+			e = Reflect.field()
 		#else error
 		#end
 		// ensure that this is an enum
@@ -262,11 +281,9 @@ class Type {
 			return o;
 		#else neko
 			return untyped __dollar__call(__dollar__objget(cl,__dollar__hash("new".__s)),cl,args.__neko());
-		#else js
+		#else (js || hllua)
 			if( args.length >= 6 ) throw "Too many arguments";
 			return untyped __new__(cl,args[0],args[1],args[2],args[3],args[4],args[5]);
-		#else lua
-			return untyped __new__(cl, args);
 		#else error
 		#end
 	}
@@ -275,7 +292,7 @@ class Type {
 		Similar to [Reflect.createInstance] excepts that the constructor is not called.
 		This enables you to create an instance without any side-effect.
 	**/
-	public static #if !flash9 inline #end function createEmptyInstance<T>( cl : Class<T> ) : T untyped {
+	public static function createEmptyInstance<T>( cl : Class<T> ) : T untyped {
 		#if flash9
 			try {
 				flash.Boot.skip_constructor = true;
@@ -296,6 +313,9 @@ class Type {
 		#else neko
 			var o = __dollar__new(null);
 			__dollar__objsetproto(o,cl.prototype);
+			return o;
+		#else hllua
+			var o = untyped __lua__("cl:__construct__()");
 			return o;
 		#else error
 		#end
@@ -356,7 +376,7 @@ class Type {
 			#if js
 			a.remove("prototype");
 			#end
-			#if neko
+			#if (neko || hllua)
 			a.remove("__construct__");
 			a.remove("prototype");
 			a.remove("new");
@@ -421,8 +441,8 @@ class Type {
 			}
 		}
 		return null;
-		#else (flash || js)
-		switch( #if flash __typeof__ #else true __js__("typeof") #end(v) ) {
+		#else (flash || js || hllua)
+		switch( #if flash __typeof__ #else hllua __lua__("type") #else true __js__("typeof") #end(v) ) {
 		#if flash
 		case "null": return TNull;
 		#end
@@ -434,7 +454,11 @@ class Type {
 			if( Math.ceil(v) == v )
 				return TInt;
 			return TFloat;
+		#if hllua
+		case "table":
+		#else true
 		case "object":
+		#end
 			#if js
 			if( v == null )
 				return TNull;

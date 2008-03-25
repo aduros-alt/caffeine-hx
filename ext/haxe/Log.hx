@@ -33,7 +33,7 @@ class Log {
 		untyped __dollar__print(infos.fileName+":"+infos.lineNumber+": ",v,"\n");
 		#else js
 		untyped js.Boot.__trace(v,infos);
-		#else lua
+		#else hllua
 		untyped lua.Boot.__trace(v,infos);
 		#else error
 		#end
@@ -46,7 +46,7 @@ class Log {
 		untyped js.Boot.__clear_trace();
 		#else neko
 		// nothing
-		#else lua
+		#else hllua
 		// nothing
 		#else error
 		#end

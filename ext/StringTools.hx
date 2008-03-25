@@ -44,7 +44,7 @@ class StringTools {
 		return new String(_urlEncode(untyped s.__s));
 		#else js
 		return untyped encodeURIComponent(s);
-		#else lua
+		#else hllua
 		return untyped __lua__("string.urlEncode(s)");
 		#else error
 		#end
@@ -62,7 +62,7 @@ class StringTools {
 		return new String(_urlDecode(untyped s.__s));
 		#else js
 		return untyped decodeURIComponent(s.split("+").join(" "));
-		#else lua
+		#else hllua
 		return untyped __lua__("string.urlDecode(s)");
 		#else error
 		#end
