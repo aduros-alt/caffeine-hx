@@ -23,7 +23,7 @@ class Test {
 	runner.register(syntax.TryCatch);
 	runner.register(syntax.TypedefAccess);
 	runner.register(syntax.WhileAccess);
-	runner.register(syntax.UnusualConstructs);
+	//runner.register(syntax.UnusualConstructs);
 
 	// __resolve
 	// __setfield

@@ -2,7 +2,7 @@ class Base {
 	static var guh : Int = 2;
 
 	public static function sguh() {
-		return 1;
+		return Math.abs(1);
 	}
 
 	public function new() {}
