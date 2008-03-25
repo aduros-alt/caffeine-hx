@@ -53,7 +53,11 @@ class Runner {
   }
 
   private function println(v : String) {
+#if js
+	print(v + "</br>\n");
+#else true
     print(v + "\n");
+#end
   }
 
   public function run() {
@@ -69,17 +73,21 @@ class Runner {
 		var passed = true;
 		var error = false;
 		try {
+		  println("");
+		  print("\t"+Std.string(i) + "> " + test + "...");
 		  Reflect.callMethod(inst, Reflect.field(inst, test), []);
 		} catch(e : AssertException) {
 		  passed = false;
+		  //println("failed");
 		  messages.push(test + " failed at line #" + e.pos.lineNumber + ", " + e.message);
 		} catch(e : Dynamic) {
+		  //println("failed");
 		  passed = false;
 		  error = true;
 		  messages.push(test + " error: " + Std.string(e));
 		}
 		if(passed)
-		  print('.');
+		  print('PASS.');
 		else if(error)
 		  print('E');
 		else
@@ -88,7 +96,7 @@ class Runner {
 	  }
 	  println('   ');
 	  if(messages.length > 0) {
-	    println("!!! Huston we have a problem (maybe more): " + messages.length + " failed test(s) out of " + tot);
+	    println("!!! Houston we have a problem (maybe more): " + messages.length + " failed test(s) out of " + tot);
 		for(message in messages)
 		  println("!!! " + message);
 	  }

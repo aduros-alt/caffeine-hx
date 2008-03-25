@@ -1,8 +1,9 @@
 -main Test.hx
--lua test.lua
+-js jstest.js
 -cp ../../ext
 
 --next
 -main Test.hx
--js jstest.js
+-hllua hllua
 -cp ../../ext
+
