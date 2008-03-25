@@ -24,7 +24,7 @@ type target =
 	| Swf of string
 	| Neko of string
 	| As3 of string
-	| Lua of string
+	| HLLua of string
 
 let prompt = ref false
 let alt_format = ref false
@@ -235,24 +235,28 @@ try
 		),"<path> : add a directory to find source files");
 		("-js",Arg.String (fun file ->
 			check_targets();
-			Typer.forbidden_packages := ["neko"; "flash"; "lua"];
+			Typer.forbidden_packages := ["neko"; "flash"; "hllua"];
 			target := Js file
 		),"<file> : compile code to JavaScript file");
-		("-lua",Arg.String (fun file ->
+		("-hllua",Arg.String (fun dir ->
 			check_targets();
+			Plugin.define "hlluagen";
 			Typer.forbidden_packages := ["neko"; "flash"; "js"];
-			target := Lua file
-		),"<file> : compile code to Lua file");
+			classes := (["lua"], "Boot") :: !classes;
+			classes := (["lua"], "LuaMath__") :: !classes;
+			classes := (["lua"], "LuaString__") :: !classes;
+			target := HLLua dir
+		),"<file> : generate HLLua code into target directory");
 		("-as3",Arg.String (fun dir ->
 			check_targets();
 			swf_version := 9;
 			Plugin.define "as3gen";
-			Typer.forbidden_packages := ["js"; "neko"; "lua"];
+			Typer.forbidden_packages := ["js"; "neko"; "hllua"];
 			target := As3 dir;
 		),"<directory> : generate AS3 code into target directory");
 		("-swf",Arg.String (fun file ->
 			check_targets();
-			Typer.forbidden_packages := ["js"; "neko"; "lua"];
+			Typer.forbidden_packages := ["js"; "neko"; "hllua"];
 			target := Swf file
 		),"<file> : compile code to Flash SWF file");
 		("-swf-version",Arg.Int (fun v ->
@@ -274,12 +278,12 @@ try
 		),"<file> : add the SWF library to the compiled SWF");
 		("-neko",Arg.String (fun file ->
 			check_targets();
-			Typer.forbidden_packages := ["js"; "flash"; "lua"];
+			Typer.forbidden_packages := ["js"; "flash"; "hllua"];
 			target := Neko file
 		),"<file> : compile code to Neko Binary");
 		("-x", Arg.String (fun file ->
 			check_targets();
-			Typer.forbidden_packages := ["js"; "flash"; "lua"];
+			Typer.forbidden_packages := ["js"; "flash"; "hllua"];
 			let neko_file = file ^ ".n" in
 			target := Neko neko_file;
 			if !main_class = None then begin
@@ -415,9 +419,9 @@ try
 	| Js file ->
 		if not !no_output && file_extension file = "js" then delete_file file;
 		Plugin.define "js";
-	| Lua file ->
+	| HLLua file ->
 		if not !no_output && file_extension file = "lua" then delete_file file;
-		Plugin.define "lua";
+		Plugin.define "hllua";
 	);
 	if !classes = [([],"Std")] then begin
 		if !cmds = [] && not !gen_hx then Arg.usage args_spec usage;
@@ -450,10 +454,9 @@ try
 			do_auto_xml file;
 			if !Plugin.verbose then print_endline ("Generating js : " ^ file);
 			Genjs.generate file types hres
-		| Lua file ->
-			do_auto_xml file;
-			if !Plugin.verbose then print_endline ("Generating lua : " ^ file);
-			Genlua.generate file types hres
+		| HLLua dir ->
+			if !Plugin.verbose then print_endline ("Generating HLLua in : " ^ dir);
+			Genhllua.generate dir types
 		| As3 dir ->
 			if !Plugin.verbose then print_endline ("Generating AS3 in : " ^ dir);
 			Genas3.generate dir types

@@ -24,10 +24,10 @@ class Base {
 }
 
 class Test extends Base {
-	var a : Int;
+	var aClassVar : Int;
 	public function new(va : Int) {
 		super();
-		a = va;
+		aClassVar = va;
 	}
 
 	override public function val() : Int {
