@@ -54,7 +54,7 @@ static int luaB_tonumber (lua_State *L) {
   int base = luaL_optint(L, 2, 10);
   if (base == 10) {  /* standard conversion */
     luaL_checkany(L, 1);
-    if (lua_isnumber(L, 1)) {
+    if (lua_isnumeric(L, 1)) {
       lua_pushnumber(L, lua_tonumber(L, 1));
       return 1;
     }

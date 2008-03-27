@@ -174,10 +174,9 @@ LUALIB_API const char *luaL_optlstring (lua_State *L, int narg,
 
 
 LUALIB_API lua_Number luaL_checknumber (lua_State *L, int narg) {
-  lua_Number d = lua_tonumber(L, narg);
-  if (d == 0 && !lua_isnumber(L, narg))  /* avoid extra test when d is not 0 */
+  if (!lua_isnumber(L, narg))  /* avoid extra test when d is not 0 */
     tag_error(L, narg, LUA_TNUMBER);
-  return d;
+  return lua_tonumber(L, narg);
 }
 
 
@@ -187,10 +186,9 @@ LUALIB_API lua_Number luaL_optnumber (lua_State *L, int narg, lua_Number def) {
 
 
 LUALIB_API lua_Integer luaL_checkinteger (lua_State *L, int narg) {
-  lua_Integer d = lua_tointeger(L, narg);
-  if (d == 0 && !lua_isnumber(L, narg))  /* avoid extra test when d is not 0 */
+  if (!lua_isnumber(L, narg))  /* avoid extra test when d is not 0 */
     tag_error(L, narg, LUA_TNUMBER);
-  return d;
+  return lua_tointeger(L, narg);
 }
 
 

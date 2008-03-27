@@ -184,7 +184,7 @@ static void collectvalidlines (lua_State *L, Closure *f) {
     int i;
     for (i=0; i<f->l.p->sizelineinfo; i++)
       setbvalue(luaH_setnum(L, t, lineinfo[i]), 1);
-    sethvalue(L, L->top, t); 
+    sethvalue(L, L->top, t);
   }
   incr_top(L);
 }
@@ -570,8 +570,7 @@ void luaG_concaterror (lua_State *L, StkId p1, StkId p2) {
 
 
 void luaG_aritherror (lua_State *L, const TValue *p1, const TValue *p2) {
-  TValue temp;
-  if (luaV_tonumber(p1, &temp) == NULL)
+  if (!ttisnumber(p1))
     p2 = p1;  /* first operand is wrong */
   luaG_typeerror(L, p2, "perform arithmetic on");
 }

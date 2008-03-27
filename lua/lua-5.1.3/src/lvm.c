@@ -220,6 +220,8 @@ static int l_strcmp (const TString *ls, const TString *rs) {
 
 int luaV_lessthan (lua_State *L, const TValue *l, const TValue *r) {
   int res;
+  if(ttisnil(l) || ttisnil(r))
+    return 0;
   if (ttype(l) != ttype(r))
     return luaG_ordererror(L, l, r);
   else if (ttisnumber(l))
@@ -234,6 +236,11 @@ int luaV_lessthan (lua_State *L, const TValue *l, const TValue *r) {
 
 static int lessequal (lua_State *L, const TValue *l, const TValue *r) {
   int res;
+  if(ttisnil(l) || ttisnil(r)) {
+    if(ttisnil(l) && ttisnil(r))
+      return 1;
+    return 0;
+  }
   if (ttype(l) != ttype(r))
     return luaG_ordererror(L, l, r);
   else if (ttisnumber(l))
@@ -250,6 +257,11 @@ static int lessequal (lua_State *L, const TValue *l, const TValue *r) {
 
 int luaV_equalval (lua_State *L, const TValue *t1, const TValue *t2) {
   const TValue *tm;
+  if(ttisnil(t1) || ttisnil(t2)) {
+    if(ttisnil(t1) && ttisnil(t2))
+      return 1;
+    return 0;
+  }
   lua_assert(ttype(t1) == ttype(t2));
   switch (ttype(t1)) {
     case LUA_TNIL: return 1;
@@ -279,7 +291,7 @@ void luaV_concat (lua_State *L, int total, int last) {
   do {
     StkId top = L->base + last + 1;
     int n = 2;  /* number of elements handled in this pass (at least 2) */
-    if (!(ttisstring(top-2) || ttisnumber(top-2)) || !tostring(L, top-1)) {
+    if (!(ttisstring(top-2) || !ttisstring(top-1)) || !tostring(L, top-1)) {
       if (!call_binTM(L, top-2, top-1, top-2, TM_CONCAT))
         luaG_concaterror(L, top-2, top-1);
     } else if (tsvalue(top-1)->len == 0)  /* second op is empty? */
@@ -290,7 +302,7 @@ void luaV_concat (lua_State *L, int total, int last) {
       char *buffer;
       int i;
       /* collect total length */
-      for (n = 1; n < total && tostring(L, top-n-1); n++) {
+      for (n = 1; n < total && ttisstring(top-n-1); n++) {
         size_t l = tsvalue(top-n-1)->len;
         if (l >= MAX_SIZET - tl) luaG_runerror(L, "string length overflow");
         tl += l;
@@ -312,11 +324,8 @@ void luaV_concat (lua_State *L, int total, int last) {
 
 static void Arith (lua_State *L, StkId ra, const TValue *rb,
                    const TValue *rc, TMS op) {
-  TValue tempb, tempc;
-  const TValue *b, *c;
-  if ((b = luaV_tonumber(rb, &tempb)) != NULL &&
-      (c = luaV_tonumber(rc, &tempc)) != NULL) {
-    lua_Number nb = nvalue(b), nc = nvalue(c);
+  if (ttisnumber(rb) && ttisnumber(rc)) {
+    lua_Number nb = nvalue(rb), nc = nvalue(rc);
     switch (op) {
       case TM_ADD: setnvalue(ra, luai_numadd(nb, nc)); break;
       case TM_SUB: setnvalue(ra, luai_numsub(nb, nc)); break;
@@ -773,11 +782,11 @@ void luaV_execute (lua_State *L, int nexeccalls) {
         const TValue *plimit = ra+1;
         const TValue *pstep = ra+2;
         L->savedpc = pc;  /* next steps may throw errors */
-        if (!tonumber(init, ra))
+        if (!ttisnumber(init))
           luaG_runerror(L, LUA_QL("for") " initial value must be a number");
-        else if (!tonumber(plimit, ra+1))
+        else if (!ttisnumber(plimit))
           luaG_runerror(L, LUA_QL("for") " limit must be a number");
-        else if (!tonumber(pstep, ra+2))
+        else if (!ttisnumber(pstep))
           luaG_runerror(L, LUA_QL("for") " step must be a number");
         setnvalue(ra, luai_numsub(nvalue(ra), nvalue(pstep)));
         dojump(L, pc, GETARG_sBx(i));
