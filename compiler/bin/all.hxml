@@ -1,14 +1,9 @@
 -main Test.hx
--neko nekotest.n
+-hllua outdir
 -cp ../../ext
 
 --next
--main Test.hx
--lua test.lua
--cp ../../ext
-
---next
---neko-source
+#--neko-source
 -main Test.hx
 -neko nekover.n
 -cp ../../ext

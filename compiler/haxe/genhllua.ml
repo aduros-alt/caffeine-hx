@@ -49,6 +49,8 @@ let rec register_required_path ctx path = match path with
 	| [], "Array"
 	| [], "String"
 	| ["lua"], "LuaMath__"
+	| ["lua"], "LuaDate__"
+	| ["lua"], "LuaXml__"
 	| [], "Dynamic"
 	| [], "Bool" -> ()
 	| _, _ ->
@@ -142,6 +144,25 @@ let close ctx =
 
 	close_out ctx.ch
 
+let rec s_tclass_kind mtclass =
+	match mtclass.cl_kind with
+	| KNormal -> "KNormal"
+	| KTypeParameter -> "KTypeParameter"
+	| KExtension (tc,_) ->
+		(Printf.sprintf "KExtension of %s" (s_tclass_kind tc))
+	| KConstant (tc) ->
+		(match tc with
+		| TInt _ -> "KConstant TInt"
+		| TFloat _ -> "KConstant TFloat"
+		| TString _ -> "KConstant TString"
+		| TBool _ -> "KConstant TBool"
+		| TNull -> "KConstant TNull"
+		| TThis -> "KConstant TThis"
+		| TSuper -> "KConstant TSuper"
+		)
+	| KGeneric -> "KGeneric"
+	| KGenericInstance -> "KGenericInstance"
+
 let s_path1 = function
 	| ([],"@Main") -> "Main"
 	| p -> Ast.s_type_path p
@@ -151,18 +172,18 @@ let s_path ctx path isextern p =
 	match path with
 	| ([],name) ->
 		(match name with
-		| "List" -> "HList"
+(* 		| "List" -> "HList" *)
 		| _ -> name)
-	| (["lua"],"Xml__") ->
-		"Xml"
-	| (["lua"],"LuaArray__") ->
-		"Array"
+(*	| (["lua"],"LuaArray__") ->
+		"Array"*)
 	| (["lua"],"LuaDate__") ->
 		"Date"
 	| (["lua"],"LuaMath__") ->
 		"Math"
 	| (["lua"],"LuaString__") ->
 		"String"
+	| (["lua"],"LuaXml__") ->
+		"Xml"
 	| (pack,name) ->
 		try
 		(match Hashtbl.find ctx.imports name with
@@ -218,6 +239,7 @@ let s_ident n =
 	| "parseInt" -> "parseInt"
 	| "parseFloat" -> "parseFloat"
 	| "type" -> "_type"
+	| "end" -> "_end"
 	| _ -> n
 
 let spr ctx s = Buffer.add_string ctx.buf s
@@ -248,7 +270,20 @@ let commentcode ctx s =
 		carriagereturn ctx;
 	| false -> ()
 
+let s_type_name e =
+  s_type (print_context()) e.etype
 
+let is_array_type e =
+  let s = s_type_name e in
+  if String.length s > 4 && String.sub s 0 5 = "Array" then true else false
+
+let is_string_type e =
+  if (s_type_name e) = "String" then true else false
+
+let is_constant e =
+	match e with
+	| TConst _ -> true
+	| _ -> false
 (*
 prefix ++
 (function() r = r + 1; return r; end)()
@@ -293,7 +328,7 @@ let rec s_binop = function
 	| OpLt -> "<"
 	| OpAnd -> "&"
 	| OpOr -> "|"
-	| OpXor -> "|^"
+	| OpXor -> "^|"
 	| OpBoolAnd -> "and"
 	| OpBoolOr -> "or"
 	| OpShr -> ">>"
@@ -342,6 +377,13 @@ let rec iter_switch_break in_switch e =
 	| TBreak when in_switch -> raise Exit
 	| _ -> iter (iter_switch_break in_switch) e
 
+(*let rec iter_switch_break in_switch e =
+	match e.eexpr with
+	| TFunction _ | TWhile _ | TFor _ -> ()
+	| TSwitch _ | TMatch _ when not in_switch -> iter_switch_break true e
+	| TBreak when in_switch -> ()
+	| _ -> iter (iter_switch_break in_switch) e*)
+
 let handle_break ctx e =
 	let old_handle = ctx.handle_break in
 	try
@@ -350,20 +392,20 @@ let handle_break ctx e =
 		(fun() -> ctx.handle_break <- old_handle)
 	with
 		Exit ->
-			spr ctx "try {";
+			spr ctx "try ";
 			let b = open_block ctx in
-			newline ctx;
+			carriagereturn ctx;
 			ctx.handle_break <- true;
 			(fun() ->
 				b();
 				ctx.handle_break <- old_handle;
 				newline ctx;
-				spr ctx "} catch( e ) { if( e != \"__break__\" ) throw e; }";
+				spr ctx " catch e do if e.error ~= nil and e.error != \"__break__\" then throw(e) end end";
 			)
 
 let this ctx =
 	if ctx.in_constructor then "___new" else
-		if ctx.in_value then "this" else "self"
+		if ctx.in_value then "this" else if ctx.in_function then "this" else "self"
 
 let gen_constant ctx p = function
 	| TInt i -> print ctx "%ld" i
@@ -399,7 +441,16 @@ let rec has_assign_op e =
 			iter (has_assign_op) e2;
 			()
 		);
+(*	| TIf (cond, e, eelse) -> raise Exit;*)
+	| TFunction f -> ()
 	| _ -> iter (has_assign_op) e
+
+let extract_field fields name =
+	List.find (fun f ->
+		match f with
+		| (fname, _) when fname = name -> true
+		| _ -> false
+	) fields
 
 let rec gen_call ctx e el =
 	match e.eexpr , el with
@@ -407,7 +458,7 @@ let rec gen_call ctx e el =
 		(match ctx.curclass.cl_super with
 		| None -> assert false
 		| Some (c,_) ->
-			commentcode ctx "TConst TSuper";
+			commentcode ctx "gen_call TConst TSuper";
 			print ctx "%s.new(" (s_path ctx c.cl_path true e.epos);
 			concat ctx "," (gen_value ctx) params;
 			spr ctx ")";
@@ -416,15 +467,37 @@ let rec gen_call ctx e el =
 		(match ctx.curclass.cl_super with
 		| None -> assert false
 		| Some (c,_) ->
-			commentcode ctx "TField super";
+			commentcode ctx "gen_call TField TConst TSuper";
 (* 			member method super call *)
 			print ctx "%s%s(" (s_path ctx c.cl_path true e.epos) (staticfield name);
 			concat ctx "," (gen_value ctx) params;
 			spr ctx ")"
 		);
+	(*
+		Calls to static string values, ie:
+		var s = "abcdef".substr(0,3)
+	*)
+	| TField ({ eexpr = TConst (TString s)}, name), el  ->
+		commentcode ctx "gen_call TFIELD TCONST";
+		print ctx "string.haxe_%s(\"%s\"," name s;
+		concat ctx "," (gen_value ctx) el;
+		spr ctx ")"
+	| TField ({ etype = TDynamic (_)}, name), params  ->
+(*	| TField (({ eexpr = TField(x,s), etype = TDynamic (_)}), name), params  ->*)
+(* 	| TField ({ eexpr = TField(x,s)}, name), params  when e.etype = TDynamic _ -> *)
+		commentcode ctx "gen_call TField TDynamic";
+		spr ctx "Haxe.callMethod(";
+		(match e.eexpr with
+		| TField(x,s) -> gen_value ctx x
+		| _ -> unsupported e.epos
+		);
+		print ctx ", \"%s" name;
+		spr ctx "\", {";
+		concat ctx "," (gen_value ctx) params;
+		spr ctx "})"
 	| TField (e,s) , el ->
 (* 		| TField of texpr * string *)
-		commentcode ctx "gen_call TField";
+		commentcode ctx "gen_call TField (e,s)";
 		gen_value ctx e;
 		(* spr ctx (staticfield s); *)
 		let is_func = is_method ctx e.etype s in
@@ -433,7 +506,7 @@ let rec gen_call ctx e el =
 		concat ctx "," (gen_value ctx) el;
 		spr ctx ")"
 	| TCall (x,_) , el when x.eexpr <> TLocal "__lua__" ->
-		spr ctx "--[[TCALL--]]";
+		commentcode ctx "gen_call TCall (x,_)";
 		spr ctx "(";
 		gen_value ctx e;
 		spr ctx ")";
@@ -451,7 +524,7 @@ let rec gen_call ctx e el =
 		concat ctx "," (gen_value ctx) params;
 		spr ctx ")";
 	| TLocal "__keys__", [e] ->
-		print ctx "Haxe.tableKeys(";
+		print ctx "Haxe.tableKeysArray(";
 		gen_value ctx e;
 		spr ctx ")";
 	| TLocal "__hasOwnProperty__" , e :: params ->
@@ -472,7 +545,7 @@ let rec gen_call ctx e el =
 		spr ctx "']";
 		spr ctx " = nil";
 	| TLocal "__tostring__", [e] ->
-		spr ctx "tostring(";
+		spr ctx "_G.tostring(";
 		gen_value ctx e;
 		spr ctx ")";
 	| TLocal "__mkglobal__", [{ eexpr = TConst (TString name) };{ eexpr = TConst (TString value) }] ->
@@ -483,6 +556,7 @@ let rec gen_call ctx e el =
 	| TLocal "__lua__", [{ eexpr = TConst (TString code) }] ->
 		spr ctx code
 	| _ ->
+		commentcode ctx "gen_call default";
 		gen_value ctx e;
 		spr ctx "(";
 		concat ctx "," (gen_value ctx) el;
@@ -499,19 +573,10 @@ and gen_value_op ctx e =
 
 (* context Type.t fieldname *)
 and gen_field_access ctx isvar t s =
-	let field c member =
+	let field c ismember =
 		match fst c.cl_path, snd c.cl_path with
 		| [], "Math"
 		-> 	 print ctx ".%s" (s_ident s)
-		| [], "Date"
-		-> 	(match s with
-			| "now"
-			| "fromTime"
-			| "fromString"
-			| "toString"
-			| _
-			-> print ctx "unhandled warning"
-			);
 		| [], "String"
 		->	(match s with
 			| "length" -> print ctx ":len()"
@@ -519,42 +584,64 @@ and gen_field_access ctx isvar t s =
 			);
 		| [], "Array"
 		-> (match s with
-			| "length" -> print ctx ".length"
-			| _ -> print ctx ":%s" s
+			| "length" ->
+				print ctx ".length"
+(*			| "toString" ->
+				print ctx ":toString"*)
+			| _ ->
+				print ctx "%s%s" (fieldaccess ismember) s
 			);
 		| _ ->
-			print ctx "%s%s" (fieldaccess member) (s_ident s)
-
+			commentcode ctx (Printf.sprintf "gen_field_access %s %s" s (match ismember with true->"true" | false->"false"));
+			print ctx "%s%s" (fieldaccess ismember) (s_ident s)
 	in
 	match follow t with
 	| TInst (c,_) ->
- 		commentcode ctx "tinst";
-(*		if c == ctx.curclass then field c false
-		else*) if isvar then field c false else field c true;
+		commentcode ctx (Printf.sprintf "%s" (s_tclass_kind c));
+		(match isvar with
+		| true->
+			commentcode ctx (Printf.sprintf "TInst %s true" s);
+			field c false
+		| false ->
+			commentcode ctx (Printf.sprintf "TInst %s false" s);
+			field c true
+		)
 	| TAnon a ->
 		(match !(a.a_status) with
 		| Statics c ->
-			commentcode ctx "tanon static";
+			commentcode ctx "TAnon static";
 			field c false
 		| _ ->
-			commentcode ctx "tanon unmatched";
-			print ctx "%s%s" (if isvar then "." else ":")(s_ident s))
+			commentcode ctx "TAnon unmatched";
+			print ctx "%s%s" (if isvar then "." else ":")(s_ident s)
+		)
+	| TDynamic td ->
+		commentcode ctx "gen_field_access TDynamic";
+		print ctx ".%s" (s_ident s)
 	| _ ->
+		commentcode ctx "gen_field_access unmatched";
 		print ctx ".%s" (s_ident s)
 
 and gen_expr ctx e =
 	match e.eexpr with
-	| TConst c -> gen_constant ctx e.epos c
-	| TLocal s -> spr ctx (ident s)
+	| TConst c ->
+		commentcode ctx "gen_expr TConst";
+		gen_constant ctx e.epos c
+	| TLocal s ->
+		commentcode ctx "gen_expr TLocal";
+		spr ctx (ident s)
 	| TEnumField (en,s) ->
+		commentcode ctx "gen_expr TEnumField";
 		print ctx "%s.%s" (s_path ctx en.e_path en.e_extern e.epos) s
 	| TArray ({ eexpr = TLocal "__global__" },{ eexpr = TConst (TString s) }) ->
+		commentcode ctx "gen_expr TArray 1";
 		let path = (match List.rev (ExtString.String.nsplit s ".") with
 			| [] -> assert false
 			| x :: l -> List.rev l , x
 		) in
 		spr ctx (s_path1 path)
 	| TArray (e1,e2) ->
+		commentcode ctx "gen_expr TArray 2";
 		gen_value ctx e1;
 		spr ctx "[";
 		gen_value ctx e2;
@@ -601,6 +688,7 @@ and gen_expr ctx e =
 			gen_value_op ctx e2;
 		)
 	| TField (x,s) ->
+		commentcode ctx "gen_expr TField";
 		(match follow e.etype with
 		| TFun _ ->
 			spr ctx "Haxe.closure("; (* closure *)
@@ -609,23 +697,29 @@ and gen_expr ctx e =
 			gen_constant ctx e.epos (TString s);
 			spr ctx ")";
 		| _ ->
-			commentcode ctx "TField (x,s)";
-			gen_value ctx x;
-			gen_field_access ctx true x.etype s;
-			)
-(*	| TField ({ eexpr = TTypeExpr t },s) when t_path t = ctx.curclass.cl_path && not (PMap.mem s ctx.locals) ->
-		print ctx "%s" (s_ident s)*)
-(*	| TField (e,s) ->
-		gen_value ctx e;
-		gen_field_access ctx true e.etype s
-*)
+			(* Check for { var="val"}.var *)
+			(match x.eexpr with
+			| TObjectDecl fields ->
+				(try
+					let (s,f) = extract_field fields s in
+					gen_value ctx f;
+				with
+					Exit -> unsupported e.epos;)
+			| _ ->
+				commentcode ctx "TField (x,s)";
+				gen_value ctx x;
+				gen_field_access ctx true x.etype s;
+			);
+		)
 	| TTypeExpr t ->
+		commentcode ctx "gen_expr TTypeExpr";
 		spr ctx (s_path ctx (t_path t) false e.epos)
 	| TParenthesis e ->
 		spr ctx "(";
 		gen_value ctx e;
 		spr ctx ")";
 	| TReturn eo ->
+		commentcode ctx "gen_expr TReturn";
 		if ctx.in_value then unsupported e.epos;
 		(match eo with
 		| None ->
@@ -633,11 +727,42 @@ and gen_expr ctx e =
 		| Some e ->
 			try
 				has_assign_op e;
-				spr ctx "do return ";
-				gen_value ctx e;
-				spr ctx " end"
+				(match e.eexpr with
+				| TIf (cond, etrue, efalse) ->
+					let id = ctx.id_counter in
+					ctx.id_counter <- ctx.id_counter + 1;
+					spr ctx "do";
+					let bend1 = open_block ctx in
+					carriagereturn ctx;
+					print ctx "local null%d" id;
+					newline ctx;
+					spr ctx "if ";
+					gen_value ctx cond;
+					print ctx " then null%d = " id;
+					gen_value ctx etrue;
+					(match efalse with
+					| None -> ()
+					| Some e when e.eexpr = TConst(TNull) -> ()
+					| Some e ->
+						newline ctx;
+						print ctx "else null%d =" id;
+						gen_value ctx e;
+					);
+					newline ctx;
+					spr ctx "end";
+					newline ctx;
+					print ctx "return null%d" id;
+					bend1();
+					carriagereturn ctx;
+					print ctx "end"
+				| _ ->
+					spr ctx "do return ";
+					gen_value ctx e;
+					spr ctx " end"
+				);
 			with
-				Exit -> unsupported e.epos
+				Exit -> unsupported e.epos;
+				print ctx "do return %s end" ();
 		);
 	| TBreak ->
 (* 		if ctx.in_value then unsupported e.epos; *)
@@ -656,6 +781,7 @@ and gen_expr ctx e =
 		newline ctx;
 		print ctx "end";
 	| TFunction f ->
+		commentcode ctx "gen_expr TFunction";
 		let old = ctx.in_value in
 		let old_meth = ctx.curmethod in
 		let old_infunc = ctx.in_function in
@@ -678,6 +804,7 @@ and gen_expr ctx e =
 		ctx.curmethod <- old_meth;
 		ctx.in_value <- old;
 	| TCall (e,el) ->
+		commentcode ctx "gen_expr TCall";
 		gen_call ctx e el
 	| TArrayDecl el ->
 		spr ctx "Array:new({";
@@ -742,21 +869,22 @@ and gen_expr ctx e =
 		handle_break();
 	| TObjectDecl fields ->
 		commentcode ctx "TObjectDecl";
-		spr ctx " { ";
+		spr ctx " lua.Boot.__makeObject({ ";
 		concat ctx ", " (fun (f,e) -> print ctx "%s = " f; gen_value ctx e) fields;
-		spr ctx " }";
+		spr ctx " }, self)";
 	| TFor (v,_,it,e) ->
 		let handle_break = handle_break ctx e in
 		let id = ctx.id_counter in
 		ctx.id_counter <- ctx.id_counter + 1;
-		print ctx "TFor { var ___it%d = " id;
+		print ctx "local ___it%d = " id;
 		gen_value ctx it;
 		newline ctx;
-		print ctx "while( ___it%d.hasNext() ) { var %s = ___it%d.next()" id (ident v) id;
-		newline ctx;
-		gen_expr ctx e;
-		newline ctx;
-		spr ctx "}}";
+		print ctx "while( ___it%d:hasNext() ) do local %s = ___it%d:next();" id (ident v) id;
+(* 		newline ctx; *)
+(* 		gen_expr ctx e; *)
+		gen_block_body ctx e None;
+(* 		newline ctx; *)
+(* 		spr ctx "end"; *)
 		handle_break();
 	| TTry (e,catchs) ->
 		(* For some reason, try's following multiple failed if/then/end
@@ -818,14 +946,14 @@ and gen_expr ctx e =
 		) catchs;
 		carriagereturn ctx;
 		if not !last then print ctx "throw(e%d);" id;
-		if !openif then print ctx "end --636";
+		if !openif then print ctx "end";
 		carriagereturn ctx;
 		commentcode ctx "Try End Block";
-		spr ctx "end --639";
+		spr ctx "end";
 		bend();
 		newline ctx;
 		commentcode ctx "End Catch";
-		spr ctx "end --643";
+		spr ctx "end";
 	| TMatch (e,(estruct,_),cases,def) ->
 		spr ctx "local ___e = ";
 		gen_value ctx e;
@@ -1059,15 +1187,40 @@ and gen_value ctx e =
 		loop el;
 		v();
 	| TIf (cond,e,eo) ->
-		spr ctx "((";
+		commentcode ctx "TIf (cond,e,eo)";
+(*		spr ctx "((";
+		gen_value ctx cond;
+		spr ctx ")";
+		(match eo with
+		| None -> ()
+		| Some e when e.eexpr = TConst(TNull) ->
+			spr ctx " or nil"
+		| Some e ->
+			spr ctx " or (";
+			gen_value ctx e;
+			spr ctx ")";
+		);
+		spr ctx ") and (";
+		gen_value ctx e;
+		spr ctx ") ";*)
+(*		(match eo with
+		| None -> () (*spr ctx "gen_value TIf nil"*)
+		| Some e when e.eexpr = TConst(TNull) -> ()
+		| Some e ->
+			spr ctx " or (";
+			gen_value ctx e;
+			spr ctx ")";
+		);*)
+		spr ctx "(((";
 		gen_value ctx cond;
 		spr ctx ") and (";
 		gen_value ctx e;
-		spr ctx ") or (";
+		spr ctx ") or ";
 		(match eo with
-		| None -> spr ctx "gen_value TIf nil"
+		| None -> spr ctx "nil"
 		| Some e -> gen_value ctx e);
 		spr ctx "))"
+
 	| TSwitch (cond,cases,def) ->
 		let v = value true in
 		gen_expr ctx (mk (TSwitch (cond,
@@ -1106,61 +1259,6 @@ let mark_static_field ctx c f is_var =
 	| false ->
 		print ctx "__statics__['%s'] = %s%s" f.cf_name (s_path1 c.cl_path) (staticfield f.cf_name);
 		newline ctx
-
-let gen_class_static_field ctx c f =
-	match f.cf_expr with
-	| None ->
-		commentcode ctx "gen_class_static_field1";
-		mark_static_field ctx c f true;
-		print ctx "%s%s = nil" (s_path1 c.cl_path) (staticfield f.cf_name);
-		newline ctx;
-	| Some e ->
-		let e = Transform.block_vars e in
-		match e.eexpr with
-		| TFunction _ ->
-			ctx.curmethod <- (f.cf_name,false);
-			commentcode ctx "gen_class_static_field2";
-			mark_static_field ctx c f false;
-			print ctx "function %s%s " (s_path1 c.cl_path) (staticfield f.cf_name);
-			(* gen_value ctx e; *)
-			let bend = open_block ctx in
-				(*gen_function_body ctx e; *)
-				gen_value ctx e;
-			bend();
-			carriagereturn ctx;
-			print ctx "end";
-			newline ctx;
-		| _ ->
-			(* variables to be initilized at end of code generation *)
-			mark_static_field ctx c f true;
-			ctx.statics <- (c,f.cf_name,e) :: ctx.statics
-
-
-(*
-	context->tclass->tclass_field->Void
-*)
-let gen_class_field ctx c f =
-	if ctx.commentcode then begin
-		print ctx "-- gen_class_field %s%s " (s_path1 c.cl_path) (member f.cf_name);
-		carriagereturn ctx;
-	end;
-	(match f.cf_expr with
-	| None ->
-		print ctx "%s%s = nil" (s_path1 c.cl_path) (staticfield f.cf_name);
-		newline ctx;
-		print ctx "%s.prototype['%s'] = \"object\"" (s_path1 c.cl_path) f.cf_name;
-	| Some e ->
-		print ctx "function %s%s " (s_path1 c.cl_path) (member f.cf_name);
-		ctx.curmethod <- (f.cf_name,false);
-		gen_value ctx (Transform.block_vars e);
-		newline ctx;
-		print ctx "end";
-		newline ctx;
-		print ctx "%s.prototype['%s'] = %s%s" (s_path1 c.cl_path) f.cf_name (s_path1 c.cl_path) (staticfield f.cf_name);
-	);
-	newline ctx;
-	carriagereturn ctx
-
 
 let generate_field ctx static f =
 	carriagereturn ctx;
@@ -1220,7 +1318,7 @@ let generate_field ctx static f =
 			match f.cf_expr with
 			| None -> ()
 			| Some e ->
-				print ctx "local %s = " (s_ident f.cf_name);
+				print ctx "%s = " (s_ident f.cf_name);
 				gen_value ctx e
 		end
 
@@ -1230,16 +1328,25 @@ let generate_class ctx c =
 	ctx.curmethod <- ("new",true);
 
 	let p = s_path1 c.cl_path in
-	print ctx "__name__= Array:new({%s});\n" (String.concat "," (List.map (fun s -> Printf.sprintf "\"%s\"" (Ast.s_escape s)) (fst c.cl_path @ [snd c.cl_path])));
-	print ctx "prototype = {}\n";
-	print ctx "__statics__ = {}\n\n";
+	(match c.cl_super with
+	| None -> ()
+	| Some (csup,_) ->
+		let psup = s_path ctx csup.cl_path csup.cl_extern c.cl_pos in
+		print ctx "getmetatable(%s).__index = %s\n" p psup;
+		print ctx "%s.__super__ = %s\n" p psup;
+	);
+
+	print ctx "%s.__class__ = %s\n" p p;
+	print ctx "%s.__name__= Array:new({%s});\n" p (String.concat "," (List.map (fun s -> Printf.sprintf "\"%s\"" (Ast.s_escape s)) (fst c.cl_path @ [snd c.cl_path])));
+	print ctx "%s.prototype = {}\n" p;
+	print ctx "%s.__statics__ = {}\n\n" p;
 
 	print ctx "-- %s constructor\n" p;
 	print ctx "function %s:__construct__(o)\n" p;
 	print ctx "\to = o or {}\n";
 	print ctx "\tsetmetatable(o, self)\n";
 	print ctx "\tself.__index = self\n";
-	print ctx "\tself.__class__ = %s\n" p;
+
 (* 	print ctx "\t%s.__name__ = Array:new({%s})\n" p (String.concat "," (List.map (fun s -> Printf.sprintf "\"%s\"" (Ast.s_escape s)) (fst c.cl_path @ [snd c.cl_path]))); *)
 	print ctx "\treturn o\n";
 	print ctx "end\n\n";
@@ -1261,16 +1368,10 @@ let generate_class ctx c =
 		| _ -> assert false)
 	| _ ->
 		print ctx ":new ()\n";
-		print ctx "\tlocal new =%s:new()\n" p;
-		print ctx "\treturn new\nend\n");
+		print ctx "\tlocal ___new =%s:__construct__()\n" p;
+		print ctx "\treturn ___new\nend\n");
 	carriagereturn ctx;
-	(match c.cl_super with
-	| None -> ()
-	| Some (csup,_) ->
-		let psup = s_path ctx csup.cl_path csup.cl_extern c.cl_pos in
-		print ctx "%s.__super__ = %s" p psup;
-		newline ctx;
-	);
+
 (*	List.iter (gen_class_static_field ctx c) c.cl_ordered_statics;
 	PMap.iter (fun _ f -> if f.cf_get <> ResolveAccess then gen_class_field ctx c f) c.cl_fields;*)
 
@@ -1284,11 +1385,13 @@ let generate_class ctx c =
 	match c.cl_implements with
 	| [] -> ()
 	| l ->
+		carriagereturn ctx;
 		print ctx "%s.__interfaces__ = {%s}" p (String.concat "," (List.map (fun (i,_) -> s_path ctx i.cl_path i.cl_extern c.cl_pos) l))
 
 
 let generate_enum ctx e =
-	let p = s_path1 e.e_path in
+(* 	let p = s_path1 e.e_path in *)
+	let p = s_path ctx e.e_path e.e_extern e.e_pos in
 	let ename = List.map (fun s -> Printf.sprintf "\"%s\"" (Ast.s_escape s)) (fst e.e_path @ [snd e.e_path]) in
 	print ctx "__ename__ = {%s}" (String.concat "," ename);
 	newline ctx;

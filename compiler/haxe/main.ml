@@ -245,6 +245,7 @@ try
 			classes := (["lua"], "Boot") :: !classes;
 			classes := (["lua"], "LuaMath__") :: !classes;
 			classes := (["lua"], "LuaString__") :: !classes;
+			classes := (["lua"], "LuaDate__") :: !classes;
 			target := HLLua dir
 		),"<file> : generate HLLua code into target directory");
 		("-as3",Arg.String (fun dir ->

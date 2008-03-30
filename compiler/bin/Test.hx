@@ -25,6 +25,7 @@ class Base {
 
 class Test extends Base {
 	var aClassVar : Int;
+	var aClassField : Dynamic;
 	public function new(va : Int) {
 		super();
 		aClassVar = va;
@@ -32,6 +33,9 @@ class Test extends Base {
 
 	override public function val() : Int {
 		var v = super.val();
+		var i = "abcdef".substr(0,3);
+		trace(i);
+		aClassField = Test.main;
 		return v;
 	}
 
@@ -72,5 +76,8 @@ class Test extends Base {
 		trace(Reflect.hasField(Test, "main"));
 		trace("Deleting main:" + Reflect.deleteField(Test,"main"));
 		trace(Reflect.hasField(Test, "val"));
+
+		trace("--- instance aClassVar == 67 ---");
+		trace(s.aClassVar);
 	}
 }
