@@ -115,7 +115,7 @@ class Runner {
   }
 
   private function getTestMethods(t) {
-    var allFields = Type.getInstanceFields(t);
+    var allFields = Type.getInstanceFields(Type.getClass(t));
 	var testFields = [];
 	for(name in allFields) {
 	  if(name.substr(0, 4) == "test") {
