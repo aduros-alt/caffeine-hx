@@ -3,7 +3,9 @@ package unit;
 import haxe.PosInfos;
 
 class Assert {
+  public static var counter = 0;
   public static function isTrue(c : Bool, ?message : String, ?p : PosInfos) {
+    counter++;
     if(message == null) message = "Assertion failed (is true)";
     if(!c) throw new AssertException(p, message);
   }

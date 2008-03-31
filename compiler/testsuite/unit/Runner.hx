@@ -60,22 +60,30 @@ class Runner {
 #end
   }
 
+  private function dotted(s : String) {
+	var l = s.length;
+	for(i in l...50)
+		s += '.';
+	return s;
+  }
+  
   public function run() {
     println("classes to test: " + test_classes.length + "");
     for(t in test_classes) {
 	  var messages = [];
-	  print("testing class: " + Type.getClassName(t) + " ");
-	  var inst = Type.createInstance(t, []);
-	  var tests = getTestMethods(inst, t);
+	  var cname = Type.getClassName(Type.getClass(t));
+	  print("testing: " + cname);
+	  var tests = getTestMethods(t);
 	  var i = 1;
 	  var tot = tests.length;
 	  for(test in tests) {
 		var passed = true;
 		var error = false;
+		var assertions = Assert.counter;
 		try {
 		  println("");
-		  print("\t"+Std.string(i) + "> " + test + "...");
-		  Reflect.callMethod(inst, Reflect.field(inst, test), []);
+		  print("      "+dotted(Std.string(i) + ". " + test));
+		  Reflect.callMethod(t, Reflect.field(t, test), []);
 		} catch(e : AssertException) {
 		  passed = false;
 		  //println("failed");
@@ -86,29 +94,32 @@ class Runner {
 		  error = true;
 		  messages.push(test + " error: " + Std.string(e));
 		}
-		if(passed)
-		  print('PASS.');
-		else if(error)
-		  print('E');
+		if(passed) {
+		  if(assertions == Assert.counter)
+			print('WITHDRAWN');
+		  else
+			print('.......OK');
+		} else if(error)
+		  print('....ERROR');
 		else
-		  print('F');
+		  print('...FAILED');
 		i++;
 	  }
 	  println('   ');
 	  if(messages.length > 0) {
 	    println("!!! Houston we have a problem (maybe more): " + messages.length + " failed test(s) out of " + tot);
 		for(message in messages)
-		  println("!!! " + message);
+		  println("--- " + message);
 	  }
 	}
   }
 
-  private function getTestMethods(inst, cl) {
-    var allFields = Type.getInstanceFields(cl);
+  private function getTestMethods(t) {
+    var allFields = Type.getInstanceFields(t);
 	var testFields = [];
 	for(name in allFields) {
 	  if(name.substr(0, 4) == "test") {
-	    var field = Reflect.field(inst, name);
+	    var field = Reflect.field(t, name);
 		if(Reflect.isFunction(field)) {
 			testFields.push(name);
 		}

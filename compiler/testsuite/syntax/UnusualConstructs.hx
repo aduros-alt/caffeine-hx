@@ -3,6 +3,8 @@ package syntax;
 import unit.Assert;
 
 class UnusualConstructs {
+	public function new(){}
+	
 	var value: Int;
 
 	public function testAssignReturn() {
