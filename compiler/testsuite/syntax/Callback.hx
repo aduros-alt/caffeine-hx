@@ -7,6 +7,7 @@ class Callback {
 	public function new() {}
 
 	public function testCallback() {
+#if !php
 		counter = 0;
         var n = "haXe";
         var cc = callback(f, n);
@@ -15,6 +16,7 @@ class Callback {
         n = "Neko";
         Assert.equals("haXe", cc());
 		Assert.equals(2,counter);
+#end
     }
 
 	// for comparison

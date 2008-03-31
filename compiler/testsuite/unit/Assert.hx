@@ -4,9 +4,13 @@ import haxe.PosInfos;
 
 class Assert {
   public static function isTrue(c : Bool, ?message : String, ?p : PosInfos) {
-    if(message == null)
-	  message = "Assertion failed (is true)";
+    if(message == null) message = "Assertion failed (is true)";
     if(!c) throw new AssertException(p, message);
+  }
+  
+  public static function isFalse(c : Bool, ?message : String, ?p : PosInfos) {
+    if(message == null) message = "Assertion failed (is false)";
+	isTrue(!c, message, p);
   }
   
   public static function equals(a : Dynamic, b : Dynamic, ?message : String, ?p : PosInfos) {
