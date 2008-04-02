@@ -79,5 +79,7 @@ class Test extends Base {
 
 		trace("--- instance aClassVar == 67 ---");
 		trace(s.aClassVar);
+
+		s.aClassVar = if(s.aClassVar > 5) 2 else 8;
 	}
 }
