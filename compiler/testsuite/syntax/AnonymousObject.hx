@@ -41,4 +41,10 @@ class AnonymousObject {
 	  Assert.equals("Lisbon", o.locations[0].town);
 	  Assert.equals("Milan", o.locations[1].town);
 	}
+	
+	public function testAccessingUnexistentField() {
+		var o : Dynamic = {};
+		Assert.isTrue(o != null);
+		Assert.isNull(o.name);
+	}
 }

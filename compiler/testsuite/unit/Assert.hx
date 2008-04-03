@@ -16,12 +16,12 @@ class Assert {
   }
   
   public static function equals(a : Dynamic, b : Dynamic, ?message : String, ?p : PosInfos) {
-    if(message == null) message = "Assertion failed: expected value was " + Std.string(a) + " but it is " + Std.string(b);
+    if(message == null) message = "Assertion failed: expected '" + Std.string(a) + "' but it is '" + Std.string(b) + "'";
     isTrue(a == b, message, p);
   }
   
   public static function differents(a : Dynamic, b : Dynamic, ?message : String, ?p : PosInfos) {
-    if(message == null) message = "Assertion failed: expected value was different from " + Std.string(a);
+    if(message == null) message = "Assertion failed: expected value differs from '" + Std.string(a) + "'";
     isTrue(a != b, message, p);
   }
   
@@ -31,7 +31,7 @@ class Assert {
   }
   
   public static function isNull(o : Dynamic, ?message : String, ?p : PosInfos) {
-	if(message == null) message = "Assertion failed: expected null but it is " + Std.string(o);
+	if(message == null) message = "Assertion failed: expected null but it is '" + Std.string(o) + "'";
     isTrue(o === null, message, p);
   }
   

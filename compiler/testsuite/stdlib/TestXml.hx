@@ -6,21 +6,17 @@ class TestXml {
 	public function new(){}
 	
 	public function testBase(){
-#if !php
 		var x = Xml.parse("<coucou var=\"val\">Lala</coucou>");
 		Assert.equals(Xml.Document,x.nodeType);
-		
 		Assert.equals("coucou",x.firstChild().nodeName);
 		Assert.equals("Lala",x.firstChild().firstChild().nodeValue);
 		Assert.equals("val",x.firstChild().get("var"));
 
 		Assert.equals("var",x.firstChild().attributes().next());
 		Assert.equals("<coucou var=\"val\">Lala</coucou>",x.toString());
-#end
 	}
 
 	public function test2(){
-#if !php
 		var x = Xml.parse("<coucou var=\"val\"><sub>Pouet !</sub>Lala</coucou>");
 
 		try {
@@ -52,19 +48,21 @@ class TestXml {
 			i++;
 		}
 		Assert.equals(0,i);
-#end
 	}
 
 	public function test3(){
-#if !php
+#if php
+		var x = Xml.parse("<root><a/>lala<a/><b/><a/>pouet<c/><a/>pouet<c/><a/></root>");
+		x = x.firstChild();
+#else true
 		var x = Xml.parse("<a/>lala<a/><b/><a/>pouet<c/><a/>pouet<c/><a/>");
+#end
 
 		var i = 0;
 		for( n in x.elementsNamed("a") ){
 			i++;
 		}
 		Assert.equals(5,i);
-#end
 	}
 
 	// fail on Flash
@@ -98,12 +96,11 @@ class TestXml {
 		#else true
 		Assert.equals("<base var=\"val\"><un/><deux/></base>",x.toString());
 		#end
-		
 		var z = Xml.createElement("zero");
 		x.insertChild(z,0);
 
 		x.set("var","realval");
-		
+		untyped __call__("var_dump", x.toString());
 		#if (flash8 || flash7)
 		Assert.equals("<base var=\"realval\"><zero /><un /><deux /></base>",x.toString());
 		#else true
@@ -143,10 +140,9 @@ class TestXml {
 	}
 
 	public function testFirstElement(){
-#if !php
-		var x = Xml.parse("<?xml ?>     <pouet/>");
+		// in the original test version was omitted, but version is not optional
+		var x = Xml.parse("<?xml version=\"1.0\"?>     <pouet/>");
 		Assert.equals("pouet",x.firstElement().nodeName);
-#end
 	}
 	
 	// fail on Flash
@@ -170,5 +166,4 @@ class TestXml {
 #end
 	}
 	#end
-	
 }

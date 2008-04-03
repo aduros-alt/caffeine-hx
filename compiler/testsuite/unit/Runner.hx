@@ -68,7 +68,12 @@ class Runner {
   }
   
   public function run() {
-    println("classes to test: " + test_classes.length + "");
+	var tests_tot       = 0;
+	var tests_ok        = 0;
+	var tests_error     = 0;
+	var tests_failed    = 0;
+	var tests_withdrawn = 0;
+	
     for(t in test_classes) {
 	  var messages = [];
 	  var cname = Type.getClassName(Type.getClass(t));
@@ -86,32 +91,43 @@ class Runner {
 		  Reflect.callMethod(t, Reflect.field(t, test), []);
 		} catch(e : AssertException) {
 		  passed = false;
-		  //println("failed");
-		  messages.push(test + " failed at line #" + e.pos.lineNumber + ", " + e.message);
+		  messages.push(test + " failed at #" + e.pos.lineNumber + ", " + e.message);
 		} catch(e : Dynamic) {
-		  //println("failed");
 		  passed = false;
 		  error = true;
 		  messages.push(test + " error: " + Std.string(e));
 		}
 		if(passed) {
-		  if(assertions == Assert.counter)
+		  if(assertions == Assert.counter) {
+		    tests_withdrawn++;
 			print('WITHDRAWN');
-		  else
+		  } else {
+		    tests_ok++;
 			print('.......OK');
-		} else if(error)
+		  }
+		} else if(error) {
+		  tests_error++;
 		  print('....ERROR');
-		else
+		} else {
+		  tests_failed++;
 		  print('...FAILED');
+		}
 		i++;
+        tests_tot++;
 	  }
 	  println('   ');
 	  if(messages.length > 0) {
-	    println("!!! Houston we have a problem (maybe more): " + messages.length + " failed test(s) out of " + tot);
 		for(message in messages)
-		  println("--- " + message);
+		  println("-------> " + message);
 	  }
 	}
+	println("");
+	println("tested classes:    " + test_classes.length);
+	println("total tests:       " + tests_tot);
+	println("passed tests:      " + tests_ok);
+	println("failed tests:      " + tests_failed);
+	println("tests with errors: " + tests_error);
+	println("withdrawn tests:   " + tests_withdrawn);
   }
 
   private function getTestMethods(t) {

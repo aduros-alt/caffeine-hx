@@ -3,6 +3,8 @@ package syntax;
 import unit.Assert;
 
 class Bitwise {
+	public function new() {}
+	
 	public function testSHL() {
 		Assert.equals(320, 5<<6);
 	}

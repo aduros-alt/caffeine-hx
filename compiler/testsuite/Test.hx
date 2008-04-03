@@ -3,7 +3,7 @@ class Test {
 	var runner = new unit.Runner();
 	runner.register(new syntax.AnonymousObject());
 	runner.register(new syntax.ArraySyntax());
-//	runner.register(new syntax.Bitwise());
+	runner.register(new syntax.Bitwise());
 	runner.register(new syntax.Callback());
 	runner.register(new syntax.ClassInheritance());
 	runner.register(new syntax.CodeBlocks());
