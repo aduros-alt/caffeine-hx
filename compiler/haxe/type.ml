@@ -25,7 +25,7 @@ type field_access =
 	| NoAccess
 	| ResolveAccess
 	| MethodAccess of string
-	| F9MethodAccess
+	| MethodCantAccess
 	| NeverAccess
 	| InlineAccess
 
@@ -119,7 +119,7 @@ and tclass_kind =
 	| KExtension of tclass * tparams
 	| KConstant of tconstant
 	| KGeneric
-	| KGenericInstance
+	| KGenericInstance of tclass * tparams
 
 and tclass = {
 	cl_path : module_path;
@@ -284,6 +284,7 @@ let rec is_parent csup c =
 		| Some (c,_) -> is_parent csup c
 
 let rec link e a b =
+	(* tell if a is is b *)
 	let rec loop t =
 		if t == a then
 			true
@@ -306,17 +307,16 @@ let rec link e a b =
 			with
 				Exit -> true
 	in
-	let rec mono_loop t =
+	(* tell if a ~= b *)
+	let rec loop2 t =
 		if t == a then
 			true
 		else match t with
-		| TMono t -> (match !t with None -> false | Some t -> loop t)
+		| TMono t -> (match !t with None -> false | Some t -> loop2 t)
 		| _ -> false
 	in
-	if mono_loop b then
-		true
-	else if loop b then
-		false
+	if loop b then
+		loop2 b
 	else
 		match b with
 		| TDynamic _ -> true
@@ -473,8 +473,8 @@ let has_extra_field t n = Has_extra_field (t,n)
 let error l = raise (Unify_error l)
 
 let unify_access a1 a2 =
-	a1 = a2 || (a1 = NormalAccess && (a2 = NoAccess || a2 = F9MethodAccess))
-	|| (a1 = F9MethodAccess && a2 = NoAccess)
+	a1 = a2 || (a1 = NormalAccess && (a2 = NoAccess || a2 = MethodCantAccess))
+	|| (a1 = MethodCantAccess && a2 = NoAccess)
 
 let eq_stack = ref []
 

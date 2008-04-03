@@ -163,7 +163,7 @@ let rec s_tclass_kind mtclass =
 		| TSuper -> "KConstant TSuper"
 		)
 	| KGeneric -> "KGeneric"
-	| KGenericInstance -> "KGenericInstance"
+	| KGenericInstance _ -> "KGenericInstance"
 
 let s_path1 = function
 	| ([],"@Main") -> "Main"

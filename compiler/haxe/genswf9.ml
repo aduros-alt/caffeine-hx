@@ -31,6 +31,7 @@ type tkind =
 	| KBool
 	| KType of hl_name
 	| KDynamic
+	| KNone
 
 type register = {
 	rid : int;
@@ -75,6 +76,7 @@ type context = {
 	(* globals *)
 	debug : bool;
 	mutable last_line : int;
+	mutable last_file : string;
 	boot : string;
 	(* per-function *)
 	mutable locals : (string,local) PMap.t;
@@ -196,10 +198,15 @@ let type_id ctx t =
 	| _ ->
 		HMPath ([],"Object")
 
+let type_opt ctx t =
+	match follow t with
+	| TDynamic _ -> None
+	| _ -> Some (type_id ctx t)
+
 let type_void ctx t =
 	match follow t with
-	| TEnum ({ e_path = [],"Void" },_) -> HMPath ([],"void")
-	| _ -> type_id ctx t
+	| TEnum ({ e_path = [],"Void" },_) -> Some (HMPath ([],"void"))
+	| _ -> type_opt ctx t
 
 let classify ctx t =
 	match follow_basic t with
@@ -216,8 +223,11 @@ let classify ctx t =
 		KUInt
 	| TFun _ ->
 		KType (HMPath ([],"Function"))
+	| TAnon a ->
+		(match !(a.a_status) with
+		| Statics _ -> KNone
+		| _ -> KDynamic)
 	| TMono _
-	| TAnon _
 	| TType _
 	| TDynamic _ ->
 		KDynamic
@@ -233,13 +243,20 @@ let property p t =
 	match follow t with
 	| TInst ({ cl_path = [],"Array" },_) ->
 		(match p with
-		| "length" -> ident p, Some KInt
+		| "length" -> ident p, Some KInt (* UInt in the spec *)
 		| "copy" | "insert" | "remove" | "iterator" | "toString" -> ident p , None
 		| _ -> as3 p, None);
 	| TInst ({ cl_path = [],"String" },_) ->
 		(match p with
 		| "length" | "charCodeAt" (* use haXe version *) -> ident p, None
 		| _ -> as3 p, None);
+	| TAnon a ->
+		(match !(a.a_status) with
+		| Statics { cl_path = [], "Math" } ->
+			(match p with
+			| "POSITIVE_INFINITY" | "NEGATIVE_INFINITY" | "NaN" -> ident p, Some KFloat
+			| _ -> ident p, None)
+		| _ -> ident p, None)
 	| _ ->
 		ident p, None
 
@@ -280,6 +297,7 @@ let coerce ctx t =
 	   this type on the stack (as detected by the bytecode verifier)...
 	   maybe this get removed at JIT, so it's only useful to reduce codesize
 	*)
+	if t <> KNone then
 	write ctx (match t with
 		| KInt -> HToInt
 		| KUInt -> HToUInt
@@ -287,6 +305,7 @@ let coerce ctx t =
 		| KBool -> HToBool
 		| KType t -> HCast t
 		| KDynamic -> HAsAny
+		| KNone -> assert false
 	)
 
 let set_reg ctx r =
@@ -416,8 +435,32 @@ let begin_branch ctx =
 		(fun() -> ctx.infos.icond <- false)
 	end
 
+let begin_switch ctx =
+	let branch = begin_branch ctx in
+	let switch_index = DynArray.length ctx.code in
+	let switch_pos = ctx.infos.ipos in
+	write ctx (HSwitch (0,[]));
+	let constructs = ref [] in
+	let max = ref 0 in
+	let ftag tag =
+		if tag > !max then max := tag;
+		constructs := (tag,ctx.infos.ipos) :: !constructs;
+	in
+	let fend() =
+		let cases = Array.create (!max + 1) 1 in
+		List.iter (fun (tag,pos) -> Array.set cases tag (pos - switch_pos)) !constructs;
+		DynArray.set ctx.code switch_index (HSwitch (1,Array.to_list cases));
+		branch();
+	in
+	fend, ftag
+
+
 let debug ctx p =
 	let line = Lexer.get_error_line p in
+	if ctx.last_file <> p.pfile then begin
+		write ctx (HDebugFile p.pfile);
+		ctx.last_file <- p.pfile;
+	end;
 	if ctx.last_line <> line then begin
 		write ctx (HDebugLine line);
 		ctx.last_line <- line;
@@ -438,10 +481,7 @@ let begin_fun ctx args tret el stat p =
 	ctx.block_vars <- [];
 	ctx.in_static <- stat;
 	ctx.last_line <- -1;
-	if ctx.debug then begin
-		write ctx (HDebugFile p.pfile);
-		debug ctx p
-	end;
+	if ctx.debug then debug ctx p;	
 	let rec find_this e =
 		match e.eexpr with
 		| TFunction _ -> ()
@@ -509,6 +549,7 @@ let begin_fun ctx args tret el stat p =
 			| KBool -> HFalse :: s
 			| KType t -> HNull :: HAsType t :: s
 			| KDynamic -> HNull :: HAsAny :: s
+			| KNone -> HNull :: s
 		) (DynArray.to_list ctx.infos.iregs)) in
 		let delta = List.length extra in
 		let f = {
@@ -522,20 +563,16 @@ let begin_fun ctx args tret el stat p =
 					hltc_start = t.tr_pos + delta;
 					hltc_end = t.tr_end + delta;
 					hltc_handle = t.tr_catch_pos + delta;
-					hltc_type = (match follow t.tr_type with
-						| TInst (c,_) -> Some (type_path ctx c.cl_path)
-						| TEnum (e,_) -> Some (type_path ctx e.e_path)
-						| TDynamic _ -> None
-						| _ -> assert false);
+					hltc_type = type_opt ctx t.tr_type;
 					hltc_name = None;
 				}
 			) (List.rev ctx.trys));
-			hlf_locals = Array.of_list (List.map (fun (id,name,t) -> ident name, Some (type_id ctx t), id) ctx.block_vars);
+			hlf_locals = Array.of_list (List.map (fun (id,name,t) -> ident name, type_opt ctx t, id) ctx.block_vars);
 		} in
 		let mt = {
 			hlmt_mark = As3hlparse.alloc_mark();
-			hlmt_ret = Some (type_void ctx tret);
-			hlmt_args = List.map (fun (_,_,t) -> Some (type_id ctx t)) args;
+			hlmt_ret = type_void ctx tret;
+			hlmt_args = List.map (fun (_,_,t) -> type_opt ctx t) args;
 			hlmt_native = false;
 			hlmt_var_args = varargs;
 			hlmt_debug_name = None;
@@ -623,7 +660,14 @@ let gen_access ctx e (forset : 'a) : 'a access =
 		| Some t -> VCast (id,t)
 		| None ->
 		match follow e1.etype with
-		| TInst _ | TEnum _ -> VId id
+		| TEnum _ -> VId id
+		| TInst (_,tl) ->
+			let et = follow e.etype in
+			(* if the return type is one of the type-parameters, then we need to cast it *)
+			if List.exists (fun t -> follow t == et) tl then
+				VCast (id, classify ctx et)
+			else
+				VId id
 		| TAnon a when (match !(a.a_status) with Statics _ | EnumStatics _ -> true | _ -> false) -> VId id
 		| _ -> VCast (id,classify ctx e.etype))
 	| TArray ({ eexpr = TLocal "__global__" },{ eexpr = TConst (TString s) }) ->
@@ -736,16 +780,15 @@ let rec gen_expr_content ctx retval e =
 			jend());
 		branch();
 	| TWhile (econd,e,flag) ->
-		let jstart = (match flag with NormalWhile -> (fun()->()) | DoWhile -> jump ctx J3Always) in
+		let jstart = jump ctx J3Always in
 		let end_loop = begin_loop ctx in
 		let branch = begin_branch ctx in
-		let continue_pos = ctx.infos.ipos in
 		let loop = jump_back ctx in
-		let jend = jump_expr ctx econd false in
-		jstart();
+		if flag = DoWhile then jstart();
 		gen_expr ctx false e;
-		loop J3Always;
-		jend();
+		if flag = NormalWhile then jstart();
+		let continue_pos = ctx.infos.ipos in
+		let _ = jump_expr_gen ctx econd true (fun j -> loop j; (fun() -> ())) in
 		branch();
 		end_loop continue_pos;
 		if retval then write ctx HNull
@@ -831,6 +874,43 @@ let rec gen_expr_content ctx retval e =
 		no_value ctx retval
 	| TSwitch (e0,el,eo) ->
 		let t = classify ctx e.etype in
+		(try
+			(* generate optimized int switch *)
+			if t <> KInt && t <> KUInt then raise Exit;
+			let rec get_int e =
+				match e.eexpr with
+				| TConst (TInt n) -> Int32.to_int n
+				| TParenthesis e | TBlock [e] -> get_int e
+				| _ -> raise Not_found
+			in
+			List.iter (fun (vl,_) -> List.iter (fun v ->
+				let n = (try get_int v with _ -> raise Exit) in
+				if n < 0 || n > 512 then raise Exit;
+			) vl) el;
+			gen_expr ctx true e0;
+			let switch, case = begin_switch ctx in
+			(match eo with
+			| None ->
+				if retval then begin
+					write ctx HNull;
+					coerce ctx t;
+				end;
+			| Some e ->
+				gen_expr ctx retval e;
+				if retval && classify ctx e.etype <> t then coerce ctx t);
+			let jends = List.map (fun (vl,e) ->
+				let j = jump ctx J3Always in
+				List.iter (fun v -> case (get_int v)) vl;
+				gen_expr ctx retval e;
+				if retval then begin
+					ctx.infos.istack <- ctx.infos.istack - 1;
+					if classify ctx e.etype <> t then coerce ctx t;
+				end;
+				j
+			) el in
+			List.iter (fun j -> j()) jends;
+			switch();
+		with Exit ->
 		let r = alloc_reg ctx (classify ctx e0.etype) in
 		gen_expr ctx true e0;
 		set_reg ctx r;
@@ -873,7 +953,7 @@ let rec gen_expr_content ctx retval e =
 			if retval && classify ctx e.etype <> t then coerce ctx t;
 		);
 		List.iter (fun j -> j()) jend;
-		branch();
+		branch());
 	| TMatch (e0,_,cases,def) ->
 		let t = classify ctx e.etype in
 		let rparams = alloc_reg ctx (KType (type_path ctx ([],"Array"))) in
@@ -886,10 +966,7 @@ let rec gen_expr_content ctx retval e =
 		end;
 		write ctx (HGetProp (ident "index"));
 		write ctx HToInt;
-		let branch = begin_branch ctx in
-		let switch_index = DynArray.length ctx.code in
-		let switch_pos = ctx.infos.ipos in
-		write ctx (HSwitch (0,[]));
+		let switch,case = begin_switch ctx in
 		(match def with
 		| None ->
 			if retval then begin
@@ -898,16 +975,10 @@ let rec gen_expr_content ctx retval e =
 			end;
 		| Some e ->
 			gen_expr ctx retval e;
-			if retval && classify ctx e.etype <> t then coerce ctx t;
-		);
-		let constructs = ref [] in
-		let max = ref 0 in
+			if retval && classify ctx e.etype <> t then coerce ctx t);
 		let jends = List.map (fun (cl,params,e) ->
 			let j = jump ctx J3Always in
-			List.iter (fun tag ->
-				if tag > !max then max := tag;
-				constructs := (tag,ctx.infos.ipos) :: !constructs;
-			) cl;
+			List.iter case cl;
 			let b = open_block ctx [e] retval in
 			(match params with
 			| None -> ()
@@ -934,11 +1005,8 @@ let rec gen_expr_content ctx retval e =
 			end;
 			j
 		) cases in
-		let cases = Array.create (!max + 1) 1 in
-		List.iter (fun (tag,pos) -> Array.set cases tag (pos - switch_pos)) !constructs;
+		switch();
 		List.iter (fun j -> j()) jends;
-		DynArray.set ctx.code switch_index (HSwitch (1,Array.to_list cases));
-		branch();
 		free_reg ctx rparams
 
 and gen_call ctx retval e el =
@@ -1044,13 +1112,17 @@ and gen_call ctx retval e el =
 				| _ -> ())
 			| TInst ({ cl_path = [],"Date" },_) ->
 				coerce() (* all date methods are typed as Number in AS3 and Int in haXe *)
-			| TAnon a when (match !(a.a_status) with Statics { cl_path = ([],"Date") } -> true | _ -> false) ->
-				(match f with
-				| "now" | "fromString" | "fromTime"  -> coerce()
-				| _ -> ())
-			| TAnon a when (match !(a.a_status) with Statics { cl_path = ([],"Math") } -> true | _ -> false) ->
-				(match f with
-				| "isFinite" | "isNaN" -> coerce()
+			| TAnon a ->
+				(match !(a.a_status) with
+				| Statics { cl_path = ([],"Date") } ->
+					(match f with
+					| "now" | "fromString" | "fromTime"  -> coerce()
+					| _ -> ())
+				| Statics { cl_path = ([],"Math") } ->
+					(match f with
+					| "isFinite" | "isNaN" -> coerce()
+					| "floor" | "ceil" | "round" -> coerce() (* AS3 state Number, while Int in haXe *)
+					| _ -> ())
 				| _ -> ())
 			| _ -> ())
 	| TEnumField (e,f) , _ ->
@@ -1126,17 +1198,21 @@ and gen_binop ctx retval op e1 e2 t =
 	| OpBoolAnd ->
 		write ctx HFalse;
 		let j = jump_expr ctx e1 false in
+		let b = begin_branch ctx in
 		write ctx HPop;
 		gen_expr ctx true e2;
 		coerce ctx KBool;
 		j();
+		b();
 	| OpBoolOr ->
 		write ctx HTrue;
 		let j = jump_expr ctx e1 true in
+		let b = begin_branch ctx in
 		write ctx HPop;
 		gen_expr ctx true e2;
 		coerce ctx KBool;
 		j();
+		b();
 	| OpAssignOp op ->
 		let acc = gen_access ctx e1 Write in
 		gen_binop ctx true op e1 e2 t;
@@ -1224,14 +1300,14 @@ and generate_function ctx fdata stat =
 	);
 	f()
 
-and jump_expr ctx e jif =
+and jump_expr_gen ctx e jif jfun =
 	match e.eexpr with
-	| TParenthesis e -> jump_expr ctx e jif
+	| TParenthesis e -> jump_expr_gen ctx e jif jfun
 	| TBinop (op,e1,e2) ->
 		let j t f =
 			gen_expr ctx true e1;
 			gen_expr ctx true e2;
-			jump ctx (if jif then t else f)
+			jfun (if jif then t else f)
 		in
 		(match op with
 		| OpEq -> j J3Eq J3Neq
@@ -1244,10 +1320,13 @@ and jump_expr ctx e jif =
 		| OpLte -> j J3Lte J3NotLte
 		| _ ->
 			gen_expr ctx true e;
-			jump ctx (if jif then J3True else J3False))
+			jfun (if jif then J3True else J3False))
 	| _ ->
 		gen_expr ctx true e;
-		jump ctx (if jif then J3True else J3False)
+		jfun (if jif then J3True else J3False)
+
+and jump_expr ctx e jif =
+	jump_expr_gen ctx e jif (jump ctx)
 
 let generate_method ctx fdata stat =
 	generate_function ctx { fdata with tf_expr = Transform.block_vars fdata.tf_expr } stat
@@ -1256,14 +1335,15 @@ let generate_construct ctx fdata c =
 	(* make all args optional to allow no-param constructor *)
 	let f = begin_fun ctx (List.map (fun (a,o,t) -> a,true,t) fdata.tf_args) fdata.tf_type [ethis;fdata.tf_expr] false fdata.tf_expr.epos in
 	(* if skip_constructor, then returns immediatly *)
-	if c.cl_kind <> KGenericInstance then begin
+	(match c.cl_kind with
+	| KGenericInstance _ -> ()
+	| _ ->
 		let id = ident "skip_constructor" in
 		getvar ctx (VGlobal (type_path ctx ([],ctx.boot)));
 		getvar ctx (VId id);
 		let j = jump ctx J3False in
 		write ctx HRetVoid;
-		j();
-	end;
+		j());
 	(* --- *)
 	PMap.iter (fun _ f ->
 		match f.cf_expr with
@@ -1384,7 +1464,7 @@ let generate_field_kind ctx f c stat =
 		None
 	| _ ->
 		Some (HFVar {
-			hlv_type = Some (type_id ctx f.cf_type);
+			hlv_type = type_opt ctx f.cf_type;
 			hlv_value = HVNone;
 			hlv_const = false;
 		})
@@ -1649,6 +1729,7 @@ let generate types hres =
 		in_static = false;
 		debug = Plugin.defined "debug";
 		last_line = -1;
+		last_file = "";
 		try_scope_reg = None;
 	} in
 	let classes = List.map (fun t -> (t,generate_type ctx t)) types in

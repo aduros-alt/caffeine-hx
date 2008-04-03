@@ -17,6 +17,7 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *)
 open Printf
+open Genswf
 
 type target =
 	| No
@@ -25,6 +26,7 @@ type target =
 	| Neko of string
 	| As3 of string
 	| HLLua of string
+
 
 let prompt = ref false
 let alt_format = ref false
@@ -152,7 +154,7 @@ let parse_hxml file =
 		let l = ExtString.String.strip l in
 		(*// disabled - need additional str.cmxa linkage
 			let renv = Str.regexp "%\\([A-Za-z0-9_]+\\)%" in
-			let l = Str.global_substitute renv (fun _ ->
+			let l = Str.global_substitute renv (fun _ -> 
 			let e = Str.matched_group 1 l in
 			try Sys.getenv e with Not_found -> "%" ^ e ^ "%"
 		) l in  *)
@@ -189,11 +191,13 @@ try
 	let usage = "Haxe Compiler " ^ version_str ^ " - (c)2005-2008 Motion-Twin\n Usage : haxe.exe [options] <class names...>\n Options :" in
 	let classes = ref [([],"Std")] in
 	let target = ref No in
-	let swf_in = ref None in
 	let xml_out = ref None in
 	let main_class = ref None in
-	let swf_version = ref 8 in
-	let swf_header = ref None in
+	let swf_infos = {
+		swf_version = 8;
+		swf_header = None;
+		swf_lib = None;
+	} in
 	let hres = Hashtbl.create 0 in
 	let cmds = ref [] in
 	let excludes = ref [] in
@@ -203,7 +207,7 @@ try
 	Plugin.defines := base_defines;
 	Plugin.define ("haxe_" ^ string_of_int version);
 	Typer.check_override := false;
-	Typer.forbidden_packages := ["js"; "neko"; "flash"];
+	Typer.forbidden_packages := ["js"; "neko"; "flash"; "hllua"];
 	Parser.display_error := parse_error;
 	Parser.use_doc := false;
 	(try
@@ -250,7 +254,7 @@ try
 		),"<file> : generate HLLua code into target directory");
 		("-as3",Arg.String (fun dir ->
 			check_targets();
-			swf_version := 9;
+			swf_infos.swf_version <- 9;
 			Plugin.define "as3gen";
 			Typer.forbidden_packages := ["js"; "neko"; "hllua"];
 			target := As3 dir;
@@ -261,11 +265,11 @@ try
 			target := Swf file
 		),"<file> : compile code to Flash SWF file");
 		("-swf-version",Arg.Int (fun v ->
-			swf_version := v;
+			swf_infos.swf_version <- v;
 		),"<version> : change the SWF version (6,7,8,9)");
 		("-swf-header",Arg.String (fun h ->
 			try
-				swf_header := Some (match ExtString.String.nsplit h ":" with
+				swf_infos.swf_header <- Some (match ExtString.String.nsplit h ":" with
 				| [width; height; fps] ->
 					(int_of_string width,int_of_string height,float_of_string fps,0xFFFFFF)
 				| [width; height; fps; color] ->
@@ -275,7 +279,8 @@ try
 				_ -> raise (Arg.Bad "Invalid SWF header format")
 		),"<header> : define SWF header (width:height:fps:color)");
 		("-swf-lib",Arg.String (fun file ->
-			swf_in := Some file
+			if swf_infos.swf_lib <> None then raise (Arg.Bad "Only one SWF Library is allowed");
+			swf_infos.swf_lib <- Some file
 		),"<file> : add the SWF library to the compiled SWF");
 		("-neko",Arg.String (fun file ->
 			check_targets();
@@ -413,7 +418,7 @@ try
 		   to accidentaly delete a source file. *)
 		if not !no_output && file_extension file = "swf" then delete_file file;
 		Plugin.define "flash";
-		Plugin.define ("flash"  ^ string_of_int !swf_version);
+		Plugin.define ("flash"  ^ string_of_int swf_infos.swf_version);
 	| Neko file ->
 		if not !no_output && file_extension file = "n" then delete_file file;
 		Plugin.define "neko";
@@ -446,7 +451,7 @@ try
 		| Swf file ->
 			do_auto_xml file;
 			if !Plugin.verbose then print_endline ("Generating swf : " ^ file);
-			Genswf.generate file (!swf_version) (!swf_header) (!swf_in) types hres
+			Genswf.generate file swf_infos types hres
 		| Neko file ->
 			do_auto_xml file;
 			if !Plugin.verbose then print_endline ("Generating neko : " ^ file);
@@ -455,12 +460,12 @@ try
 			do_auto_xml file;
 			if !Plugin.verbose then print_endline ("Generating js : " ^ file);
 			Genjs.generate file types hres
-		| HLLua dir ->
-			if !Plugin.verbose then print_endline ("Generating HLLua in : " ^ dir);
-			Genhllua.generate dir types
 		| As3 dir ->
 			if !Plugin.verbose then print_endline ("Generating AS3 in : " ^ dir);
 			Genas3.generate dir types
+		| HLLua dir ->
+			if !Plugin.verbose then print_endline ("Generating HLLua in : " ^ dir);
+			Genhllua.generate dir types
 		);
 		(match !xml_out with
 		| None -> ()

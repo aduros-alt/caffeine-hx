@@ -145,6 +145,7 @@ in
 let startdir = Sys.getcwd() in
 try
 (*	download(); *)
+	download_libs();
 	compile();
 	Sys.chdir startdir;
 with
