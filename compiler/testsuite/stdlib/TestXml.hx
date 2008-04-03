@@ -100,7 +100,6 @@ class TestXml {
 		x.insertChild(z,0);
 
 		x.set("var","realval");
-		untyped __call__("var_dump", x.toString());
 		#if (flash8 || flash7)
 		Assert.equals("<base var=\"realval\"><zero /><un /><deux /></base>",x.toString());
 		#else true
