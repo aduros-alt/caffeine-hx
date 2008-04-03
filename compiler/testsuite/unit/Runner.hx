@@ -1,3 +1,7 @@
+/*
+* The idea behind this Unit system is to avoid using anything that is not very-very basic.
+* No Lists, no StringBuf, few Reflection/Type calls.
+*/
 package unit;
 
 import haxe.PosInfos;
@@ -52,14 +56,6 @@ class Runner {
 #end
   }
 
-  private function println(v : String) {
-#if js
-	print(v + "</br>\n");
-#else true
-    print(v + "\n");
-#end
-  }
-
   private function dotted(s : String) {
 	var l = s.length;
 	for(i in l...50)
@@ -68,66 +64,69 @@ class Runner {
   }
   
   public function run() {
-	var tests_tot       = 0;
-	var tests_ok        = 0;
-	var tests_error     = 0;
-	var tests_failed    = 0;
-	var tests_withdrawn = 0;
-	
+    var tests_tot       = 0;
+    var tests_ok        = 0;
+    var tests_error     = 0;
+    var tests_failed    = 0;
+    var tests_withdrawn = 0;
+    
+    var result = '';
     for(t in test_classes) {
-	  var messages = [];
-	  var cname = Type.getClassName(Type.getClass(t));
-	  print("testing: " + cname);
-	  var tests = getTestMethods(t);
-	  var i = 1;
-	  var tot = tests.length;
-	  for(test in tests) {
-		var passed = true;
-		var error = false;
-		var assertions = Assert.counter;
-		try {
-		  println("");
-		  print("      "+dotted(Std.string(i) + ". " + test));
-		  Reflect.callMethod(t, Reflect.field(t, test), []);
-		} catch(e : AssertException) {
-		  passed = false;
-		  messages.push(test + " failed at #" + e.pos.lineNumber + ", " + e.message);
-		} catch(e : Dynamic) {
-		  passed = false;
-		  error = true;
-		  messages.push(test + " error: " + Std.string(e));
-		}
-		if(passed) {
-		  if(assertions == Assert.counter) {
-		    tests_withdrawn++;
-			print('WITHDRAWN');
-		  } else {
-		    tests_ok++;
-			print('.......OK');
-		  }
-		} else if(error) {
-		  tests_error++;
-		  print('....ERROR');
-		} else {
-		  tests_failed++;
-		  print('...FAILED');
-		}
-		i++;
-        tests_tot++;
-	  }
-	  println('   ');
-	  if(messages.length > 0) {
-		for(message in messages)
-		  println("-------> " + message);
-	  }
-	}
-	println("");
-	println("tested classes:    " + test_classes.length);
-	println("total tests:       " + tests_tot);
-	println("passed tests:      " + tests_ok);
-	println("failed tests:      " + tests_failed);
-	println("tests with errors: " + tests_error);
-	println("withdrawn tests:   " + tests_withdrawn);
+      var messages = [];
+      var cname = Type.getClassName(Type.getClass(t));
+      result += "\n\ntesting: " + cname;
+      var tests = getTestMethods(t);
+      var i = 1;
+      var tot = tests.length;
+      for(test in tests) {
+      var passed = true;
+      var error = false;
+      var assertions = Assert.counter;
+      try {
+        result += "\n";
+        result += "      "+dotted(Std.string(i) + ". " + test);
+        Reflect.callMethod(t, Reflect.field(t, test), []);
+      } catch(e : AssertException) {
+        passed = false;
+        messages.push(test + " failed at #" + e.pos.lineNumber + ", " + e.message);
+      } catch(e : Dynamic) {
+        passed = false;
+        error = true;
+        messages.push(test + " error: " + Std.string(e));
+      }
+      if(passed) {
+        if(assertions == Assert.counter) {
+          tests_withdrawn++;
+        result += 'WITHDRAWN';
+        } else {
+          tests_ok++;
+        result += '.......OK';
+        }
+      } else if(error) {
+        tests_error++;
+        result += '....ERROR';
+      } else {
+        tests_failed++;
+        result += '...FAILED';
+      }
+      i++;
+          tests_tot++;
+      }
+      if(messages.length > 0) {
+      for(message in messages)
+        result += "\n-------> " + message;
+      }
+    }
+    var tots = "tested classes:    " + test_classes.length;
+    tots += "\ntotal tests:       " + tests_tot;
+    tots += "\npassed tests:      " + tests_ok;
+    tots += "\nfailed tests:      " + tests_failed;
+    tots += "\ntests with errors: " + tests_error;
+    tots += "\nwithdrawn tests:   " + tests_withdrawn;
+	
+    print(tots);
+    print(result);
+	
   }
 
   private function getTestMethods(t) {
