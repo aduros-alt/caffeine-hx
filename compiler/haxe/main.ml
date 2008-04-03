@@ -26,7 +26,7 @@ type target =
 	| Neko of string
 	| As3 of string
 	| HLLua of string
-
+	| Php of string
 
 let prompt = ref false
 let alt_format = ref false
@@ -287,6 +287,13 @@ try
 			Typer.forbidden_packages := ["js"; "flash"; "hllua"];
 			target := Neko file
 		),"<file> : compile code to Neko Binary");
+		("-php",Arg.String (fun dir ->
+			check_targets();
+			Plugin.define "php";
+			Typer.forbidden_packages := ["js"; "neko"; "flash"];
+			classes := (["php"], "Boot") :: !classes;
+			target := Php dir;
+		),"<directory> : generate PHP code into target directory");
 		("-x", Arg.String (fun file ->
 			check_targets();
 			Typer.forbidden_packages := ["js"; "flash"; "hllua"];
@@ -428,6 +435,10 @@ try
 	| HLLua file ->
 		if not !no_output && file_extension file = "lua" then delete_file file;
 		Plugin.define "hllua";
+
+	| Php file ->
+		if not !no_output && file_extension file = "php" then delete_file file;
+		Plugin.define "php";
 	);
 	if !classes = [([],"Std")] then begin
 		if !cmds = [] && not !gen_hx then Arg.usage args_spec usage;
@@ -466,6 +477,9 @@ try
 		| HLLua dir ->
 			if !Plugin.verbose then print_endline ("Generating HLLua in : " ^ dir);
 			Genhllua.generate dir types
+		| Php dir ->
+			if !Plugin.verbose then print_endline ("Generating PHP in : " ^ dir);
+			Genphp.generate dir types
 		);
 		(match !xml_out with
 		| None -> ()
