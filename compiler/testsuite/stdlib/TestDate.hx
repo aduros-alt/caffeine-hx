@@ -30,7 +30,7 @@ class TestDate {
 
 		var d = new Date(2006,2,19,8,20,3);
 
-		Assert.equals("% 20 19 03/19/06 19 08 08  8  8 03 20 AM 08:20:03 AM 08:20 1142752803 03 08:20:03 7 0 06 2006",DateTools.format(d,"%% %C %d %D %e %H %I %k %l %m %M %p %r %R %s %S %T %u %w %y %Y"));
+		Assert.equals("% 20 19 03/19/06 19 08 08  8  8 03 20 AM 08:20:03 AM 08:20 03 08:20:03 7 0 06 2006",DateTools.format(d,"%% %C %d %D %e %H %I %k %l %m %M %p %r %R %S %T %u %w %y %Y"));
 	}
 
 	public function testGetters(){

@@ -207,7 +207,7 @@ try
 	Plugin.defines := base_defines;
 	Plugin.define ("haxe_" ^ string_of_int version);
 	Typer.check_override := false;
-	Typer.forbidden_packages := ["js"; "neko"; "flash"; "hllua"];
+	Typer.forbidden_packages := ["js"; "neko"; "flash"; "hllua"; "php"];
 	Parser.display_error := parse_error;
 	Parser.use_doc := false;
 	(try
@@ -239,13 +239,13 @@ try
 		),"<path> : add a directory to find source files");
 		("-js",Arg.String (fun file ->
 			check_targets();
-			Typer.forbidden_packages := ["neko"; "flash"; "hllua"];
+			Typer.forbidden_packages := ["neko"; "flash"; "hllua"; "php"];
 			target := Js file
 		),"<file> : compile code to JavaScript file");
 		("-hllua",Arg.String (fun dir ->
 			check_targets();
 			Plugin.define "hlluagen";
-			Typer.forbidden_packages := ["neko"; "flash"; "js"];
+			Typer.forbidden_packages := ["neko"; "flash"; "js"; "php"];
 			classes := (["lua"], "Boot") :: !classes;
 			classes := (["lua"], "LuaMath__") :: !classes;
 			classes := (["lua"], "LuaString__") :: !classes;
@@ -256,12 +256,12 @@ try
 			check_targets();
 			swf_infos.swf_version <- 9;
 			Plugin.define "as3gen";
-			Typer.forbidden_packages := ["js"; "neko"; "hllua"];
+			Typer.forbidden_packages := ["js"; "neko"; "hllua"; "php"];
 			target := As3 dir;
 		),"<directory> : generate AS3 code into target directory");
 		("-swf",Arg.String (fun file ->
 			check_targets();
-			Typer.forbidden_packages := ["js"; "neko"; "hllua"];
+			Typer.forbidden_packages := ["js"; "neko"; "hllua"; "php"];
 			target := Swf file
 		),"<file> : compile code to Flash SWF file");
 		("-swf-version",Arg.Int (fun v ->
@@ -284,19 +284,19 @@ try
 		),"<file> : add the SWF library to the compiled SWF");
 		("-neko",Arg.String (fun file ->
 			check_targets();
-			Typer.forbidden_packages := ["js"; "flash"; "hllua"];
+			Typer.forbidden_packages := ["js"; "flash"; "hllua"; "php"];
 			target := Neko file
 		),"<file> : compile code to Neko Binary");
 		("-php",Arg.String (fun dir ->
 			check_targets();
 			Plugin.define "php";
-			Typer.forbidden_packages := ["js"; "neko"; "flash"];
+			Typer.forbidden_packages := ["js"; "neko"; "flash"; "hllua"];
 			classes := (["php"], "Boot") :: !classes;
 			target := Php dir;
 		),"<directory> : generate PHP code into target directory");
 		("-x", Arg.String (fun file ->
 			check_targets();
-			Typer.forbidden_packages := ["js"; "flash"; "hllua"];
+			Typer.forbidden_packages := ["js"; "flash"; "hllua"; "php"];
 			let neko_file = file ^ ".n" in
 			target := Neko neko_file;
 			if !main_class = None then begin

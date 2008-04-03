@@ -24,7 +24,9 @@ class Test {
 	runner.register(new syntax.TryCatch());
 	runner.register(new syntax.TypedefAccess());
 	runner.register(new syntax.WhileAccess());
+#if !hllua
 	runner.register(new syntax.UnusualConstructs());
+#end
 	
 	runner.register(new stdlib.TestArray());
 	runner.register(new stdlib.TestCompare());

@@ -1255,47 +1255,15 @@ and gen_value ctx e =
 		v();
 	| TIf (cond,e,eo) ->
 		commentcode ctx "TIf (cond,e,eo)";
-(*		spr ctx "((";
+		spr ctx "lua.Boot.__ternary(";
 		gen_value ctx cond;
-		spr ctx ")";
-		(match eo with
-		| None -> ()
-		| Some e when e.eexpr = TConst(TNull) ->
-			spr ctx " or nil"
-		| Some e ->
-			spr ctx " or (";
-			gen_value ctx e;
-			spr ctx ")";
-		);
-		spr ctx ") and (";
+		spr ctx ", function() return ";
 		gen_value ctx e;
-		spr ctx ") ";*)
-(*		(match eo with
-		| None -> () (*spr ctx "gen_value TIf nil"*)
-		| Some e when e.eexpr = TConst(TNull) -> ()
-		| Some e ->
-			spr ctx " or (";
-			gen_value ctx e;
-			spr ctx ")";
-		);*)
-(*		spr ctx "(((";
-		gen_value ctx cond;
-		spr ctx ") and (";
-		gen_value ctx e;
-		spr ctx ") or ";
+		spr ctx " end, function() return ";
 		(match eo with
 		| None -> spr ctx "nil"
 		| Some e -> gen_value ctx e);
-		spr ctx "))"*)
-(* 		spr ctx "("; *)
-		gen_value ctx cond;
-		spr ctx " ? ";
-		gen_value ctx e;
-		spr ctx " @ ";
-		(match eo with
-		| None -> spr ctx "nil"
-		| Some e -> gen_value ctx e);
-(* 		spr ctx ")" *)
+		spr ctx " end)"
 	| TSwitch (cond,cases,def) ->
 		let v = value true in
 		gen_expr ctx (mk (TSwitch (cond,
@@ -1468,9 +1436,9 @@ let generate_enum ctx e =
 (* 	let p = s_path1 e.e_path in *)
 	let p = s_path ctx e.e_path e.e_extern e.e_pos in
 	let ename = List.map (fun s -> Printf.sprintf "\"%s\"" (Ast.s_escape s)) (fst e.e_path @ [snd e.e_path]) in
-	print ctx "__ename__ = {%s}" (String.concat "," ename);
+	print ctx "__ename__ = Array:new({%s})" (String.concat "," ename);
 	newline ctx;
-	print ctx "__constructs__ = {%s}" (String.concat "," (List.map (fun s -> Printf.sprintf "\"%s\"" s) e.e_names));
+	print ctx "__constructs__ = Array:new({%s})" (String.concat "," (List.map (fun s -> Printf.sprintf "\"%s\"" s) e.e_names));
 	newline ctx;
 	PMap.iter (fun _ f ->
 		print ctx "%s = " f.ef_name;
