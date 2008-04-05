@@ -38,4 +38,8 @@ class Assert {
   public static function fail(?message : String, ?p : PosInfos) {
     isTrue(false, "Assertion failed (force fail)", p);
   }
+  
+  public static function is(o : Dynamic, t : Dynamic, ?message : String, ?p : PosInfos) {
+    isTrue(Std.is(o, t), "Assertion failed: expected type was '"+Std.string(t)+"' but is '"+Type.typeof(o)+"'", p);
+  }
 }

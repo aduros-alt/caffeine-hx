@@ -194,10 +194,12 @@ class TestArray {
 		a[3] = 3;
 		var sb = new StringBuf();
 		for( i in a ){
-			sb.add( i );
+			if((i == untyped "undefined") || i == null)
+				sb.add("null");
+			else
+				sb.add(i);
 		}
-		var txt = sb.toString().split("undefined").join("null");
-		Assert.equals( "0nullnull3null5nullnull8", txt );
+		Assert.equals( "0nullnull3null5nullnull8", sb.toString() );
 	}
 
 	public function testForRemove(){
