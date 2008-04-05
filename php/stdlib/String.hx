@@ -90,4 +90,5 @@ extern class String {
 	function toString() : String;
 
 	static function fromCharCode( code : Int ) : String;
+
 }

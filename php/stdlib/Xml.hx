@@ -225,8 +225,6 @@ extern class Xml {
 		#if neko
 		Xml = neko.NekoXml__;
 		neko.Boot.__classes.Xml = Xml;
-		#else php
-		Xml = php.PhpXml__;
 		#else js
 		Xml = js.JsXml__;
 		#else flash9

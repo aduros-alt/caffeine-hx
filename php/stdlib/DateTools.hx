@@ -93,8 +93,10 @@ class DateTools {
 			var np = f.indexOf("%", p);
 			if( np < 0 )
 				break;
+
 			r.addSub(f,p,np-p);
 			r.add( __jsflash_format_get(d, f.substr(np+1,1) ) );
+
 			p = np+2;
 		}
 		r.addSub(f,p,f.length-p);

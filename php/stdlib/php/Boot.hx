@@ -68,7 +68,8 @@ class Boot {
 		untyped __php__("$arr =& $arr[0]");
 		for(i in 0...arr.length)
 			if(arr[i] == x) {
-				untyped __php__("unset")(arr[i]);
+				untyped __call__("unset", arr[i]);
+        arr = untyped __call__("array_values", arr);
 				return true;
 			}
 		return false;
@@ -89,12 +90,24 @@ class Boot {
 	}
 	
 	static public function __array_slice(arr : Array<Dynamic>, pos : Int, ?end : Int) : Bool {
-		untyped __php__("$arr = $arr[0];");
+		untyped __php__("$arr =& $arr[0]");
 		if(end == null)
 			return untyped __php__("array_slice")(arr, pos);
 		else
 			return untyped __php__("array_slice")(arr, pos, end-pos);
 	}
+  
+  static public function __array_set<T>(arr : Array<Dynamic>, pos : Int, v : T) : T untyped {
+    __php__("$arr =& $arr[0]");
+    if(__call__("is_int", pos)) {
+      var l = __call__("count", arr);
+      if(l < pos) {
+        __call__("array_splice", arr, l, 0, __call__("array_fill", l, pos-l, null)); 
+      }
+    }
+    __php__("$arr[$pos] = $v");
+    return v;
+  }
 	
 	static public function __substr(s : String, pos : Int, ?offset : Int) {
 		if(offset == null)

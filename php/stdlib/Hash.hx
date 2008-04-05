@@ -66,7 +66,7 @@ class Hash<T> {
 		#else neko
 		untyped __dollar__hset(h,key.__s,value,null);
 		#else php
-		untyped h[key] = value;
+		untyped __php__("$this->h[$key] = $value");
 		#else error
 		#end
 	}

@@ -44,9 +44,7 @@ class Log {
 		untyped flash.Boot.__clear_trace();
 		#else js
 		untyped js.Boot.__clear_trace();
-		#else neko
-		// nothing
-		#else php
+		#else (neko || php)
 		// nothing
 		#else error
 		#end

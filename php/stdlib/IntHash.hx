@@ -62,7 +62,7 @@ class IntHash<T> {
 		#else neko
 		untyped __dollar__hset(h,key,value,null);
 		#else php
-		untyped h[key] = value;
+		untyped __php__("$this->h[$key] = $value");
 		#else error
 		#end
 	}
