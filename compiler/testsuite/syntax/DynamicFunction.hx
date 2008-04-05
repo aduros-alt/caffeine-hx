@@ -171,8 +171,8 @@ class DynamicFunction {
 
 	public function testStaticMethodVariable1() {
 #if !php
-		MethodVariable.staticF = function(){ return "test"; };
-		Assert.equals("test", MethodVariable.staticF());
+		MethodVariable.staticF = function(){ return "test1"; };
+		Assert.equals("test1", MethodVariable.staticF());
 #end
 	}
 
@@ -187,8 +187,14 @@ class DynamicFunction {
 #if !php
 		MethodVariable.staticF = staticF;
 		Assert.equals("test", MethodVariable.staticF());
+    Assert.equals("test", syntax.util.MethodVariable.staticF());
 #end
-	}
+  }
+  
+	public function testStaticMethodFullyQualifiedName() {
+    Assert.equals("test", syntax.util.A.test());
+    Assert.equals("test", syntax.util.A.s);
+  }
 
 	private function f() {
 		return "test";

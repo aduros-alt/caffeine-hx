@@ -28,4 +28,20 @@ class ArraySyntax {
 		Assert.equals("swfmill", o[0]);
 		Assert.equals("Neko", o[1]);
 	}	
+  
+  public function testInstanceAccess() {
+    var o = [new syntax.util.A()];
+    Assert.equals("test", o[0].msg());
+  }
+  
+  public function testFunctionReturnArrayOfObjects() {
+#if !php
+    var o = new ArraySyntax();
+    Assert.equals("test", o.returnArrayOfObjects()[0].msg());
+#end
+  }
+  
+  public function returnArrayOfObjects() {
+    return [new syntax.util.A()];
+  }
 }

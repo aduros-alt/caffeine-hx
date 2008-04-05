@@ -45,6 +45,12 @@ class AnonymousObject {
 	public function testAccessingUnexistentField() {
 		var o : Dynamic = {};
 		Assert.isTrue(o != null);
-		Assert.isNull(o.name);
+#if flash9
+		Assert.equals(null, o.name);
+#else (flash || js)
+		Assert.equals(untyped undefined, o.name);
+#else true
+    Assert.isNull(o.name);
+#end
 	}
 }

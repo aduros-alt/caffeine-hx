@@ -1,6 +1,7 @@
 class Test {
   public static function main() {
 	var runner = new unit.Runner();
+
 	runner.register(new syntax.AnonymousObject());
 	runner.register(new syntax.ArraySyntax());
 	runner.register(new syntax.Bitwise());
@@ -10,7 +11,8 @@ class Test {
 	runner.register(new syntax.DynamicClass());
 	runner.register(new syntax.DynamicFunction());
 	runner.register(new syntax.EnumAccess());
-	runner.register(new syntax.EnumSyntax());
+	runner.register(new syntax.EnumSyntax());	
+  runner.register(new syntax.EqualityOperators()); 
 	runner.register(new syntax.ForAccess());
 	runner.register(new syntax.IfAccess());
 	runner.register(new syntax.InterfaceAccess());
@@ -23,11 +25,13 @@ class Test {
 	runner.register(new syntax.SwitchCaseAccess());
 	runner.register(new syntax.TryCatch());
 	runner.register(new syntax.TypedefAccess());
-	runner.register(new syntax.WhileAccess());
+	
+  runner.register(new syntax.UndefinedVariables());
 #if !hllua
 	runner.register(new syntax.UnusualConstructs());
 #end
-	
+	runner.register(new syntax.WhileAccess());
+  
 	runner.register(new stdlib.TestArray());
 	runner.register(new stdlib.TestCompare());
 	runner.register(new stdlib.TestDate());
@@ -52,9 +56,6 @@ class Test {
 	runner.register(new stdlib.TestUnit());
 	runner.register(new stdlib.TestXml());
 
-	// __resolve
-	// __setfield
-	// __unprotect__
 	runner.run();
   }
 }

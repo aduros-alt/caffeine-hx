@@ -8,7 +8,7 @@ import syntax.util.TypeEnum;
 class EnumAccess {
 	public function new() {}
 
-    public function testBasicField() {
+  public function testBasicField() {
 		var e = EOne;
 		Assert.equals(EOne, e);
 		e = ETwo;
@@ -45,10 +45,13 @@ class EnumAccess {
 	}
 	
 	public function testDefault() {	   
+// the last two assertion break the code
 	   Assert.equals("None", noneOrSome(None));
 	   Assert.equals("Some", noneOrSome(Unknown));
 	   Assert.equals("Some", noneOrSome(One(1)));
 	   Assert.equals("Some", noneOrSome(Two(1,2)));
+     Assert.equals("None", noneOrSome(syntax.util.Quantity.None));
+     Assert.equals("Some", noneOrSome(syntax.util.Quantity.Two(1,2)));
 	}
 	
 	public function testSwitchBlock() {
@@ -62,7 +65,7 @@ class EnumAccess {
 			default:   "Some";
 		});
 	}
-
+  
 	static function recoverValue(e:TypeEnum) {
 		var r : Dynamic;
 		switch(e) {
