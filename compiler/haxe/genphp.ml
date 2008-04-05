@@ -706,6 +706,23 @@ and gen_expr ctx e =
     spr ctx "]";
   | TBinop (op,e1,e2) ->
 	(match op with
+	(* ADD HERE ARRAY ASSIGNAMENT WITH AUTOMATIC FILL *)
+	| Ast.OpAssign ->
+	    (match e1.eexpr with 
+		| TArray(te1, te2) ->
+			register_required_path ctx (["php"], "Boot");
+			spr ctx "php_Boot::__array_set(array(&";
+			gen_value ctx te1;
+			spr ctx "), ";
+			gen_value ctx te2;
+			spr ctx ", ";
+			gen_value ctx e2;
+			spr ctx ")";
+		| _ ->
+			gen_expr ctx e1;
+			spr ctx " = ";
+			gen_value_op ctx e2;
+			);
 	| Ast.OpAssignOp(Ast.OpAdd) when (is_string_expr e1 || is_string_expr e2) ->
 		gen_value_op ctx e1;
 	    spr ctx " .= ";
@@ -842,7 +859,8 @@ and gen_expr ctx e =
 	)
 	
   | TTypeExpr t ->
-    print ctx "\"%s\"" (s_path ctx (t_path t) false e.epos)
+    let p = escphp ctx.quotes in
+    print ctx "%s\"%s%s\"" p (s_path ctx (t_path t) false e.epos) p
   | TParenthesis e ->
     spr ctx "(";
     gen_value ctx e;
