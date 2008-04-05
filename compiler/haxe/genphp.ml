@@ -79,6 +79,14 @@ let s_expr_name e =
 
 let s_type_name t =
   s_type (print_context()) t
+
+let is_anonym_expr e =
+  let s = s_expr_name e in
+  if (String.length s > 1 && String.sub s 0 1 = "{") || (s_expr_name e) = "Dynamic" || (s_expr_name e) = "#Dynamic" then true else false
+  
+let is_unknown_expr e =
+  let s = s_expr_name e in
+  if (String.length s > 7 && String.sub s 0 7 = "Unknown<") then true else false
   
 let is_array_expr e =
   let s = s_expr_name e in
@@ -574,7 +582,8 @@ and gen_field_access ctx isvar e s =
   | _ -> gen_expr ctx e);  
   match follow e.etype with
   | TAnon a -> (match !(a.a_status) with 
-	| Statics c -> print ctx "::%s%s" (if isvar then ((escphp ctx.quotes) ^ "$") else "") (s_ident s) (* (s_type (print_context()) t) *)
+    | EnumStatics c -> print ctx "::%s%s" (if isvar then ((escphp ctx.quotes) ^ "$") else "") (s_ident s)
+	| Statics c -> print ctx "::%s%s" (if isvar then ((escphp ctx.quotes) ^ "$") else "") (s_ident s)
 	| _ -> print ctx "->%s" (s_ident s))
   | _ -> print ctx "->%s" (s_ident s) 
 
@@ -705,10 +714,23 @@ and gen_expr ctx e =
 		gen_value_op ctx e1;
 	    spr ctx ".";
 	    gen_value_op ctx e2;
+	| Ast.OpAssignOp(Ast.OpShl) ->
+		gen_value_op ctx e1;
+	    spr ctx " <<= ";
+	    gen_value_op ctx e2;
 	| Ast.OpShl ->
 	    gen_value_op ctx e1;
 	    spr ctx " << ";
 	    gen_value_op ctx e2;
+	| Ast.OpAssignOp(Ast.OpUShr) ->
+		register_required_path ctx (["php"], "Boot");
+		gen_value_op ctx e1;
+	    spr ctx " = ";
+	    spr ctx "php_Boot::__shift_right(";
+	    gen_value_op ctx e1;
+	    spr ctx ", ";
+	    gen_value_op ctx e2;
+		spr ctx ")";
 	| Ast.OpUShr ->
 	    register_required_path ctx (["php"], "Boot");
 	    spr ctx "php_Boot::__shift_right(";
@@ -716,6 +738,76 @@ and gen_expr ctx e =
 	    spr ctx ", ";
 	    gen_value_op ctx e2;
 		spr ctx ")";
+	| Ast.OpEq -> 
+		if 
+		       (((s_expr_name e1) = "Int" || (s_expr_name e1) = "Float" || (s_expr_name e1) = "Null<Int>" || (s_expr_name e1) = "Null<Float>") 
+			   && ((s_expr_name e1) = "Int" || (s_expr_name e1) = "Float" || (s_expr_name e1) = "Null<Int>" || (s_expr_name e1) = "Null<Float>"))
+			|| (is_unknown_expr e1 && is_unknown_expr e2)
+			|| is_anonym_expr e1 
+			|| is_anonym_expr e2
+		then begin
+			register_required_path ctx (["php"], "Boot");
+			spr ctx "php_Boot::__equal(";
+			gen_value_op ctx e1;
+			spr ctx ", ";
+			gen_value_op ctx e2;
+			spr ctx ")";
+		end else if
+			   e1.etype == e2.etype
+			|| (match e1.eexpr with | TConst _ | TLocal _ | TArray _  | TNew _ -> true | _ -> false)
+			|| (match e2.eexpr with | TConst _ | TLocal _ | TArray _  | TNew _ -> true | _ -> false) 
+			|| is_string_expr e1
+			|| is_string_expr e2
+			|| is_array_expr e1
+			|| is_array_expr e2
+			|| is_anonym_expr e1
+			|| is_anonym_expr e2
+			|| is_unknown_expr e1
+			|| is_unknown_expr e2
+		then begin
+			gen_value_op ctx e1;
+		    spr ctx " === ";
+		    gen_value_op ctx e2;
+		end else begin
+			gen_value_op ctx e1;
+			spr ctx " == ";
+			gen_value_op ctx e2;
+		end
+	| Ast.OpNotEq ->
+		if 
+		       (((s_expr_name e1) = "Int" || (s_expr_name e1) = "Float" || (s_expr_name e1) = "Null<Int>" || (s_expr_name e1) = "Null<Float>") 
+			   && ((s_expr_name e1) = "Int" || (s_expr_name e1) = "Float" || (s_expr_name e1) = "Null<Int>" || (s_expr_name e1) = "Null<Float>"))
+			|| (is_unknown_expr e1 && is_unknown_expr e2)
+			|| is_anonym_expr e1 
+			|| is_anonym_expr e2
+		then begin
+			register_required_path ctx (["php"], "Boot");
+			spr ctx "!php_Boot::__equal(";
+			gen_value_op ctx e1;
+			spr ctx ", ";
+			gen_value_op ctx e2;
+			spr ctx ")";
+		end else if
+			   e1.etype != e2.etype
+			|| (match e1.eexpr with | TConst _ | TLocal _ | TArray _  | TNew _ -> true | _ -> false)
+			|| (match e2.eexpr with | TConst _ | TLocal _ | TArray _  | TNew _ -> true | _ -> false) 
+			|| is_string_expr e1
+			|| is_string_expr e2
+			|| is_array_expr e1
+			|| is_array_expr e2
+			|| is_anonym_expr e1
+			|| is_anonym_expr e2
+			|| is_unknown_expr e1
+			|| is_unknown_expr e2
+		then begin
+			gen_value_op ctx e1;
+		    spr ctx " !== ";
+		    gen_value_op ctx e2;
+		end else begin		
+			gen_value_op ctx e1;
+			spr ctx " != ";
+			gen_value_op ctx e2;
+		end
 	| _ ->
 		gen_value_op ctx e1;
 	    print ctx " %s " (Ast.s_binop op);
@@ -845,11 +937,10 @@ and gen_expr ctx e =
     spr ctx ((escphp ctx.quotes) ^ "$");
     concat ctx ("; " ^ (escphp ctx.quotes) ^ "$") (fun (n,t,v) ->
       let n = define_local ctx n in
-      print ctx "%s" n;
       match v with
-      | None -> ()
+      | None -> print ctx "%s = null" n
       | Some e ->
-        spr ctx " = ";
+        print ctx "%s = " n;
         gen_value ctx e
     ) vl;
   | TNew (c,_,el) ->

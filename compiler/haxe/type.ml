@@ -57,9 +57,9 @@ and tfunc = {
 }
 
 and anon_status =
-	| Closed
-	| Opened
-	| Const
+	| Closed (* default *)
+	| Opened (* used by type inference *)
+	| Const  (* for constant declarations like { x : 0, y : 0 } *)
 	| Statics of tclass
 	| EnumStatics of tenum
 
