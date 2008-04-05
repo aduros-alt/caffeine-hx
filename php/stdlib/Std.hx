@@ -83,7 +83,7 @@ class Std {
 	**/
 	public static function bool( x : Dynamic ) : Bool {
 		#if php
-		return (x !== 0 && x !== null && x !== false);
+		return untyped __php__("$x !== 0 && $x !== null && $x !== false");
 		#else true
 		return (x !== 0 && x != null && x !== false);
 		#end

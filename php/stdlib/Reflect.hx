@@ -97,7 +97,7 @@ class Reflect {
 		#else php
 			{
 			  if(hasField(o, field))
-				return __php__("array($o, $field)");
+				  return __php__("array($o, $field)");
 			  else
 			    return null;
 			}
@@ -249,12 +249,12 @@ class Reflect {
 	**/
 	public static function compareMethods( f1 : Dynamic, f2 : Dynamic ) : Bool {
 		#if php
-		if( f1 === f2 )
+		if( f1 == f2 )
 			return true;
 		if( !isFunction(f1) || !isFunction(f2) )
 			return false;
 		if(untyped __call__("is_array", f1) && untyped __call__("is_array", f1))
-			return f1[0] === f2[0] && f1[1] == f2[1];
+			return f1[0] == f2[0] && f1[1] == f2[1];
 		if(untyped __call__("is_string", f1) && untyped __call__("is_string", f2))
 			return f1 == f2;
 		return false;

@@ -201,7 +201,7 @@ class PhpXml__ {
 	}
 
 	public function iterator() : Iterator<PhpXml__> {
-		if( _children === null ) throw "bad nodetype";
+		if( _children == null ) throw "bad nodetype";
 		return untyped {
 			cur: 0,
 			x: this._children,
@@ -215,7 +215,7 @@ class PhpXml__ {
 	}
 
 	public function elements(){
-		if( _children === null ) throw "bad nodetype";
+		if( _children == null ) throw "bad nodetype";
 		return untyped {
 			cur: 0,
 			x: this._children,
@@ -248,7 +248,7 @@ class PhpXml__ {
 	}
 
 	public function elementsNamed( name : String ) {
-		if( _children === null ) throw "bad nodetype";
+		if( _children == null ) throw "bad nodetype";
 		return untyped {
 			cur: 0,
 			x: this._children,
@@ -281,12 +281,12 @@ class PhpXml__ {
 	}
 
 	public function firstChild() : PhpXml__ {
-		if( _children === null ) throw "bad nodetype";
+		if( _children == null ) throw "bad nodetype";
 		return _children[0];
 	}
 
 	public function firstElement() : PhpXml__ {
-		if( _children === null ) throw "bad nodetype";
+		if( _children == null ) throw "bad nodetype";
 		var cur = 0;
 		var l = _children.length;
 		while( cur < l ) {
@@ -299,14 +299,14 @@ class PhpXml__ {
 	}
 
 	public function addChild( x : PhpXml__ ) : Void {
-		if( _children === null ) throw "bad nodetype";
+		if( _children == null ) throw "bad nodetype";
 		if( x._parent != null ) x._parent._children.remove(x);
 		x._parent = this;
 		_children.push( x );
 	}
 
 	public function removeChild( x : PhpXml__ ) : Bool {
-		if( _children === null ) throw "bad nodetype";
+		if( _children == null ) throw "bad nodetype";
 		var b = _children.remove( x );
 		if( b )
 			x._parent = null;
@@ -314,7 +314,7 @@ class PhpXml__ {
 	}
 
 	public function insertChild( x : PhpXml__, pos : Int ) : Void {
-		if( _children === null ) throw "bad nodetype";
+		if( _children == null ) throw "bad nodetype";
 		if( x._parent != null ) x._parent._children.remove(x);
 		x._parent = this;
 		_children.insert( pos, x );

@@ -90,14 +90,14 @@ class Boot {
 	
 	static public function __array_slice(arr : Array<Dynamic>, pos : Int, ?end : Int) : Bool {
 		untyped __php__("$arr = $arr[0];");
-		if(end === null)
+		if(end == null)
 			return untyped __php__("array_slice")(arr, pos);
 		else
 			return untyped __php__("array_slice")(arr, pos, end-pos);
 	}
 	
 	static public function __substr(s : String, pos : Int, ?offset : Int) {
-		if(offset === null)
+		if(offset == null)
 			return untyped __php__("substr")(s, pos);
 		else
 			return untyped __php__("substr")(s, pos, offset);
@@ -105,15 +105,15 @@ class Boot {
 
 	static public function __index_of(s : String, value : String, ?startIndex : Int) {
 		var x = untyped __php__("strpos")(s, value, startIndex);
-		if(x === untyped false) 
+		if(untyped __php__("$x === false")) 
 			return -1;
 		else
 			return x;
 	}
 	
 	static public function __last_index_of(s : String, value : String, ?startIndex : Int) {
-		var x = untyped __php__("strrpos")(s, value, startIndex === null ? null : s.length - startIndex);
-		if(x === untyped false) 
+		var x = untyped __php__("strrpos")(s, value, startIndex == null ? null : s.length - startIndex);
+		if(untyped __php__("$x === false")) 
 			return -1
 		else
 			return x;
@@ -159,6 +159,20 @@ if ($z & $v) {
 		var msg = "<pre>Uncaught exception: <b>"+e.getMessage()+"</b>\nin file: <b>"+e.getFile()+"</b> line <b>"+e.getLine()+"</b>\n\n"+e.getTraceAsString()+"</pre>";
 		untyped __php__("die($msg)");
 	}
+  
+  static public function __equal(x : Dynamic, y : Dynamic) untyped {
+    if(__call__("is_null", x)) {
+      return __call__("is_null", y);
+    } else if(__call__("is_null", y)) {
+      return false;
+    } else {
+      if((__call__("is_float", x) || __call__("is_int", x)) && (__call__("is_float", y) || __call__("is_int", y))) {
+        return __php__("$x == $y");
+      } else {
+        return __php__("$x === $y");
+      }
+    }
+  }
 	
 	static function __init__() {
 		untyped __php__("set_error_handler(array('php_Boot', '__error_handler'), E_ALL)");
@@ -343,9 +357,9 @@ class enum {
 	  $r = '[ '.join(', ', $o).' ]';
 	else if(is_object($o)) { 
 	  if(is_callable(array($o, 'toString')))
-	    $r = call_user_method('toString', $o);
+	    $r = call_user_func(array($o, 'toString'));
 	  else if(is_callable(array($o, '__toString')))
-	    $r = call_user_method('__toString', $o);
+	    $r = call_user_func(array($o, '__toString'));
 	  else {
 	    $vars = get_object_vars($o);
 		$r = '{ ';

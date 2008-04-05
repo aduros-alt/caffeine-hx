@@ -102,7 +102,7 @@ class Type {
 				return null;
 			return p.__class__;
 		#else php
-			if(o === null) return null;
+			if(o == null) return null;
 			untyped if(__call__("is_array",  o)) {
 				if(__call__("count", o) == 2 && __call__("method_exists", o[0], o[1])) return null;
 				return "Array";
@@ -112,7 +112,7 @@ class Type {
 				return "String";
 			}
 			var c = __php__("get_class")(o);
-			if(c === false || c == 'Anonymous' || __php__("is_subclass_of")(c, "enum"))
+			if(c == false || c == 'Anonymous' || __php__("is_subclass_of")(c, "enum"))
 				return null;
 			else
 				return c;
@@ -167,7 +167,7 @@ class Type {
 			return __as__(__global__["flash.utils.getDefinitionByName"](cname),Class);
 		#else php
 			var s = __php__("get_parent_class")(c);
-			if(s === false)
+			if(s == false)
 				return null;
 			else
 				return s;
@@ -571,7 +571,7 @@ class Type {
 			return TUnknown;
 		}
 		#else php
-		if(v === null) return TNull;
+		if(v == null) return TNull;
 		if(__call__("is_array", v)) { 
 			if(__call__("is_callable", v)) return TFunction;
 			return TClass(Array);
