@@ -110,9 +110,12 @@ class Boot {
   }
 	
 	static public function __substr(s : String, pos : Int, ?offset : Int) {
+    if(s == "") return "";
 		if(offset == null)
 			return untyped __php__("substr")(s, pos);
-		else
+		else if(pos > 0 && pos >= offset)
+      return "";
+    else
 			return untyped __php__("substr")(s, pos, offset);
 	}
 
