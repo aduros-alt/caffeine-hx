@@ -92,7 +92,7 @@ let is_array_expr e =
   let s = s_expr_name e in
   if String.length s > 4 && String.sub s 0 5 = "Array" then true else false
 	
-let is_string_expr e =
+let is_string_expr e = (* match follow e.etype with TInst ({ cl_path = [],"String" },_) -> true | _ -> false *)
   if (s_expr_name e) = "String" || (s_expr_name e) = "#String" then true else false
 
 let spr ctx s = Buffer.add_string ctx.buf s
@@ -1033,27 +1033,27 @@ and gen_expr ctx e =
     spr ctx "try ";
     gen_expr ctx (block e);
 	register_required_path ctx (["php"], "Boot"); 
-	let ex = define_local ctx "e" in
+	let ex = define_local ctx "____e" in
 	print ctx "catch(php_HException %s$%s) {" (escphp ctx.quotes) ex;
-	newline ctx;
-	let ev = define_local ctx "e" in
 	let p = escphp ctx.quotes in
-	print ctx "%s$%s = %s$%s->e" p ev p ex;
 	let first = ref true in
     List.iter (fun (v,t,e) ->
+		let ev = define_local ctx v in
         newline ctx;
         let b = save_locals ctx in
 	    if not !first then spr ctx "else ";	  
 		(match follow t with
 		| TEnum (te,_) -> (match snd te.e_path with
-			| "Bool"   -> print ctx "if(is_bool(%s$%s))"      p ev
-			| _ -> print ctx "if(%s$%s instanceof %s)"        p ev (s_path ctx te.e_path te.e_extern e.epos))
+			| "Bool"   -> print ctx "if(is_bool(%s$%s = %s$%s->e))"        p ev p ex
+			| _ -> print ctx "if((%s$%s = %s$%s->e) instanceof %s)"        p ev p ex (s_path ctx te.e_path te.e_extern e.epos));
+			gen_expr ctx (block e);
 		| TInst (tc,_) -> (match snd tc.cl_path with
-			| "Int"    -> print ctx "if(is_int(%s$%s))"       p ev
-			| "Float"  -> print ctx "if(is_numeric(%s$%s))"   p ev
-			| "String" -> print ctx "if(is_string(%s$%s))"    p ev
-			| "Array"  -> print ctx "if(is_array(%s$%s))"     p ev
-			| _        -> print ctx "if(%s$%s instanceof %s)" p ev (s_path ctx tc.cl_path tc.cl_extern e.epos))
+			| "Int"    -> print ctx "if(is_int(%s$%s = %s$%s->e))"         p ev p ex
+			| "Float"  -> print ctx "if(is_numeric(%s$%s = %s$%s->e))"     p ev p ex
+			| "String" -> print ctx "if(is_string(%s$%s = %s$%s->e))"      p ev p ex
+			| "Array"  -> print ctx "if(is_array(%s$%s = %s$%s->e))"       p ev p ex
+			| _        -> print ctx "if((%s$%s = %s$%s->e) instanceof %s)" p ev p ex (s_path ctx tc.cl_path tc.cl_extern e.epos));
+			gen_expr ctx (block e);
 		| TFun _
 		| TLazy _
 		| TType _
@@ -1061,8 +1061,10 @@ and gen_expr ctx e =
 			assert false
 		| TMono _
 		| TDynamic _ ->
-			print ctx "");
-        gen_expr ctx (block e);
+			print ctx "{ %s$%s = %s$%s->e" p ev p ex; 
+			newline ctx;
+			gen_expr ctx (block e);
+			spr ctx "}");
         b();
 	    first := false;
     ) catchs;
