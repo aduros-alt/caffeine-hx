@@ -6,7 +6,7 @@ import Type;
 
 class TestReflect {
 	public function new(){}
-	
+
 	public function testNullFields(){
 		var l = Reflect.fields( null );
 		Assert.equals( 0, l.length);
@@ -85,7 +85,7 @@ class TestReflect {
 	public function testResolve(){
 		var trc : Class<Dynamic> = TestReflectClass;
 		Assert.equals(trc,Type.resolveClass(__unprotect__("stdlib.TestReflectClass")));
-		var name = [__unprotect__("haxe"),__unprotect__("unit"),__unprotect__("stdlib.TestCase")].join(".");
+		var name = __unprotect__("haxe.unit.TestCase");
 		Assert.equals(haxe.unit.TestCase,Type.resolveClass(name));
 	}
 
