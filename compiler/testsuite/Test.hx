@@ -27,9 +27,7 @@ class Test {
 	runner.register(new syntax.TypedefAccess());
 	
   runner.register(new syntax.UndefinedVariables());
-#if !hllua
 	runner.register(new syntax.UnusualConstructs());
-#end
 	runner.register(new syntax.WhileAccess());
   
 	runner.register(new stdlib.TestArray());

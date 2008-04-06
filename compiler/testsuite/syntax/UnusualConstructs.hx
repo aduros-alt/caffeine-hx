@@ -8,13 +8,17 @@ class UnusualConstructs {
 	var value: Int;
 
 	public function testAssignReturn() {
+#if !hllua
 		var v = setValue(10);
 		Assert.equals(10, v);
+#end
 	}
 
 	public function testBooleanReturn() {
+#if !hllua
 		var v = boolCheck();
 		Assert.equals(true, v);
+#end
 	}
 
 	public function testBooleanReturn2() {
@@ -22,6 +26,7 @@ class UnusualConstructs {
 		Assert.equals(true, v);
 	}
 
+#if !hllua
 	private function setValue(v) {
 		return value = v;
 	}
@@ -30,6 +35,7 @@ class UnusualConstructs {
 		var a: Int;
 		return ((a = 10) == 10);
 	}
+#end
 
 	private function boolCheck2() {
 		var a = 10;
