@@ -55,39 +55,48 @@ class TryCatch {
 	public function testCatchAll() {
 	  Assert.equals("Dynamic", throwCatchInterface(1));
 	}	
+  
+  public function testCatchWithOtherVarName() {
+    try {
+      throw "test";
+      Assert.isTrue(false);
+    } catch(myexception : String) {
+      Assert.equals("test", myexception);
+    }
+  }
 	
 	function throwCatch(ex : Dynamic) {
 	  try {
-		throw ex;
+      throw ex;
 	  } catch(e : Int) {
-		return "Int";
+      return "Int";
 	  } catch(e : Float) {
-		return "Float";
+      return "Float";
 	  } catch(e : Bool) {
-		return "Bool";
+      return "Bool";
 	  } catch(e : String) {
-		return "String";
+      return "String";
 	  } catch(e : Array<Dynamic>) {
-		return "Array";
+      return "Array";
 	  } catch(e : T2) {
-		return "T2";
+      return "T2";
 	  } catch(e : T) {
-		return "T";
+      return "T";
 	  } catch(e : ITest) { // never reached
-		return "ITest";
+      return "ITest";
 	  } catch(e : Dynamic) {
-		return "Dynamic";
+      return "Dynamic";
 	  }
 	  return null;
 	}
 	
 	function throwCatchInterface(ex : Dynamic) {
 	  try {
-		throw ex;
+      throw ex;
 	  } catch(e : ITest) {
-		return "ITest";
+      return "ITest";
 	  } catch(e : Dynamic) {
-		return "Dynamic";
+      return "Dynamic";
 	  }
 	  return null;
 	}
