@@ -962,7 +962,7 @@ and gen_expr ctx e =
 			blocks just throw for now apparent reason. The noop() function
 			prevents this
 		*)
-		spr ctx "noop() try ";
+		spr ctx "_G.noop() try ";
 		gen_expr ctx (block e);
 		newline ctx;
 		let id = ctx.id_counter in
@@ -1002,7 +1002,7 @@ and gen_expr ctx e =
 				openif := true;
 				print ctx "if( lua.Boot.__instanceof(e%d.error," id;
 				gen_value ctx (mk (TTypeExpr t) (mk_mono()) e.epos);
-				spr ctx ") ) then do--621";
+				spr ctx ") ) then do";
 				let bend = open_block ctx in
 				carriagereturn ctx;
 				print ctx "local %s = e%d.error" v id;
@@ -1011,12 +1011,15 @@ and gen_expr ctx e =
 				carriagereturn ctx;
 				bend();
 				commentcode ctx "629";
-				spr ctx "end--630";
+				spr ctx "end";
 				newline ctx;
 				spr ctx "else";
 		) catchs;
 		carriagereturn ctx;
-		if not !last then print ctx "throw(e%d);" id;
+		if not !last then begin
+		print ctx "\tthrow(e%d);" id;
+		openif := false;
+		end;
 		if !openif then print ctx "end";
 		carriagereturn ctx;
 		commentcode ctx "Try End Block";
