@@ -37,8 +37,8 @@ class LuaMath__
 		__lua__("math.NaN = 0/0");
 	 	__lua__("math.PI = math.pi");
 		__lua__("math.round = function(v) return math.floor(v + 0.5) end");
-		__lua__("math.isNaN = function(v) return v == math.NaN; end");
-		__lua__("math.isFinite = function(v) return v ~= math.NaN; end");
+		__lua__("math.isNaN = function(v) return type(v) == 'number' and tostring(v) == 'nan' end");
+		__lua__("math.isFinite = function(v) return (not math.isNaN(v)) and tostring(v) ~= 'inf'  end");
 		__lua__("math.randomseed(os.time())");
 		}
 	}

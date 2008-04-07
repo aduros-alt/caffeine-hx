@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2005, The haXe Project Contributors
+ * Copyright (c) 2008, The Caffeine-hx project contributors
+ * Original author : Russell Weir
+ * Contributors:
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -10,18 +12,19 @@
  *     notice, this list of conditions and the following disclaimer in the
  *     documentation and/or other materials provided with the distribution.
  *
- * THIS SOFTWARE IS PROVIDED BY THE HAXE PROJECT CONTRIBUTORS "AS IS" AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE HAXE PROJECT CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
- * DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE CAFFEINE-HX PROJECT CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE CAFFEINE-HX PROJECT CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package lua;
 
 class Boot {
@@ -37,13 +40,24 @@ class Boot {
 	private static function __closure(o,f) {
 		untyped {
 			var m = o[f];
-			if( m == null )
+			if( m == null || untyped __typeof__(m) != "function")
 				return null;
-			var f = function() { return m.apply(o,arguments); };
-// 			f.scope = o;
-// 			f.method = m;
+			var f = untyped __lua__("function(...) return o[f](o,...) end");
 			return f;
 		}
+	}
+
+	private static function __makeObject(o,self) {
+		untyped __lua__("
+		setmetatable(o, {__index = _G})
+		for k,v in pairs(o) do
+			if type(v) == 'function' then
+				setfenv(o[k],o)
+			end
+		end
+		o['this'] = o");
+		o.__name__ = ["Object"];
+		return o;
 	}
 
 	public static function __string_rec( v : Dynamic, indent : String ) {
@@ -53,18 +67,6 @@ class Boot {
 		var cname = untyped __global__["Haxe.getQualifiedClassName"](v);
 		switch( cname ) {
 		case "Object":
-			if(untyped v.__enum__ != null) {
-				var k : Array<String> = untyped __keys__(v);
-				if(k.length == 2) return k[0];
-				var s = k[0]+"(";
-				indent += "\t";
-				for(i in 2...k.length) {
-					if( i != 2)
-						s = s + ",";
-					s = s + __string_rec(v[i-1], indent);
-				}
-				return s + ")";
-			}
 			var k : Array<String> = untyped __keys__(v);
 			var s = "{";
 			var first = true;
@@ -80,7 +82,20 @@ class Boot {
 				s += " ";
 			s += "}";
 			return s;
+		case "Date":
+			return indent + v.toString();
 		case "Array":
+			if(untyped v.__enum__ != null) {
+				if(v.length == 2) return v[0];
+				var s = v[0]+"(";
+				indent += "\t";
+				for(i in 2...v.length) {
+					if( i != 2)
+						s = s + ",";
+					s = s + __string_rec(v[i], indent);
+				}
+				return s + ")";
+			}
 			var s = "[";
 			var i;
 			var first = true;
@@ -119,12 +134,10 @@ class Boot {
 
 	private static function __instanceof(o : Dynamic,cl) {
 		untyped {
-			if(cl == null || o == null) {
+			if(cl == null || o == null)
 				return false;
-			}
-			if(__typeof__(o) == "table" && o.__enum__ != null) {
-				return false;
-			}
+			if(__typeof__(o) == "table" && o.__enum__ != null)
+				return o.__enum__ == cl;
 			try {
 				if( __lua__("Haxe.instanceof(o, cl)") )
 					return true;
@@ -148,6 +161,12 @@ class Boot {
 				return false;
 			}
 		}
+	}
+
+	private static function __ternary(cond, t, f) {
+		if(cond)
+			return untyped t();
+		return f();
 	}
 
 	private static function __init__() {

@@ -67,7 +67,7 @@ class Type {
 	/**
 		Returns the class of a value or [null] if this value is not a Class instance.
 	**/
-	public static #if !flash9 inline #end function getClass<T>( o : T ) : Class<T> untyped {
+	public static #if !(flash9 || hllua) inline #end function getClass<T>( o : T ) : Class<T> untyped {
 		#if flash9
 			var cname = __global__["flash.utils.getQualifiedClassName"](o);
 			if( cname == "null" || cname == "Object" || cname == "int" || cname == "Number" || cname == "Boolean" )
@@ -90,7 +90,14 @@ class Type {
 				if( p != null ) p.__class__;
 			}
 		#else hllua
-			return if( o != null && o.__enum__ == null ) o.__class__;
+			//return if( o != null && o.__enum__ == null ) o.__class__;
+			var cname = __global__["Haxe.getQualifiedClassName"](o);
+			if( cname == null || cname == "Object" || cname == "int" || cname == "Number" || cname == "Boolean" )
+				return null;
+			if( cname == "String") return "String";
+			if( untyped Haxe.hasOwnProperty(o, "prototype") )
+				return null;
+			return if( o.__enum__ != null ) null else o.__class__;
 		#else error
 		#end
 	}
@@ -157,9 +164,12 @@ class Type {
 	/**
 		Returns the complete name of an enum.
 	**/
-	public static inline function getEnumName( e : Enum ) : String {
+	public static #if !hllua inline #end function getEnumName( e : Enum ) : String {
 		#if flash9
 			return untyped __global__["flash.utils.getQualifiedClassName"](e);
+		#else hllua
+			var a : Array<String> = untyped e.__ename__;
+			return a.join(".");
 		#else true
 			return untyped e.__ename__.join(".");
 		#end
@@ -189,18 +199,16 @@ class Type {
 			} catch( e : Dynamic ) {
 				cl = null;
 			}
-		#else (neko || hllua)
+		#else neko
 			var path = name.split(".");
-			#if hllua
-			cl = Reflect.field(untyped lua.Boot.__classes,path[0]);
-			#else true
-			cl = Reflect.field(untyped package.loaded,path[0]);
-			#end
+			cl = Reflect.field(untyped neko.Boot.__classes,path[0]);
 			var i = 1;
 			while( cl != null && i < path.length ) {
 				cl = Reflect.field(cl,path[i]);
 				i += 1;
 			}
+		#else hllua
+			cl = Reflect.field(untyped __lua__("_G.package.loaded"),name);
 		#else error
 		#end
 		// ensure that this is a class
@@ -235,23 +243,16 @@ class Type {
 			} catch( e : Dynamic ) {
 				e = null;
 			}
-		#else (neko || hllua)
+		#else neko
 			var path = name.split(".");
-			#if hllua
-			e = Reflect.field(lua.Boot.__classes,path[0]);
-			#else true
 			e = Reflect.field(neko.Boot.__classes,path[0]);
-			#end
 			var i = 1;
 			while( e != null && i < path.length ) {
 				e = Reflect.field(e,path[i]);
 				i += 1;
 			}
 		#else hllua
-			// lua enums are registered at the global scope
-			var path = name.split(".");
-			var name = path.pop();
-			e = Reflect.field()
+			e = Reflect.field(untyped __lua__("_G.package.loaded"),name);
 		#else error
 		#end
 		// ensure that this is an enum
@@ -368,6 +369,8 @@ class Type {
 			var a = describe(c,false);
 			a.remove("__construct__");
 			return a;
+		#else hllua
+			return untyped __keys__(c.__statics__);
 		#else true
 			var a = Reflect.fields(c);
 			a.remove(__unprotect__("__name__"));
@@ -446,6 +449,9 @@ class Type {
 		#if flash
 		case "null": return TNull;
 		#end
+		#if hllua
+		case "nil" : return TNull;
+		#end
 		case "boolean": return TBool;
 		case "string": return TClass(String);
 		case "number":
@@ -467,12 +473,19 @@ class Type {
 			if( e != null )
 				return TEnum(e);
 			var c = v.__class__;
-			if( c != null )
+			if( c != null ) {
+				#if hllua
+				if( untyped Haxe.hasOwnProperty(v, "prototype") )
+					return TObject;
+				#end
 				return TClass(c);
+			}
 			return TObject;
 		case "function":
+			#if !hllua
 			if( v.__name__ != null )
 				return TObject;
+			#end
 			return TFunction;
 		case "undefined":
 			return TNull;
@@ -507,6 +520,23 @@ class Type {
 				if( !enumEq(a.params[i],b.params[i]) )
 					return false;
 		} catch( e : Dynamic ) {
+			return false;
+		}
+		#else hllua
+		if(untyped __typeof__(a) != untyped __typeof__(b))
+			return false;
+		if(untyped __typeof__(a) == "table") {
+			if( a[0] != b[0] )
+				return false;
+			for( i in 2...a.length )
+				if( !enumEq(a[i],b[i]) )
+					return false;
+			var e = a.__enum__;
+			if( e != b.__enum__ || e == null )
+				return false;
+		}
+		else {
+			if(a == b) return true;
 			return false;
 		}
 		#else true

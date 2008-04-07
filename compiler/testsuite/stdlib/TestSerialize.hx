@@ -38,7 +38,7 @@ class TestSerialize {
 	}
 
 	public function testIds() {
-#if !(php || hllua)
+#if !php
 		Assert.equals( null, id(null) );
 		Assert.equals( 125, id(125) );
 		Assert.equals( -4563, id(-4563) );
@@ -55,7 +55,7 @@ class TestSerialize {
 	}
 
 	public function testObject() {
-#if !(php || hllua)
+#if !php
 		var o = { x : "a", y : -1.56, z : "hello" };
 		var o2 = id(o);
 		Assert.equals(o.x,o2.x);
@@ -65,7 +65,7 @@ class TestSerialize {
 	}
 
 	public function testClass() {
-#if !(php || hllua)
+#if !php
 		var c = new MyTestClass(787);
 		var c2 = id(c);
 		Assert.isTrue( Std.is(c2,MyTestClass) );
@@ -76,7 +76,7 @@ class TestSerialize {
 	}
 
 	public function testPrivateEnum() {
-#if !(php || hllua)
+#if !php
 		Assert.equals( X, id(X) );
 		Assert.isTrue( Std.is(id(X),TestEnum) );
 		var p = id(P(33));
@@ -89,7 +89,7 @@ class TestSerialize {
 	}
 
 	public function testEnum() {
-#if !(php || hllua)
+#if !php
 		Assert.equals( Y, id(Y) );
 		Assert.isTrue( Std.is(id(Y),MyUniquePublicEnum) );
 		var p = id(Z(33));
@@ -102,7 +102,7 @@ class TestSerialize {
 	}
 
 	public function testArray() {
-#if !(php || hllua)
+#if !php
 		var a = [0,1];
 		var a2 : Array<Int> = id(a);
 		Assert.isTrue( Std.is(a2,Array) );
@@ -113,7 +113,7 @@ class TestSerialize {
 	}
 
 	public function testList() {
-#if !(php || hllua)
+#if !php
 		var l = new List();
 		l.add(0);
 		l.add(1);
@@ -126,7 +126,7 @@ class TestSerialize {
 	}
 
 	public function testHash() {
-#if !(php || hllua)
+#if !php
 		var h = new Hash();
 		h.set("a",0);
 		h.set("b",1);
@@ -141,7 +141,7 @@ class TestSerialize {
 	}
 
 	public function testIntHash() {
-#if !(php || hllua)
+#if !php
 		var h = new IntHash();
 		h.set(667,0);
 		h.set(-55,1);
@@ -156,7 +156,7 @@ class TestSerialize {
 	}
 
 	public function testDate() {
-#if !(php || hllua)
+#if !php
 		var d = Date.now();
 		var d2 = id(d);
 		Assert.isTrue( Std.is(d2,Date) );

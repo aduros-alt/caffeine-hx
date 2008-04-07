@@ -59,8 +59,7 @@ class Std {
 		js.Boot.__string_rec(s,"");
 		#else hllua
 		lua.Boot.__string_rec(s,"");
-		#else true
-		"";
+		#else error
 		#end
 	}
 
@@ -168,8 +167,18 @@ class Std {
 			return 0-v;
 		return v;
 		}
-		#else true
-		return 0;
+
+		#else hllua
+		var res = preParse(x);
+		untyped {
+		var v = __global__["Haxe.parseInt"](res.str);
+		if( Math.isNaN(v) )
+			return null;
+		if(res.neg)
+			return 0-v;
+		return v;
+		}
+		#else error
 		#end
 	}
 
@@ -233,8 +242,9 @@ class Std {
 		__dollar__float(x.__s);
 		#else js
 		__js__("parseFloat")(x);
-		#else true
-		0;
+		#else hllua
+		__global__["Haxe.parseFloat"](x);
+		#else error
 		#end
 	}
 
@@ -267,7 +277,12 @@ class Std {
 			return null;
 		else
 			return x.charCodeAt(0);
-		#else true
+		#else hllua
+		if( x == "")
+			return null;
+		else
+			return x.charCodeAt(0);
+		#else error
 		return null;
 		#end
 	}
@@ -283,10 +298,9 @@ class Std {
 		__random__(x);
 		#else neko
 		Math._rand_int(Math.__rnd,x);
-		#else js
+		#else (js || hllua)
 		Math.floor(Math.random()*x);
-		#else true
-		0;
+		#else error
 		#end
 	}
 

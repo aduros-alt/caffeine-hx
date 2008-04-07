@@ -282,11 +282,13 @@ class TestReflect {
 
 	#if !neko
 	public function testCompareMethods() {
+		#if !hllua
 		var o1 = new List();
 		var o2 = new List();
 		Assert.isTrue( Reflect.compareMethods(o1.add,o1.add) );
 		Assert.isFalse( Reflect.compareMethods(o1.add,o2.add) );
 		Assert.isFalse( Reflect.compareMethods(o1.add,o1.remove) );
+		#end
 	}
 	#end
 

@@ -1,3 +1,4 @@
-try/catch patch
-http://lua-users.org/lists/lua-l/2008-01/msg00654.html
-
+Required libraries
+==================
+luaexpat: http://www.keplerproject.org/luaexpat/ind
+lrexlib: http://lrexlib.luaforge.net/

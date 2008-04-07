@@ -128,10 +128,13 @@ class StringTools {
 	**/
 	public static function num( s : String, pos : Int ) : Null<Int> {
 		var c = s.charCodeAt( pos );
-		c -= 48;
-		if(c < 0 || c > 9)
-			return null;
-		return c;
+		if(c > 0) {
+			c -= 48;
+			if(c < 0 || c > 9)
+				return null;
+			return c;
+		}
+		return null;
 	}
 //ENDPR/rw03///
 
@@ -274,6 +277,8 @@ class StringTools {
 	public static function baseEncode( s : String, base : String ) : String {
 		#if neko
 		return new String(_baseEncode(untyped s.__s,untyped base.__s));
+		//#else hllua
+		//return untyped __tostring__(__global__["tonumber"](s, base.length));
 		#else true
 		var len = base.length;
 		var nbits = 1;

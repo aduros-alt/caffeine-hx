@@ -29,75 +29,147 @@ package lua;
 
 class LuaDate__
 {
-	private var __t : Dynamic;
+	//private var __t : Dynamic;
+	private var __ts : Float; // timestamp
 
 	public function new(year : Int, month : Int, day : Int, hour : Int, min : Int, sec : Int ) {
-		__t = Reflect.empty();
-		untyped __t['year'] = year;
-		untyped __t['year'] = year;
-		untyped	__t['month'] = month + 1;
-		untyped	__t['day'] = day;
-		untyped	__t['hour'] = hour;
-		untyped	__t['min'] = min;
-		untyped	__t['sec'] = sec;
+		var ts :Dynamic = Reflect.empty();
+		ts.year = year;			// LUA		HAXE
+		ts.month = month + 1;	// 1-12		0-11
+		ts.day = day;			// 1-31		"
+		ts.hour = hour;			// 0-23		"
+		ts.min = min;			// 0-59		"
+		ts.sec = sec;			// 0-61		"
+		// weekday				1-7 Sun		0-6 Sun
+		// getTime				milliseconds from epoch
+		__ts = adjust(ts);
 	}
 
 	public function getTime() : Float {
-		return 1.0;
+		return __ts * 1000;
 	}
 
 	public function getFullYear() : Int {
-		return untyped __lua__("__t['year']");
+		return untyped __lua__("_G.tonumber(os.date('%Y', self.__ts))");
 	}
 
 	public function getMonth() : Int {
-		return untyped __lua__("__t['month'] - 1");
+		return untyped __lua__("_G.tonumber(os.date('%m', self.__ts))-1");
 	}
 
 	public function getDate() : Int {
-		return untyped __lua__("__t['day']");
+		return untyped __lua__("_G.tonumber(os.date('%d', self.__ts))");
 	}
 
 	public function getHours() : Int {
-		return untyped __lua__("__t['hour']");
+		return untyped __lua__("_G.tonumber(os.date('%H', self.__ts))");
 	}
 
 	public function getMinutes() : Int {
-		return untyped __lua__("__t['min']");
+		return untyped __lua__("_G.tonumber(os.date('%M', self.__ts))");
 	}
 
 	public function getSeconds() : Int {
-		return untyped __lua__("__t['sec']");
+		return untyped __lua__("_G.tonumber(os.date('%S', self.__ts))");
 	}
 
 	public function getDay() : Int {
-		return untyped __lua__("__t['wday'] - 1");
+		return untyped __lua__("_G.tonumber(os.date('%w', self.__ts))");
 	}
 
 	public function toString():String {
-		return new String(untyped date_format(__t,null));
+		return untyped __global__["os.date"]("%Y-%m-%d %H:%M:%S",__ts);
 	}
 
 	private static function now() {
-		var n = untyped __lua__("os.time()");
-		return create(n);
+		var ts = untyped __lua__("_G.tonumber(os.date('%s'))");
+		return create(ts);
 	}
 
-	private static function fromTime( t : Float ){
-		t /= 1000;
-		var i1 = untyped __dollar__int((t%65536));
-		var i2 = untyped __dollar__int(t/65536);
-		var i = untyped int32_add(i1,int32_shl(i2,16));
-		return create(i);
+	private static function fromTime( t : Float ) {
+		return create(t / 1000);
 	}
 
 	private static function fromString( s : String ) {
-		return create(untyped date_new(untyped s));
+		var nd = new LuaDate__(2008,1,1,0,0,0);
+		nd.__ts = untyped parse(s);
+		return nd;
 	}
 
-	private static function create(t) {
+	/**
+		Returns the seconds
+	**/
+// 	private static function timestamp(t) : Float {
+// 		return untyped __global__["os.time"](t);
+// 	}
+
+	private static function adjust(t:Dynamic) : Float {
+		//return untyped __lua__("_G.tonumber(os.date('!%s',os.time(t)))");
+		return untyped __lua__("_G.tonumber(os.date('%s',os.time(t)))");
+	}
+
+	private static function adjustUTC(t:Dynamic) : Float {
+		return untyped __lua__("_G.tonumber(os.date('!%s',os.time(t)))");
+	}
+
+	private static function toints(t) {
+		untyped {
+			t.year = _G.tonumber(t.year);
+			t.month = _G.tonumber(t.month);
+			t.day = _G.tonumber(t.day);
+			t.hour = _G.tonumber(t.hour);
+			t.min = _G.tonumber(t.min);
+			t.sec = _G.tonumber(t.sec);
+			t.wday = _G.tonumber(t.wday);
+			t.yday = _G.tonumber(t.yday);
+			t.idst = _G.tonumber(t.idst);
+		}
+		return t;
+	}
+
+	private static function create(ts) {
 		var d = new LuaDate__(2008,1,1,0,0,0);
-		d.__t = t;
+		d.__ts = ts;
 		return d;
+	}
+
+	/**
+		Return a time table from a string. All returned values are ints
+	**/
+	private static function parse(s:String) : Float {
+		var rv : Float;
+		var d = untyped _G.os.date("*t");
+		d.hour = 0;
+		d.min = 0;
+		d.sec = 0;
+		switch(s.length) {
+		case 8: // HH:MM:SS
+			var e = ~/^(\d{2}):(\d{2}):(\d{2})$/;
+			if(!e.match(s)) throw "unsupported date format";
+			d.hour = untyped __global__["tonumber"](e.matched(1));
+			d.min = untyped __global__["tonumber"](e.matched(2));
+			d.sec = untyped __global__["tonumber"](e.matched(3));
+			rv = adjust(d);
+		case 10: // YYYY-MM-DD
+			var e = ~/^(\d{4})-([01]\d{1})-([0-3]\d{1})$/;
+			if(!e.match(s)) throw "unsupported date format";
+			d.year = untyped __global__["tonumber"](e.matched(1));
+			d.month = untyped __global__["tonumber"](e.matched(2));
+			d.day = untyped __global__["tonumber"](e.matched(3));
+			rv = adjustUTC(d);
+		case 19: // YYYY-MM-DD HH:MM:SS
+			var e = ~/^(\d{4})-([01]\d{1})-([0-3]\d{1}) (\d{2}):(\d{2}):(\d{2})$/;
+			if(!e.match(s)) throw "unsupported date format";
+			d.year = untyped __global__["tonumber"](e.matched(1));
+			d.month = untyped __global__["tonumber"](e.matched(2));
+			d.day = untyped __global__["tonumber"](e.matched(3));
+			d.hour = untyped __global__["tonumber"](e.matched(4));
+			d.min = untyped __global__["tonumber"](e.matched(5));
+			d.sec = untyped __global__["tonumber"](e.matched(6));
+			rv = adjust(d);
+		default:
+			throw "unsupported date format";
+		}
+		return rv;
 	}
 }

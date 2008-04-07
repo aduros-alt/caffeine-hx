@@ -544,15 +544,19 @@ let rec gen_call ctx e el =
 		spr ctx ", ";
 		concat ctx "," (gen_value ctx) params;
 		spr ctx ")";
+	| TLocal "__fields__" , [e] ->
+		spr ctx "Haxe.fields(";
+		gen_value ctx e;
+		spr ctx ")";
 	| TLocal "__typeof__", [e] ->
 		spr ctx "type(";
 		gen_value ctx e;
 		spr ctx ")";
 	| TLocal "__delete__", [e;f] ->
 		gen_value ctx e;
-		spr ctx "['";
+		spr ctx "[";
 		gen_value ctx f;
-		spr ctx "']";
+		spr ctx "]";
 		spr ctx " = nil";
 	| TLocal "__tostring__", [e] ->
 		spr ctx "_G.tostring(";
@@ -1022,10 +1026,11 @@ and gen_expr ctx e =
 		commentcode ctx "End Catch";
 		spr ctx "end";
 	| TMatch (e,(estruct,_),cases,def) ->
+		commentcode ctx "TMatch";
 		spr ctx "local ___e = ";
 		gen_value ctx e;
 		newline ctx;
-		spr ctx "local switch = ___e[2]";
+		spr ctx "local switch = ___e[1]";
 		newline ctx;
 		let first = ref true in
 		List.iter (fun (cl,params,e) ->
@@ -1038,7 +1043,7 @@ and gen_expr ctx e =
 			(match params with
 			| None | Some [] -> ()
 			| Some l ->
-				let n = ref 2 in
+				let n = ref 1 in
 				let l = List.fold_left (fun acc (v,_) -> incr n; match v with None -> acc | Some v -> (v,!n) :: acc) [] l in
 				match l with
 				| [] -> ()
@@ -1445,9 +1450,9 @@ let generate_enum ctx e =
 		(match f.ef_type with
 		| TFun (args,_) ->
 			let sargs = String.concat "," (List.map arg_name args) in
-			print ctx " function(%s) ___x = {\"%s\",%d,%s}; ___x.__enum__ = %s; ___x.toString = lua.Boot.__string_rec; return ___x; end" sargs f.ef_name f.ef_index sargs p;
+			print ctx " function(%s) ___x = Array:new({\"%s\",%d,%s}); ___x.__enum__ = %s; ___x.toString = lua.Boot.__string_rec; return ___x; end" sargs f.ef_name f.ef_index sargs p;
 		| _ ->
-			print ctx "{\"%s\",%d}" f.ef_name f.ef_index;
+			print ctx "Array:new({\"%s\",%d})" f.ef_name f.ef_index;
 			newline ctx;
 			print ctx "%s.toString = lua.Boot.__string_rec" f.ef_name;
 			newline ctx;

@@ -1,30 +1,60 @@
+--[[
+ * Copyright (c) 2008, The Caffeine-hx project contributors
+ * Original author : Russell Weir
+ * Contributors:
+ * All rights reserved.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *   - Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   - Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE CAFFEINE-HX PROJECT CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE CAFFEINE-HX PROJECT CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
+--]]
+
 module("Array",package.seeall)
 
 function Array:__construct__(o)
 	o = o or {}
 	setmetatable(o, self)
 	self.__index = self;
-	self.__class__ = Array;
-	self.__name__ = {"Array"};
 	self.length = 0;
 
-	self.__concat = function (...)
-		print("CONCAT ARRAY");
-	end
+	--self.__concat = function (...)
+	--	print("CONCAT ARRAY UNFINISHED");
+	--end
 
 	self.__newindex = function(tbl,key,value)
 		--print("Setting "..key.." to "..value);
-		--print(tbl, tbl.length);
-		--print(self, self.length)
 		if(type(key) ~= "number") then
 			rawset(tbl,key,value);
-			--throw("Invalid key "..key);
 		else
 			if(key >= tbl.length) then tbl.length = key + 1; end;
 			rawset(tbl,key,value);
 		end;
+	end
 
-		--print("New length: ",self.length);
+	self.__eq = function(a,b)
+		for k,v in pairs(a) do
+			if b[k] ~= v then do return false end end
+		end
+		for k,v in pairs(b) do
+			if a[k] ~= v then do return false end end
+		end
+		return true
 	end
 
 	return o;
@@ -32,24 +62,37 @@ end
 
 function Array:new(a)
 	local __new = Array:__construct__();
+	local max = 0;
 	if a ~= nil then
-		for i, v in ipairs(a) do
-			__new:push(v);
+		for i, v in pairs(a) do
+			if type(i) == 'number' then
+				rawset(__new,i-1,v);
+				if(i > max) then max = i end;
+			end
 		end
 	end
+	rawset(__new,"length", max);
 	return __new;
 end
 
 function Array:concat(arr)
-	if(arr.__name__[1] ~= "Array") then throw("Not array"); end;
+	if(arr.__name__[0] ~= "Array") then throw("Not array"); end;
 	local a = Array:new();
 	for k,v in pairs (self) do
-		if(type(k) == "number") then a[k] = v; end;
+		if(type(k) == "number") then a[k] = v; end
 	end
+	local l = self.length
+	local max = self.length
+	local amax = arr.length
 	for k,v in pairs (arr) do
-		if(type(k) == "number") then a[k] = v; end;
-	end;
-	return a;
+		if(type(k) == "number" and k < amax) then
+			local idx = l + k;
+			a[idx] = v;
+			if idx >= max then max = idx + 1 end
+		end
+	end
+	rawset(a,"length", max)
+	return a
 end
 
 function Array:copy()
@@ -147,15 +190,16 @@ function Array:remove(v)
 	for i = 0,max,1 do
 		if(self[i] == v) then
 			for v = i, max, 1 do
-				self[v] = self[v+1];
+				self[v] = self[v+1]
 			end
-			l = l -1;
+			do rawset(self,"length", l-1) end
+			l = l - 1
+			self[l] = nil
 			rawset(self,"length", l);
-			self[l] = nil;
-			return true;
+			do return true end
 		end
 	end
-	return false;
+	return false
 end
 
 --[[
@@ -211,8 +255,6 @@ function Array:slice(pos, iend)
 end
 
 function Array:sort(f)
-	print("Array:sort")
-
 	local i = 0;
 	local l = self.length;
 	local a = self;
@@ -284,5 +326,23 @@ function Array:pack()
 	return a
 end
 
+prototype = {}
+__statics__ = {}
 --__class__ = Array;
 --__name__ = {"Array"};
+
+prototype['concat'] = concat
+prototype['copy'] = copy
+prototype['insert'] = insert
+prototype['iterator'] = iterator
+prototype['join'] = join
+prototype['pop'] = pop
+prototype['push'] = push
+prototype['remove'] = remove
+prototype['reverse'] = reverse
+prototype['shift'] = shift
+prototype['slice'] = slice
+prototype['sort'] = sort
+prototype['splice'] = splice
+prototype['toString'] = toString
+prototype['unshift'] = unshift

@@ -77,7 +77,7 @@ class Reflect {
 	/**
 		Returns the field of an object, or null if [o] is not an object or doesn't have this field.
 	**/
-	public static inline function field( o : Dynamic, field : String ) : Dynamic {
+	public static #if !hllua inline #end function field( o : Dynamic, field : String ) : Dynamic {
 		untyped
 		#if flash
 			return o[field]
@@ -195,15 +195,9 @@ class Reflect {
 				}
 				return Array.new1(a,l);
 			}
-			#else hllua
-			var a : Array<String> = __keys__(o);
-			var i = 0;
-			while( i < a.length ) {
-				if( !__hasOwnProperty__(o, a[i]))
-					a.splice(i,1);
-				else
-					i = i + 1;
-			}
+		#else hllua
+			var a : Array<String>;
+			a = untyped __keys__(untyped __fields__(o));
 			return a;
 		#else error
 		#end
@@ -254,7 +248,7 @@ class Reflect {
 		#else js
 		return f1.scope == f2.scope && f1.method == f2.method && f1.method != null;
 		#else hllua
-		return untyped __lua__("f1 == f2");
+		return false;
 		#else true
 		return
 		#end
@@ -289,7 +283,7 @@ class Reflect {
 		var t = __js__("typeof(v)");
 		return (t == "string" || (t == "object" && !v.__enum__) || (t == "function" && v.__name__ != null));
 		#else hllua
-		return __typeof__(v) == "table";
+		return __typeof__(v) == "table" && v.__enum__ == null;
 		#else error
 		#end
 	}
@@ -360,6 +354,8 @@ class Reflect {
 		};
 		#else flash
 		return function() { return f(untyped __arguments__); };
+		#else hllua
+		return untyped __lua__("(function(...) arg.n = null return f(Array:new(arg)) end)");
 		#end
 	}
 
