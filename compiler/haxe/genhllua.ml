@@ -1246,8 +1246,10 @@ and gen_value ctx e =
 		gen_expr ctx e;
 		v()
 	| TBlock [e] ->
+		commentcode ctx "gen_value TBlock [e]";
 		gen_value ctx e
 	| TBlock el ->
+		commentcode ctx "gen_value TBlock el";
 		let v = value true in
 		let rec loop = function
 			| [] ->
