@@ -24,13 +24,15 @@ struct lua_longjmp {
   volatile int status;  /* error code */
 
   int type;             /* JMPTYPE_* */
-  Instruction *pc;
+  const Instruction *dest;
+  ptrdiff_t errobj;     /* holds error object */
+  int opcode;
   ptrdiff_t old_ci;
-  lu_byte old_allowhooks;
   ptrdiff_t old_errfunc;
   int old_top;
   int old_nexeccalls;
   unsigned short oldnCcalls;
+  lu_byte old_allowhooks;
 };
 
 
@@ -69,6 +71,7 @@ LUAI_FUNC void luaD_reallocCI (lua_State *L, int newsize);
 LUAI_FUNC void luaD_reallocstack (lua_State *L, int newsize);
 LUAI_FUNC void luaD_growstack (lua_State *L, int n);
 
+LUAI_FUNC void luaD_freefstack (lua_State *L);
 LUAI_FUNC void luaD_throw (lua_State *L, int errcode);
 LUAI_FUNC int luaD_rawrunprotected (lua_State *L, Pfunc f, void *ud);
 

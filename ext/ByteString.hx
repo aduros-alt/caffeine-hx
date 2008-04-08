@@ -341,7 +341,7 @@ class ByteString {
 	**/
 	public function unshift(v : Int ) : Void {
 		_buf.unshift(v);
-		position++;
+		position = position + 1;
 		update();
 	}
 

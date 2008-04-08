@@ -63,14 +63,14 @@ extern class Math
 		NaN = __global__["Number"].NaN;
 		NEGATIVE_INFINITY = __global__["Number"].NEGATIVE_INFINITY;
 		POSITIVE_INFINITY = __global__["Number"].POSITIVE_INFINITY;
-		#elseif hllua
+		#else hllua
 		__setglobal__("Math","math");
 		Math.POSITIVE_INFINITY = 1/0;
 		Math.NEGATIVE_INFINITY = -1/0;
 		Math.NaN = 0/0;
 		Math.PI = math.pi;
-		Math.round = function(v) { return Math.floor(v + 0.5) }
-		__lua__("math.randomseed(oszack.time())");
+		Math.round = function(v) { return Math.floor(v + 0.5); }
+		__lua__("math.randomseed(os.time())");
 		#else true
 		Math.NaN = Number["NaN"];
 		Math.NEGATIVE_INFINITY = Number["NEGATIVE_INFINITY"];

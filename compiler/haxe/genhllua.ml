@@ -962,7 +962,8 @@ and gen_expr ctx e =
 			blocks just throw for now apparent reason. The noop() function
 			prevents this
 		*)
-		spr ctx "_G.noop() try ";
+(* 		spr ctx "_G.noop() try "; *)
+		spr ctx "try ";
 		gen_expr ctx (block e);
 		newline ctx;
 		let id = ctx.id_counter in

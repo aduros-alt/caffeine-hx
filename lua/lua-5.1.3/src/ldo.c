@@ -82,8 +82,20 @@ static void resetstack (lua_State *L, int status) {
   L->errorJmp = NULL;
 }
 
+void luaD_freefstack (lua_State *L) {
+  struct lua_longjmp *pj, *pprev;
+  /* free fstack */
+  pj = L->fstack;
+  while(pj) {
+    pprev = pj->previous;
+    luaM_free(L, pj);
+    pj = pprev;
+  }
+  L->fstack = NULL;
+}
 
 void luaD_throw (lua_State *L, int errcode) {
+  luaD_freefstack(L);
   if (L->errorJmp) {
     L->errorJmp->status = errcode;
     LUAI_THROW(L, L->errorJmp);
@@ -358,7 +370,7 @@ int luaD_poscall (lua_State *L, StkId firstResult) {
 ** The arguments are on the stack, right after the function.
 ** When returns, all the results are on the stack, starting at the original
 ** function position.
-*/ 
+*/
 void luaD_call (lua_State *L, StkId func, int nResults) {
   if (++L->nCcalls >= LUAI_MAXCCALLS) {
     if (L->nCcalls == LUAI_MAXCCALLS)

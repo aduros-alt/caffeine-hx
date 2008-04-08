@@ -52,6 +52,8 @@ typedef struct CallInfo {
   const Instruction *savedpc;
   int nresults;  /* expected number of results from this function */
   int tailcalls;  /* number of tail calls lost under this entry */
+  int numres; /* number or results, used by try */
+  ptrdiff_t baseres; /* base for result values */
 } CallInfo;
 
 
@@ -124,6 +126,7 @@ struct lua_State {
   GCObject *gclist;
   struct lua_longjmp *errorJmp;  /* current error recover point */
   ptrdiff_t errfunc;  /* current error handling function (stack index) */
+  struct lua_longjmp *fstack;   /* stack for "finally" ret */
 };
 
 

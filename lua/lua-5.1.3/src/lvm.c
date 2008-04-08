@@ -423,9 +423,8 @@ static void releasetry(lua_State *L) {
   }
 }
 
-static void restoretry(lua_State *L, int seterr, int ra) {
+static void restoretry(lua_State *L) {
   struct lua_longjmp *pj = L->errorJmp;
-
   StkId oldtop = restorestack(L, pj->old_top);
   luaF_close(L, oldtop);  /* close eventual pending closures */
 
@@ -434,8 +433,8 @@ static void restoretry(lua_State *L, int seterr, int ra) {
   L->base = L->ci->base;
   L->allowhook = pj->old_allowhooks;
 
-  if (seterr)
-    luaD_seterrorobj(L, pj->status, L->base + ra);
+  if (pj->opcode != OP_TRY)
+    luaD_seterrorobj(L, pj->status, L->base + pj->errobj);
   L->top = oldtop;
 
   if (L->size_ci > LUAI_MAXCALLS) {  /* there was an overflow? */
@@ -443,7 +442,22 @@ static void restoretry(lua_State *L, int seterr, int ra) {
     if (inuse + 1 < LUAI_MAXCALLS)  /* can `undo' overflow? */
       luaD_reallocCI(L, LUAI_MAXCALLS);
   }
-  releasetry(L);
+
+  if (pj->opcode == OP_TRYFIN) {
+    L->errorJmp = pj->previous;
+    pj->previous = L->fstack;
+    L->fstack = pj;
+  }
+  else
+    releasetry(L);
+}
+
+static void releasefin(lua_State *L) {
+  if (L->fstack) {
+    struct lua_longjmp *pj = L->fstack;
+    L->fstack = pj->previous;
+    luaM_free(L, pj);
+  }
 }
 
 void luaV_execute (lua_State *L, int nexeccalls) {
@@ -752,6 +766,10 @@ void luaV_execute (lua_State *L, int nexeccalls) {
       }
       case OP_RETURN: {
         int b = GETARG_B(i);
+        if (GETARG_C(i)) {
+          b = L->ci->numres + 1;
+          ra = restorestack(L, L->ci->baseres);
+        }
         if (b != 0) L->top = ra+b-1;
         if (L->openupval) luaF_close(L, base);
         L->savedpc = pc;
@@ -875,13 +893,16 @@ void luaV_execute (lua_State *L, int nexeccalls) {
         }
         continue;
       }
-      case OP_TRY: {
-          int status;
+      case OP_TRY:
+      case OP_TRYCATCH:
+      case OP_TRYFIN: {
           pj = luaM_malloc(L, sizeof(struct lua_longjmp));
           pj->type = JMPTYPE_TRY;
           pj->status = 0;
-          pj->pc = pc + GETARG_sBx(i);
+          pj->dest = pc + GETARG_sBx(i);
           pj->previous = L->errorJmp;
+          pj->errobj = ra - base;
+          pj->opcode = GET_OPCODE(i);
 
           pj->oldnCcalls = L->nCcalls;
           pj->old_ci = saveci(L, L->ci);
@@ -892,23 +913,68 @@ void luaV_execute (lua_State *L, int nexeccalls) {
           L->errorJmp = pj;
           L->errfunc = 0;
 
-          status = setjmp(pj->b);
-          if (status) {
-            pc = L->errorJmp->pc;
+          if (setjmp(pj->b)) {
+            pc = L->errorJmp->dest;
             nexeccalls = L->errorJmp->old_nexeccalls;
-            restoretry(L, GET_OPCODE(*pc) == OP_CATCH, GETARG_A(*pc));
+            restoretry(L);
             L->savedpc = pc;
             goto reentry;
           }
 
         continue;
       }
-      case OP_ENDTRY: {
-        releasetry(L);
+      case OP_EXITTRY: {
+        if (L->errorJmp) {
+          struct lua_longjmp *pj = L->errorJmp;
+          int count = 0;
+          if (GETARG_C(i)) {   /* save return values */
+            StkId res, t = L->top;   /* top of return values */
+            TValue val;
+            int b = GETARG_B(i);
+
+            if (b != 0) t = ra+b-1;
+            if (L->openupval) luaF_close(L, base);
+
+            res = L->base;
+            for (res = L->base; ra < t; res ++, ra ++, count ++) {
+              StkId mp; val = *ra;
+              for (mp = ra; mp > res; mp --)
+                setobjs2s(L, mp, mp-1);
+              *res = val;
+            }
+            L->ci->baseres = savestack(L, L->base);
+            L->ci->numres = count;
+            L->ci->base = (L->base += count);
+          }
+
+          if (pj->opcode == OP_TRYFIN) { /* move it to fstack, and jump to 'finally' clause */
+            const Instruction *tmpc = pc;
+            setnilvalue(L->base + pj->errobj);    /* clear internal error object */
+            L->errorJmp = pj->previous;
+            pc = pj->dest;
+            pj->dest = tmpc;    /* save pc for RETFIN */
+            pj->previous = L->fstack;
+            L->fstack = pj;
+          } else
+            releasetry(L);
+
+          if (count) {  /* base changed, so reenter */
+            L->savedpc = pc;
+            goto reentry;
+          }
+        }
         continue;
       }
-      case OP_CATCH: {
-        // dummy opcode, do nothing here!
+      case OP_RETFIN: {
+        if (!ttisnil(ra)) { /* raise error again */
+          int status = L->fstack->status;
+          releasefin(L);
+          L->top = ra + 1;
+          luaD_throw(L, status);
+        } else {
+          pc = L->fstack->dest;
+          releasefin(L);
+        }
         continue;
       }
     }

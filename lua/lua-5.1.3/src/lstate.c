@@ -36,7 +36,7 @@ typedef struct LG {
   lua_State l;
   global_State g;
 } LG;
-  
+
 
 
 static void stack_init (lua_State *L1, lua_State *L) {
@@ -55,6 +55,7 @@ static void stack_init (lua_State *L1, lua_State *L) {
   setnilvalue(L1->top++);  /* `function' entry for this `ci' */
   L1->base = L1->ci->base = L1->top;
   L1->ci->top = L1->top + LUA_MINSTACK;
+  L1->fstack = NULL;
 }
 
 
@@ -79,6 +80,8 @@ static void freestack (lua_State *L, lua_State *L1) {
       pnext = pj;
     pj = pprev;
   }
+
+  luaD_freefstack(L);
 }
 
 
