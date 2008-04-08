@@ -37,6 +37,7 @@ type ctx = {
 	mutable in_constructor : bool;
 	mutable in_function : bool;
 	mutable in_static : bool;
+	mutable in_no_assign : bool;
 	mutable handle_break : bool;
 	mutable id_counter : int;
 	debug : bool;
@@ -98,6 +99,7 @@ let init dir path =
 		in_constructor = false;
 		in_function = false;
 		in_static = false;
+		in_no_assign = false;
 		handle_break = false;
 		debug = Plugin.defined "debug";
 		id_counter = 0;
@@ -240,7 +242,7 @@ let s_ident n =
 	| "parseFloat" -> "parseFloat"
 	| "type" -> "_type"
 	| "end" -> "_end"
-	| _ -> n
+	| _ -> ident n
 
 let spr ctx s = Buffer.add_string ctx.buf s
 let print ctx = Printf.kprintf (fun s -> Buffer.add_string ctx.buf s)
@@ -446,7 +448,7 @@ let gen_constant ctx p = function
 	| TThis -> spr ctx (this ctx)
 	| TSuper -> assert false
 
-let is_method ctx t s =
+let is_method ctx t =
 	match follow t with
 	| TInst(c,_) ->
 		true
@@ -510,7 +512,7 @@ let rec gen_call ctx e el =
 		commentcode ctx "gen_call TField (e,s)";
 		gen_value ctx e;
 		(* spr ctx (staticfield s); *)
-		let is_func = is_method ctx e.etype s in
+		let is_func = is_method ctx e.etype in
 		gen_field_access ctx (not is_func) e.etype s;
 		spr ctx "(";
 		concat ctx "," (gen_value ctx) el;
@@ -685,6 +687,11 @@ and gen_expr ctx e =
 		(match op with
 		| OpAssignOp o ->
 			commentcode ctx "OpAssignOpa";
+			let old_in_no_assign = ctx.in_no_assign in
+			if ctx.in_no_assign then begin
+				ctx.in_no_assign <- false;
+				spr ctx "(function() ";
+			end else ctx.in_no_assign <- true;
 			gen_value_op ctx e1;
 			gen_field_access ctx true e1.etype s;
 			print ctx " = ";
@@ -695,6 +702,30 @@ and gen_expr ctx e =
 			print ctx "(";
 			gen_value_op ctx e2;
 			print ctx ")";
+			if old_in_no_assign then begin
+				spr ctx "; return ";
+				gen_field_access ctx true e1.etype s;
+				spr ctx "; end)()";
+			end;
+			ctx.in_no_assign <- old_in_no_assign;
+		| OpAssign ->
+			commentcode ctx "TBinop OpAssign";
+			let old_in_no_assign = ctx.in_no_assign in
+			if ctx.in_no_assign then begin
+				spr ctx "(function() ";
+				ctx.in_no_assign <- false;
+			end else ctx.in_no_assign <- true;
+			gen_value_op ctx e1;
+			gen_field_access ctx true e1.etype s;
+			print ctx " %s " (s_binop op);
+			gen_value_op ctx e2;
+			if old_in_no_assign then begin
+				spr ctx "; return ";
+				gen_value_op ctx e1;
+				gen_field_access ctx true e1.etype s;
+				spr ctx "; end)()";
+			end;
+			ctx.in_no_assign <- old_in_no_assign;
 		| _ ->
 			commentcode ctx "TBinop (op,{ eexpr = TField (e1,s) },e2) a";
 			gen_value_op ctx e1;
@@ -707,6 +738,11 @@ and gen_expr ctx e =
 		(match op with
 		| OpAssignOp o ->
 			commentcode ctx "OpAssignOp2 (unary assign)";
+			let old_in_no_assign = ctx.in_no_assign in
+			if ctx.in_no_assign then begin
+				spr ctx "(function() ";
+				ctx.in_no_assign <- false;
+			end else ctx.in_no_assign <- true;
 			gen_value_op ctx e1;
 			print ctx " = ";
 			gen_value_op ctx e1;
@@ -714,6 +750,28 @@ and gen_expr ctx e =
 			print ctx "(";
 			gen_value_op ctx e2;
 			print ctx ")";
+			if old_in_no_assign then begin
+				spr ctx "; return ";
+				gen_value_op ctx e1;
+				spr ctx "; end)()";
+			end;
+			ctx.in_no_assign <- old_in_no_assign;
+		| OpAssign ->
+			commentcode ctx "TBinop OpAssign";
+			let old_in_no_assign = ctx.in_no_assign in
+			if ctx.in_no_assign then begin
+				spr ctx "(function() ";
+				ctx.in_no_assign <- false;
+			end else ctx.in_no_assign <- true;
+			gen_value_op ctx e1;
+			print ctx " %s " (s_binop op);
+			gen_value_op ctx e2;
+			if old_in_no_assign then begin
+				spr ctx "; return ";
+				gen_value_op ctx e1;
+				spr ctx "; end)()";
+			end;
+			ctx.in_no_assign <- old_in_no_assign;
 		| _ ->
 			commentcode ctx "OpAssignOp2 case 2";
 			(match e2.eexpr with
@@ -744,8 +802,8 @@ and gen_expr ctx e =
 	| TField (x,s) ->
 		commentcode ctx "gen_expr TField";
 		(match follow e.etype with
-		| TFun _ ->
-			spr ctx "Haxe.closure("; (* closure *)
+		| TFun _ -> (*when not ctx.in_constructor*)
+			spr ctx "Haxe.closure(";
 			gen_value ctx x;
 			spr ctx ",";
 			gen_constant ctx e.epos (TString s);
@@ -775,12 +833,14 @@ and gen_expr ctx e =
 	| TReturn eo ->
 		commentcode ctx "gen_expr TReturn";
 		if ctx.in_value then unsupported e.epos;
+		let old = ctx.in_no_assign in
+		ctx.in_no_assign <- true;
 		(match eo with
 		| None ->
 			spr ctx "do return end"
 		| Some e ->
 			try
-				has_assign_op e;
+(* 				has_assign_op e; *)
 				(match e.eexpr with
 				| TIf (cond, etrue, efalse) ->
 					let id = ctx.id_counter in
@@ -818,6 +878,7 @@ and gen_expr ctx e =
 				Exit -> unsupported e.epos;
 (* 				print ctx "do return %s end" (); *)
 		);
+		ctx.in_no_assign <- old;
 	| TBreak ->
 (* 		if ctx.in_value then unsupported e.epos; *)
 		if ctx.handle_break then spr ctx "throw \"__break__\"" else spr ctx "break"
@@ -839,7 +900,9 @@ and gen_expr ctx e =
 		let old = ctx.in_value in
 		let old_meth = ctx.curmethod in
 		let old_infunc = ctx.in_function in
+		let old_in_no_assign = ctx.in_no_assign in
 		ctx.in_value <- false;
+		ctx.in_no_assign <- false;
 		if snd ctx.curmethod then begin
 			ctx.curmethod <- (fst ctx.curmethod ^ "@" ^ string_of_int (Lexer.get_error_line e.epos), true);
 			print ctx "(function ";
@@ -856,6 +919,7 @@ and gen_expr ctx e =
 		end;
 		ctx.in_function <- old_infunc;
 		ctx.curmethod <- old_meth;
+		ctx.in_no_assign <- old_in_no_assign;
 		ctx.in_value <- old;
 	| TCall (e,el) ->
 		commentcode ctx "gen_expr TCall";
@@ -878,8 +942,11 @@ and gen_expr ctx e =
 			match e with
 			| None -> ()
 			| Some e ->
+				let old_in_no_assign = ctx.in_no_assign in
+				ctx.in_no_assign <- true;
 				spr ctx " = ";
-				gen_value ctx e
+				gen_value ctx e;
+				ctx.in_no_assign <- old_in_no_assign
 		) vl;
 (*		concat ctx ", " (fun (n,_,e) -> spr ctx (ident n); ) vl;
 		List.iter (fun (n,_,e) ->
@@ -903,12 +970,14 @@ and gen_expr ctx e =
 		spr ctx ")"
 	| TIf (cond,e,eelse) ->
 		spr ctx "if";
+		let old_in_no_assign = ctx.in_no_assign in
+		ctx.in_no_assign <- true;
 		gen_value ctx (parent cond);
+		ctx.in_no_assign <- old_in_no_assign;
 		spr ctx " then";
 		let bend = open_block ctx in
 		carriagereturn ctx;
 		gen_expr ctx e;
-			(*  Franco  *)
 		(match eelse with
 		| None -> ()
 		| Some e when e.eexpr = TConst(TNull) -> ()
@@ -1100,8 +1169,8 @@ and gen_expr ctx e =
 			gen_expr ctx (block e);
 			newline ctx;
 		);
-		spr ctx "end -- end of switch";
-		newline ctx
+		spr ctx "end -- end switch";
+(* 		newline ctx *)
 
 and ms_unop op ctx e post =
 	match op with
@@ -1195,7 +1264,9 @@ and gen_value ctx e =
 	in
 	let value block =
 		let old = ctx.in_value in
+		let old_in_no_assign = ctx.in_no_assign in
 		ctx.in_value <- true;
+		ctx.in_no_assign <- false;
 		spr ctx "(function(this) ";
 		let b = if block then begin
 			let b = open_block ctx in
@@ -1215,6 +1286,7 @@ and gen_value ctx e =
 				spr ctx "end)";
 			end;
 			ctx.in_value <- old;
+			ctx.in_no_assign <- old_in_no_assign;
 			print ctx "(%s)" (this ctx)
 		)
 	in
@@ -1539,7 +1611,7 @@ let generate dir types =
 					generate_class ctx c;
 					(match c.cl_init with
 					| None -> ()
-					| Some e -> gen_expr ctx e);
+					| Some e -> carriagereturn ctx; gen_expr ctx e);
 						close ctx
 				)
 		| TEnumDecl e ->

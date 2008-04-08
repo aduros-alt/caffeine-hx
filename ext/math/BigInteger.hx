@@ -79,7 +79,7 @@ class BigInteger {
 		case 3: am = am3;
 		default: { throw "am error"; null;}
 		}
-#else flash
+#else !neko
 		am = am2;
 #end
 
@@ -1420,7 +1420,7 @@ class BigInteger {
 		return c;
 	}
 #end
-#if (flash || js)
+#if !neko
 	// am: Compute w_j += (x*this_i), propagate carries,
 	// c is initial carry, returns final carry.
 	// c < 3*dvalue, x < 2*dvalue, this_i < dvalue
