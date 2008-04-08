@@ -93,15 +93,14 @@ void luaA_pushobject (lua_State *L, const TValue *o) {
 
 
 LUA_API int lua_checkstack (lua_State *L, int size) {
-  int res;
+  int res = 1;
   lua_lock(L);
-  if ((L->top - L->base + size) > LUAI_MAXCSTACK)
+  if (size > LUAI_MAXCSTACK || (L->top - L->base + size) > LUAI_MAXCSTACK)
     res = 0;  /* stack overflow */
-  else {
+  else if (size > 0) {
     luaD_checkstack(L, size);
     if (L->ci->top < L->top + size)
       L->ci->top = L->top + size;
-    res = 1;
   }
   lua_unlock(L);
   return res;
