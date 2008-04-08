@@ -90,7 +90,7 @@ let is_unknown_expr e =
   
 let is_array_expr e =
   let s = s_expr_name e in
-  if String.length s > 4 && String.sub s 0 5 = "Array" then true else false
+  if (String.length s > 4 && String.sub s 0 5 = "Array") || (String.length s > 5 && String.sub s 0 6 = "#Array") then true else false
 	
 let is_string_expr e = (* match follow e.etype with TInst ({ cl_path = [],"String" },_) -> true | _ -> false *)
   if (s_expr_name e) = "String" || (s_expr_name e) = "#String" then true else false
@@ -122,6 +122,11 @@ let s_path ctx path isextern p =
     with Not_found ->
       Hashtbl.add ctx.imports name [pack];
       String.concat "_" pack ^ "_" ^ name
+	  
+let s_path_haxe path =
+	match fst path, snd path with
+	| [], s -> s
+	| el, s -> String.concat "." el ^ "." ^ s
 	  
 let s_ident n =
   let suf = "h" in
@@ -292,15 +297,12 @@ let is_in_dynamic_methods ctx e s =
 	) ctx.all_dynamic_methods
 	
 let is_dynamic_method f = 
-	match f.cf_expr with
-    | Some { eexpr = TFunction fd } ->
-	  (match f.cf_set with 
-	  | NormalAccess -> 
-	    true
-	  | _ -> 
-        false
-	  )
-	| _ -> false
+	match follow f.cf_type with 
+	| TFun _ when f.cf_expr = None -> true
+	| _ -> 
+		(match f.cf_expr with
+	    | Some { eexpr = TFunction fd } -> f.cf_set = NormalAccess
+		| _ -> false)
   
 let gen_function_header ctx name f params p =
   let old = ctx.in_value in
@@ -385,6 +387,17 @@ let rec gen_call ctx e el =
 	spr ctx ")";
   | TLocal "__php__", [{ eexpr = TConst (TString code) }] ->
 	spr ctx code
+  | TLocal _, el
+  | TFunction _, el ->
+    ctx.is_call <- true;
+	spr ctx "call_user_func(";
+    gen_value ctx e;
+	ctx.is_call <- false;
+	if List.length el > 0 then begin
+	spr ctx ", ";
+	concat ctx ", " (gen_value ctx) el;
+	end else ();
+	spr ctx ")";
   | _ ->
 	ctx.is_call <- true;
     gen_value ctx e;
@@ -392,7 +405,7 @@ let rec gen_call ctx e el =
     spr ctx "(";
     concat ctx ", " (gen_value ctx) el;
     spr ctx ")"
-	
+
 and gen_string_var ctx s e =
   match s with 
   | "length" -> 
@@ -422,7 +435,6 @@ and gen_string_static_call ctx s e el =
 and gen_string_call ctx s e el =
   match s with 
   | "substr" -> 
-	register_required_path ctx (["php"], "Boot");
     spr ctx "php_Boot::__substr(";
 	gen_value ctx e;
 	spr ctx ", ";
@@ -441,14 +453,12 @@ and gen_string_call ctx s e el =
 	concat ctx ", " (gen_value ctx) el;
 	spr ctx ", 1))"
   | "indexOf" -> 
-    register_required_path ctx (["php"], "Boot");
 	spr ctx "php_Boot::__index_of(";
 	gen_value ctx e;
 	spr ctx ", ";
 	concat ctx ", " (gen_value ctx) el;
 	spr ctx ")"
   | "lastIndexOf" -> 
-    register_required_path ctx (["php"], "Boot");
     spr ctx "php_Boot::__last_index_of(";
 	gen_value ctx e;
 	spr ctx ", ";
@@ -512,14 +522,12 @@ and gen_array_call ctx s e el =
 	concat ctx ", " (gen_value ctx) el;
 	spr ctx ")"
   | "sort" -> 
-    register_required_path ctx (["php"], "Boot");
     spr ctx "php_Boot::__array_sort(array(&";
 	gen_value ctx e;
 	spr ctx "), ";
 	concat ctx ", " (gen_value ctx) el;
 	spr ctx ")"
   | "splice" -> 
-	register_required_path ctx (["php"], "Boot");
     spr ctx "php_Boot::__array_splice(array(&";
 	gen_value ctx e;
 	spr ctx "), ";
@@ -538,21 +546,18 @@ and gen_array_call ctx s e el =
 	concat ctx ", " (gen_value ctx) el;
 	spr ctx ")"
   | "insert" -> 
-    register_required_path ctx (["php"], "Boot");
     spr ctx "php_Boot::__array_insert(array(&";
 	gen_value ctx e;
 	spr ctx "), ";
 	concat ctx ", " (gen_value ctx) el;
 	spr ctx ")"
   | "remove" -> 
-    register_required_path ctx (["php"], "Boot");
     spr ctx "php_Boot::__array_remove(array(&";
 	gen_value ctx e;
 	spr ctx "), ";
 	concat ctx ", " (gen_value ctx) el;
 	spr ctx ")"
   | "iterator" -> 
-    register_required_path ctx (["php"], "Boot");
     spr ctx "new HArrayIterator(";
 	gen_value ctx e;
 	spr ctx ")"
@@ -587,7 +592,7 @@ and gen_field_access ctx isvar e s =
 	| _ -> print ctx "->%s" (s_ident s))
   | _ -> print ctx "->%s" (s_ident s) 
 
-and gen_dynamic_function ctx name f params p =   
+and gen_dynamic_function ctx isstatic name f params p =   
   let old = ctx.in_value in
   let old_l = ctx.locals in
   let old_li = ctx.inv_locals in
@@ -600,33 +605,46 @@ and gen_dynamic_function ctx name f params p =
 	  s_funarg ctx arg t p;
 	  if o then spr ctx " = null";
 	) f.tf_args;
-  print ctx ") {\n\t\tif(self::$%s == null)\n"  name;
-  print ctx "\t\t\tself::$%s = php_Boot::__closure(array(\"\"), \"" name;
-    
-  ctx.quotes <- ctx.quotes + 1;
-  concat ctx "," (fun (arg,o,t) ->
-    s_funarg ctx arg t p;
-    if o then spr ctx " = null";
-  ) f.tf_args;
-  ctx.quotes <- ctx.quotes - 1;
-	  
-  print ctx "\", \"";
-  ctx.quotes <- ctx.quotes + 1;
-  gen_expr ctx f.tf_expr;
-  ctx.quotes <- ctx.quotes - 1;
-  print ctx "\");\n";    
+	
+  if isstatic then begin
+	  print ctx ") {\n\t\tif(self::$%s == null)\n"  name;
+	  print ctx "\t\t\tself::$%s = php_Boot::__closure(array(\"\"), \"" name;
+	  ctx.quotes <- ctx.quotes + 1;
+	  concat ctx "," (fun (arg,o,t) ->
+	    s_funarg ctx arg t p;
+	    if o then spr ctx " = null";
+	  ) f.tf_args;
+	  ctx.quotes <- ctx.quotes - 1;
+		  
+	  print ctx "\", \"";
+	  ctx.quotes <- ctx.quotes + 1;
+	  gen_expr ctx (block f.tf_expr);
+	  ctx.quotes <- ctx.quotes - 1;
+	  print ctx "\");\n";   
+  end else begin
+	  spr ctx ") {";
+  end; 
   
   if (List.length f.tf_args) > 0 then begin
-	print ctx "\t\treturn call_user_func(self::$%s, "  name;
+	if isstatic then
+		print ctx "\t\treturn call_user_func(self::$%s, "  name
+	else
+		print ctx "\t\treturn call_user_func($this->%s, "  name;
+	
 	concat ctx ", " (fun (arg,o,t) ->
 	  spr ctx ((escphp ctx.quotes) ^ "$" ^ arg)
 	) f.tf_args;  
 	print ctx ");\n\t}";
-  end else
-	print ctx "\t\treturn call_user_func(self::$%s);\n\t}"  name;
+  end else if isstatic then
+	print ctx "\t\treturn call_user_func(self::$%s);\n\t}"  name
+  else
+	print ctx "\t\treturn call_user_func($this->%s);\n\t}"  name;
 	
   newline ctx;
-  print ctx "public static $%s = null" name;
+  if isstatic then
+	print ctx "public static $%s = null" name
+  else
+	print ctx "public $%s = null" name;
   ctx.in_value <- old;
   ctx.locals <- old_l;
   ctx.inv_locals <- old_li;
@@ -659,7 +677,6 @@ and gen_inline_function ctx f params p =
   let old_t = ctx.local_types in
   ctx.in_value <- Some "closure";
   ctx.local_types <- List.map snd params @ ctx.local_types;
-  register_required_path ctx (["php"], "Boot");
   spr ctx "php_Boot::__closure(array(";
   
   let p = escphp ctx.quotes in 
@@ -680,7 +697,7 @@ and gen_inline_function ctx f params p =
   ctx.quotes <- ctx.quotes - 1;
   print ctx "%s\", %s\"" p p;
   ctx.quotes <- ctx.quotes + 1;
-  gen_expr ctx f.tf_expr;
+  gen_expr ctx (block f.tf_expr);
   ctx.quotes <- ctx.quotes - 1;
   print ctx "%s\")" p;
   ctx.in_value <- old;
@@ -706,11 +723,9 @@ and gen_expr ctx e =
     spr ctx "]";
   | TBinop (op,e1,e2) ->
 	(match op with
-	(* ADD HERE ARRAY ASSIGNAMENT WITH AUTOMATIC FILL *)
 	| Ast.OpAssign ->
 	    (match e1.eexpr with 
 		| TArray(te1, te2) ->
-			register_required_path ctx (["php"], "Boot");
 			spr ctx "php_Boot::__array_set(array(&";
 			gen_value ctx te1;
 			spr ctx "), ";
@@ -718,11 +733,21 @@ and gen_expr ctx e =
 			spr ctx ", ";
 			gen_value ctx e2;
 			spr ctx ")";
+		| TField (ef1,s) ->
+			(match follow e.etype with
+			| TFun _ -> 
+				gen_field_access ctx true ef1 s;
+				spr ctx " = ";
+				gen_value_op ctx e2;
+			| _ ->
+				gen_expr ctx e1;
+				spr ctx " = ";
+				gen_value_op ctx e2;
+			);
 		| _ ->
 			gen_expr ctx e1;
 			spr ctx " = ";
-			gen_value_op ctx e2;
-			);
+			gen_value_op ctx e2;)
 	| Ast.OpAssignOp(Ast.OpAdd) when (is_string_expr e1 || is_string_expr e2) ->
 		gen_value_op ctx e1;
 	    spr ctx " .= ";
@@ -740,7 +765,6 @@ and gen_expr ctx e =
 	    spr ctx " << ";
 	    gen_value_op ctx e2;
 	| Ast.OpAssignOp(Ast.OpUShr) ->
-		register_required_path ctx (["php"], "Boot");
 		gen_value_op ctx e1;
 	    spr ctx " = ";
 	    spr ctx "php_Boot::__shift_right(";
@@ -749,7 +773,6 @@ and gen_expr ctx e =
 	    gen_value_op ctx e2;
 		spr ctx ")";
 	| Ast.OpUShr ->
-	    register_required_path ctx (["php"], "Boot");
 	    spr ctx "php_Boot::__shift_right(";
 	    gen_value_op ctx e1;
 	    spr ctx ", ";
@@ -763,7 +786,6 @@ and gen_expr ctx e =
 			|| is_anonym_expr e1 
 			|| is_anonym_expr e2
 		then begin
-			register_required_path ctx (["php"], "Boot");
 			spr ctx "php_Boot::__equal(";
 			gen_value_op ctx e1;
 			spr ctx ", ";
@@ -798,7 +820,6 @@ and gen_expr ctx e =
 			|| is_anonym_expr e1 
 			|| is_anonym_expr e2
 		then begin
-			register_required_path ctx (["php"], "Boot");
 			spr ctx "!php_Boot::__equal(";
 			gen_value_op ctx e1;
 			spr ctx ", ";
@@ -838,19 +859,15 @@ and gen_expr ctx e =
 	    gen_field_access ctx false e1 s
 	  else if is_in_dynamic_methods ctx e1 s then
 	  	gen_field_access ctx true e1 s
-	  else if is_static e1.etype then begin
-		print ctx "%s\"" p;
-		gen_field_access ctx false e1 s;
-		print ctx "%s\"" p;
-	  end else begin
+	  else begin
 		spr ctx "array(";
-		
 		(match e1.eexpr with
 		| TTypeExpr t ->
-			spr ctx (s_path ctx (t_path t) false e1.epos)
+			print ctx "%s\"" p;
+			spr ctx (s_path ctx (t_path t) false e1.epos);
+			print ctx "%s\"" p
 		| _ -> gen_expr ctx e1);  
-		
-		print ctx ", %s\"%s%s\")" p s p;		
+		print ctx ", %s\"%s%s\")" p s p;	
 	  end);
 	| _ -> 
 	  if is_string_expr e1 then gen_string_var ctx s e1
@@ -859,8 +876,11 @@ and gen_expr ctx e =
 	)
 	
   | TTypeExpr t ->
-    let p = escphp ctx.quotes in
-    print ctx "%s\"%s%s\"" p (s_path ctx (t_path t) false e.epos) p
+    let p = escphp ctx.quotes in 
+	if is_string_expr e || is_array_expr e then
+	print ctx "%s\"%s%s\"" p (s_path ctx (t_path t) false e.epos) p
+	else
+	print ctx "php_Boot::__type(%s\"%s%s\")" p (s_path ctx (t_path t) false e.epos) p
   | TParenthesis e ->
     spr ctx "(";
     gen_value ctx e;
@@ -898,7 +918,6 @@ and gen_expr ctx e =
 	  	match f.cf_expr with
 	    | Some { eexpr = TFunction fd } ->
 			print ctx "$this->%s" name;
-			register_required_path ctx (["php"], "Boot");
 			spr ctx " = php_Boot::__closure(array(), \"";
 
 			ctx.quotes <- ctx.quotes + 1;
@@ -912,7 +931,7 @@ and gen_expr ctx e =
 			print ctx "\", \"";
 	  
 			ctx.quotes <- ctx.quotes + 1;
-			gen_expr ctx fd.tf_expr;
+			gen_expr ctx (block fd.tf_expr);
 			ctx.quotes <- ctx.quotes - 1;
 	  
 			print ctx "\")";
@@ -945,7 +964,6 @@ and gen_expr ctx e =
     concat ctx ", " (gen_value ctx) el;
     spr ctx ")";
   | TThrow e ->
-	register_required_path ctx (["php"], "Boot"); 
     spr ctx "throw new php_HException(";
     gen_value ctx e;
 	spr ctx ")";
@@ -1006,7 +1024,6 @@ and gen_expr ctx e =
     gen_value ctx (parent cond);
     handle_break();
   | TObjectDecl fields ->
-	register_required_path ctx (["php"], "Boot");  (* be sure boot is added in the required_path *)
     spr ctx "php_Boot::__anonymous(array(";
 	let p = escphp ctx.quotes in 
     concat ctx ", " (fun (f,e) -> print ctx "%s\"%s%s\" => " p f p; gen_value ctx e) fields;
@@ -1032,7 +1049,6 @@ and gen_expr ctx e =
   | TTry (e,catchs) ->
     spr ctx "try ";
     gen_expr ctx (block e);
-	register_required_path ctx (["php"], "Boot"); 
 	let ex = define_local ctx "____e" in
 	print ctx "catch(php_HException %s$%s) {" (escphp ctx.quotes) ex;
 	let p = escphp ctx.quotes in
@@ -1254,14 +1270,14 @@ let generate_field ctx static f =
   ctx.locals <- PMap.empty;
   ctx.inv_locals <- PMap.empty;
   let public = f.cf_public || Hashtbl.mem ctx.get_sets (f.cf_name,static) || (f.cf_name = "main" && static) || f.cf_name = "__resolve" in
-  let rights = (if public then "public" else "protected") ^ (if static then " static" else "") in
+  let rights = (if public then "public" else "/*protected*/ public") ^ (if static then " static" else "") in
   let p = ctx.curclass.cl_pos in
   match f.cf_expr with
   | Some { eexpr = TFunction fd } ->
 	spr ctx (rights ^ " ");
 	(match f.cf_set with 
 	| NormalAccess when (match fd.tf_expr.eexpr with | TBlock _ -> true | _ -> false) -> 
-	  gen_dynamic_function ctx (s_ident f.cf_name) fd f.cf_params p
+	  gen_dynamic_function ctx static (s_ident f.cf_name) fd f.cf_params p
 	| _ -> 
       gen_function ctx (s_ident f.cf_name) fd f.cf_params p
 	);
@@ -1277,15 +1293,35 @@ let generate_field ctx static f =
         print ctx ")";
       | _ -> spr ctx "//"; ()
     else if (match f.cf_get with MethodAccess m -> true | _ -> match f.cf_set with MethodAccess m -> true | _ -> false) then begin
-      print ctx "protected $%s" (s_ident f.cf_name); 
+      print ctx "/*protected*/ public $%s" (s_ident f.cf_name); 
     end else begin
       print ctx "%s $%s" rights (s_ident f.cf_name);
       match f.cf_expr with
       | None -> ()
       | Some e ->
-        print ctx " = ";
-        gen_value ctx e
+		match e.eexpr with
+		| TConst _ -> 
+			print ctx " = ";
+			gen_value ctx e
+		| _ -> ()
     end
+	
+let generate_static_field_assign ctx path f =
+  ctx.in_static <- true;
+  ctx.locals <- PMap.empty;
+  ctx.inv_locals <- PMap.empty;
+  let p = ctx.curclass.cl_pos in
+  if not ctx.curclass.cl_interface then
+      match f.cf_expr with
+      | None -> ()
+	  | Some { eexpr = TFunction fd } -> ()
+      | Some e ->
+		match e.eexpr with
+		| TConst _ -> ()
+		| _ ->
+			newline ctx;
+	        print ctx "%s::$%s = " (s_path ctx path false p) (s_ident f.cf_name);
+	        gen_value ctx e
 
 let define_getset ctx stat f =
   let def name =
@@ -1307,6 +1343,9 @@ let generate_class ctx all_dynamic_methods c =
   List.iter (define_getset ctx false) c.cl_ordered_fields;
   List.iter (define_getset ctx true) c.cl_ordered_statics;
   ctx.local_types <- List.map snd c.cl_types;
+  
+  register_required_path ctx (["php"], "Boot");
+  
   print ctx "%s %s " (if c.cl_interface then "interface" else "class") (s_path ctx c.cl_path c.cl_extern c.cl_pos);
   (match c.cl_super with
   | None -> ()
@@ -1322,7 +1361,7 @@ let generate_class ctx all_dynamic_methods c =
 	
   let get_dynamic_methods = List.filter is_dynamic_method c.cl_ordered_fields in
   
-  ctx.dynamic_methods <- get_dynamic_methods;
+  if not ctx.curclass.cl_interface then ctx.dynamic_methods <- get_dynamic_methods;
   
   let cl = open_block ctx in
   (match c.cl_constructor with
@@ -1344,7 +1383,7 @@ let generate_class ctx all_dynamic_methods c =
   	spr ctx "private $__dynamics = array();\n\tpublic function &__get($n) {\n\t\tif(isset($this->__dynamics[$n]))\n\t\t\treturn $this->__dynamics[$n];\n\t\t}\n\tpublic function __set($n, $v) {\n\t\t$this->__dynamics[$n] = $v;\n\t}"
   | _ -> ()
   );
-  if List.length ctx.dynamic_methods > 0 then begin (* TODO: also check for variables of function type *)
+  if List.length ctx.dynamic_methods > 0 then begin
 	newline ctx;
     spr ctx "public function __call($m, $a) {\n\t\tif(property_exists($this, $m) && is_callable($this->$m))\n\t\t\treturn call_user_func_array($this->$m, $a);\n\t\telse if(isset($this->__dynamics[$m]) && is_callable($this->__dynamics[$m]))\n\t\t\treturn call_user_func_array($this->__dynamics[$m], $a);\n\t\telse\n\t\t\tthrow new php_HException('NotAFunction', 'Unable to call '.$m);\n\t}";
   end;
@@ -1353,8 +1392,7 @@ let generate_class ctx all_dynamic_methods c =
   
   cl();
   newline ctx;
-  print ctx "}";
-  newline ctx
+  print ctx "}"
 
 let generate_main ctx c =
   (match c.cl_ordered_statics with
@@ -1367,7 +1405,9 @@ let generate_enum ctx e =
   ctx.local_types <- List.map snd e.e_types;
   let pack = open_block ctx in
   let ename = s_path ctx e.e_path e.e_extern e.e_pos in
+  
   register_required_path ctx (["php"], "Boot"); 
+  
   print ctx "class %s extends enum {" ename;
   let cl = open_block ctx in
   PMap.iter (fun _ c ->
@@ -1435,17 +1475,38 @@ let generate dir types =
         close ctx;
       | _ ->
         let ctx = init dir c.cl_path in
+		let cp = s_path ctx c.cl_path c.cl_extern c.cl_pos in		
+		
         generate_class ctx !all_dynamic_methods c; 		
+		
         (match c.cl_init with
         | None -> ()
-        | Some e -> gen_expr ctx e);				
-        close ctx)
+        | Some e -> 
+			newline ctx;
+			gen_expr ctx e);
+		
+		if not c.cl_interface then begin
+			newline ctx;
+			print ctx "php_Boot::__register_type(new _typedef(\"%s\", \"%s\", \"interface\"))" cp (s_path_haxe c.cl_path);	
+		end else begin
+			newline ctx;
+			print ctx "php_Boot::__register_type(new _typedef(\"%s\", \"%s\", \"class\"))" cp (s_path_haxe c.cl_path);	
+		end;
+		
+		List.iter (generate_static_field_assign ctx c.cl_path) c.cl_ordered_statics;
+		newline ctx;
+		
+		close ctx);
     | TEnumDecl e ->
       if e.e_extern then
         ()
       else
         let ctx = init dir e.e_path in
         generate_enum ctx e; 
+		
+		print ctx "php_Boot::__register_type(new _typedef(\"%s\", \"%s\", \"enum\"))" (s_path ctx e.e_path false e.e_pos) (s_path_haxe e.e_path);	
+		newline ctx;
+		
         close ctx
     | TTypeDecl t ->
       ());
