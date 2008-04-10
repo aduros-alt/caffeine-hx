@@ -1,16 +1,6 @@
 class Test {
 	public static function main() {
 		var runner = new unit.Runner();  
-		// + a.b().c()                                  // test
-		// + (new MyClass).execute();                   // just add test
-		// + function can't have the same name of the containing class (case insensitive). The problem is that PHP interpets that as a constructor. (TODO: add warning, find a solution)
-		// + Std.string must output nicer values  
-		// + string/array Dynamic
-		// + Typedef extensions for Objects
-		// + Typedef extensions for Classes
-		// + __resolve
-		// + __setfield
-		// internal redefine function: f() { this.f = function() { /**/ }; return this.f(); 
 		runner.register(new syntax.AnonymousObject());
 		runner.register(new syntax.ArraySyntax());
 		runner.register(new syntax.Bitwise());
@@ -43,8 +33,7 @@ class Test {
 		runner.register(new syntax.UnusualConstructs());
 		#end
 		runner.register(new syntax.WhileAccess());
-
-
+		
 		runner.register(new stdlib.TestArray());
 		runner.register(new stdlib.TestCompare());
 		runner.register(new stdlib.TestDate());
