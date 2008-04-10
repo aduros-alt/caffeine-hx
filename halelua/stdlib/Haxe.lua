@@ -27,7 +27,7 @@
 
 module ("Haxe", package.seeall)
 require "Array"
-require "std"
+--require "std"
 require "HLLString"
 
 Array.__name__ = Array:new({"Array"});
@@ -347,14 +347,21 @@ function resolveClass (name)
 	return __classes__[name]
 end
 
-function closure(o, fname)
-	dprint("Haxe:closure")
+function function_closure(o, fname, ...)
 	local m = o[fname]
 	if (m == nil) or (type(m) ~= "function") then
 		do return nil end;
 	end
-	local f = function(...)
-		return o[fname](o,...)
+	local funcargs = unpack(arg)
+	local f;
+	if(funcargs == nil) then
+		f = function(self,...)
+			return o[fname](o,...)
+		end
+	else
+		f = function(self,...)
+			return o[fname](o,funcargs,...)
+		end
 	end
 	return f;
 end

@@ -254,6 +254,9 @@ function Array:slice(pos, iend)
 
 end
 
+--[[
+Passed function is a haxe function, so first var is 'self' (ignored)
+--]]
 function Array:sort(f)
 	local i = 0;
 	local l = self.length;
@@ -264,7 +267,7 @@ function Array:sort(f)
 		local j = 0;
 		local max = l - i - 1;
 		while( j < max) do
-			if(f(a[j], a[j+1]) > 0) then
+			if(f(nil, a[j], a[j+1]) > 0) then
 				local tmp = a[j+1]
 				a[j+1] = a[j]
 				a[j] = tmp;

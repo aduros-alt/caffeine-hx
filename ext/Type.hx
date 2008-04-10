@@ -95,7 +95,7 @@ class Type {
 			if( cname == null || cname == "Object" || cname == "int" || cname == "Number" || cname == "Boolean" )
 				return null;
 			if( cname == "String") return "String";
-			if( untyped Haxe.hasOwnProperty(o, "prototype") )
+			if( hasOwnProperty(o, "prototype") )
 				return null;
 			return if( o.__enum__ != null ) null else o.__class__;
 		#else error
@@ -475,7 +475,7 @@ class Type {
 			var c = v.__class__;
 			if( c != null ) {
 				#if hllua
-				if( untyped Haxe.hasOwnProperty(v, "prototype") )
+				if( hasOwnProperty(v, "prototype") )
 					return TObject;
 				#end
 				return TClass(c);
@@ -589,5 +589,8 @@ class Type {
 	#end
 	}
 
+#if hllua
+	static var hasOwnProperty = lua.Lib.load("Haxe","hasOwnProperty");
+#end
 }
 

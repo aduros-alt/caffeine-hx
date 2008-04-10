@@ -92,7 +92,7 @@ class LuaDate__
 
 	private static function fromString( s : String ) {
 		var nd = new LuaDate__(2008,1,1,0,0,0);
-		nd.__ts = untyped parse(s);
+		nd.__ts = parse(s);
 		return nd;
 	}
 
@@ -138,7 +138,7 @@ class LuaDate__
 	**/
 	private static function parse(s:String) : Float {
 		var rv : Float;
-		var d = untyped _G.os.date("*t");
+		var d = untyped __global__["os.date"]("*t");
 		d.hour = 0;
 		d.min = 0;
 		d.sec = 0;

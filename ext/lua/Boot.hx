@@ -47,7 +47,7 @@ class Boot {
 		}
 	}
 
-	private static function __makeObject(o,self) {
+	private static function __makeObject(o) {
 		untyped __lua__("
 		setmetatable(o, {__index = _G})
 		for k,v in pairs(o) do

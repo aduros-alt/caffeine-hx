@@ -71,7 +71,9 @@ class EReg {
 // 		if( global )
 // 			opt = a.join("");
 		this._pat = r;
-		this.r = untyped __lua__("rex_pcre.new(r,opt)");
+		//this.r = untyped __lua__("rex_pcre.new(r,opt)");
+		this.r = rex_new(r,opt);
+		rex_exec = lua.Lib.getFunction(this.r, "exec");
 		#else error
 		#end
 	}
@@ -106,7 +108,8 @@ class EReg {
 		orig = s;
 		untyped {
 		result = untyped __lua__("{}");
-		__lua__("self.start,self._end,self.result = self.r:exec(s, 0)");
+		//__lua__("self.start,self._end,self.result = self.r:exec(s, 0)");
+		__returnList__(rex_exec(r,s,0), start, end,result);
 		if(result == null) {
 			result = untyped __lua__("{}");
 			result[0] = "";
@@ -265,10 +268,14 @@ class EReg {
 		} while( global );
 		a.push(s.substr(pos,len));
 		return a;
-		#else (js || flash9 || hllua)
+		#else (js || flash9)
 		// we can't use directly s.split because it's ignoring the 'g' flag
 		var d = "#__delim__#";
 		return untyped s.replace(r,d).split(d);
+		#else hllua
+		var d = "#__delim__#";
+		var l = replace(s,d);
+		return l.split(d);
 		#else flash
 		throw "EReg::split not implemented";
 		return null;
@@ -364,7 +371,8 @@ class EReg {
 			}
 		}
 		by = by.split("%_D_o_L_l_a_r_%").join("$");
-		return untyped __lua__("rex_pcre.gsub(s,self._pat,by)");
+		//return untyped __lua__("rex_pcre.gsub(s,self._pat,by)");
+		return rex_gsub(s,_pat,by);
 		#else flash
 		throw "EReg::replace not implemented";
 		return null;
@@ -399,6 +407,9 @@ class EReg {
 
 #if hllua
 	static var rexlib = lua.Lib.loadLib("rex_pcre");
+	static var rex_new = lua.Lib.load("rex_pcre", "new");
+	static var rex_gsub = lua.Lib.load("rex_pcre","gsub");
+	var rex_exec : Dynamic;
 #end
 
 }

@@ -32,13 +32,27 @@ class Lib {
 	/**
 		Load and return a Lua library from a lua file.
 	**/
-	public static function load( lib : String, prim : String, nargs : Int ) : Dynamic {
-		//return untyped loadfile(lib);
+	public static function load( lib : String, prim : String, ?nargs : Int ) : Dynamic {
 		var l = untyped __lua__("require(lib)");
-		if(untyped l[prim] == null) throw "method not found";
-		return untyped __lua__("l[prim]");
+		var desc = prim + "@" + lib;
+		if(untyped l[prim] == null) throw "method "+desc+" not found";
+		return staticClose(l, prim);
 	}
 
+	/**
+		Retrieve a method from a lua object table.
+	**/
+	public static function getFunction( o : Dynamic, prim : String) : Dynamic {
+		if(untyped o[prim] == null) throw "object does not have function "+prim;
+		return staticClose(o, prim);
+	}
+
+	/**
+		Closure to remove first variable from function call
+	**/
+	public static function staticClose(o:Dynamic, fname:String) : Dynamic {
+		return untyped __lua__("function(...) return o[fname](select(2,...)) end");
+	}
 	/**
 		Print the specified value on the default output.
 	**/

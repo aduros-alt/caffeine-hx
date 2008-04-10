@@ -68,7 +68,7 @@ class Reflect {
 		#else neko
 			return __dollar__typeof(o) == __dollar__tobject && __dollar__objfield(o,__dollar__hash(field.__s));
 		#else hllua
-			return __hasOwnProperty__(o, field);
+			return hasOwnProperty(o, field);
 		#else error
 		#end
 		}
@@ -128,7 +128,7 @@ class Reflect {
 		#else neko
 			__dollar__call(func,o,args.__neko())
 		#else hllua
-			Haxe.callMethod(o, func, args)
+			call_method(o, func, args)
 		#else error
 		#end
 			;
@@ -313,7 +313,7 @@ class Reflect {
 		#else neko
 			return __dollar__objremove(o,__dollar__hash(f.__s));
 		#else hllua
-			return if(__hasOwnProperty__(o, f)) {
+			return if(hasOwnProperty(o, f)) {
 				__delete__(o, f);
 				true;
 			}
@@ -355,8 +355,12 @@ class Reflect {
 		#else flash
 		return function() { return f(untyped __arguments__); };
 		#else hllua
-		return untyped __lua__("(function(...) arg.n = null return f(Array:new(arg)) end)");
+		return untyped __lua__("(function(self,...) arg.n = nil return f(self,Array:new(arg)) end)");
 		#end
 	}
 
+#if hllua
+	static var hasOwnProperty = lua.Lib.load("Haxe","hasOwnProperty");
+	static var call_method = lua.Lib.load("Haxe", "callMethod");
+#end
 }
