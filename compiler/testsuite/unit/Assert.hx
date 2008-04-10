@@ -6,12 +6,12 @@ class Assert {
   public static var counter = 0;
   public static function isTrue(c : Bool, ?message : String, ?p : PosInfos) {
     counter++;
-    if(message == null) message = "Assertion failed (is true)";
+    if(message == null) message = "Assertion failed: expected true";
     if(!c) throw new AssertException(p, message);
   }
   
   public static function isFalse(c : Bool, ?message : String, ?p : PosInfos) {
-    if(message == null) message = "Assertion failed (is false)";
+    if(message == null) message = "Assertion failed: expected false";
 	isTrue(!c, message, p);
   }
   
@@ -36,7 +36,7 @@ class Assert {
   }
   
   public static function fail(?message : String, ?p : PosInfos) {
-    isTrue(false, "Assertion failed (force fail)", p);
+    isTrue(false, "Assertion failed (forced failure)", p);
   }
   
   public static function is(o : Dynamic, t : Dynamic, ?message : String, ?p : PosInfos) {

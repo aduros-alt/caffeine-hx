@@ -69,13 +69,11 @@ class TestXml {
 	#if (flash8 || flash7)
 	#else true
 	public function testEmptyNode(){
-#if !php
 		var s = "<p><x/><y></y></p>";
 		
 		var x = Xml.parse(s);
 
 		Assert.equals("<p><x/><y></y></p>",x.toString());
-#end
 	}
 	#end
 
@@ -148,7 +146,6 @@ class TestXml {
 	#if (flash8 || flash7)
 	#else true
 	public function testSpecials(){
-#if !php
 		var x = Xml.parse("<p var=\"&quot; &lt;&gt;&amp;\"><![CDATA[&lt;<COUCOU>]]>&lt;&gt;&amp;&quot;&</p>");
 		var p = x.firstChild();
 		Assert.equals("&quot; &lt;&gt;&amp;",p.get("var"));
@@ -162,7 +159,6 @@ class TestXml {
 		Assert.equals("&lt;&gt;&amp;&quot;&",a[1].nodeValue);
 		
 		Assert.equals("<p var=\"&quot; &lt;&gt;&amp;\"><![CDATA[&lt;<COUCOU>]]>&lt;&gt;&amp;&quot;&</p>",x.toString());
-#end
 	}
 	#end
 }

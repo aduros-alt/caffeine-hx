@@ -37,8 +37,16 @@ class TestSerialize {
 		return haxe.Unserializer.run(haxe.Serializer.run(v));
 	}
 
+	public function testSerializeToString() {
+		var s = haxe.Serializer.run("s");
+		Assert.isNotNull(s);
+		Assert.equals("y1:s", s);
+		
+		s = haxe.Serializer.run([]);
+		Assert.isNotNull(s);
+	}
+	
 	public function testIds() {
-#if !php
 		Assert.equals( null, id(null) );
 		Assert.equals( 125, id(125) );
 		Assert.equals( -4563, id(-4563) );
@@ -51,32 +59,26 @@ class TestSerialize {
 		Assert.equals( "hello", id("hello") );
 		Assert.equals( "bla", id(new String("bla")) );
 		Assert.equals( "ééé", id("ééé") );
-#end
 	}
 
 	public function testObject() {
-#if !php
 		var o = { x : "a", y : -1.56, z : "hello" };
 		var o2 = id(o);
 		Assert.equals(o.x,o2.x);
 		Assert.equals(o.y,o2.y);
 		Assert.equals(o.z,o2.z);
-#end
 	}
 
 	public function testClass() {
-#if !php
 		var c = new MyTestClass(787);
 		var c2 = id(c);
 		Assert.isTrue( Std.is(c2,MyTestClass) );
 		Assert.equals( c.x, c2.x );
 		Assert.equals( c.foo(), c2.foo() );
 		Assert.equals( c.foo2(), c2.foo2() );
-#end
 	}
 
 	public function testPrivateEnum() {
-#if !php
 		Assert.equals( X, id(X) );
 		Assert.isTrue( Std.is(id(X),TestEnum) );
 		var p = id(P(33));
@@ -85,11 +87,9 @@ class TestSerialize {
 		case P(x): Assert.isTrue( x == 33 );
 		default: throw "Not-a-P";
 		}
-#end
 	}
 
 	public function testEnum() {
-#if !php
 		Assert.equals( Y, id(Y) );
 		Assert.isTrue( Std.is(id(Y),MyUniquePublicEnum) );
 		var p = id(Z(33));
@@ -98,22 +98,18 @@ class TestSerialize {
 		case Z(x): Assert.isTrue( x == 33 );
 		default: throw "Not-a-Z";
 		}
-#end
 	}
 
 	public function testArray() {
-#if !php
 		var a = [0,1];
 		var a2 : Array<Int> = id(a);
 		Assert.isTrue( Std.is(a2,Array) );
 		Assert.equals( 2, a2.length );
 		Assert.equals( 0, a2[0] );
 		Assert.equals( 1, a2[1] );
-#end
 	}
 
 	public function testList() {
-#if !php
 		var l = new List();
 		l.add(0);
 		l.add(1);
@@ -122,11 +118,9 @@ class TestSerialize {
 		Assert.equals( 2, l2.length );
 		Assert.equals( 0, l2.first() );
 		Assert.equals( 1, l2.last() );
-#end
 	}
 
 	public function testHash() {
-#if !php
 		var h = new Hash();
 		h.set("a",0);
 		h.set("b",1);
@@ -137,11 +131,9 @@ class TestSerialize {
 		for( x in h.keys() )
 			if( x != "a" )
 				Assert.equals( x, "b" );
-#end
 	}
 
 	public function testIntHash() {
-#if !php
 		var h = new IntHash();
 		h.set(667,0);
 		h.set(-55,1);
@@ -152,15 +144,12 @@ class TestSerialize {
 		for( x in h.keys() )
 			if( x != 667 )
 				Assert.equals( x, -55 );
-#end
 	}
 
 	public function testDate() {
-#if !php
 		var d = Date.now();
 		var d2 = id(d);
 		Assert.isTrue( Std.is(d2,Date) );
 		Assert.equals( d.toString(), d2.toString() );
-#end
 	}
 }

@@ -21,7 +21,6 @@ class Callback {
 	public function new() {}
 
 	public function testCallback() {
-#if !php
 		counter = 0;
         var n = "haXe";
         var cc = callback(f, n);
@@ -30,8 +29,7 @@ class Callback {
         n = "Neko";
         Assert.equals("haXe", cc());
 		Assert.equals(2,counter);
-#end
-    }
+  }
 
 	// for comparison
 	public function testClosure() {
@@ -43,26 +41,20 @@ class Callback {
     }
 
 	public function testCallbackOther() {
-#if !php
 		var c = new CallbackOther();
 		var cc = callback(c.cboMember);
 		Assert.equals(27, cc(2));
-#end
 	}
 
 	public function testCallbackOther2() {
-#if !php
 		var c = new CallbackOther();
 		var cc = callback(c.cboMember,5);
 		Assert.equals(30, cc());
-#end
 	}
 
 	public function testCallbackOtherStatic() {
-#if !php
 		var cc = callback(CallbackOther.cboStatic,5);
 		Assert.equals(5, cc());
-#end
 	}
 
     public function f(name:String) {

@@ -13,6 +13,7 @@ class TestStd {
 		checkTypes(true,Bool);
 		checkTypes(false,Bool);
 		checkTypes([],Array);
+		checkTypes("haXe",String);
 		checkTypes(new List(),List);
 		checkTypes(new Hash(),Hash);
 		checkTypes(new ListExtended(),List,ListExtended);

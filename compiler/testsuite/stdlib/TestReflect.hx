@@ -6,7 +6,7 @@ import Type;
 
 class TestReflect {
 	public function new(){}
-
+	
 	public function testNullFields(){
 		var l = Reflect.fields( null );
 		Assert.equals( 0, l.length);
@@ -21,6 +21,14 @@ class TestReflect {
 		Assert.isTrue( l.length == 3 );
 	}
 
+	public function testAnonyFields() {
+		var o = { a : "haXe", b : 7 };
+		var l = Reflect.fields(o);
+		Assert.equals(2, l.length);
+		Assert.isTrue( arrHas(l,__unprotect__("a")) );
+		Assert.isTrue( arrHas(l,__unprotect__("b")) );
+	}
+	
 	public function testInstanceFields(){
 		var l = Type.getInstanceFields(Type.getClass(new TestReflectClass()));
 		// private fields are not listed
@@ -32,17 +40,12 @@ class TestReflect {
 	}
 
 	// fails on flash9
-	#if !flash9
+	#if (flash9 || php)
+	#else true
 	public function testInstanceInitFields(){
 		var o = new TestReflectClass();
 		o.init();
 		var l = Reflect.fields(o);
-		Assert.isTrue( arrHas(l,__unprotect__("b")) );
-		Assert.isTrue( arrHas(l,__unprotect__("c")) );
-		Assert.isTrue( arrHas(l,__unprotect__("d")) );
-		Assert.equals( 3, l.length );
-
-		l = Reflect.fields(o);
 		Assert.isTrue( arrHas(l,__unprotect__("b")) );
 		Assert.isTrue( arrHas(l,__unprotect__("c")) );
 		Assert.isTrue( arrHas(l,__unprotect__("d")) );
@@ -58,7 +61,9 @@ class TestReflect {
 		Assert.isTrue( c != null );
 		Assert.equals( c, TestReflectClass );
 		Assert.equals( __unprotect__("stdlib.TestReflectClass"), Type.getClassName(c) );
+#if !php
 		Assert.isTrue( untyped c.prototype != null );
+#end
 		untyped Assert.isTrue( c.staticFunction != null );
 		Assert.isTrue( Reflect.hasField( c, __unprotect__("staticVar") ) );
 	}
@@ -85,7 +90,7 @@ class TestReflect {
 	public function testResolve(){
 		var trc : Class<Dynamic> = TestReflectClass;
 		Assert.equals(trc,Type.resolveClass(__unprotect__("stdlib.TestReflectClass")));
-		var name = __unprotect__("haxe.unit.TestCase");
+		var name = "haxe.unit.TestCase";
 		Assert.equals(haxe.unit.TestCase,Type.resolveClass(name));
 	}
 
@@ -132,9 +137,7 @@ class TestReflect {
 	}
 
 	public function testXml(){
-#if !php
 		assertMultiple(Xml.createDocument(),"Xml");
-#end
 	}
 
 
@@ -175,7 +178,7 @@ class TestReflect {
 	}
 
 	public function testMethod(){
-	assertMultiple(assertMultiple);
+		assertMultiple(assertMultiple);
 	}
 
 	public function testMisc(){
@@ -191,20 +194,18 @@ class TestReflect {
 
 	private function assertMultiple( x : Dynamic, ?name : String, ?supername : String, ?pos : haxe.PosInfos ){
 		var c = Type.getClass(x);
-		if( c == null ) {
+		if( c == null )
 			Assert.equals( name, null, pos );
-		}else{
+		else
 			Assert.isFalse( name == null, pos );
-		}
 		var n = Type.getClassName(c);
 		Assert.equals( name, n, pos );
 
 		var csup = if( c == null ) null else Type.getSuperClass(c);
-		if( csup == null ) {
+		if( csup == null ) 
 			Assert.equals( supername, null, pos );
-		}else{
+		else
 			Assert.isFalse( supername == null, pos );
-		}
 		var nsup = Type.getClassName( csup );
 		Assert.equals( supername, nsup, pos );
 	}
@@ -233,10 +234,8 @@ class TestReflect {
 		assertType(TestEnumB(0),TEnum(MyPublicEnum));
 		assertType(Private,TEnum(TestEnumPriv));
 		assertType({ x : 0 },TObject);
-#if !php
 		assertType(testTypeof,TFunction);
 		assertType(function() { },TFunction);
-#end
 		assertType(MyPublicEnum,TObject);
 		assertType(TestReflectClass,TObject);
 	}

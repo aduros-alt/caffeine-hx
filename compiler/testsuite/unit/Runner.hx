@@ -7,9 +7,9 @@ package unit;
 import haxe.PosInfos;
 
 class Runner {
-  public function new() {
-	test_classes = [];
-  }
+	public function new() {
+		test_classes = [];
+	}
 
   private var test_classes : Array<Dynamic>;
   public function register(t : Dynamic) {
@@ -24,7 +24,7 @@ class Runner {
 
   private function print(v : String) {
 #if php
-    php.Lib.print(v);
+    php.Lib.print(StringTools.htmlEscape(v));
 #else flash9
 	if( tf == null ) {
 		tf = new flash.text.TextField();
