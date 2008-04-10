@@ -96,7 +96,7 @@ class Unserializer {
  		while( true ) {
  			if( pos >= length )
  				throw "Invalid object";
- 			if( buf.charCodeAt(pos) == 103 )// /*g*/
+ 			if( buf.charCodeAt(pos) == 103 ) /*g*/
  				break;
  			var k = unserialize();
  			if( !Std.is(k,String) )

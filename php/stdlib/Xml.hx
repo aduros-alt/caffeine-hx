@@ -232,7 +232,7 @@ extern class Xml {
 		#else flash
 		Xml = flash.FlashXml__;
 		#else php
-		Xml = php.PhpXml__; // TODO
+		Xml = php.PhpXml__;
 		#else error
 		#end
 

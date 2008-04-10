@@ -28,7 +28,6 @@
 	Other kind of keys are not possible on all platforms since they
 	can't always be implemented efficiently.
 **/
-
 class Hash<T> {
 
 	/**
