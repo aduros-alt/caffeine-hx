@@ -90,7 +90,19 @@ class Web {
 		Retrieve a client header value sent with the request.
 	**/
 	public static function getClientHeader( k : String ) {
-		return null; // TODO, IMPLEMENT
+		//Remark : PHP puts all headers in uppercase and replaces - with _, we deal with that here
+		var l : List<Dynamic>;
+		l = getClientHeaders();
+		var i : Dynamic;
+		for(i in l)
+		{
+			if(new String(i.header) == StringTools.replace(new String(k).toUpperCase(),"-","_"))
+			{
+				return new String(i.value);
+			}
+		}
+		return null;
+
 		/*
 		var v = _get_client_header(untyped k.__s);
 		if( v == null )
@@ -103,7 +115,22 @@ class Web {
 		Retrieve all the client headers.
 	**/
 	public static function getClientHeaders() {
-		return null; // TODO, IMPLEMENT
+		var h : Hash<String>;
+		var l : List<Dynamic>;
+		var k : String;
+		h = Hash.fromAssociativeArray(untyped __php__("$_SERVER"));
+		l = new List<Dynamic>();
+		
+		for(k in h.keys())
+		{
+			//trace(new String(k).substr(0,4));
+			if(new String(k).substr(0,5) == "HTTP_")
+			{
+				l.add({ header : new String(k).substr(5), value : new String(h.get(k))});
+			}
+		}
+		return l;
+
 		/*
 		var v = _get_client_headers();
 		var a = new List();
@@ -148,18 +175,14 @@ class Web {
 		Modifying the hashtable will not modify the cookie, use setCookie instead.
 	**/
 	public static function getCookies() {
-		return null; // TODO, IMPLEMENT
-		/*
-		var p = _get_cookies();
 		var h = new Hash<String>();
+		var h1 : Hash<String>;
 		var k = "";
-		while( p != null ) {
-			untyped k.__s = p[0];
-			h.set(k,new String(p[1]));
-			p = untyped p[2];
+		h1 = Hash.fromAssociativeArray(untyped __php__("$_COOKIE"));
+		for( k in h1.keys() ) {
+			h.set(k,h1.get(k));
 		}
 		return h;
-		*/
 	}
 
 
@@ -167,26 +190,28 @@ class Web {
 		Set a Cookie value in the HTTP headers. Same remark as setHeader.
 	**/
 	public static function setCookie( key : String, value : String, ?expire: Date, ?domain: String, ?path: String, ?secure: Bool ) {
-		return null; // TODO, IMPLEMENT
-		/*
 		var buf = new StringBuf();
 		buf.add(value);
-		if( expire != null ) addPair(buf, "expires=", DateTools.format(expire, "%a, %d-%b-%Y %H:%M:%S GMT"));
-		addPair(buf, "domain=", domain);
-		addPair(buf, "path=", path);
-		if( secure ) addPair(buf, "secure", "");
+//		if( expire != null ) buf.add(addPair( "expires=", DateTools.format(expire, "%a, %d-%b-%Y %H:%M:%S GMT")));
+		if( expire != null ) buf.add(addPair( "expires=", untyped __call__("date","a, d-B-Y H:M:S", expire.__t)+" GMT"));
+		buf.add(addPair("domain=", domain));
+		buf.add(addPair("path=", path));
+		if( secure ) buf.add(addPair("secure", ""));
+		
 		var v = buf.toString();
-		_set_cookie(untyped key.__s, untyped v.__s);
-		*/
+		setHeader("Set-Cookie",key+"="+v);
 	}
-/*
-	static function addPair( buf : StringBuf, name, value ) {
-		if( value == null ) return;
-		buf.add("; ");
-		buf.add(name);
-		buf.add(value);
+
+	static function addPair( name, value ) : String {
+		if( value == null ) return "";
+		var s : String;
+		s = new String("");
+		s = "; ";
+		s += name;
+		s += value;
+		return s;
 	}
-*/
+
 	/**
 		Returns an object with the authorization sent by the client (Basic scheme only).
 	**/

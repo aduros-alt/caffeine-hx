@@ -68,7 +68,9 @@ class Reflect {
 		#else neko
 			return __dollar__typeof(o) == __dollar__tobject && __dollar__objfield(o,__dollar__hash(field.__s));
 		#else php
-			return __php__("method_exists($o, $field) || property_exists($o, $field)");
+			if(__php__("$o instanceof _typedef"))
+				o = o.__tname__;
+				return __php__("method_exists($o, $field) || property_exists($o, $field) || isset($o->$field)");
 		#else error
 		#end
 		}
@@ -96,9 +98,17 @@ class Reflect {
 			}
 		#else php
 			{
-			  if(hasField(o, field))
-				  return __php__("array($o, $field)");
-			  else
+			  if(hasField(o, field)) {
+				  if(__php__("$o instanceof _typedef")) {
+					if(__php__("is_callable(array($o->__tname__, $field))"))
+						return __php__("array($o->__tname__, $field)");
+					else
+						return __php__("eval('return '.$o->__tname__.'::$'.$field.';')");
+				  } else if(__php__("property_exists($o, $field)"))
+					return __php__("$o->$field");
+				  else
+					return __php__("array($o, $field)");
+			  } else
 			    return null;
 			}
 		#else error
@@ -119,7 +129,7 @@ class Reflect {
 			if( __dollar__typeof(o) == __dollar__tobject )
 				__dollar__objset(o,__dollar__hash(field.__s),value);
 		#else php
-			null; // TODO
+			__php__("$o->$field = $value");
 		#else error
 		#end
 	}
@@ -206,11 +216,7 @@ class Reflect {
 				return Array.new1(a,l);
 			}
 		#else php
-			__php__("\t\t\t$c = new ReflectionObject($o);
-			$ps = $c->getProperties();
-			$r = array();
-			foreach($ps as $p) if(!$p->isStatic()) $r[] = $p->getName()");
-			return __php__("$r");
+			return __php__("array_keys(get_object_vars($o))");
 		#else error
 		#end
 		}
@@ -337,7 +343,7 @@ class Reflect {
 			return untyped __dollar__objremove(o,__dollar__hash(f.__s))
 		#else php
 			if(!hasField(o,f)) return false;
-			untyped __php__("unset($o->f)");
+			untyped __php__("unset($o->$f)");
 			return true
 		#else error
 		#end
@@ -379,7 +385,10 @@ class Reflect {
 		#else flash
 		return function() { return f(untyped __arguments__); };
 		#else php
-		return function() { return f(untyped __php__("func_get_args")()); };
+		return function() { 
+			var args = untyped __call__("func_get_args");
+			return f(args); 
+		};
 		#end
 	}
 

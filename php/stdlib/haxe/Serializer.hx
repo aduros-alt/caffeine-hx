@@ -185,7 +185,7 @@ class Serializer {
 			case cast Array:
 				var ucount = 0;
 				buf.add("a");
-				var l = #if neko v.length #else true v[untyped "length"] #end;
+				var l = #if neko v.length #else php untyped __call__("count", v) #else true v[untyped "length"] #end;
 				for( i in 0...l ) {
 					if( v[i] == null )
 						ucount++;
@@ -304,6 +304,21 @@ class Serializer {
 				buf.add(0);
 			else {
 				var l : Int = v.params.length;
+				buf.add(l);
+				for( i in 0...l )
+					serialize(v.params[i]);
+			}
+			#else php
+			if( useEnumIndex ) {
+				buf.add(":");
+				buf.add(v.index);
+			} else
+				serializeString(v.tag);
+			buf.add(":");
+			var l : Int = untyped __call__("count", v.params);
+			if( l == 0 || v.params == null)
+				buf.add(0);
+			else {
 				buf.add(l);
 				for( i in 0...l )
 					serialize(v.params[i]);
