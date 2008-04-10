@@ -12,11 +12,11 @@ class DynamicFunction {
 		var f = function() { return "test"; };
 		Assert.equals("test", f());
 	}
-  
+
 	public function testLocalExecution() {
 		Assert.equals("test", function() { return "test"; }());
 	}
-  
+
 	public function testLocalExecutionWithParam() {
 		Assert.equals("test1", function(i : Int) { return "test" + i; }(1));
 	}
@@ -160,7 +160,7 @@ class DynamicFunction {
 		Assert.equals("test", MethodVariable.staticF());
 		Assert.equals("test", syntax.util.MethodVariable.staticF());
 	}
-  
+
 	public function testStaticMethodFullyQualifiedName() {
 		Assert.equals("test", syntax.util.A.test());
 		Assert.equals("test", syntax.util.A.s);

@@ -248,7 +248,7 @@ let s_ident n =
 
 let spr ctx s = Buffer.add_string ctx.buf s
 let print ctx = Printf.kprintf (fun s -> Buffer.add_string ctx.buf s)
-let unsupported = Typer.error "This expression cannot be compiled to Lua"
+let unsupported s p = Typer.error (Printf.sprintf "This expression cannot be compiled to Lua (%s)" s) p
 let newline ctx =
 	match Buffer.nth ctx.buf (Buffer.length ctx.buf - 1) with
 	| 'd' ->
@@ -469,27 +469,38 @@ let rec gen_call ctx e el =
 		is discarded here.
 	*)
 	| TFunction f, el ->
-		spr ctx "Haxe.function_closure(";
 		(match el with
-		| [] -> unsupported e.epos
+		| [] ->
+			gen_expr ctx e;
+			spr ctx "()"
 		| [x] ->
 			(match x.eexpr with
 			| TField (field,s) ->
+				spr ctx "Haxe.function_closure(";
 				gen_value ctx field;
-				print ctx ",\"%s\"" (s_ident s);
-			| _ -> unsupported e.epos
+				print ctx ",\"%s\")" (s_ident s);
+			| _ ->
+				gen_expr ctx e;
+				spr ctx "(self,";
+				gen_value ctx x;
+				spr ctx ")"
 			);
 		| x :: l ->
 			(match x.eexpr with
 			| TField (field,s) ->
+				spr ctx "Haxe.function_closure(";
 				gen_value ctx field;
 				print ctx ",\"%s\"," (s_ident s);
 				concat ctx "," (gen_value ctx) l;
-			| _ -> unsupported e.epos
+				spr ctx ")";
+			| _ ->
+				gen_expr ctx e;
+				spr ctx "(self,";
+				concat ctx "," (gen_value ctx) l;
+				spr ctx ")"
 			);
-
 		);
-		spr ctx ")";
+
 	(*
 		Calls to static string values, ie:
 		var s = "abcdef".substr(0,3)
@@ -504,7 +515,7 @@ let rec gen_call ctx e el =
 		spr ctx "Haxe.callMethod(";
 		(match e.eexpr with
 		| TField(x,s) -> gen_value ctx x
-		| _ -> unsupported e.epos
+		| _ -> unsupported "gen_call TField" e.epos
 		);
 		print ctx ", \"%s" name;
 		spr ctx "\", {";
@@ -617,7 +628,7 @@ and gen_assign_if ctx var op cond etrue efalse =
 	spr ctx " or throw \"default\" catch e do if e.error==\"default\" then ";
 	print ctx "%s %s " var (s_binop op);
 	(match efalse with
-	| None -> unsupported etrue.epos;
+	| None -> unsupported "gen_assign_if" etrue.epos;
 	| Some e when e.eexpr = TConst(TNull) ->
 		spr ctx "nil";
 	| Some e ->
@@ -834,7 +845,7 @@ and gen_expr ctx e =
 					let (s,f) = extract_field fields s in
 					gen_value ctx f;
 				with
-					Exit -> unsupported e.epos;)
+					Exit -> unsupported "TField (x,s) TObjectDecl" e.epos;)
 			| _ ->
 				commentcode ctx "TField (x,s)";
 				gen_value ctx x;
@@ -850,7 +861,7 @@ and gen_expr ctx e =
 		spr ctx ")";
 	| TReturn eo ->
 		commentcode ctx "gen_expr TReturn";
-		if ctx.in_value then unsupported e.epos;
+		if ctx.in_value then unsupported "gen_expr TReturn" e.epos;
 		let old = ctx.in_no_assign in
 		ctx.in_no_assign <- true;
 		(match eo with
@@ -892,14 +903,14 @@ and gen_expr ctx e =
 					spr ctx " end"
 				);
 			with
-				Exit -> unsupported e.epos;
+				Exit -> unsupported "gen_expr TReturn" e.epos;
 		);
 		ctx.in_no_assign <- old;
 	| TBreak ->
 (* 		if ctx.in_value then unsupported e.epos; *)
 		if ctx.handle_break then spr ctx "throw \"__break__\"" else spr ctx "break"
 	| TContinue ->
-		if ctx.in_value then unsupported e.epos;
+		if ctx.in_value then unsupported "TContinue" e.epos;
 		spr ctx "if true then continue end"
 	| TBlock [] ->
 		spr ctx "collectgarbage(\"step\")";
@@ -1304,7 +1315,7 @@ and gen_value ctx e =
 	| TReturn _
 	| TBreak
 	| TContinue ->
-		unsupported e.epos
+		unsupported "gen_value TReturn | TBreak | TContinue" e.epos
 	| TVars _
 	| TFor _
 	| TWhile _
