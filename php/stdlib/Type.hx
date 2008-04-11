@@ -614,7 +614,17 @@ class Type {
 		for( i in 0...__dollar__asize(a.args) )
 			if( !enumEq(a.args[i],b.args[i]) )
 				return false;
-		#else (flash9 || php)
+		#else flash9
+		try {
+			if( a.tag != b.tag )
+				return false;
+			for( i in 0...a.params.length)
+				if( !enumEq(a.params[i],b.params[i]) )
+					return false;
+		} catch( e : Dynamic ) {
+			return false;
+		}
+		#else php
 		try {
 			if( a.tag != b.tag )
 				return false;

@@ -10,7 +10,8 @@ class Boot {
 		untyped __php__("$o = new Anonymous();
 		if(is_array($p)) {
 			foreach($p as $k => $v) {
-				$o->$k = $v;
+//				if(!is_numeric($k))
+					$o->$k = $v;
 			}
 		}
 		return $o");
