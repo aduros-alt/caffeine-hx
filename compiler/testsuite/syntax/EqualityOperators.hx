@@ -11,7 +11,6 @@ import syntax.util.B;
 class EqualityOperators {
 	public function new() {}
 	
-  //OK
 	public function testInt() {
 		Assert.isTrue (0 == 0);
     Assert.isFalse(0 != 0);
@@ -61,7 +60,6 @@ class EqualityOperators {
   }
 #end
 
-  // OK
 	public function testIntVar() {
     var i1 = 0;
     var i2 = 0;
@@ -70,7 +68,6 @@ class EqualityOperators {
 //    Assert.isTrue(i1 === i2);
 	}
 
-  // all but PHP
   public function testIntNullityVar() {
     var n = null;
     var i : Null<Int> = 0;
@@ -87,8 +84,6 @@ class EqualityOperators {
     Assert.isFalse(i ==  n);
   }
     
-
-  // all but PHP
 #if !flash9
   public function testFloatNullity() {
 //    Assert.isTrue(0.0 !== null);
@@ -97,7 +92,6 @@ class EqualityOperators {
   }
 #end
   
-  // all but PHP
   public function testFloatNullityVar() {
     var n = null;
     var f : Null<Float> = 0.0;
@@ -151,7 +145,6 @@ class EqualityOperators {
 */
 	}
 
-  // OK
   public function testNull() {
     Assert.isTrue(null == null);
     Assert.isTrue(null == null);
@@ -244,7 +237,6 @@ class EqualityOperators {
 */
   }
 
-  // OK
   public function testStringNullityDynamic1() {
     var n : Dynamic = null;
     var i = "a";
@@ -253,7 +245,6 @@ class EqualityOperators {
     Assert.isFalse(i ==  n);
   }
 
-  // OK
   public function testStringNullityDynamic2() {
     var n = null;
     var i : Dynamic = "a";
@@ -262,7 +253,6 @@ class EqualityOperators {
     Assert.isFalse(i ==  n);
   }
 
-  // OK
   public function testStringNullityDynamic3() {
     var n : Dynamic = null;
     var i : Dynamic = "a";
@@ -271,7 +261,6 @@ class EqualityOperators {
     Assert.isFalse(i ==  n);
   }
   
-  // all but PHP
   public function testIntNullityDynamic1() {
     var n : Dynamic = null;
     var i : Null<Int> = 0;
@@ -280,7 +269,6 @@ class EqualityOperators {
     Assert.isFalse(i ==  n);
   }
   
-  // all but PHP
   public function testIntNullityDynamic2() {
     var n = null;
     var i : Dynamic = 0;
@@ -289,7 +277,6 @@ class EqualityOperators {
     Assert.isFalse(i ==  n);
   }
   
-  // all but PHP
   public function testIntNullityDynamic3() {
     var n : Dynamic = null;
     var i : Dynamic = 0;
@@ -298,7 +285,6 @@ class EqualityOperators {
     Assert.isFalse(i ==  n);
   }
   
-  // all but PHP
   public function testFloatNullityDynamic1() {
     var n : Dynamic = null;
     var f : Null<Float> = 0.0;
@@ -307,7 +293,6 @@ class EqualityOperators {
     Assert.isFalse(f ==  n);
   }
   
-  // all but PHP
   public function testFloatNullityDynamic2() {
     var n = null;
     var f : Dynamic = 0.0;
@@ -316,7 +301,6 @@ class EqualityOperators {
     Assert.isFalse(f ==  n);
   }
   
-  // all but PHP
   public function testFloatNullityDynamic3() {
     var n : Dynamic = null;
     var f : Dynamic = 0.0;
@@ -325,7 +309,6 @@ class EqualityOperators {
     Assert.isFalse(f ==  n);
   }
   
-  // all but PHP
   public function testAnonymous() {
     Assert.isTrue ({ name : "haXe" } !=  { name : "haXe" });
 //    Assert.isTrue ({ name : "haXe" } !== { name : "haXe" });
@@ -333,7 +316,6 @@ class EqualityOperators {
 //    Assert.isFalse({ name : "haXe" } === { name : "haXe" });
   }
 
-  // all but PHP
   public function testAnonymousVar() {
     var x = { name : "haXe" };
     var y = { name : "haXe" };
@@ -352,7 +334,6 @@ class EqualityOperators {
 //    Assert.isFalse(x === z);
   }
   
-  // all but PHP
   public function testAnonymousDynamic1() {
     var x : Dynamic = { name : "haXe" };
     var y = { name : "haXe" };
@@ -371,7 +352,6 @@ class EqualityOperators {
 //    Assert.isFalse(x === z);
   }
   
-  // all but PHP
   public function testAnonymousDynamic2() {
     var x : Dynamic = { name : "haXe" };
     var y : Dynamic = { name : "haXe" };
@@ -390,7 +370,6 @@ class EqualityOperators {
 //    Assert.isFalse(x === z);
   }
 
-  // all but PHP
   public function testInstance() {
     Assert.isTrue(new A() !=  new A());
 //    Assert.isTrue(new A() !== new A());
@@ -401,7 +380,6 @@ class EqualityOperators {
 //    Assert.isFalse(new A() === new B());
   }
 
-  // all but PHP
   public function testInstanceVar() {
     var x = new A();
     var y = new A();
@@ -414,7 +392,6 @@ class EqualityOperators {
     Assert.isTrue(x !=  y);
   }
 
-  // all but PHP
   public function testInstanceDynamic1() {
     var x : Dynamic = new A();
     var y = new A();
@@ -427,7 +404,6 @@ class EqualityOperators {
     Assert.isTrue(x !=  y);
   }
 
-  // all but PHP
   public function testInstanceDynamic2() {
     var x : Dynamic = new A();
     var y : Dynamic = new A();
@@ -440,15 +416,16 @@ class EqualityOperators {
     Assert.isTrue(x !=  y);
   }
   
-  // all but PHP
+#if !flash9
   public function testBool() {
     Assert.isTrue (true  != null);
     Assert.isTrue (false != null);
     Assert.isFalse(true  == null);
     Assert.isFalse(false == null);
   }
+#end
 
-  // all but PHP
+#if !flash9
   public function testBoolDynamic1() {
     var t : Dynamic = true;
     var f : Dynamic = false;
@@ -458,8 +435,8 @@ class EqualityOperators {
     Assert.isFalse(t == z);
     Assert.isFalse(f == z);
   }
+#end
 
-  // all but PHP
   public function testBoolDynamic2() {
     var t : Bool = true;
     var f : Bool = false;

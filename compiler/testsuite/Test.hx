@@ -1,6 +1,7 @@
 class Test {
 	public static function main() {
 		var runner = new unit.Runner();  
+		
 		runner.register(new syntax.AnonymousObject());
 		runner.register(new syntax.ArraySyntax());
 		runner.register(new syntax.Bitwise());
@@ -34,10 +35,10 @@ class Test {
 		
 		runner.register(new stdlib.TestArray());
 		runner.register(new stdlib.TestCompare());
-		runner.register(new stdlib.TestDate());
+		runner.register(new stdlib.TestDate());		
 		#if (flash9 || neko || php || hllua)
 		runner.register(new stdlib.TestEReg());
-		#end  		
+		#end
 		runner.register(new stdlib.TestHash());
 		#if js
 		runner.register(new stdlib.TestHtmlDom());
@@ -57,6 +58,14 @@ class Test {
 		runner.register(new stdlib.TestStringTools());
 		runner.register(new stdlib.TestUnit());
 		runner.register(new stdlib.TestXml());
+		
+#if (php || neko)
+		runner.register(new testneutral.TestFileSystem());
+//		runner.register(new testneutral.TestSPOD());
+		runner.register(new testneutral.TestMysqlDb());
+		runner.register(new testneutral.TestSQLiteDb());
+#end
+
 		runner.run();
 	}
 }
