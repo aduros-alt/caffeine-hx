@@ -123,6 +123,11 @@ let s_path_haxe path =
 	| [], s -> s
 	| el, s -> String.concat "." el ^ "." ^ s
 
+(*
+let s_is_by_ref s =
+  String.length s > 9 && (String.sub s 0 9) = "__byref__"
+ *)
+	
 let s_ident n =
   let suf = "h" in
 (*
@@ -138,6 +143,7 @@ haxe reserved words that match php ones: break, case, class, continue, default, 
   | "unset" | "use" | "__FUNCTION__" | "__CLASS__" | "__METHOD__" | "final" (* PHP 5 *)
   | "php_user_filter" (* PHP 5 *) | "protected" (* PHP 5 *) | "abstract" (* PHP 5 *)
   | "clone" (* PHP 5 *) -> suf ^ n
+(*  | s when s_is_by_ref s -> String.sub s 9 (String.length s - 9) *)
   | _ -> n
 
 let init dir path =
@@ -1265,9 +1271,14 @@ let generate_field ctx static f =
     if ctx.curclass.cl_interface then
       match follow f.cf_type with
       | TFun (args,r) ->
-        print ctx "function %s(" f.cf_name;
+(*		if s_is_by_ref f.cf_name then 
+			print ctx "function &%s(" f.cf_name
+		else *)
+			print ctx "function %s(" f.cf_name;
         concat ctx ", " (fun (arg,o,t) ->
-          s_funarg ctx arg t p;
+(*		  if s_is_by_ref arg then 
+			spr ctx "&"; *)
+		  s_funarg ctx arg t p;
           if o then spr ctx " = null";
         ) args;
         print ctx ")";
