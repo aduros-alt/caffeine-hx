@@ -10,7 +10,7 @@ class Web {
 		Returns the GET and POST parameters.
 	**/
 	public static function getParams() {
-		return Hash.fromAssociativeArray(untyped __php__("array_merge($__GET__, $__POST__)"));
+		return Hash.fromAssociativeArray(untyped __php__("array_merge($_GET, $_POST)"));
 	}
 
 	/**
