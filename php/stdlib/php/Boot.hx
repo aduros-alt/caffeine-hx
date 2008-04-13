@@ -54,8 +54,8 @@ class Boot {
 				}
 				j += 1;
 			}
-			if( !swap )
-				break;
+			if( !swap ) untyped __php__("break");
+//				break;
 			i += 1;
 		}	
 	}
@@ -110,14 +110,16 @@ class Boot {
 		return v;
 	}
 	
-	static public function __substr(s : String, pos : Int, ?offset : Int) {
-		if(s == "") return "";
-			if(offset == null)
-				return untyped __php__("substr")(s, pos);
-			else if(pos > 0 && offset < 0 && pos >= offset)
-		  return "";
-		else
-		return untyped __php__("substr")(s, pos, offset);
+	static public function __substr(s : String, pos : Int, ?len : Int) {
+		if( pos != null && pos != 0 && len != null && len < 0 ) return '';
+		if( len == null ) len = s.length;
+		if( pos < 0 ) {
+			pos = s.length + pos;
+			if( pos < 0 ) pos = 0;
+		} else if( len < 0 )
+			len = s.length + len - pos;
+		var s : Bool = untyped __php__("substr")(s, pos, len);
+		if(s === false) return "" else return untyped s;
 	}
 
 	static public function __index_of(s : String, value : String, ?startIndex : Int) {

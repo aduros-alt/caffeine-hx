@@ -68,9 +68,7 @@ class Reflect {
 		#else neko
 			return __dollar__typeof(o) == __dollar__tobject && __dollar__objfield(o,__dollar__hash(field.__s));
 		#else php
-			if(__php__("$o instanceof _typedef"))
-				o = o.__tname__;
-				return __php__("method_exists($o, $field) || property_exists($o, $field) || isset($o->$field)");
+			return __php__("is_object($o) && (method_exists($o, $field) || property_exists($o, $field) || isset($o->$field))");
 		#else error
 		#end
 		}
@@ -148,7 +146,14 @@ class Reflect {
 		#else neko
 			__dollar__call(func,o,args.__neko())
 		#else php
-			__php__("call_user_func_array(is_array($func) ? $func : array($o, $func), $args)")
+			__php__("call_user_func_array(is_array($func) ? 
+							$func 
+							:
+							is_callable($func) ?
+								$func
+								:
+								array($o, $func)
+						, $args)")
 		#else error
 		#end
 			;

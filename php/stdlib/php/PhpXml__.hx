@@ -69,7 +69,6 @@ class PhpXml__ {
 	
 	private static function __default_handler(parser : Dynamic, data : String) {
 		build.addChild(createPCData(data));
-		untyped __call__("var_dump", data);
 	}
 
 	public static function parse( str : String ) : PhpXml__ {

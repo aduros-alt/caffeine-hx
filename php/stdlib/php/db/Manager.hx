@@ -41,7 +41,7 @@ class Manager<T : Object> {
 	private static var no_update : Dynamic = function() { throw "Cannot update not locked object"; }
 	private static var FOR_UPDATE = "";
 
-	private static function setConnection( c : Connection ) {
+	private static f9dynamic function setConnection( c : Connection ) {
 		Reflect.setField(Manager,"cnx",c);
 		if( c != null )
 			FOR_UPDATE = if( c.dbName() == "MySQL" ) " FOR UPDATE" else "";
@@ -58,7 +58,7 @@ class Manager<T : Object> {
 		var cl : Dynamic = classval;
 
 		// get basic infos
-		table_name = quoteField(if( cl.TABLE_NAME != null ) cl.TABLE_NAME else cl.__name__[cl.__name__.length-1]);
+		table_name = quoteField(( cl.TABLE_NAME != null ) ? cl.TABLE_NAME : untyped __php__("array_pop(split('.', $cl->__qname__))"));
 		table_keys = if( cl.TABLE_IDS != null ) cl.TABLE_IDS else ["id"];
 		class_proto = cl;
 
@@ -272,7 +272,7 @@ class Manager<T : Object> {
 
 	function doSync( i : T ) {
 		object_cache.remove(makeCacheKey(i));
-		var i2 = getWithKeys(i,(cast i).update != no_update);
+		var i2 = getWithKeys(i, untyped i.update != no_update);
 		// delete all fields
 		for( f in Reflect.fields(i) )
 			Reflect.deleteField(i,f);
