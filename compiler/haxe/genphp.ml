@@ -564,6 +564,17 @@ and gen_array_call ctx s e el =
 	spr ctx ")"
   | _ ->
     unsupported e.epos;
+	
+and gen_field_op ctx e = 
+	match e.eexpr with
+	| TField (f,s) ->
+		(match follow e.etype with
+		| TFun _ ->
+			gen_field_access ctx true f s
+		| _ ->
+			gen_value_op ctx e)
+	| _ ->
+		gen_value_op ctx e
 
 and gen_value_op ctx e =
   match e.eexpr with
@@ -615,7 +626,7 @@ and gen_dynamic_function ctx isstatic name f params p =
 	  s_funarg ctx arg t p;
 	  if o then spr ctx " = null";
 	) f.tf_args;
-
+(*
   if isstatic then begin
 	  print ctx ") {\n\t\tif(self::$%s == null)\n"  name;
 	  print ctx "\t\t\tself::$%s = php_Boot::__closure(array(\"\"), \"" name;
@@ -632,8 +643,9 @@ and gen_dynamic_function ctx isstatic name f params p =
 	  ctx.quotes <- ctx.quotes - 1;
 	  print ctx "\");\n";
   end else begin
+  *)
 	  spr ctx ") {";
-  end;
+(*  end; *)
 
   if (List.length f.tf_args) > 0 then begin
 	if isstatic then
@@ -743,19 +755,20 @@ and gen_expr ctx e =
 			spr ctx ", ";
 			gen_value ctx e2;
 			spr ctx ")";
-		| TField (ef1,s) ->
+(*		| TField (ef1,s) ->
 			(match follow e.etype with
 			| TFun _ ->
 				gen_field_access ctx true ef1 s;
 				spr ctx " = ";
 				gen_value_op ctx e2;
 			| _ ->
-				gen_expr ctx e1;
+				gen_value_op ctx e1;
 				spr ctx " = ";
 				gen_value_op ctx e2;
 			);
+*)
 		| _ ->
-			gen_expr ctx e1;
+			gen_field_op ctx e1;
 			spr ctx " = ";
 			gen_value_op ctx e2;)
 	| Ast.OpAssignOp(Ast.OpAdd) when (is_string_expr e1 || is_string_expr e2) ->
@@ -790,13 +803,15 @@ and gen_expr ctx e =
 		spr ctx ")";
 	| Ast.OpNotEq
 	| Ast.OpEq ->
+		let s_op = if op = Ast.OpNotEq then " != " else " == " in
+		let s_phop = if op = Ast.OpNotEq then " !== " else " === " in
 		if
 			   e1.eexpr = TConst (TNull)
 			|| e2.eexpr = TConst (TNull)
 		then begin	
-			gen_value_op ctx e1;
-			if op = Ast.OpNotEq then spr ctx " !== " else spr ctx " === ";
-		    gen_value_op ctx e2;
+			gen_field_op ctx e1;
+			spr ctx s_phop;
+		    gen_field_op ctx e2;
 		end else if
 		       (((s_expr_name e1) = "Int" || (s_expr_name e1) = "Float" || (s_expr_name e1) = "Null<Int>" || (s_expr_name e1) = "Null<Float>")
 			   && ((s_expr_name e1) = "Int" || (s_expr_name e1) = "Float" || (s_expr_name e1) = "Null<Int>" || (s_expr_name e1) = "Null<Float>"))
@@ -806,9 +821,9 @@ and gen_expr ctx e =
 		then begin
 			if op = Ast.OpNotEq then spr ctx "!";
 			spr ctx "php_Boot::__equal(";
-			gen_value_op ctx e1;
+			gen_field_op ctx e1;
 			spr ctx ", ";
-			gen_value_op ctx e2;
+			gen_field_op ctx e2;
 			spr ctx ")";
 		end else if
 			   e1.etype == e2.etype
@@ -823,13 +838,13 @@ and gen_expr ctx e =
 			|| is_unknown_expr e1
 			|| is_unknown_expr e2
 		then begin
-			gen_value_op ctx e1;
-			if op = Ast.OpNotEq then spr ctx " !== " else spr ctx " === ";
-		    gen_value_op ctx e2;
+			gen_field_op ctx e1;
+			spr ctx s_phop;
+		    gen_field_op ctx e2;
 		end else begin
-			gen_value_op ctx e1;
-			if op = Ast.OpNotEq then spr ctx " != " else spr ctx " == ";
-			gen_value_op ctx e2;
+			gen_field_op ctx e1;
+			spr ctx s_op;
+			gen_field_op ctx e2;
 		end
 	| _ ->
 		gen_value_op ctx e1;
@@ -1298,21 +1313,26 @@ let generate_field ctx static f =
     end
 
 let generate_static_field_assign ctx path f =
-  ctx.in_static <- true;
-  ctx.locals <- PMap.empty;
-  ctx.inv_locals <- PMap.empty;
-  let p = ctx.curclass.cl_pos in
-  if not ctx.curclass.cl_interface then
-      match f.cf_expr with
-      | None -> ()
-	  | Some { eexpr = TFunction fd } -> ()
-      | Some e ->
-		match e.eexpr with
-		| TConst _ -> ()
-		| _ ->
-			newline ctx;
-	        print ctx "%s::$%s = " (s_path ctx path false p) (s_ident f.cf_name);
-	        gen_value ctx e
+	ctx.in_static <- true;
+
+	let p = ctx.curclass.cl_pos in
+	if not ctx.curclass.cl_interface then
+		(match f.cf_expr with
+		| None -> ()
+		| Some e ->
+			match e.eexpr with
+			| TConst _ -> ()
+			| TFunction fd ->
+				(match f.cf_set with
+				| NormalAccess when (match fd.tf_expr.eexpr with | TBlock _ -> true | _ -> false) ->
+					newline ctx;
+					print ctx "%s::$%s = " (s_path ctx path false p) (s_ident f.cf_name);
+					gen_value ctx e
+				| _ -> ())
+			| _ ->
+				newline ctx;
+				print ctx "%s::$%s = " (s_path ctx path false p) (s_ident f.cf_name);
+				gen_value ctx e)
 
 let define_getset ctx stat f =
   let def name =
