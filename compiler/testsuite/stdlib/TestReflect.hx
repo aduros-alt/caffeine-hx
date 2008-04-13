@@ -53,7 +53,7 @@ class TestReflect {
 	}
 	#end
 
-	public function testClassA(){
+	public function testReflectClass(){
 		var o = new TestReflectClass();
 		o.init();
 
@@ -291,6 +291,41 @@ class TestReflect {
 	}
 	#end
 
+	// TODO: when those will pass, we can remove the customized version of haxe.Template
+	public function testCallMathodOnAnonym() {
+		var o = { f : function(){ return "test"; } };
+		var f = Reflect.field(o, "f");
+		Assert.equals("test", Reflect.callMethod(o, f, []));
+	}
+	
+	public function testFunctionNullityOnTypedef() {
+		var o : { f : Void -> Void } = { f : null};
+		Assert.isTrue(o.f == null);
+		Assert.isTrue(null == o.f);
+	}
+	
+	public function testFunctionNullityOnDynamic() {
+		var o : Dynamic = { f : null};
+		Assert.isTrue(o.f == null);
+		Assert.isTrue(null == o.f);
+	}
+	
+	public function testFunctionNullityOnInstance() {
+		var o = new TestF9DynamicClass();
+		Assert.isTrue(o.f != null);
+		Assert.isTrue(null != o.f);
+		o.f = null;
+		Assert.isTrue(o.f == null);
+		Assert.isTrue(null == o.f);
+	}
+	
+	public function testFunctionNullityOnStatic() {
+		Assert.isTrue(TestF9DynamicClass.sf != null);
+		Assert.isTrue(null != TestF9DynamicClass.sf);
+		TestF9DynamicClass.sf = null;
+		Assert.isTrue(TestF9DynamicClass.sf == null);
+		Assert.isTrue(null == TestF9DynamicClass.sf);
+	}
 }
 
 private enum TestEnumPriv {
@@ -312,6 +347,12 @@ class TestCreate {
 	public function new(v) {
 		if( v != "ok" ) throw "error";
 	}
+}
+
+class TestF9DynamicClass {
+	public function new() {}
+	public f9dynamic function f() { return "test"; }
+	public static f9dynamic function sf() { return "test"; }
 }
 
 class TestReflectClass {

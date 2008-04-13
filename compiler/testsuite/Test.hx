@@ -2,6 +2,16 @@ class Test {
 	public static function main() {
 		var runner = new unit.Runner();  
 		
+#if (php || neko)
+
+//		runner.register(new testneutral.TestSPOD());
+/*
+		runner.register(new testneutral.TestFileSystem());
+		runner.register(new testneutral.TestMysqlDb());
+		runner.register(new testneutral.TestSQLiteDb());
+*/
+#end
+
 		runner.register(new syntax.AnonymousObject());
 		runner.register(new syntax.ArraySyntax());
 		runner.register(new syntax.Bitwise());
@@ -51,20 +61,16 @@ class Test {
 		#if neko
 		runner.register(new stdlib.TestNekoSerialization());
 		#end
+		
 		runner.register(new stdlib.TestReflect());
+		
 		runner.register(new stdlib.TestSerialize());
 		runner.register(new stdlib.TestStd());
 		runner.register(new stdlib.TestString());
 		runner.register(new stdlib.TestStringTools());
+		runner.register(new stdlib.TestTemplate());
 		runner.register(new stdlib.TestUnit());
 		runner.register(new stdlib.TestXml());
-		
-#if (php || neko)
-		runner.register(new testneutral.TestFileSystem());
-//		runner.register(new testneutral.TestSPOD());
-		runner.register(new testneutral.TestMysqlDb());
-		runner.register(new testneutral.TestSQLiteDb());
-#end
 
 		runner.run();
 	}

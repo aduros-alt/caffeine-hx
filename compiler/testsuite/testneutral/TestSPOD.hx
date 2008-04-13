@@ -45,7 +45,7 @@ class TestSPOD {
 		}
 	}
 	
-	public function testSPOD() {
+	public function testUse() {
 		Assert.equals(0, User.manager.count());
 		var user = new User();
 		user.id   = 1;
