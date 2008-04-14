@@ -216,28 +216,21 @@ class Web {
 		Returns an object with the authorization sent by the client (Basic scheme only).
 	**/
 	public static function getAuthorization() : { user : String, pass : String } {
-		return null; // TODO, IMPLEMENT
-		/*
-		var h = getClientHeader("Authorization");
-		var reg = ~/^Basic ([^=]+)=*$/;
-		if( h != null && reg.match(h) ){
-			var val = reg.matched(1);
-			untyped val = new String(_base_decode(val.__s,"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".__s));
-			var a = val.split(":");
-			if( a.length != 2 ){
-				throw "Unable to decode authorization.";
-			}
-			return {user: a[0],pass: a[1]};
+		var h : Hash<String>;
+		h = Hash.fromAssociativeArray(untyped __php__("$_SERVER"));
+		if(!h.exists("PHP_AUTH_USER"))
+		{
+			return null;
 		}
-		return null;
-		*/
+		return untyped {user: __php__("$_SERVER['PHP_AUTH_USER']"), pass: __php__("$_SERVER['PHP_AUTH_PW']")};
 	}
 
 	/**
 		Get the current script directory in the local filesystem.
 	**/
 	public static function getCwd() {
-		return null; // TODO, IMPLEMENT
+		//TODO, TEST
+		return new String(untyped __call__("getcwd"));
 		/*
 		return new String(_get_cwd());
 		*/
