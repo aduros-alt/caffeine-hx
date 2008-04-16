@@ -143,7 +143,6 @@ haxe reserved words that match php ones: break, case, class, continue, default, 
   | "unset" | "use" | "__FUNCTION__" | "__CLASS__" | "__METHOD__" | "final" (* PHP 5 *)
   | "php_user_filter" (* PHP 5 *) | "protected" (* PHP 5 *) | "abstract" (* PHP 5 *)
   | "clone" (* PHP 5 *) -> suf ^ n
-(*  | s when s_is_by_ref s -> String.sub s 9 (String.length s - 9) *)
   | _ -> n
 
 let init dir path =
@@ -275,7 +274,9 @@ let this ctx =
   let p = escphp ctx.quotes in
   if ctx.in_value <> None then (p ^ "$__this") else (p ^ "$this")
 
-let s_funarg ctx arg t p = match t with
+let s_funarg ctx arg t p = 
+  let byref = if String.length arg > 7 && String.sub arg 0 7 = "byref__" then "&" else "" in
+  (match t with
   | TInst (c,_) -> (match c.cl_path with
 	| ([], "Float")
 	| ([], "String")
@@ -283,13 +284,13 @@ let s_funarg ctx arg t p = match t with
 	| ([], "Int") 
 	| ([], "Enum") 
 	| ([], "Class") 
-	| ([], "Bool") -> spr ctx (escphp ctx.quotes ^ "$" ^ arg)
+	| ([], "Bool") -> print ctx "%s%s$%s" byref (escphp ctx.quotes) arg
 	| _ ->
 		if c.cl_kind = KNormal then
-			print ctx "%s %s$%s" (s_path ctx c.cl_path c.cl_extern p) (escphp ctx.quotes) arg
+			print ctx "%s %s%s$%s" (s_path ctx c.cl_path c.cl_extern p) byref (escphp ctx.quotes) arg
 		else
-			print ctx "%s$%s" (escphp ctx.quotes) arg)
-  | _ -> spr ctx ((escphp ctx.quotes) ^ "$" ^ arg)
+			print ctx "%s%s$%s" byref (escphp ctx.quotes) arg)
+  | _ -> print ctx "%s%s$%s" byref (escphp ctx.quotes) arg)
 
 let is_in_dynamic_methods ctx e s =
 	List.exists (fun dm ->
@@ -596,9 +597,9 @@ and gen_member_access ctx isvar e s =
 	match follow e.etype with
 	| TAnon a -> 
 		(match !(a.a_status) with
-		| EnumStatics c -> print ctx "::%s%s" (if isvar then ((escphp ctx.quotes) ^ "$") else "") (s_ident s)
-		| Statics c -> print ctx "::%s%s" (if isvar then ((escphp ctx.quotes) ^ "$") else "") (s_ident s)
-	| _ -> print ctx "->%s" (s_ident s))
+		| EnumStatics _
+		| Statics _ -> print ctx "::%s%s" (if isvar then ((escphp ctx.quotes) ^ "$") else "") (s_ident s)
+		| _ -> print ctx "->%s" (s_ident s))
 	| _ -> print ctx "->%s" (s_ident s)
 	
 and gen_field_access ctx isvar e s =
@@ -649,18 +650,18 @@ and gen_dynamic_function ctx isstatic name f params p =
 
   if (List.length f.tf_args) > 0 then begin
 	if isstatic then
-		print ctx "\t\treturn call_user_func(self::$%s, "  name
+		print ctx " return call_user_func(self::$%s, "  name
 	else
-		print ctx "\t\treturn call_user_func($this->%s, "  name;
+		print ctx " return call_user_func($this->%s, "  name;
 
 	concat ctx ", " (fun (arg,o,t) ->
 	  spr ctx ((escphp ctx.quotes) ^ "$" ^ arg)
 	) f.tf_args;
-	print ctx ");\n\t}";
+	print ctx "); }";
   end else if isstatic then
-	print ctx "\t\treturn call_user_func(self::$%s);\n\t}"  name
+	print ctx " return call_user_func(self::$%s); }"  name
   else
-	print ctx "\t\treturn call_user_func($this->%s);\n\t}"  name;
+	print ctx " return call_user_func($this->%s); }"  name;
 
   newline ctx;
   if isstatic then
@@ -869,10 +870,17 @@ and gen_expr ctx e =
 		| _ -> gen_expr ctx e1);
 		print ctx ", %s\"%s%s\")" p s p;
 	  end);
+	| TMono _ ->
+	  if ctx.is_call then (
+(*		spr ctx "/*MONOCALL*/"; *)
+		gen_field_access ctx false e1 s 
+	  ) else  (
+(*		spr ctx "/*MONO*/";  *)
+		gen_field_access ctx true e1 s )
 	| _ ->
 	  if is_string_expr e1 then gen_string_var ctx s e1
 	  else if is_array_expr e1 then gen_array_var ctx s e1
-	  else gen_field_access ctx true e1 s
+	  else (* spr ctx "/*OUT*/"; *) gen_field_access ctx true e1 s
 	)
 
   | TTypeExpr t ->
@@ -918,9 +926,7 @@ and gen_expr ctx e =
 		let name = f.cf_name in
 	  	match f.cf_expr with
 	    | Some { eexpr = TFunction fd } ->
-			print ctx "$this->%s" name;
-			spr ctx " = php_Boot::__closure(array(), \"";
-
+			print ctx "$this->%s = php_Boot::__closure(array(\"__this\" => &$this), \"" name;
 			ctx.quotes <- ctx.quotes + 1;
 			concat ctx "," (fun (arg,o,t) ->
 			let arg = define_local ctx arg in
@@ -928,13 +934,14 @@ and gen_expr ctx e =
 		      if o then spr ctx " = null";
 		    ) fd.tf_args;
 			ctx.quotes <- ctx.quotes - 1;
-
+			
 			print ctx "\", \"";
-
+			let old = ctx.in_value in
+			ctx.in_value <- Some name;
 			ctx.quotes <- ctx.quotes + 1;
 			gen_expr ctx (block fd.tf_expr);
 			ctx.quotes <- ctx.quotes - 1;
-
+			ctx.in_value <- old;
 			print ctx "\")";
 			newline ctx;
 		| _ -> ()
@@ -1299,7 +1306,10 @@ let generate_field ctx static f =
         print ctx ")";
       | _ -> spr ctx "//"; ()
     else if (match f.cf_get with MethodAccess m -> true | _ -> match f.cf_set with MethodAccess m -> true | _ -> false) then begin
-      print ctx "/*protected*/ public $%s" (s_ident f.cf_name);
+	  match f.cf_get, f.cf_set with 
+	  | MethodAccess m1, MethodAccess m2 -> spr ctx "//";
+	  | _, _ ->
+	    print ctx "%s $%s" rights (s_ident f.cf_name);
     end else begin
       print ctx "%s $%s" rights (s_ident f.cf_name);
       match f.cf_expr with
@@ -1349,6 +1359,7 @@ let rec super_has_dynamic c =
 		| _ -> super_has_dynamic csup)
 
 let generate_class ctx all_dynamic_methods c =
+  let requires_constructor = ref true in
   ctx.curclass <- c;
   ctx.all_dynamic_methods <- all_dynamic_methods;
   List.iter (define_getset ctx false) c.cl_ordered_fields;
@@ -1361,6 +1372,7 @@ let generate_class ctx all_dynamic_methods c =
   (match c.cl_super with
   | None -> ()
   | Some (csup,_) ->
+    requires_constructor := false;
 	print ctx "extends %s " (s_path ctx csup.cl_path csup.cl_extern c.cl_pos));
   (match c.cl_implements with
   | [] -> ()
@@ -1376,7 +1388,11 @@ let generate_class ctx all_dynamic_methods c =
 
   let cl = open_block ctx in
   (match c.cl_constructor with
-  | None -> ()
+  | None ->
+	if !requires_constructor && not c.cl_interface then begin
+		newline ctx;
+		spr ctx "public function __construct(){}"
+	end;
   | Some f ->
     let f = { f with
       cf_name = "__construct";
@@ -1400,7 +1416,7 @@ let generate_class ctx all_dynamic_methods c =
   end;
 
   List.iter (generate_field ctx true) c.cl_ordered_statics;
-
+  
   cl();
   newline ctx;
   print ctx "}"
