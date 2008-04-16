@@ -10,8 +10,7 @@ class Boot {
 		untyped __php__("$o = new Anonymous();
 		if(is_array($p)) {
 			foreach($p as $k => $v) {
-//				if(!is_numeric($k))
-					$o->$k = $v;
+				$o->$k = $v;
 			}
 		}
 		return $o");
@@ -27,8 +26,8 @@ class Boot {
 		var f : String = untyped __call__(
 			"create_function", 
 			params, 
-			"extract(php_Boot::$__scopes['"+n+"']['locals']);\nextract(php_Boot::$__scopes['"+n+"']['scope']);\n"+body);
-		var nl = "__"+f.substr(1, 100000)+"__"; // TODO: correct me: substr ($v, 1, null) != substr ($v, 1)
+			"extract(php_Boot::$__scopes['"+n+"']['scope']);\nextract(php_Boot::$__scopes['"+n+"']['locals']);\n"+body);
+		var nl = "__"+f.substr(1)+"__";
 		untyped __php__("php_Boot::$__scopes[$nl] =& php_Boot::$__scopes[$n]");
 		return f;
 	}
@@ -54,8 +53,7 @@ class Boot {
 				}
 				j += 1;
 			}
-			if( !swap ) untyped __php__("break");
-//				break;
+			if(!swap) break;
 			i += 1;
 		}	
 	}
@@ -168,11 +166,13 @@ class Boot {
 	}
 	
 	static public function __error_handler(errno : Int, errmsg : String, filename : String, linenum : Int, vars : Dynamic) {
-		var msg = errmsg + " in " + filename + " at line #" + linenum;
+//		if(errno == 8) return true; // Undefined property
+		var msg = errmsg + " (errno: " + errno + ") in " + filename + " at line #" + linenum;
 		var e = new php.HException(msg, errmsg, errno);
 		e.setFile(filename);
 		e.setLine(linenum);
 		untyped __php__("throw $e");
+		return null;
 	}
 	
 	static public function __exception_handler(e : Dynamic) {
@@ -216,10 +216,9 @@ class Boot {
 	}
   
 	static function __init__() untyped {
-		__php__("set_error_handler(array('php_Boot', '__error_handler'), E_ALL)");
-		__php__("set_exception_handler(array('php_Boot', '__exception_handler'))");
-		__php__("//error_reporting(0)");
-		__php__("
+		__php__("//error_reporting(0);
+set_error_handler(array('php_Boot', '__error_handler'), E_ALL);
+set_exception_handler(array('php_Boot', '__exception_handler'));
 
 class Anonymous extends stdClass{
 	public function __call($m, $a) {

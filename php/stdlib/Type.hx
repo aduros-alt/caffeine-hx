@@ -629,8 +629,13 @@ class Type {
 			if( a.tag != b.tag )
 				return false;
 			for( i in 0...__call__("count", a.params))
-				if( !enumEq(a.params[i],b.params[i]) )
-					return false;
+				if(getEnum(a.params[i]) !== null) {
+					if(!enumEq(a.params[i],b.params[i]))
+						return false;
+				} else {
+					if(!php.Boot.__equal(a.params[i],b.params[i]))
+						return false;
+				}
 		} catch( e : Dynamic ) {
 			return false;
 		}

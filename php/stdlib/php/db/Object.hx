@@ -50,8 +50,10 @@ class Object #if spod_rtti implements haxe.rtti.Infos #end {
 		private function objectToString( o : Object ) : String;
 	};
 
+	var __cache__ : Object;
 
 	public function new() {
+		local_manager = Manager.managers.get(untyped Type.getClass(this).__qname__);
 	}
 
 	public function insert() {

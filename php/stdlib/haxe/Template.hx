@@ -318,10 +318,9 @@ class Template {
 		case OpForeach(e,loop):
 			var v : Dynamic = e();
 			try {
-				if(#if php !Reflect.hasField(v, "hasNext") #else true v.hasNext == null #end) {
-					var x : Dynamic = v.iterator();
-					if(#if php !Reflect.hasField(v, "hasNext") #else true v.hasNext == null #end) throw null;
-					v = x;
+				if(!Reflect.hasField(v, "hasNext")) {
+					if(!Reflect.isFunction(v.iterator)) throw null;
+					v = v.iterator();
 				}
 			} catch( e : Dynamic ) {
 				throw "Cannot iter on " + v;

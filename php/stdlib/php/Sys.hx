@@ -69,7 +69,7 @@ class Sys {
 	}
 
 	public static function time() : Float {
-		return untyped __call__("time");
+		return untyped __call__("microtime", true);
 	}
 
 	public static function cpuTime() : Float {

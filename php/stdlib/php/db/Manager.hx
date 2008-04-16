@@ -40,6 +40,8 @@ class Manager<T : Object> {
 	private static var cache_field = "__cache__";
 	private static var no_update : Dynamic = function() { throw "Cannot update not locked object"; }
 	private static var FOR_UPDATE = "";
+	
+	public static var managers = new Hash<Manager<Dynamic>>();
 
 	private static f9dynamic function setConnection( c : Connection ) {
 		Reflect.setField(Manager,"cnx",c);
@@ -52,13 +54,13 @@ class Manager<T : Object> {
 	var table_name : String;
 	var table_fields : List<String>;
 	var table_keys : Array<String>;
-	var class_proto : { prototype : Dynamic };
+	var class_proto : Class<php.db.Object>;
 
 	public function new( classval : Class<php.db.Object> ) {
 		var cl : Dynamic = classval;
 
 		// get basic infos
-		table_name = quoteField(( cl.TABLE_NAME != null ) ? cl.TABLE_NAME : untyped __php__("array_pop(split('.', $cl->__qname__))"));
+		table_name = quoteField((cl.TABLE_NAME != null ) ? cl.TABLE_NAME : untyped __php__("array_pop(split('.', $cl->__qname__))"));
 		table_keys = if( cl.TABLE_IDS != null ) cl.TABLE_IDS else ["id"];
 		class_proto = cl;
 
@@ -66,13 +68,14 @@ class Manager<T : Object> {
 		var apriv : Array<String> = cl.PRIVATE_FIELDS;
 		apriv = if( apriv == null ) new Array() else apriv.copy();
 		apriv.push("local_manager");
-		apriv.push("__class__");
+		apriv.push("__cache__");
+//		apriv.push("__class__");
 
 		// get the proto fields not marked private (excluding methods)
 		table_fields = new List();
-		var proto : { local_manager : php.db.Manager<T> } = class_proto.prototype;
-		for( f in Reflect.fields(proto) ) {
-			var isfield = !Reflect.isFunction(Reflect.field(proto,f));
+//		var proto : { local_manager : php.db.Manager<T> } = class_proto.prototype;
+		for( f in Type.getInstanceFields(cl) ) {
+			var isfield = !Reflect.isFunction(Reflect.field(cl,f));
 			if( isfield )
 				for( f2 in apriv )
 					if( f == f2 ) {
@@ -82,9 +85,9 @@ class Manager<T : Object> {
 			if( isfield )
 				table_fields.add(f);
 		}
-
 		// set the manager and ready for further init
-		proto.local_manager = this;
+		//proto.local_manager = this;
+		managers.set(untyped cl.__qname__, this);
 		init_list.add(untyped this);
 	}
 
@@ -313,7 +316,7 @@ class Manager<T : Object> {
 		addToCache(x);
 		// TODO: check me
 //		untyped __dollar__objsetproto(x,class_proto.prototype);
-		Reflect.setField(x,cache_field, Type.createEmptyInstance(Type.getClass(x))/*untyped __dollar__new(x)*/);
+		Reflect.setField(x,cache_field, Type.createEmptyInstance(class_proto)/*untyped __dollar__new(x)*/);
 		if( !lock )
 			x.update = no_update;
 	}
@@ -426,6 +429,7 @@ class Manager<T : Object> {
 	}
 
 	function initRelation(r : { prop : String, key : String, manager : Manager<Object>, lock : Bool } ) {
+		/*
 		// setup getter/setter
 		var manager = r.manager;
 		var hprop = "__"+r.prop;
@@ -454,6 +458,7 @@ class Manager<T : Object> {
 		table_fields.remove(r.prop);
 		table_fields.remove(r.key);
 		table_fields.add(r.key);
+		*/
 	}
 
 	/* ---------------------------- OBJECT CACHE -------------------------- */
@@ -485,7 +490,8 @@ class Manager<T : Object> {
 		var c : Dynamic = object_cache.get(makeCacheKey(x));
 		// restore update method since now the object is locked
 		if( c != null && lock && c.update == no_update )
-			c.update = class_proto.prototype.update;
+			//c.update = class_proto.prototype.update;
+			c.update = untyped class_proto.update;
 		return c;
 	}
 
