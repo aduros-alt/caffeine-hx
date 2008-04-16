@@ -4,6 +4,7 @@ import unit.Assert;
 
 import neutral.db.Connection;
 import neutral.db.Mysql;
+import neutral.db.Manager;
 
 class TestSPOD {
 	public function new() { }
@@ -17,9 +18,8 @@ class TestSPOD {
 ) ENGINE=InnoDB;";
 	}
 	
-	var cnx : Connection;
 	public function setup() {
-		cnx = Mysql.connect({
+		Manager.cnx = Mysql.connect({
 			host     : "localhost",
 			port     : null,
 			user     : "root",
@@ -27,10 +27,10 @@ class TestSPOD {
 			socket   : null,
 			database : "test"
 		});
-		if(cnx == null)
+		if(Manager.cnx == null)
 			throw "DB Connection Failed";
-		cnx.request(createSql());
-		neutral.db.Manager.cnx = cnx;
+		Manager.initialize();
+		Manager.cnx.request(createSql());
 	}
 	
 	function dropSql() {
@@ -38,10 +38,10 @@ class TestSPOD {
 	}
 	
 	public function teardown() {
-		if(cnx != null) {
-			neutral.db.Manager.cleanup();
-			cnx.request(dropSql());
-			cnx.close();			
+		if(Manager.cnx != null) {
+			Manager.cnx.request(dropSql());
+			Manager.cleanup();
+			Manager.cnx.close();			
 		}
 	}
 	

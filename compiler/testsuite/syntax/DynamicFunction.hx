@@ -165,6 +165,31 @@ class DynamicFunction {
 		Assert.equals("test", syntax.util.A.test());
 		Assert.equals("test", syntax.util.A.s);
   	}
+	
+	public function testDynamicFunctionOnThis() {
+		val = "test";
+		Assert.equals("test!", getVal());
+		var me = this;
+		getVal = function() { return me.val + "!?"; };
+		Assert.equals("test!?", getVal());
+	}
+	
+	private var val : String;
+	private f9dynamic function getVal() {
+		return val + "!";
+	}
+
+	private var f2(default, setDynamicFunction) : String;
+	
+	private f9dynamic function setDynamicFunction(v : String) {
+		return f2 = v +"!";
+	}
+	
+	private static var sf2(default, setStaticDynamicFunction) : String;
+	
+	private static f9dynamic function setStaticDynamicFunction(v : String) {
+		return sf2 = v +"!";
+	}
 
 	private function f() {
 		return "test";

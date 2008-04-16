@@ -22,7 +22,7 @@ class Runner {
 	static var tf : flash.TextField = null;
 #end
 
-	private function print(v : String) {
+	public function print(v : String) {
 #if php
 		php.Lib.print(StringTools.htmlEscape(v));
 #else flash9

@@ -59,6 +59,45 @@ class PropertyAccess {
 		o.both = "test";
 		Assert.equals("test", o.both);
 	}
+	
+	public static var f(default, setF) : String;
+	
+	public static function setF(v : String) {
+		f = v+"!";
+		return f;
+	}
+	
+	public function testStaticSetter() {
+		Assert.isNull(f);
+		f = "test";
+		Assert.equals("test!", f);
+	}
+	
+	public static var f2(getF2, setF2) : String;
+	
+	private static var _f2 : String;
+	
+	public static function setF2(v : String) {
+		_f2 = v+"!";
+		return _f2;
+	}
+	
+	public static function getF2() {
+		return _f2 + "?";
+	}
+	
+	public function testStaticGetter() {
+		Assert.isNull(untyped _f2);
+#if php
+		Assert.equals("?", f2);
+#else
+		Assert.equals("null?", f2);
+#end
+		f2 = "test";
+		Assert.equals("test!", untyped _f2);
+		Assert.equals("test!?", f2);
+	}
+	
 	/*
 	public function testGetterDynamic() { }
 	public function testSetterDynamic() { }

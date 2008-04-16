@@ -291,7 +291,15 @@ class TestReflect {
 	}
 	#end
 
-	// TODO: when those will pass, we can remove the customized version of haxe.Template
+	// TODO: when this will pass, we can remove the customized version of haxe.Template
+	public function testFunctionNullityOnInstance() {
+		var o : Dynamic = this;
+		Assert.isTrue(o.f == null);
+		Assert.isTrue(null == o.f);
+		Assert.isTrue(o.testFunctionNullityOnInstance != null);
+		Assert.isTrue(null != o.testFunctionNullityOnInstance);
+	}
+	
 	public function testCallMathodOnAnonym() {
 		var o = { f : function(){ return "test"; } };
 		var f = Reflect.field(o, "f");
@@ -310,7 +318,7 @@ class TestReflect {
 		Assert.isTrue(null == o.f);
 	}
 	
-	public function testFunctionNullityOnInstance() {
+	public function testFunctionNullityOnF9Instance() {
 		var o = new TestF9DynamicClass();
 		Assert.isTrue(o.f != null);
 		Assert.isTrue(null != o.f);
