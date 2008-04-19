@@ -377,11 +377,6 @@ let rec gen_call ctx e el =
 	  concat ctx "," (gen_value ctx) params;
 	  spr ctx ")";
 	);
-  | TCall (x,_) , el ->
-    gen_value ctx e;
-    spr ctx "(";
-    concat ctx ", " (gen_value ctx) el;
-    spr ctx ")";
   | TLocal "__call__" , { eexpr = TConst (TString code) } :: el ->
 	spr ctx code;
 	spr ctx "(";
@@ -399,14 +394,24 @@ let rec gen_call ctx e el =
 	spr ctx ", ";
 	concat ctx ", " (gen_value ctx) el;
 	end else ();
-	spr ctx ")";
+	spr ctx ")"	
+  | TCall (x,_), el when (match x.eexpr with | TLocal _ -> false | _ -> true) ->
+    ctx.is_call <- true;
+	spr ctx "call_user_func(";
+    gen_value ctx e;
+	ctx.is_call <- false;
+	if List.length el > 0 then begin
+	spr ctx ", ";
+	concat ctx ", " (gen_value ctx) el;
+	end else ();
+	spr ctx ")"	
   | _ ->
 	ctx.is_call <- true;
     gen_value ctx e;
 	ctx.is_call <- false;
     spr ctx "(";
     concat ctx ", " (gen_value ctx) el;
-    spr ctx ")"
+    spr ctx ")";
 
 and gen_string_var ctx s e =
   match s with
@@ -610,6 +615,22 @@ and gen_field_access ctx isvar e s =
 	| TLocal _ ->
 		gen_expr ctx e;
 		print ctx "->%s" (s_ident s)
+	| TArray (e1,e2) ->
+		spr ctx "php_Boot::__byref__array_get(";
+	    gen_value ctx e1;
+	    spr ctx ", ";
+	    gen_value ctx e2;
+	    spr ctx ")";
+		gen_member_access ctx isvar e s
+	| TBlock _
+	| TParenthesis _
+	| TNew _ ->
+		spr ctx "php_Boot::__deref(";
+		ctx.is_call <- true;
+		gen_value ctx e;
+		ctx.is_call <- false;
+		spr ctx ")";
+		gen_member_access ctx isvar e s
 	| _ -> 
 		gen_expr ctx e;
 		gen_member_access ctx isvar e s
@@ -680,7 +701,8 @@ and gen_function ctx name f params p =
   let old_t = ctx.local_types in
   ctx.in_value <- None;
   ctx.local_types <- List.map snd params @ ctx.local_types;
-  print ctx "function %s(" name;
+  let byref = if String.length name > 9 && String.sub name 0 9 = "__byref__" then "&" else "" in
+  print ctx "function %s%s(" byref name;
   concat ctx ", " (fun (arg,o,t) ->
 	let arg = define_local ctx arg in
 	  s_funarg ctx arg t p;
@@ -810,9 +832,19 @@ and gen_expr ctx e =
 			   e1.eexpr = TConst (TNull)
 			|| e2.eexpr = TConst (TNull)
 		then begin	
-			gen_field_op ctx e1;
-			spr ctx s_phop;
-		    gen_field_op ctx e2;
+		(*
+			if  op = Ast.OpNotEq
+				&& (match e1.eexpr, e2.eexpr with | TField _, _ -> true | _, TField _ -> true | _ -> false) then begin
+				spr ctx "!(";
+				gen_field_op ctx e1;
+				spr ctx " === ";
+			    gen_field_op ctx e2;
+				spr ctx ")"; 
+			end else begin *)
+				gen_field_op ctx e1;
+				spr ctx s_phop;
+			    gen_field_op ctx e2;
+(*			end *)
 		end else if
 		       (((s_expr_name e1) = "Int" || (s_expr_name e1) = "Float" || (s_expr_name e1) = "Null<Int>" || (s_expr_name e1) = "Null<Float>")
 			   && ((s_expr_name e1) = "Int" || (s_expr_name e1) = "Float" || (s_expr_name e1) = "Null<Int>" || (s_expr_name e1) = "Null<Float>"))
@@ -869,18 +901,16 @@ and gen_expr ctx e =
 			print ctx "%s\"" p
 		| _ -> gen_expr ctx e1);
 		print ctx ", %s\"%s%s\")" p s p;
-	  end);
+	  end)
 	| TMono _ ->
-	  if ctx.is_call then (
-(*		spr ctx "/*MONOCALL*/"; *)
+	  if ctx.is_call then
 		gen_field_access ctx false e1 s 
-	  ) else  (
-(*		spr ctx "/*MONO*/";  *)
-		gen_field_access ctx true e1 s )
+	  else
+		gen_field_access ctx true e1 s;
 	| _ ->
 	  if is_string_expr e1 then gen_string_var ctx s e1
 	  else if is_array_expr e1 then gen_array_var ctx s e1
-	  else (* spr ctx "/*OUT*/"; *) gen_field_access ctx true e1 s
+	  else gen_field_access ctx true e1 s
 	)
 
   | TTypeExpr t ->
@@ -960,13 +990,18 @@ and gen_expr ctx e =
     ctx.in_static <- true;
     gen_inline_function ctx f [] e.epos;
     ctx.in_static <- old
-  | TCall (e,el) ->
-    (match e.eexpr with
-	  | TField (e1,s) when is_array_expr e1 -> gen_array_call ctx s e1 el
-	  | TField (e1,s) when is_static e1.etype && is_string_expr e1 -> gen_string_static_call ctx s e1 el
-	  | TField (e1,s) when is_string_expr e1 -> gen_string_call ctx s e1 el
+  | TCall (ec,el) ->
+    (match ec.eexpr with
+	  | TField (e1,s) when is_array_expr e1 -> 
+		gen_array_call ctx s e1 el
+	  | TField (e1,s) when is_static e1.etype && is_string_expr e1 -> 
+		gen_string_static_call ctx s e1 el
+	  | TField (e1,s) when is_string_expr e1 -> 
+		gen_string_call ctx s e1 el
+	  | TCall _ ->
+		gen_call ctx ec el
 	  | _ -> 
-	    gen_call ctx e el)
+		gen_call ctx ec el);
   | TArrayDecl el ->
     spr ctx "array(";
     concat ctx ", " (gen_value ctx) el;
@@ -1173,8 +1208,11 @@ and gen_value ctx e =
     let tmp = define_local ctx "__r__" in
     ctx.in_value <- Some tmp;
     let b = if block then begin
+	  
       print ctx "eval(%s\"" (escphp ctx.quotes);
 	  ctx.quotes <- (ctx.quotes + 1);
+	  let p = (escphp ctx.quotes) in
+	  print ctx "if(isset(%s$this)) %s$__this =& %s$this;" p p p;
       let b = open_block ctx in
       b
     end else
@@ -1209,8 +1247,8 @@ and gen_value ctx e =
   | TObjectDecl _
   | TArrayDecl _
   | TCall _
-  | TNew _
   | TUnop _
+  | TNew _
   | TFunction _ ->
     gen_expr ctx e
   | TReturn _
