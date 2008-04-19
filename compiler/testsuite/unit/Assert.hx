@@ -40,6 +40,6 @@ class Assert {
   }
   
   public static function is(o : Dynamic, t : Dynamic, ?message : String, ?p : PosInfos) {
-    isTrue(Std.is(o, t), "Assertion failed: expected type was '"+Std.string(t)+"' but is '"+Type.typeof(o)+"'", p);
+    isTrue(Std.is(o, t), "Assertion failed: expected type was '"+Std.string(t)+"' but is '"+Std.string(Type.typeof(o))+"'", p);
   }
 }

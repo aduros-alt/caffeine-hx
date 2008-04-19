@@ -143,7 +143,7 @@ class TestXml {
 		#end
 	}
 
-	public function testFirstElement(){
+	public function testFirstElement() {
 		// in the original test, version was omitted, but version is not optional
 		var x = Xml.parse("<?xml version=\"1.0\"?>     <pouet/>");
 		Assert.equals("pouet",x.firstElement().nodeName);
@@ -152,10 +152,10 @@ class TestXml {
 	// fail on Flash
 	#if (flash8 || flash7)
 	#else true
-	public function testSpecials(){
+	public function testSpecials() {
 		#if php
 		var x = Xml.parse("<p var=\"&quot; &lt;&gt;&amp;\"><![CDATA[&lt;<COUCOU>]]>&lt;&gt;&amp;&quot;</p>");
-		#else
+		#else true
 		var x = Xml.parse("<p var=\"&quot; &lt;&gt;&amp;\"><![CDATA[&lt;<COUCOU>]]>&lt;&gt;&amp;&quot;&</p>");
 		#end
 		var p = x.firstChild();
