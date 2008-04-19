@@ -21,7 +21,7 @@ class TestReflect {
 		Assert.isTrue( l.length == 3 );
 	}
 
-	public function testAnonyFields() {
+	public function testAnonymousFields() {
 		var o = { a : "haXe", b : 7 };
 		var l = Reflect.fields(o);
 		Assert.equals(2, l.length);
@@ -292,12 +292,17 @@ class TestReflect {
 	#end
 
 	// TODO: when this will pass, we can remove the customized version of haxe.Template
+	// TODO: to solve this we can disable the specific error (code 8) and transform the != into !( == )
 	public function testFunctionNullityOnInstance() {
 		var o : Dynamic = this;
 		Assert.isTrue(o.f == null);
 		Assert.isTrue(null == o.f);
+		Assert.isFalse(o.f != null);
+		Assert.isFalse(null != o.f);
 		Assert.isTrue(o.testFunctionNullityOnInstance != null);
 		Assert.isTrue(null != o.testFunctionNullityOnInstance);
+		Assert.isFalse(o.testFunctionNullityOnInstance == null);
+		Assert.isFalse(null == o.testFunctionNullityOnInstance);
 	}
 	
 	public function testCallMathodOnAnonym() {

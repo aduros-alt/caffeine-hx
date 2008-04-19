@@ -35,12 +35,10 @@ class ArraySyntax {
   }
   
   public function testFunctionReturnArrayOfObjects() {
-#if !php
     var o = new ArraySyntax();
     Assert.equals("test", o.returnArrayOfObjects()[0].msg());
-#end
   }
-  
+
   public function returnArrayOfObjects() {
     return [new syntax.util.A()];
   }

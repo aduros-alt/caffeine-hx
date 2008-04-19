@@ -46,7 +46,9 @@ class TestSPOD {
 	}
 	
 	public function testUse() {
-		Assert.equals(0, User.manager.count());
+		untyped __call__("var_dump", User.manager);
+		//Assert.equals(0, User.manager.count());
+		/*
 		var user = new User();
 		user.id   = 1;
 		user.name = "haXe";
@@ -63,6 +65,7 @@ class TestSPOD {
 		Assert.equals(4, user.age);
 		user.delete();
 		Assert.equals(0, User.manager.count());
+		*/
 	}
 	
 }
