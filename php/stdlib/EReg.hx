@@ -313,7 +313,8 @@ class EReg {
 		throw "EReg::replace not implemented";
 		return null;
 		#else php
-		by = untyped __php__("str_replace")("$$", "\\$", by);
+		by = untyped __call__("str_replace", "$$", "\\$", by);
+		untyped __php__("if(!preg_match('/\\\\([^?].+?\\\\)/', $this->re)) $by = preg_replace('/\\$(\\d+)/', '\\\\\\$\\1', $by)");
 		return untyped __php__("preg_replace")(re, by, s);
 		#else error
 		#end

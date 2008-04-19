@@ -60,7 +60,7 @@ class Boot {
 
 	static public function __array_insert<T>(arr : Array<T>,  pos : Int, x : T) : Void {
 		untyped __php__("$arr =& $arr[0]");
-		untyped __php__("array_splice")(arr, pos, 0, x);
+		untyped __php__("array_splice")(arr, pos, 0, __call__("array", x));
 	}
 	
 	static public function __array_remove<T>(arr : Array<T>, x : T) : Bool {
@@ -166,7 +166,7 @@ class Boot {
 	}
 	
 	static public function __error_handler(errno : Int, errmsg : String, filename : String, linenum : Int, vars : Dynamic) {
-//		if(errno == 8) return true; // Undefined property
+//		if(errno == 8) return null; // Undefined property
 		var msg = errmsg + " (errno: " + errno + ") in " + filename + " at line #" + linenum;
 		var e = new php.HException(msg, errmsg, errno);
 		e.setFile(filename);
@@ -213,6 +213,14 @@ class Boot {
 			return __ttypes[n];
 		else 
 			return null;
+	}
+	
+	static public function __deref(byref__o : Dynamic) {
+		return byref__o;
+	}
+	
+	static public function __byref__array_get(byref__o : Dynamic, index : Dynamic) {
+		return untyped byref__o[index];
 	}
   
 	static function __init__() untyped {

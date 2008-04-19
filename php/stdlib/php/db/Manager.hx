@@ -495,4 +495,13 @@ class Manager<T : Object> {
 		return c;
 	}
 
+	
+// TODO: remove
+	public function toString() {
+		return "Manager";
+	}
+	
+	public function __toString() {
+		return "Manager";
+	}
 }

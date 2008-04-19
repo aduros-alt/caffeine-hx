@@ -61,10 +61,14 @@ class PhpXml__ {
 	}
 	
 	private static function __character_data_handler(parser : Dynamic, data : String) {
-		if(data.indexOf("<") >= 0 || data.indexOf(">") >= 0)
+		// TODO: this function can probably be simplified
+		var lc : PhpXml__ = (build._children == null || untyped __call__("count", build._children) == 0) ? null : build._children[untyped __call__("count", build._children) -1];
+		if(lc != null && Xml.PCData == lc.nodeType) {
+			lc.nodeValue = lc.nodeValue + untyped __call__("htmlentities", data);
+		} else if((untyped __call__("strlen", data) == 1 && __call__("htmlentities", data) != data) || untyped __call__("htmlentities", data) == data) {
+			build.addChild(createPCData(untyped __call__("htmlentities", data)));
+		} else
 			build.addChild(createCData(data));
-		else
-			build.addChild(createPCData(data));
 	}
 	
 	private static function __default_handler(parser : Dynamic, data : String) {

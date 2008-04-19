@@ -72,6 +72,10 @@ class PhpDate__ //implements Date
 	public function toString():String {
 		return untyped __call__("date", "Y-m-d H:i:s", this.__t);
 	}
+	
+	public function __toString() : String {
+		return toString();
+	}
 
 	public static function now() {
 		return fromPhpTime(untyped __call__("time"));
