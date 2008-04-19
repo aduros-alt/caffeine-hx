@@ -331,34 +331,34 @@ class PhpXml__ {
 		if( nodeType == Xml.Comment || nodeType == Xml.DocType || nodeType == Xml.Prolog )
 			return _nodeValue;
 
-		var s = new StringBuf();
+		var s = "";
 
 		if( nodeType == Xml.Element ) {
-			s.add("<");
-			s.add(_nodeName);
+			s += "<";
+			s += _nodeName;
 			for( k in _attributes.keys() ){
-				s.add(" ");
-				s.add(k);
-				s.add("=\""); // \"
-				s.add(_attributes.get(k));
-				s.add("\""); // \"
+				s += " ";
+				s += k;
+				s += "=\""; // \"
+				s += _attributes.get(k);
+				s += "\""; // \"
 			}
 			if( _children.length == 0 ) {
-				s.add("/>");
-				return s.toString();
+				s += "/>";
+				return s;
 			}
-			s.add(">");
+			s += ">";
 		}
 
 		for( x in iterator() )
-			s.add(Std.string(x));
+			s += x.toString();
 
 		if( nodeType == Xml.Element ) {
-			s.add("</");
-			s.add(_nodeName);
-			s.add(">");
+			s += "</";
+			s += _nodeName;
+			s += ">";
 		}
-		return s.toString();
+		return s;
 	}
 	
 	static function __init__() : Void untyped {
