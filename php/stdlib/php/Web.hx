@@ -81,75 +81,90 @@ class Web {
 
 	/**
 		Set the HTTP return code. Same remark as setHeader.
+		See status code explanation here: http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
 	**/
 	public static function setReturnCode( r : Int ) {
-		untyped __php__('header("", true, $r)'); // TODO: TEST ME
+		var code : String; 
+		switch(r) {
+			case 100: code = "100 Continue";
+			case 101: code = "101 Switching Protocols";
+			case 200: code = "200 Continue";
+			case 201: code = "201 Created";
+			case 202: code = "202 Accepted";
+			case 203: code = "203 Non-Authoritative Information";
+			case 204: code = "204 No Content";
+			case 205: code = "205 Reset Content";
+			case 206: code = "206 Partial Content";
+			case 300: code = "300 Multiple Choices";
+			case 301: code = "301 Moved Permanently";
+			case 302: code = "302 Found";
+			case 303: code = "303 See Other";
+			case 304: code = "304 Not Modified";
+			case 305: code = "305 Use Proxy";
+			case 307: code = "307 Temporary Redirect";
+			case 400: code = "400 Bad Request";
+			case 401: code = "401 Unauthorized";
+			case 402: code = "402 Payment Required";
+			case 403: code = "403 Forbidden";
+			case 404: code = "404 Not Found";
+			case 405: code = "405 Method Not Allowed";
+			case 406: code = "406 Not Acceptable";
+			case 407: code = "407 Proxy Authentication Required";
+			case 408: code = "408 Request Timeout";
+			case 409: code = "409 Conflict";
+			case 410: code = "410 Gone";
+			case 411: code = "411 Length Required";
+			case 412: code = "412 Precondition Failed";
+			case 413: code = "413 Request Entity Too Large";
+			case 414: code = "414 Request-URI Too Long";
+			case 415: code = "415 Unsupported Media Type";
+			case 416: code = "416 Requested Range Not Satisfiable";
+			case 417: code = "417 Expectation Failed";
+			case 500: code = "500 Internal Server Error";
+			case 501: code = "501 Not Implemented";
+			case 502: code = "502 Bad Gateway";
+			case 503: code = "503 Service Unavailable";
+			case 504: code = "504 Gateway Timeout";
+			case 505: code = "505 HTTP Version Not Supported";
+			default: code = Std.string(r);
+		}
+		untyped __call__('header', "HTTP/1.1 " + code, true);
 	}
 
 	/**
 		Retrieve a client header value sent with the request.
 	**/
-	public static function getClientHeader( k : String ) {
+	public static function getClientHeader( k : String ) : String {
 		//Remark : PHP puts all headers in uppercase and replaces - with _, we deal with that here
-		var l : List<Dynamic>;
-		l = getClientHeaders();
-		var i : Dynamic;
-		for(i in l)
-		{
-			if(new String(i.header) == StringTools.replace(new String(k).toUpperCase(),"-","_"))
-			{
-				return new String(i.value);
-			}
-		}
+		for(i in getClientHeaders())
+			if(i.header == StringTools.replace(k.toUpperCase(),"-","_"))
+				return i.value;
 		return null;
-
-		/*
-		var v = _get_client_header(untyped k.__s);
-		if( v == null )
-			return null;
-		return new String(v);
-		*/
 	}
 
+	
+	private static var _client_headers : List<{header : String, value : String}>;
 	/**
 		Retrieve all the client headers.
 	**/
 	public static function getClientHeaders() {
-		var h : Hash<String>;
-		var l : List<Dynamic>;
-		var k : String;
-		h = Hash.fromAssociativeArray(untyped __php__("$_SERVER"));
-		l = new List<Dynamic>();
-		
-		for(k in h.keys())
-		{
-			//trace(new String(k).substr(0,4));
-			if(new String(k).substr(0,5) == "HTTP_")
-			{
-				l.add({ header : new String(k).substr(5), value : new String(h.get(k))});
+		if(_client_headers == null) {
+			_client_headers = new List();
+			var h = Hash.fromAssociativeArray(untyped __php__("$_SERVER"));			
+			for(k in h.keys()) {
+				if(k.substr(0,5) == "HTTP_") {
+					_client_headers.add({ header : k.substr(5), value : h.get(k)});
+				}
 			}
 		}
-		return l;
-
-		/*
-		var v = _get_client_headers();
-		var a = new List();
-		while( v != null ) {
-			a.add({ header : new String(v[0]), value : new String(v[1]) });
-			v = cast v[2];
-		}
-		return a;
-		*/
+		return _client_headers;
 	}
 
 	/**
 		Returns all the GET parameters String
 	**/
 	public static function getParamsString() {
-		return null; // TODO, IMPLEMENT
-		/*
-		return new String(_get_params_string());
-		*/
+		return untyped __php__("$_SERVER['QUERY_STRING']");
 	}
 
 	/**
@@ -161,13 +176,17 @@ class Web {
 		methods.
 	**/
 	public static function getPostData() {
-		return null; // TODO, IMPLEMENT
-		/*
-		var v = _get_post_data();
-		if( v == null )
-			return null;
-		return new String(v);
-		*/
+		var h = untyped __call__("fopen", "php://input", "r");
+		var bsize = 8192;
+		var max = 32;
+		var data : String = null;
+		var counter = 0;
+		while (!untyped __call__("feof", h) && counter < max) {
+			data += untyped __call__("fread", h, bsize);
+			counter++;
+		}
+		untyped __call__("fclose", h);
+		return data;
 	}
 
 	/**
@@ -176,9 +195,8 @@ class Web {
 	**/
 	public static function getCookies() {
 		var h = new Hash<String>();
-		var h1 : Hash<String>;
 		var k = "";
-		h1 = Hash.fromAssociativeArray(untyped __php__("$_COOKIE"));
+		var h1 = Hash.fromAssociativeArray(untyped __php__("$_COOKIE"));
 		for( k in h1.keys() ) {
 			h.set(k,h1.get(k));
 		}
@@ -204,24 +222,15 @@ class Web {
 
 	static function addPair( name, value ) : String {
 		if( value == null ) return "";
-		var s : String;
-		s = new String("");
-		s = "; ";
-		s += name;
-		s += value;
-		return s;
+		return "; " + name + value;
 	}
 
 	/**
 		Returns an object with the authorization sent by the client (Basic scheme only).
 	**/
 	public static function getAuthorization() : { user : String, pass : String } {
-		var h : Hash<String>;
-		h = Hash.fromAssociativeArray(untyped __php__("$_SERVER"));
-		if(!h.exists("PHP_AUTH_USER"))
-		{
+		if(!untyped __php__("isset($_SERVER['PHP_AUTH_USER'])"))
 			return null;
-		}
 		return untyped {user: __php__("$_SERVER['PHP_AUTH_USER']"), pass: __php__("$_SERVER['PHP_AUTH_PW']")};
 	}
 
@@ -229,22 +238,7 @@ class Web {
 		Get the current script directory in the local filesystem.
 	**/
 	public static function getCwd() {
-		//TODO, TEST
-		return new String(untyped __call__("getcwd"));
-		/*
-		return new String(_get_cwd());
-		*/
-	}
-
-	/**
-		Set the main entry point function used to handle requests.
-		Setting it back to null will disable code caching.
-	**/
-	public static function cacheModule( f : Void -> Void ) {
-		return null; // TODO, IMPLEMENT
-		/*
-		_set_main(f);
-		*/
+		return untyped __php__('dirname($_SERVER["SCRIPT_FILENAME"])');
 	}
 
 	/**
@@ -252,8 +246,6 @@ class Web {
 		cannot exceed the maximum size specified.
 	**/
 	public static function getMultipart( maxSize : Int ) : Hash<String> {
-		return null; // TODO, IMPLEMENT
-		/*
 		var h = new Hash();
 		var buf : StringBuf = null;
 		var curname = null;
@@ -265,7 +257,7 @@ class Web {
 			maxSize -= p.length;
 			if( maxSize < 0 )
 				throw "Maximum size reached";
-		},function(str,pos,len) {
+		}, function(str,pos,len) {
 			maxSize -= len;
 			if( maxSize < 0 )
 				throw "Maximum size reached";
@@ -274,7 +266,6 @@ class Web {
 		if( curname != null )
 			h.set(curname,buf.toString());
 		return h;
-		*/
 	}
 
 	/**
@@ -284,13 +275,38 @@ class Web {
 		directly save the data on hard drive in the case of a file upload.
 	**/
 	public static function parseMultipart( onPart : String -> String -> Void, onData : String -> Int -> Int -> Void ) : Void {
-		return null; // TODO, IMPLEMENT
-		/*
-		_parse_multipart(
-			function(p,f) { onPart(new String(p),if( f == null ) null else new String(f)); },
-			function(buf,pos,len) { onData(new String(buf),pos,len); }
-		);
-		*/
+		if(!untyped __call__("isset", __php__("$_FILES"))) return;
+		var parts : Array<String> = untyped __call__("array_keys", __php__("$_FILES"));
+		for(part in parts) {
+			var info : Dynamic = untyped __php__("$_FILES[$part]");
+			var tmp : String = untyped info['tmp_name'];
+			var file : String = untyped info['name'];
+			var err : Int = untyped info['error'];
+			
+			if(err > 0) {
+				switch(err) {
+					case 1: throw "The uploaded file exceeds the max size of " + untyped __call__('ini_get', 'upload_max_filesize');
+					case 2: throw "The uploaded file exceeds the max file size directive specified in the HTML form (max is" + untyped __call__('ini_get', 'post_max_size') + ")";
+					case 3: throw "The uploaded file was only partially uploaded";
+					case 4: throw "No file was uploaded";
+					case 6: throw "Missing a temporary folder";
+					case 7: throw "Failed to write file to disk";
+					case 8: throw "File upload stopped by extension";
+				}
+			}
+			onPart(part, file);
+			var h = untyped __call__("fopen", tmp, "r");
+//			var pos = 0;
+			var bsize = 8192;
+			while (!untyped __call__("feof", h)) {
+				var buf : String = untyped __call__("fread", h, bsize);
+				var size : Int = untyped __call__("strlen", buf);
+				onData(buf, 0, size);
+//				onData(buf, pos, size);
+//				pos += size;
+			}
+			untyped __call__("fclose", h);
+		}
 	}
 
 	/**

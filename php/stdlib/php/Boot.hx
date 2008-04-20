@@ -26,7 +26,7 @@ class Boot {
 		var f : String = untyped __call__(
 			"create_function", 
 			params, 
-			"extract(php_Boot::$__scopes['"+n+"']['scope']);\nextract(php_Boot::$__scopes['"+n+"']['locals']);\n"+body);
+			"extract(php_Boot::$__scopes['"+n+"']['scope']);\nforeach(php_Boot::$__scopes['"+n+"']['locals'] as $k => $v) ${$k} =& php_Boot::$__scopes['"+n+"']['locals'][$k];\n"+body);
 		var nl = "__"+f.substr(1)+"__";
 		untyped __php__("php_Boot::$__scopes[$nl] =& php_Boot::$__scopes[$n]");
 		return f;
@@ -258,6 +258,10 @@ class Anonymous extends stdClass{
 	public function __unset($n) {
 		unset($this->$n);
 	}
+	
+	public function __toString() {
+		return php_Boot::__string_rec($this, null);
+	}
 }
 
 class _typedef {
@@ -269,7 +273,10 @@ class _typedef {
 	}
 	
 	public function toString()   { return $this->__toString(); }
-	public function __toString() { return $this->__qname__; }
+	
+	public function __toString() {
+		return php_Boot::__string_rec($this, null);
+	}
 }
 
 class _classdef extends _typedef { }
@@ -372,12 +379,10 @@ class enum {
 	public $tag;
 	public $index;
 	public $params;
-	/*
 	public function toString() { return $this->__toString(); }
 	public function __toString() {
-		return $this->tag . (is_array($this->params) > 0 ? '('.join(',',$this->params).')' : '');
+		return php_Boot::__string_rec($this, null);
 	}
-	*/
 }
 
 php_Boot::$__qtypes = array();
@@ -449,7 +454,7 @@ php_Boot::$__ttypes = array();
 			return "«function»";
 			
 		if(untyped __call__("is_string", o))
-			if(s.length > 0)
+			if(s.length != null)
 				return '"'+untyped __call__("str_replace", '"', '\"', o)+'"';
 			else
 				return o;
