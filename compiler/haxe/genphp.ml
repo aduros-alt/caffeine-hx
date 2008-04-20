@@ -832,19 +832,25 @@ and gen_expr ctx e =
 			   e1.eexpr = TConst (TNull)
 			|| e2.eexpr = TConst (TNull)
 		then begin	
-		(*
-			if  op = Ast.OpNotEq
-				&& (match e1.eexpr, e2.eexpr with | TField _, _ -> true | _, TField _ -> true | _ -> false) then begin
-				spr ctx "!(";
-				gen_field_op ctx e1;
-				spr ctx " === ";
-			    gen_field_op ctx e2;
-				spr ctx ")"; 
-			end else begin *)
-				gen_field_op ctx e1;
-				spr ctx s_phop;
-			    gen_field_op ctx e2;
-(*			end *)
+			(match e1.eexpr with 
+			| TField (f, s) when is_anonym_expr e1 || is_unknown_expr e1 ->
+				register_required_path ctx ([], "Reflect");
+				spr ctx "Reflect::field(";
+				gen_value ctx f;
+				print ctx ", \"%s\")" s;
+			| _ ->
+				gen_field_op ctx e1);
+			
+			spr ctx s_phop;			
+			
+			(match e2.eexpr with 
+			| TField (f, s) when is_anonym_expr e2 || is_unknown_expr e2 ->
+				register_required_path ctx ([], "Reflect");
+				spr ctx "Reflect::field(";
+				gen_value ctx f;
+				print ctx ", \"%s\")" s;
+			| _ ->
+				gen_field_op ctx e2);
 		end else if
 		       (((s_expr_name e1) = "Int" || (s_expr_name e1) = "Float" || (s_expr_name e1) = "Null<Int>" || (s_expr_name e1) = "Null<Float>")
 			   && ((s_expr_name e1) = "Int" || (s_expr_name e1) = "Float" || (s_expr_name e1) = "Null<Int>" || (s_expr_name e1) = "Null<Float>"))
