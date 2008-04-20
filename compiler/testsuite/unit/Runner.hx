@@ -146,6 +146,7 @@ class Runner {
 		tots += "\nfailed tests:      " + tests_failed;
 		tots += "\ntests with errors: " + tests_error;
 		tots += "\nwithdrawn tests:   " + tests_withdrawn;
+		tots += "\nassertions:        " + Assert.counter;
 
 		print(tots);
 		print(result);
