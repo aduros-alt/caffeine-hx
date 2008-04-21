@@ -208,38 +208,38 @@ class List<T> {
 		Returns a displayable representation of the String.
 	**/
 	public function toString() {
-		var s = new StringBuf();
+		var s = '';
 		var first = true;
 		var l = h;
-		s.add("{");
+		s += "{";
 		while( l != null ) {
 			if( first )
 				first = false;
 			else
-				s.add(", ");
-			s.add(l[0]);
+				s += ", ";
+			s += l[0];
 			l = l[1];
 		}
-		s.add("}");
-		return s.toString();
+		s += "}";
+		return s;
 	}
 
 	/**
 		Join the element of the list by using the separator [sep].
 	**/
 	public function join(sep : String) {
-		var s = new StringBuf();
+		var s = '';
 		var first = true;
 		var l = h;
 		while( l != null ) {
 			if( first )
 				first = false;
 			else
-				s.add(sep);
-			s.add(l[0]);
+				s += sep;
+			s += l[0];
 			l = l[1];
 		}
-		return s.toString();
+		return s;
 	}
 
 	/**

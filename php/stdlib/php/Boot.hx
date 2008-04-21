@@ -22,11 +22,11 @@ class Boot {
 		var cid = __cid++;
 		var n = "__closure__"+cid+"__";
 		if(locals == null) locals = [];
-		untyped __php__("php_Boot::$__scopes[$n] = array('scope' => array('__this' => null), 'locals' => $locals)");
+		untyped __php__("php_Boot::$__scopes[$n] = array('scope' => null, 'locals' => $locals)");
 		var f : String = untyped __call__(
 			"create_function", 
 			params, 
-			"extract(php_Boot::$__scopes['"+n+"']['scope']);\nforeach(php_Boot::$__scopes['"+n+"']['locals'] as $k => $v) ${$k} =& php_Boot::$__scopes['"+n+"']['locals'][$k];\n"+body);
+			"$__this =& php_Boot::$__scopes['"+n+"']['scope'];\nforeach(php_Boot::$__scopes['"+n+"']['locals'] as $___k___ => $___v___) ${$___k___} =& php_Boot::$__scopes['"+n+"']['locals'][$___k___];\n"+body);
 		var nl = "__"+f.substr(1)+"__";
 		untyped __php__("php_Boot::$__scopes[$nl] =& php_Boot::$__scopes[$n]");
 		return f;
@@ -68,7 +68,7 @@ class Boot {
 		for(i in 0...arr.length)
 			if(arr[i] == x) {
 				untyped __call__("unset", arr[i]);
-        arr = untyped __call__("array_values", arr);
+				arr = untyped __call__("array_values", arr);
 				return true;
 			}
 		return false;
@@ -166,7 +166,6 @@ class Boot {
 	}
 	
 	static public function __error_handler(errno : Int, errmsg : String, filename : String, linenum : Int, vars : Dynamic) {
-//		if(errno == 8) return null; // Undefined property
 		var msg = errmsg + " (errno: " + errno + ") in " + filename + " at line #" + linenum;
 		var e = new php.HException(msg, errmsg, errno);
 		e.setFile(filename);
@@ -230,17 +229,19 @@ set_exception_handler(array('php_Boot', '__exception_handler'));
 
 class Anonymous extends stdClass{
 	public function __call($m, $a) {
-		if(property_exists($this, $m) && is_callable($this->$m))
-			return call_user_func_array($this->$m, $a);
-		else
+		$v = $this->$m;
+		if(is_string($v) && substr($v, 0, 8) == chr(0).'lambda_') {
+			$nl = '__'.substr($v, 1).'__';
+			php_Boot::$__scopes[$nl]['scope'] =& $this;
+		}
+		try {
+			return call_user_func_array($v, $a);
+		} catch(Exception $e) {
 			throw new php_HException('NotAFunction', 'Unable to call '.$m);
+		}
 	}
 	
 	public function __set($n, $v) {
-		if(is_string($v) && substr($v, 0, 8) == chr(0).'lambda_') {
-			$nl = '__'.substr($v, 1, 100000).'__'; // TODO: correct me: substr ($v, 1, null) != substr ($v, 1)
-			php_Boot::$__scopes[$nl]['scope']['__this'] =& $this;
-		}
 		$this->$n = $v;
 	}
 	
@@ -275,7 +276,7 @@ class _typedef {
 	public function toString()   { return $this->__toString(); }
 	
 	public function __toString() {
-		return php_Boot::__string_rec($this, null);
+		return $this->__qname__;
 	}
 }
 
@@ -379,9 +380,9 @@ class enum {
 	public $tag;
 	public $index;
 	public $params;
-	public function toString() { return $this->__toString(); }
+
 	public function __toString() {
-		return php_Boot::__string_rec($this, null);
+		return $this->tag;
 	}
 }
 
@@ -454,7 +455,7 @@ php_Boot::$__ttypes = array();
 			return "«function»";
 			
 		if(untyped __call__("is_string", o))
-			if(s.length != null)
+			if(s != null)
 				return '"'+untyped __call__("str_replace", '"', '\"', o)+'"';
 			else
 				return o;
