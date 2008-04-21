@@ -198,4 +198,13 @@ class DynamicFunction {
 	private static function staticF() {
 		return "test";
 	}
+	
+	public function testClosureLocalInfluence() {
+		var b = 0;
+		var f = function() { b++; };
+		f();
+		Assert.equals(1, b);
+		f();
+		Assert.equals(2, b);
+	}
 }
