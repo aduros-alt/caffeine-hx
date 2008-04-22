@@ -184,7 +184,7 @@ class DynamicFunction {
 	private f9dynamic function setDynamicFunction(v : String) {
 		return f2 = v +"!";
 	}
-	
+
 	private static var sf2(default, setStaticDynamicFunction) : String;
 	
 	private static f9dynamic function setStaticDynamicFunction(v : String) {

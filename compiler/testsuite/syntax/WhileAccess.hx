@@ -27,8 +27,40 @@ class WhileAccess {
 	  while(x < 3) {
 		x++;
 		continue;
-		Assert.isTrue(false); // this must not be executed
+		Assert.fail();
 	  }
 	  Assert.equals(3, x);
+	}
+	
+	public function testBreakInSwitch() {
+		while(true) {
+			switch(0) {
+				case 0:
+					break;
+					Assert.fail();
+			}
+			Assert.fail();
+		}
+		Assert.isTrue(true);
+	}
+	
+	public function testBreakDoubleInSwitchInWhile() {
+		while(true) {
+			switch(0) {
+				case 0:
+					while(true) {
+						switch(0) {
+							case 0:
+								break;
+								Assert.fail();
+						}
+						Assert.fail();
+					}
+					Assert.isTrue(true);
+					break;
+					Assert.fail();
+			}
+		}
+		Assert.isTrue(true);
 	}
 }

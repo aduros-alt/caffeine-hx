@@ -256,6 +256,13 @@ class TestReflect {
 		i = Type.createEmptyInstance(TestCreate);
 		Assert.isTrue( Std.is(i,TestCreate) );
 	}
+	
+	public function testCreateInstanceConstructorHasNoArgs() {
+		var i = Type.createInstance(TestF9DynamicClass, []);
+		Assert.isTrue( Std.is(i,TestF9DynamicClass) );
+		i = Type.createEmptyInstance(TestF9DynamicClass);
+		Assert.isTrue( Std.is(i,TestF9DynamicClass) );
+	}
 
 	public function testEnumEq() {
 		Assert.isTrue( Type.enumEq(X,X) );
