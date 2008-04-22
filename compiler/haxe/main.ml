@@ -437,7 +437,6 @@ try
 		Plugin.define "hllua";
 
 	| Php file ->
-		if not !no_output && file_extension file = "php" then delete_file file;
 		Plugin.define "php";
 	);
 	if !classes = [([],"Std")] then begin
@@ -479,7 +478,7 @@ try
 			Genhllua.generate dir types
 		| Php dir ->
 			if !Plugin.verbose then print_endline ("Generating PHP in : " ^ dir);
-			Genphp.generate dir types
+			Genphp.generate dir types hres
 		);
 		(match !xml_out with
 		| None -> ()

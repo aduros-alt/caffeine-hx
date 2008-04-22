@@ -45,6 +45,7 @@ type context = {
   mutable all_dynamic_methods: method_name list;
   mutable dynamic_methods: tclass_field list;
   mutable is_call : bool;
+  mutable cwd : string;
 }
 
 let rec escphp n =
@@ -55,11 +56,12 @@ let inc_path ctx path =
   let rec slashes n =
     if n = 0 then "" else ("../" ^ slashes (n-1))
   in
+  let pre = if ctx.cwd = "" then "lib/" else "" in
   match path with
-  | ([],name) ->
-    (slashes (List.length (fst ctx.path))) ^ name ^ ".php"
-  | (pack,name) ->
-    (slashes (List.length (fst ctx.path))) ^ String.concat "/" pack ^ "/" ^ name ^ ".php"
+	| ([],name) ->
+	pre ^ (slashes (List.length (fst ctx.path))) ^ name ^ ".php"
+	| (pack,name) ->
+	pre ^ (slashes (List.length (fst ctx.path))) ^ String.concat "/" pack ^ "/" ^ name ^ ".php"
 
 let rec register_required_path ctx path = match path with
   | [], "Float"
@@ -122,11 +124,6 @@ let s_path_haxe path =
 	match fst path, snd path with
 	| [], s -> s
 	| el, s -> String.concat "." el ^ "." ^ s
-
-(*
-let s_is_by_ref s =
-  String.length s > 9 && (String.sub s 0 9) = "__byref__"
- *)
 	
 let s_ident n =
   let suf = "h" in
@@ -145,7 +142,15 @@ haxe reserved words that match php ones: break, case, class, continue, default, 
   | "clone" (* PHP 5 *) -> suf ^ n
   | _ -> n
 
-let init dir path =
+let write_resource dir name data =
+  let rdir = dir ^ "/res" in
+  if not (Sys.file_exists dir) then Unix.mkdir dir 0o755;
+  if not (Sys.file_exists rdir) then Unix.mkdir rdir 0o755;
+  let ch = open_out (rdir ^ "/" ^ name) in
+  output_string ch data;
+  close_out ch
+  
+let init dir cwd path =
   let rec create acc = function
     | [] -> ()
     | d :: l ->
@@ -153,7 +158,7 @@ let init dir path =
       if not (Sys.file_exists dir) then Unix.mkdir dir 0o755;
       create (d :: acc) l
   in
-  let dir = dir :: fst path in
+  let dir = if cwd <> "" then dir :: (cwd :: fst path) else dir :: fst path; in
   create [] dir;
   let ch = open_out (String.concat "/" dir ^ "/" ^ snd path ^ ".php") in
   let imports = Hashtbl.create 0 in
@@ -179,6 +184,7 @@ let init dir path =
 	dynamic_methods = [];
 	all_dynamic_methods = [];
 	is_call = false;
+	cwd = cwd;
   }
 
 let unsupported = Typer.error "This expression cannot be generated to PHP"
@@ -242,7 +248,6 @@ let define_local ctx l =
   in
   loop 1
 
-(* TODO: review ... this is not working correctly *)
 let rec iter_switch_break in_switch e =
   match e.eexpr with
   | TFunction _ | TWhile _ | TFor _ -> ()
@@ -267,7 +272,7 @@ let handle_break ctx e =
         ctx.handle_break <- old_handle;
         newline ctx;
 		let p = escphp ctx.quotes in
-        print ctx "} catch(Exception %s$e) { if( %s$e->message != \"__break__\" ) throw %s$e; }" p p p;
+        print ctx "} catch(Exception %s$e) { if( %s$e->getMessage() != \"__break__\" ) throw %s$e; }" p p p;
       )
 
 let this ctx =
@@ -472,7 +477,7 @@ and gen_string_call ctx s e el =
 	concat ctx ", " (gen_value ctx) el;
 	spr ctx ")"
   | "split" ->
-    spr ctx "split(";
+    spr ctx "explode(";
 	concat ctx ", " (gen_value ctx) el;
 	spr ctx ", ";
 	gen_value ctx e;
@@ -648,26 +653,7 @@ and gen_dynamic_function ctx isstatic name f params p =
 	  s_funarg ctx arg t p;
 	  if o then spr ctx " = null";
 	) f.tf_args;
-(*
-  if isstatic then begin
-	  print ctx ") {\n\t\tif(self::$%s == null)\n"  name;
-	  print ctx "\t\t\tself::$%s = php_Boot::__closure(array(\"\"), \"" name;
-	  ctx.quotes <- ctx.quotes + 1;
-	  concat ctx "," (fun (arg,o,t) ->
-	    s_funarg ctx arg t p;
-	    if o then spr ctx " = null";
-	  ) f.tf_args;
-	  ctx.quotes <- ctx.quotes - 1;
-
-	  print ctx "\", \"";
-	  ctx.quotes <- ctx.quotes + 1;
-	  gen_expr ctx (block f.tf_expr);
-	  ctx.quotes <- ctx.quotes - 1;
-	  print ctx "\");\n";
-  end else begin
-  *)
-	  spr ctx ") {";
-(*  end; *)
+	spr ctx ") {";
 
   if (List.length f.tf_args) > 0 then begin
 	if isstatic then
@@ -778,18 +764,6 @@ and gen_expr ctx e =
 			spr ctx ", ";
 			gen_value ctx e2;
 			spr ctx ")";
-(*		| TField (ef1,s) ->
-			(match follow e.etype with
-			| TFun _ ->
-				gen_field_access ctx true ef1 s;
-				spr ctx " = ";
-				gen_value_op ctx e2;
-			| _ ->
-				gen_value_op ctx e1;
-				spr ctx " = ";
-				gen_value_op ctx e2;
-			);
-*)
 		| _ ->
 			gen_field_op ctx e1;
 			spr ctx " = ";
@@ -921,9 +895,6 @@ and gen_expr ctx e =
 
   | TTypeExpr t ->
     let p = escphp ctx.quotes in
-(*	if is_string_expr e || is_array_expr e then
-	print ctx "%s\"%s%s\"" p (s_path ctx (t_path t) false e.epos) p
-	else *)
 	register_required_path ctx (t_path t);
 	print ctx "php_Boot::__qtype(%s\"%s%s\")" p (s_path_haxe (t_path t)) p
   | TParenthesis e ->
@@ -1238,10 +1209,6 @@ and gen_value ctx e =
     )
   in
   match e.eexpr with
-  | TCall ({ eexpr = TLocal "__keys__" },_) | TCall ({ eexpr = TLocal "__hkeys__" },_) ->
-    let v = value true in
-    gen_expr ctx e;
-    v()
   | TTypeExpr _
   | TConst _
   | TLocal _
@@ -1315,7 +1282,27 @@ and gen_value ctx e =
       List.map (fun (v,t,e) -> v, t , assign e) catchs
     )) e.etype e.epos);
     v()
+	
+let is_method_defined ctx m static =
+	if static then
+		PMap.exists m ctx.curclass.cl_statics
+	else
+		PMap.exists m ctx.curclass.cl_fields
 
+let generate_self_method ctx rights m static setter =
+	if setter then (
+		if static then
+			print ctx "%s function %s($v) { return call_user_func(self::$%s, $v); }" rights (s_ident m) (s_ident m)
+		else
+			print ctx "%s function %s($v) { return call_user_func($this->%s, $v); }" rights (s_ident m) (s_ident m)
+	) else (
+		if static then
+			print ctx "%s function %s() { return call_user_func(self::$%s); }" rights (s_ident m) (s_ident m)
+		else
+			print ctx "%s function %s() { return call_user_func($this->%s); }" rights (s_ident m) (s_ident m)
+	);
+	newline ctx
+		
 let generate_field ctx static f =
   newline ctx;
   ctx.in_static <- static;
@@ -1337,24 +1324,48 @@ let generate_field ctx static f =
     if ctx.curclass.cl_interface then
       match follow f.cf_type with
       | TFun (args,r) ->
-(*		if s_is_by_ref f.cf_name then 
-			print ctx "function &%s(" f.cf_name
-		else *)
-			print ctx "function %s(" f.cf_name;
+		print ctx "function %s(" f.cf_name;
         concat ctx ", " (fun (arg,o,t) ->
-(*		  if s_is_by_ref arg then 
-			spr ctx "&"; *)
 		  s_funarg ctx arg t p;
           if o then spr ctx " = null";
         ) args;
         print ctx ")";
       | _ -> spr ctx "//"; ()
-    else if (match f.cf_get with MethodAccess m -> true | _ -> match f.cf_set with MethodAccess m -> true | _ -> false) then begin
+	else if 
+	  (
 	  match f.cf_get, f.cf_set with 
-	  | MethodAccess m1, MethodAccess m2 -> spr ctx "//";
+	  | MethodAccess m1, MethodAccess m2 -> 
+	    if not (is_method_defined ctx m1 static) then (
+			generate_self_method ctx rights m1 static false;
+			print ctx "%s $%s" rights (s_ident m1);
+			if not (is_method_defined ctx m2 static) then
+				newline ctx);
+	    if not (is_method_defined ctx m2 static) then (
+			generate_self_method ctx rights m2 static true;
+			print ctx "%s $%s" rights (s_ident m2));
+		if (is_method_defined ctx m1 static) && (is_method_defined ctx m2 static) then
+			spr ctx "//";
+	    true
+	  | MethodAccess m, _ -> 
+		if not (is_method_defined ctx m static) then generate_self_method ctx rights m static false;
+	    print ctx "%s $%s" rights (s_ident f.cf_name);
+	    true
+	  | _, MethodAccess m -> 
+		if not (is_method_defined ctx m static) then generate_self_method ctx rights m static true;
+	    print ctx "%s $%s" rights (s_ident f.cf_name);
+	    true
+	  | _ -> 
+	    false) then ()
+(*    else if (match f.cf_get with MethodAccess m -> true | _ -> match f.cf_set with MethodAccess m -> true | _ -> false) then begin
+	  match f.cf_get, f.cf_set with 
+	  | MethodAccess m1, MethodAccess m2 -> 
+	  if is_method_defined ctx m1 static then
+		spr ctx "// AND THE WINNER IS..."
+	  else
+		spr ctx "//";
 	  | _, _ ->
 	    print ctx "%s $%s" rights (s_ident f.cf_name);
-    end else begin
+    end *) else begin
       print ctx "%s $%s" rights (s_ident f.cf_name);
       match f.cf_expr with
       | None -> ()
@@ -1368,7 +1379,6 @@ let generate_field ctx static f =
 
 let generate_static_field_assign ctx path f =
 	ctx.in_static <- true;
-
 	let p = ctx.curclass.cl_pos in
 	if not ctx.curclass.cl_interface then
 		(match f.cf_expr with
@@ -1456,7 +1466,7 @@ let generate_class ctx all_dynamic_methods c =
   );
   if List.length ctx.dynamic_methods > 0 then begin
 	newline ctx;
-    spr ctx "public function __call($m, $a) {\n\t\tif(property_exists($this, $m) && is_callable($this->$m))\n\t\t\treturn call_user_func_array($this->$m, $a);\n\t\telse if(isset($this->__dynamics[$m]) && is_callable($this->__dynamics[$m]))\n\t\t\treturn call_user_func_array($this->__dynamics[$m], $a);\n\t\telse\n\t\t\tthrow new php_HException('NotAFunction', 'Unable to call '.$m);\n\t}";
+    spr ctx "public function __call($m, $a) {\n\t\tif(property_exists($this, $m) && is_callable($this->$m))\n\t\t\treturn call_user_func_array($this->$m, $a);\n\t\telse if(isset($this->__dynamics[$m]) && is_callable($this->__dynamics[$m]))\n\t\t\treturn call_user_func_array($this->__dynamics[$m], $a);\n\t\telse\n\t\t\tthrow new php_HException('Unable to call «'.$m.'»');\n\t}";
   end;
 
   List.iter (generate_field ctx true) c.cl_ordered_statics;
@@ -1468,9 +1478,9 @@ let generate_class ctx all_dynamic_methods c =
 let generate_main ctx c =
   (match c.cl_ordered_statics with
   | [{ cf_expr = Some e }] ->
-    gen_value ctx e;
+    gen_value ctx e; 
   | _ -> assert false);
-  newline ctx
+    newline ctx
 
 let generate_enum ctx e =
   ctx.local_types <- List.map snd e.e_types;
@@ -1513,7 +1523,7 @@ let generate_enum ctx e =
   pack();
   newline ctx
 
-let generate dir types =
+let generate dir types hres =
   let all_dynamic_methods = ref [] in
   List.iter (fun t ->
     (match t with
@@ -1541,11 +1551,11 @@ let generate dir types =
         ()
       else (match c.cl_path with
       | [], "@Main" ->
-		let ctx = init dir ([], "index") in
+		let ctx = init dir "" ([], "index") in
 		generate_main ctx c;
         close ctx;
       | _ ->
-        let ctx = init dir c.cl_path in
+        let ctx = init dir "lib" c.cl_path in
 				
 		let cp = s_path ctx c.cl_path c.cl_extern c.cl_pos in
 
@@ -1573,7 +1583,7 @@ let generate dir types =
       if e.e_extern then
         ()
       else
-        let ctx = init dir e.e_path in
+        let ctx = init dir "lib" e.e_path in
         generate_enum ctx e;
 
 		print ctx "php_Boot::__register_type(new _enumdef(\"%s\", \"%s\"))" (s_path ctx e.e_path false e.e_pos) (s_path_haxe e.e_path);
@@ -1582,4 +1592,7 @@ let generate dir types =
         close ctx
     | TTypeDecl t ->
       ());
-  ) types
+  ) types;
+  Hashtbl.iter (fun name data ->
+    write_resource dir name data
+  ) hres;
