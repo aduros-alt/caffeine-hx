@@ -36,7 +36,7 @@ class Manager<T : Object> {
 	/* ----------------------------- STATICS ------------------------------ */
 	public static var cnx(default,setConnection) : Connection;
 	private static var object_cache : Hash<Object> = new Hash();
-	private static var init_list : List<Manager<Object>> = new List();
+//	private static var init_list : List<Manager<Object>> = new List();
 	private static var cache_field = "__cache__";
 	private static var no_update : Dynamic = function() { throw "Cannot update not locked object"; }
 	private static var FOR_UPDATE = "";
@@ -54,41 +54,66 @@ class Manager<T : Object> {
 	var table_name : String;
 	var table_fields : List<String>;
 	var table_keys : Array<String>;
-	var class_proto : Class<php.db.Object>;
+	var cls : Dynamic; //Class<php.db.Object>;
 
 	public function new( classval : Class<php.db.Object> ) {
-		var cl : Dynamic = classval;
-
+		cls = classval;
+		var clname = Type.getClassName(cls);
 		// get basic infos
-		table_name = quoteField((cl.TABLE_NAME != null ) ? cl.TABLE_NAME : untyped __php__("array_pop(split('.', $cl->__qname__))"));
-		table_keys = if( cl.TABLE_IDS != null ) cl.TABLE_IDS else ["id"];
-		class_proto = cl;
+		table_name = quoteField((cls.TABLE_NAME != null ) ? cls.TABLE_NAME : clname.split('.').pop());
+		table_keys = if( cls.TABLE_IDS != null ) cls.TABLE_IDS else ["id"];
 
 		// get the list of private fields
-		var apriv : Array<String> = cl.PRIVATE_FIELDS;
+		var apriv : Array<String> = cls.PRIVATE_FIELDS;
 		apriv = if( apriv == null ) new Array() else apriv.copy();
 		apriv.push("local_manager");
 		apriv.push("__cache__");
-//		apriv.push("__class__");
+		apriv.push("update");
+		
+		var aprefixpriv = ["get_", "set_"];
 
 		// get the proto fields not marked private (excluding methods)
 		table_fields = new List();
 //		var proto : { local_manager : php.db.Manager<T> } = class_proto.prototype;
-		for( f in Type.getInstanceFields(cl) ) {
-			var isfield = !Reflect.isFunction(Reflect.field(cl,f));
+
+		var stub = Type.createEmptyInstance(cls);
+
+		for( f in Type.getInstanceFields(cls) ) {
+			var isfield = !Reflect.isFunction(Reflect.field(stub,f));
 			if( isfield )
-				for( f2 in apriv )
-					if( f == f2 ) {
+				for( f2 in apriv ) {
+					if(f == f2 ) {
 						isfield = false;
 						break;
 					}
-			if( isfield )
+				}
+				for( f2 in aprefixpriv ) {
+					if(StringTools.startsWith(f, f2)) {
+						isfield = false;
+						break;
+					}
+				}
+			if( isfield ) {
 				table_fields.add(f);
+			}
 		}
+
 		// set the manager and ready for further init
 		//proto.local_manager = this;
-		managers.set(untyped cl.__qname__, this);
-		init_list.add(untyped this);
+		managers.set(clname, this);
+//		init_list.add(untyped this);
+
+		var rl : Array<Dynamic>;
+		try {
+		  rl = untyped cls.RELATIONS();
+		} catch(e : Dynamic) { return; }
+		for(r in rl) {
+			// remove prop from precomputed table_fields
+			// always add key to table fields (even if not declared)
+			table_fields.remove(r.prop);
+			table_fields.remove(r.key);
+			table_fields.add(r.key);
+		}
 	}
 
 	public function get( id : Int, ?lock : Bool ) : T {
@@ -316,7 +341,7 @@ class Manager<T : Object> {
 		addToCache(x);
 		// TODO: check me
 //		untyped __dollar__objsetproto(x,class_proto.prototype);
-		Reflect.setField(x,cache_field, Type.createEmptyInstance(class_proto)/*untyped __dollar__new(x)*/);
+//		Reflect.setField(x, cache_field, Type.createEmptyInstance(cls)/*untyped __dollar__new(x)*/);
 		if( !lock )
 			x.update = no_update;
 	}
@@ -414,51 +439,38 @@ class Manager<T : Object> {
 	/* --------------------------- INIT / CLEANUP ------------------------- */
 
 	public static function initialize() {
+
+		/*
 		var l = init_list;
 		init_list = new List();
 		for( m in l ) {
-			var rl : Void -> Array<Dynamic> = untyped m.class_proto.RELATIONS;
-			if( rl != null )
+			var rl : Void -> Array<Dynamic> = m.cls.RELATIONS;
+			if(rl != null )
 				for( r in rl() )
 					m.initRelation(r);
 		}
+		*/
 	}
 
 	public static function cleanup() {
 		object_cache = new Hash();
 	}
 
-	function initRelation(r : { prop : String, key : String, manager : Manager<Object>, lock : Bool } ) {
-		/*
+	function initRelation(o : Dynamic, r : { prop : String, key : String, manager : Manager<Object>, lock : Bool } ) {
 		// setup getter/setter
 		var manager = r.manager;
-		var hprop = "__"+r.prop;
 		var hkey = r.key;
 		var lock = r.lock;
 		if( lock == null ) lock = true;
 		if( manager == null || manager.table_keys == null ) throw ("Invalid manager for relation "+table_name+":"+r.prop);
 		if( manager.table_keys.length != 1 ) throw ("Relation "+r.prop+"("+r.key+") on a multiple key table");
-		Reflect.setField(class_proto.prototype,"get_"+r.prop,function() {
-			var othis = untyped this;
-			var f = Reflect.field(othis,hprop);
-			if( f != null )
-				return f;
-			f = manager.get(Reflect.field(othis,hkey),lock);
-			Reflect.setField(othis,hprop,f);
+		Reflect.setField(o,"get_"+r.prop,function() {
+			return manager.get(Reflect.field(o,hkey), lock);
+		});
+		Reflect.setField(o,"set_"+r.prop,function(f) {
+			Reflect.setField(o, hkey, Reflect.field(f, manager.table_keys[0]));
 			return f;
 		});
-		Reflect.setField(class_proto.prototype,"set_"+r.prop,function(f) {
-			var othis = untyped this;
-			Reflect.setField(othis,hprop,f);
-			Reflect.setField(othis,hkey,Reflect.field(f,manager.table_keys[0]));
-			return f;
-		});
-		// remove prop from precomputed table_fields
-		// always add key to table fields (even if not declared)
-		table_fields.remove(r.prop);
-		table_fields.remove(r.key);
-		table_fields.add(r.key);
-		*/
 	}
 
 	/* ---------------------------- OBJECT CACHE -------------------------- */
@@ -491,17 +503,7 @@ class Manager<T : Object> {
 		// restore update method since now the object is locked
 		if( c != null && lock && c.update == no_update )
 			//c.update = class_proto.prototype.update;
-			c.update = untyped class_proto.update;
+			c.update = untyped cls.update;
 		return c;
-	}
-
-	
-// TODO: remove
-	public function toString() {
-		return "Manager";
-	}
-	
-	public function __toString() {
-		return "Manager";
 	}
 }

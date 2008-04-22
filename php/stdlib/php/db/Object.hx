@@ -53,7 +53,17 @@ class Object #if spod_rtti implements haxe.rtti.Infos #end {
 	var __cache__ : Object;
 
 	public function new() {
-		local_manager = Manager.managers.get(untyped Type.getClass(this).__qname__);
+		__init_object();
+	}
+	
+	private function __init_object() {
+		local_manager = Manager.managers.get(Type.getClassName(Type.getClass(this)));
+		var rl : Array<Dynamic>;
+		try {
+		  rl = untyped local_manager.cls.RELATIONS();
+		} catch(e : Dynamic) { return; }
+		for(r in rl)
+			untyped local_manager.initRelation(this, r);
 	}
 
 	public function insert() {

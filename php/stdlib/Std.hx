@@ -219,7 +219,7 @@ class Std {
 		#else js
 		js.Boot.__res[name];
 		#else php
-		 null; // TODO: implement
+		php.Boot.__res(name);
 		#else true
 		null;
 		#end

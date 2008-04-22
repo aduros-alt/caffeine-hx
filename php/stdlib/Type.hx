@@ -366,13 +366,19 @@ class Type {
 			try {
 				php.Boot.skip_constructor = true;
 				var m = __php__("$cl->__rfl__->getConstructor()");
-				var args = __call__("array_fill", 0, m.getNumberOfRequiredParameters(), null);
-				var i = __php__("$cl->__rfl__->newInstanceArgs($args)");
+				var nargs : Int = m.getNumberOfRequiredParameters();
+				var i;
+				if(nargs > 0) {
+					var args = __call__("array_fill", 0, m.getNumberOfRequiredParameters(), null);
+					i = __php__("$cl->__rfl__->newInstanceArgs($args)");
+				} else {
+					i = __php__("$cl->__rfl__->newInstanceArgs()");
+				}
 				php.Boot.skip_constructor = false;
 				return i;
 			} catch( e : Dynamic ) {
 				php.Boot.skip_constructor = false;
-				throw e;
+				throw "Unable to instantiate " + Std.string(cl);
 			}
 			return null;
 		#else error
@@ -406,14 +412,15 @@ class Type {
 			$ms = $c->__rfl__->getMethods();
 			$ps = $c->__rfl__->getProperties();
 			$r = array();
+			$internals = array('__construct', '__call', '__get', '__set', '__isset', '__unset', '__toString');
 			foreach($ms as $m) {
-				$n = $m->getName();
-				if(!$m->isStatic() && $n != '__construct') $r[] = $n;
+				$n = $m->getName();				
+				if(!$m->isStatic() && ! in_array($n, $internals)) $r[] = $n;
 			}
 			foreach($ps as $p)
 				if(!$p->isStatic()) $r[] = $p->getName();
 			");
-			return untyped __php__("$r");
+			return untyped __php__("array_values(array_unique($r))");
 		#else true
 			var a = Reflect.fields(untyped c.prototype);
 			c = untyped c.__super__;

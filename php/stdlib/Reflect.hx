@@ -96,18 +96,25 @@ class Reflect {
 			}
 		#else php
 			{
-			  if(hasField(o, field)) {
-				  if(__php__("$o instanceof _typedef")) {
-					if(__php__("is_callable(array($o->__tname__, $field))"))
-						return __php__("array($o->__tname__, $field)");
-					else
-						return __php__("eval('return '.$o->__tname__.'::$'.$field.';')");
-				  } else if(__php__("property_exists($o, $field)"))
-					return __php__("$o->$field");
-				  else
-					return __php__("array($o, $field)");
-			  } else
-			    return null;
+				if(hasField(o, field)) {
+					if(__php__("$o instanceof _typedef")) {
+						if(__php__("is_callable(array($o->__tname__, $field))")) {
+							return __php__("array($o->__tname__, $field)");
+						} else {
+							return __php__("eval('return '.$o->__tname__.'::$'.$field.';')");
+						}
+					} else if(__php__("property_exists($o, $field)")) {
+						if(__php__("is_callable($o->$field)")) {
+							return __php__("array($o, $field)");
+						} else {
+							return __php__("$o->$field");
+						}
+					} else {
+						return __php__("array($o, $field)");
+					}
+				} else {
+					return null;
+				}
 			}
 		#else error
 		#end
@@ -146,13 +153,11 @@ class Reflect {
 		#else neko
 			__dollar__call(func,o,args.__neko())
 		#else php
-			__php__("call_user_func_array(is_array($func) ? 
-							$func 
-							:
-							is_callable($func) ?
-								$func
-								:
-								array($o, $func)
+			__php__("call_user_func_array(
+						is_callable($func) ?
+							$func
+						:
+							array($o, $func)
 						, $args)")
 		#else error
 		#end

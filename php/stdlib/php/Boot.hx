@@ -26,7 +26,7 @@ class Boot {
 		var f : String = untyped __call__(
 			"create_function", 
 			params, 
-			"$__this =& php_Boot::$__scopes['"+n+"']['scope'];\nforeach(php_Boot::$__scopes['"+n+"']['locals'] as $___k___ => $___v___) ${$___k___} =& php_Boot::$__scopes['"+n+"']['locals'][$___k___];\n"+body);
+			"$__this =& php_Boot::$__scopes['"+n+"']['scope'];\nforeach(array_keys(php_Boot::$__scopes['"+n+"']['locals']) as ${'%k'}) ${${'%k'}} =& php_Boot::$__scopes['"+n+"']['locals'][${'%k'}];\n"+body);
 		var nl = "__"+f.substr(1)+"__";
 		untyped __php__("php_Boot::$__scopes[$nl] =& php_Boot::$__scopes[$n]");
 		return f;
@@ -221,6 +221,17 @@ class Boot {
 	static public function __byref__array_get(byref__o : Dynamic, index : Dynamic) {
 		return untyped byref__o[index];
 	}
+	
+	static private var __resources = [];
+	static public function __res(n : String) : String untyped {
+		if(! __php__("isset(self::$__resources[$n])")) {
+			var file = __php__("dirname(__FILE__).'/../../res/'.$n");
+			if(!__call__("file_exists", file))
+				throw "Invalid Resource name: " + n;
+			__php__("self::$__resources[$n] = file_get_contents($file)");
+		}
+		return __php__("self::$__resources[$n]");
+	}
   
 	static function __init__() untyped {
 		__php__("//error_reporting(0);
@@ -237,7 +248,7 @@ class Anonymous extends stdClass{
 		try {
 			return call_user_func_array($v, $a);
 		} catch(Exception $e) {
-			throw new php_HException('NotAFunction', 'Unable to call '.$m);
+			throw new php_HException('Unable to call «'.$m.'»');
 		}
 	}
 	
