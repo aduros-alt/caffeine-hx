@@ -256,7 +256,7 @@ class TestReflect {
 		i = Type.createEmptyInstance(TestCreate);
 		Assert.isTrue( Std.is(i,TestCreate) );
 	}
-	
+
 	public function testCreateInstanceConstructorHasNoArgs() {
 		var i = Type.createInstance(TestF9DynamicClass, []);
 		Assert.isTrue( Std.is(i,TestF9DynamicClass) );
@@ -323,7 +323,7 @@ class TestReflect {
 		Assert.isTrue(o.f == null);
 		Assert.isTrue(null == o.f);
 	}
-	
+
 	public function testFunctionNullityOnDynamic() {
 		var o : Dynamic = { f : null};
 		Assert.isTrue(o.f == null);

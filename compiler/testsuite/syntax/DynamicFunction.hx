@@ -207,4 +207,17 @@ class DynamicFunction {
 		f();
 		Assert.equals(2, b);
 	}
+	
+	public function testInternalRedefine() {
+		Assert.equals("aa", intern("a"));
+		Assert.equals("ab", intern("b"));
+		Assert.equals("ac", intern("c"));
+	}
+	
+	private f9dynamic function intern(s : String) {
+		intern = function(x) {
+			return s + x;
+		}
+		return intern(s);
+	}
 }
