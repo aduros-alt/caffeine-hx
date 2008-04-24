@@ -70,12 +70,8 @@ class Manager<T : Object> {
 		apriv.push("__cache__");
 		apriv.push("update");
 		
-		var aprefixpriv = ["get_", "set_"];
-
 		// get the proto fields not marked private (excluding methods)
 		table_fields = new List();
-//		var proto : { local_manager : php.db.Manager<T> } = class_proto.prototype;
-
 		var stub = Type.createEmptyInstance(cls);
 
 		for( f in Type.getInstanceFields(cls) ) {
@@ -83,12 +79,6 @@ class Manager<T : Object> {
 			if( isfield )
 				for( f2 in apriv ) {
 					if(f == f2 ) {
-						isfield = false;
-						break;
-					}
-				}
-				for( f2 in aprefixpriv ) {
-					if(StringTools.startsWith(f, f2)) {
 						isfield = false;
 						break;
 					}
@@ -111,6 +101,8 @@ class Manager<T : Object> {
 			// remove prop from precomputed table_fields
 			// always add key to table fields (even if not declared)
 			table_fields.remove(r.prop);
+			table_fields.remove("get_" + r.prop);
+			table_fields.remove("set_" + r.prop);
 			table_fields.remove(r.key);
 			table_fields.add(r.key);
 		}
@@ -339,9 +331,7 @@ class Manager<T : Object> {
 
 	function cacheObject( x : T, lock : Bool ) {
 		addToCache(x);
-		// TODO: check me
-//		untyped __dollar__objsetproto(x,class_proto.prototype);
-//		Reflect.setField(x, cache_field, Type.createEmptyInstance(cls)/*untyped __dollar__new(x)*/);
+		Reflect.setField(x, cache_field, Type.createEmptyInstance(cls));
 		if( !lock )
 			x.update = no_update;
 	}
@@ -438,18 +428,11 @@ class Manager<T : Object> {
 
 	/* --------------------------- INIT / CLEANUP ------------------------- */
 
+	/**
+	* Left for compability with neko SPOD
+	*/
 	public static function initialize() {
 
-		/*
-		var l = init_list;
-		init_list = new List();
-		for( m in l ) {
-			var rl : Void -> Array<Dynamic> = m.cls.RELATIONS;
-			if(rl != null )
-				for( r in rl() )
-					m.initRelation(r);
-		}
-		*/
 	}
 
 	public static function cleanup() {

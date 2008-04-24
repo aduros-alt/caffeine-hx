@@ -215,7 +215,10 @@ class IntHash<T> {
 		s.add("}");
 		return s.toString();
 	}
-
+#if php
+	private var h : Array<Int>;
+#else true
 	private var h : Dynamic;
+#end
 
 }

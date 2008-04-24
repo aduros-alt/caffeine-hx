@@ -224,8 +224,11 @@ class Hash<T> {
 		s.add("}");
 		return s.toString();
 	}
-
+#if php
+	private var h : Array<T>;
+#else true
 	private var h : Dynamic;
+#end
 
 #if php
 	static public function fromAssociativeArray<T>(arr : Dynamic) : Hash<T> {

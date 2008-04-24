@@ -371,8 +371,8 @@ class Type {
 				if(nargs > 0) {
 					var args = __call__("array_fill", 0, m.getNumberOfRequiredParameters(), null);
 					i = __php__("$cl->__rfl__->newInstanceArgs($args)");
-				} else {
-					i = __php__("$cl->__rfl__->newInstanceArgs()");
+				} else {				
+					i = __php__("$cl->__rfl__->newInstanceArgs(array())");
 				}
 				php.Boot.skip_constructor = false;
 				return i;

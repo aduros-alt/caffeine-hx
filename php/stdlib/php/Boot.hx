@@ -180,6 +180,10 @@ class Boot {
 	}
   
 	static public function __equal(x : Dynamic, y : Dynamic) untyped {
+/*
+		__php__("$x = self::__unbox($x)");
+		__php__("$y = self::__unbox($y)");
+*/
 		if(__call__("is_null", x)) {
 			return __call__("is_null", y);
 		} else if(__call__("is_null", y)) {
@@ -221,7 +225,27 @@ class Boot {
 	static public function __byref__array_get(byref__o : Dynamic, index : Dynamic) {
 		return untyped byref__o[index];
 	}
+/*
+	static public function __box(o : Dynamic) : Dynamic untyped {
+		if(__call__("is_callable", o))
+			return o;
+		if(__call__("is_array", o))
+			return __php__("php_HArray::new1($o)");
+		else if(__call__("is_string", o))
+			return __php__("php_HString::new1($o)");
+		else
+			return o;
+	}
 	
+	static public function __unbox(o : Dynamic) : Dynamic untyped {
+		if(__php__("$o instanceof php_HArray"))
+			return untyped o.__a;
+		else if(__php__("$o instanceof php_HString"))
+			return untyped o.__s;
+		else
+			return o;
+	}
+*/
 	static private var __resources = [];
 	static public function __res(n : String) : String untyped {
 		if(! __php__("isset(self::$__resources[$n])")) {
@@ -399,13 +423,48 @@ class enum {
 
 php_Boot::$__qtypes = array();
 php_Boot::$__ttypes = array();
-");
-	__php__('php_Boot::__register_type(new _classdef("String",  "String"))');
-	__php__('php_Boot::__register_type(new _classdef("Array",   "Array"))');
-	__php__('php_Boot::__register_type(new _classdef("Int",     "Int"))');
-	__php__('php_Boot::__register_type(new _classdef("Float",   "Float"))');
-	__php__('php_Boot::__register_type(new _classdef("Bool",    "Bool"))');
-	__php__('php_Boot::__register_type(new _classdef("Dynamic", "Dynamic"))');
+php_Boot::__register_type(new _classdef('String',  'String'));
+php_Boot::__register_type(new _classdef('Array',   'Array'));
+php_Boot::__register_type(new _classdef('Int',     'Int'));
+php_Boot::__register_type(new _classdef('Float',   'Float'));
+php_Boot::__register_type(new _classdef('Bool',    'Bool'));
+php_Boot::__register_type(new _classdef('Dynamic', 'Dynamic'));");
+
+/*
+require_once(dirname(__FILE__).'/HString.php');
+require_once(dirname(__FILE__).'/HArray.php')");
+*/
+	}
+
+	static public function __string(o : Dynamic) {
+		if( o == null )
+			return "null";		
+		if(untyped __call__("is_int", o) || __call__("is_float", o))
+			return o;
+		if(untyped __call__("is_bool", o))
+			return o ? "true" : "false";
+		if(untyped __call__("is_object", o)) {
+			var c = untyped __call__("get_class", o);
+			if(untyped __php__("$o instanceof Anonymous")) {
+				return "Object";
+			} else if(untyped __php__("$o instanceof _typedef")) {
+				return untyped __qtype(o.__qname__);
+			} else {
+				if(untyped __call__("is_callable", [o, "__toString"]))
+					return o.__toString();
+				else
+					return "[" + __ttype(c) + "]";
+			}
+		}
+		if(untyped __call__("is_callable", o))
+			return "«function»";
+		if(untyped __call__("is_string", o))
+			return o;
+		if(untyped __call__("is_array", o)) {
+			return "Array";
+		}
+		
+		return '';
 	}
 	
 	static public function __string_rec(o : Dynamic, ?s : String) {

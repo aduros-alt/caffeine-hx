@@ -68,7 +68,7 @@ class Reflect {
 		#else neko
 			return __dollar__typeof(o) == __dollar__tobject && __dollar__objfield(o,__dollar__hash(field.__s));
 		#else php
-			return __php__("is_object($o) && (method_exists($o, $field) || property_exists($o, $field) || isset($o->$field))");
+			return __php__("is_object($o) && (method_exists($o, $field) || isset($o->$field) || property_exists($o, $field))");
 		#else error
 		#end
 		}

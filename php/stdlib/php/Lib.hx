@@ -30,6 +30,10 @@ class Lib {
 	public static function unserialize( s : String ) : Dynamic {
 		return untyped __call__("unserialize", s);
 	}
+	
+	public static function extensionLoaded(name : String) {
+		return untyped __call__("extension_loaded", name);
+	}
 }
 
 
