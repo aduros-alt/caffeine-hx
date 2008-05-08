@@ -25,11 +25,34 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package hxwidgets.events
+package hxwidgets;
 
-class ComboBoxEvent extends Event {
-	public static var SELECTION_CHANGED : String = "selectionChanged";
-	public function new(type:String, comp:hxwidgets.Component, ?bubbles:Bool, ?cancelable:Bool) {
-		super(type, comp, bubbles, cancelable);
+/**
+	Loads an external SWF as a library in the current applicationDomain.
+**/
+class LibraryLoader extends AssetLoader {
+	public function new(url:String) {
+trace(here.methodName);
+		var ctx = new flash.system.LoaderContext();
+		ctx.securityDomain = flash.system.SecurityDomain.currentDomain;
+		ctx.applicationDomain = flash.system.ApplicationDomain.currentDomain;
+		super(url, ctx);
+	}
+
+	override public function setAsset(newasset:flash.display.DisplayObject) {
+trace(newasset);
+		if(newasset != asset) {
+			if(asset != null) {
+				if(asset.parent == assetContainer)
+					assetContainer.removeChild(asset);
+			}
+			asset = newasset;
+			if(asset != null) {
+				assetContainer.addChild(asset);
+			}
+			setLoaded(asset != null);
+			resetAsset();
+			flash.Lib.current.stage.addChild(asset);
+		}
 	}
 }

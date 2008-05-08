@@ -31,6 +31,7 @@ import flash.events.Event;
 import flash.events.MouseEvent;
 import hxwidgets.AlignVertical.AlignVertical;
 import hxwidgets.AlignHorizontal.AlignHorizontal;
+import hxwidgets.events.ButtonEvent;
 
 enum ButtonState {
 	Normal;
@@ -85,6 +86,10 @@ class BaseButton extends Component {
 		setEnabled(true);
 		repaint();
 		updateUI();
+	}
+
+	public function addClickListener(f:ButtonEvent->Void, ?priority:Int) {
+		addEventListener(ButtonEvent.CLICKED, f, false, priority);
 	}
 
 	function setVerticalTextPosition(v) {
@@ -172,6 +177,12 @@ class BaseButton extends Component {
 			state = Over;
 			if(onMouseClick != null)
 				onMouseClick(this, e);
+			dispatchEvent(
+				new ButtonEvent(
+					ButtonEvent.CLICKED,
+					this
+				)
+			);
 		}
 		else {
 			state = Normal;

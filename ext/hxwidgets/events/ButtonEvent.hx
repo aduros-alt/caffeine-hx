@@ -25,10 +25,11 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package hxwidgets.events
+package hxwidgets.events;
 
-class ComboBoxEvent extends Event {
-	public static var SELECTION_CHANGED : String = "selectionChanged";
+class ButtonEvent extends Event {
+	public static var CLICKED : String = "buttonClick";
+
 	public function new(type:String, comp:hxwidgets.Component, ?bubbles:Bool, ?cancelable:Bool) {
 		super(type, comp, bubbles, cancelable);
 	}

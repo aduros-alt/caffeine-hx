@@ -25,10 +25,14 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package hxwidgets.events
+package hxwidgets.events;
+import hxwidgets.Component;
 
 class Event extends flash.events.Event {
-	public function new(type:String, ?bubbles:Bool, ?cancelable:Bool) {
+	public var component : Component;
+
+	public function new(type:String, comp:Component, ?bubbles:Bool, ?cancelable:Bool) {
 		super(type, bubbles, cancelable);
+		this.component = comp;
 	}
 }

@@ -33,7 +33,7 @@ class ItemListEvent extends Event {
 	//public static var ITEM_CLICK : String = "itemClick";
 	//public stativ var ITEM_ROLLOUT = "itemRollOut";
 
-	public function new(type:String, ?bubbles:Bool, ?cancelable:Bool) {
-		super(type, bubbles, cancelable);
+	public function new(type:String, comp:hxwidgets.Component, ?bubbles:Bool, ?cancelable:Bool) {
+		super(type, comp, bubbles, cancelable);
 	}
 }

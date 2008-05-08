@@ -32,7 +32,7 @@ import flash.display.Sprite;
 
 class AssetContainer extends Component {
 	var asset : DisplayObject;
-	//var assetContainer : Sprite;
+
 	public var assetWidth(default,null) : Float;
 	public var assetHeight(default,null) : Float;
 	var assetVisible : Bool;
@@ -43,7 +43,7 @@ class AssetContainer extends Component {
 	public function new() {
 		super("");
 		asset = null;
-		//assetContainer = new Sprite();
+
 		assetLoaded = false;
 		assetVisible = true;
 	}
@@ -56,7 +56,6 @@ class AssetContainer extends Component {
 			}
 			asset = newasset;
 			if(asset != null) {
-				//storeOriginalScale();
 				_mc.addChild(asset);
 			}
 			setLoaded(asset != null);
@@ -84,12 +83,8 @@ class AssetContainer extends Component {
 
 	private function resetAsset() : Void {
 		if (asset != null){
-			//asset.scaleX = assetOriginalScaleX;
-			//asset.scaleY = assetOriginalScaleY;
-			//setAssetOriginalSize(asset.width, asset.height);
 			asset.visible = assetVisible;
 		}
-		//revalidate();
 	}
 
 	override public function setUI(obj:Dynamic) {}

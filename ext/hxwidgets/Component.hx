@@ -29,6 +29,12 @@ package hxwidgets;
 import flash.text.StyleSheet;
 import flash.display.DisplayObject;
 
+import flash.events.EventDispatcher;
+import flash.events.Event;
+import flash.events.IOErrorEvent;
+import flash.events.ProgressEvent;
+import flash.events.HTTPStatusEvent;
+
 enum ScaleMode {
 	ScaleWidth;
 	ScaleHeight;
@@ -62,7 +68,7 @@ class Component extends HWSprite {
 		children = new Array();
 		minimumSize = new Dimension(10,10);
 		maximumSize = new Dimension(100,100);
-		setUI(UI.get(this));
+		setUI(UI.getSkinFor(this));
 		repaint();
 	}
 
@@ -238,7 +244,7 @@ class Component extends HWSprite {
 	}
 
 	public function setPreferedSize(v:Dimension) {
-		var e = new hxwidgets.events.SizeEvent(hxwidgets.events.SizeEvent.PREFERED_SIZE_CHANGE, preferedSize, v);
+		var e = new hxwidgets.events.SizeEvent(hxwidgets.events.SizeEvent.PREFERED_SIZE_CHANGE, this, preferedSize, v);
 		preferedSize = v;
 		dispatchEvent( e );
 		return v;
@@ -252,4 +258,29 @@ class Component extends HWSprite {
 	public static function findById(idstr:String) {
 		return registry.get(idstr);
 	}
+
+	///////////////////////////////////////////////////////
+	//             Event Handlers                        //
+	///////////////////////////////////////////////////////
+	public function addProgressHandler(f:ProgressEvent->Void,?priority:Int) {
+		addEventListener(ProgressEvent.PROGRESS, f, false, priority);
+	}
+	public function removeProgressHandler(f) {
+		removeEventListener(ProgressEvent.PROGRESS, f);
+	}
+
+	public function addLoadedHandler(f:Event->Void,?priority:Int) {
+		addEventListener(Event.COMPLETE, f, false, priority);
+	}
+	public function removeLoadedHandler(f) {
+		removeEventListener(Event.COMPLETE, f);
+	}
+
+	public function addIoErrorHandler(f:IOErrorEvent->Void,?priority:Int) {
+		addEventListener(IOErrorEvent.IO_ERROR, f, false, priority);
+	}
+	public function removeIoErrorHandler(f) {
+		removeEventListener(IOErrorEvent.IO_ERROR, f);
+	}
+
 }

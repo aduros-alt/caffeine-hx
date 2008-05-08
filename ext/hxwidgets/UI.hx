@@ -31,36 +31,37 @@ import hxwidgets.Component.ScaleMode;
 
 class UI {
 	static var repaintQueue : List<List<Component>>;
+	static public var currentSkin : UISkin;
 
-	static public function get(c:Component) {
+	static public function getSkinFor(c:Component) {
+		return currentSkin.getSkinFor(c);
+		/*
 		//trace(here.methodName);
 		var obj :Dynamic = Reflect.empty();
 		switch(c.getUIClassName()) {
 		case "Component":
 		case "Button":
-			var n = new BitmapAsset("btn_tan_label");
+			var n = new BitmapAsset("btn_normal_tan");
 			n.scale9Grid = new flash.geom.Rectangle(5,5,118,22);
-			var no = new BitmapAsset("btn_tan_label_over");
+			var no = new BitmapAsset("btn_over_tan");
 			no.scale9Grid = new flash.geom.Rectangle(5,5,118,22);
-			var np = new BitmapAsset("btn_tan_label_push");
+			var np = new BitmapAsset("btn_press_tan");
 			np.scale9Grid = new flash.geom.Rectangle(5,5,118,22);
-
 			c.minimumSize = new Dimension(64,16);
 			c.maximumSize = new Dimension(200,200);
-			//c.preferedSize = new Dimension(-128,64);
 			c.scaleMode = ScaleWidth;
 			obj.sprNormal = n;
 			obj.sprOver = no;
 			obj.sprPress = np;
 		case "CheckBox":
-			var n = new BitmapAsset("cb_tan_label");
-			var c = new BitmapAsset("cb_tan_label_checked");
+			var n = new BitmapAsset("cb_normal_tan");
+			var c = new BitmapAsset("cb_checked_tan");
 			c.minimumSize = new Dimension(12,12);
 			obj.sprNormal = n;
 			obj.sprToggled = c;
 		case "RadioButton":
-			var n = new BitmapAsset("rb_tan_radio");
-			var c = new BitmapAsset("rb_tan_radio_checked");
+			var n = new BitmapAsset("rb_normal_tan");
+			var c = new BitmapAsset("rb_checked_tan");
 			c.minimumSize = new Dimension(12,12);
 			obj.sprNormal = n;
 			obj.sprToggled = c;
@@ -72,6 +73,7 @@ class UI {
 			throw c.getUIClassName() + " not registered in UI";
 		}
 		return obj;
+		*/
 	}
 
 	/**
@@ -110,5 +112,25 @@ class UI {
 				repaintQueue.remove(li);
 			}
 		}
+	}
+
+	static public function initialize(initialSkinXmlUrl : String, onInitialized:Bool->String->Void)
+	{
+		currentSkin = new UISkin(initialSkinXmlUrl,callback(initSkinHandler,onInitialized));
+		currentSkin.load();
+	}
+
+	static function initSkinHandler(cb, res:Bool, msg:String) : Void {
+		if(!res) {
+			cb(res, msg);
+			return;
+		}
+
+		cb(true,"Complete.");
+	}
+
+	static function __init__() {
+		repaintQueue = new List();
+
 	}
 }

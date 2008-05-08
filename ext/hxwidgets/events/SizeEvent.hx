@@ -25,7 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package hxwidgets.events
+package hxwidgets.events;
 
 import hxwidgets.Dimension;
 
@@ -35,8 +35,8 @@ class SizeEvent extends Event {
 	public var oldSize : Dimension;
 	public var newSize : Dimension;
 
-	public function new(type:String, oldSize:Dimension, newSize:Dimension ?bubbles:Bool, ?cancelable:Bool) {
-		super(type, bubbles, cancelable);
+	public function new(type:String, comp:hxwidgets.Component, oldSize:Dimension, newSize:Dimension, ?bubbles:Bool, ?cancelable:Bool) {
+		super(type, comp, bubbles, cancelable);
 		this.oldSize = oldSize;
 		this.newSize = newSize;
 	}

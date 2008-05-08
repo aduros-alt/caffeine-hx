@@ -37,9 +37,6 @@ class Dimension {
 	}
 
 	public function clone() {
-		var d = new Dimension(0,0);
-		d.width = this.width;
-		d.height = this.height;
-		return d;
+		return new Dimension(width,height);
 	}
 }

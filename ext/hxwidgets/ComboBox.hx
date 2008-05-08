@@ -30,41 +30,41 @@ package hxwidgets;
 import hxwidgets.events.ComboBoxEvent;
 
 class ComboBox extends Component {
-		public var itemList(getItemList,null) : ItemList;
-		public var editable(default, null) : Bool;
+	public var itemList(getItemList,null) : ItemList;
+	public var editable(default, null) : Bool;
 
-		private var displayRowCount : Int;
+	private var displayRowCount : Int;
 
-		public function new(id:String, ?initialList:ItemList) {
-			super(id);
-			displayRowCount = 8;
-			Reflect.setfield(this,"itemList", initialList);
-			updateUI();
+	public function new(id:String, ?initialList:ItemList) {
+		super(id);
+		displayRowCount = 8;
+		Reflect.setfield(this,"itemList", initialList);
+		updateUI();
+	}
+
+
+	override public function getUIClassID():String{
+		return "ComboBox";
+	}
+
+	function getItemList() : ItemList {
+		if(itemList == null) {
+			itemList = new ItemList("");
+			itemList.addSelectionListener(onListSelection);
+			itemList.mode = ItemList.SINGLE;
 		}
+	}
 
+	function onListSelection(e:hxwidgets.events.ItemListEvent) {
+		dispatchEvent(new ComboBoxEvent(ComboBoxEvent.SELECTION_CHANGED));
+	}
 
-		override public function getUIClassID():String{
-			return "ComboBox";
-		}
+	public function addSelectionListener(f:ComboBoxEvent->Void,?priority:Int) {
+		addEventListener(ComboBoxEvent.SELECTION_CHANGED, f, false, priority);
+	}
 
-		function getItemList() : ItemList {
-			if(itemList == null) {
-				itemList = new ItemList("");
-				itemList.addSelectionListener(onListSelection);
-				itemList.mode = ItemList.SINGLE;
-			}
-		}
-
-		function onListSelection(e:hxwidgets.events.ItemListEvent) {
-			dispatchEvent(new ComboBoxEvent(ComboBoxEvent.SELECTION_CHANGED));
-		}
-
-		public function addSelectionListener(f:ComboBoxEvent->Void,?priority:Int) {
-			addEventListener(ComboBoxEvent.SELECTION_CHANGED, f, false, priority);
-		}
-
-		public function removeSelectionListener(f:ComboBoxEvent->Void) {
-			removeEventListener(ComboBoxEvent.SELECTION_CHANGED, f);
-		}
+	public function removeSelectionListener(f:ComboBoxEvent->Void) {
+		removeEventListener(ComboBoxEvent.SELECTION_CHANGED, f);
+	}
 
 }
