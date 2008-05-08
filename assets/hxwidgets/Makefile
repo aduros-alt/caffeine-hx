@@ -6,9 +6,9 @@ MXMLC:=mxmlc
 
 all: hxwidgets_tan.swf
 
-hxwidgets_tan.swf: Tan/btn_normal_tan.as
+hxwidgets_tan.swf: skins/Tan/btn_normal_tan.as
 	$(MXMLC) \
-		-source-path=Tan \
+		-source-path=skins/Tan \
 		-includes \
 			btn_over_tan \
 			btn_normal_tan \
@@ -17,7 +17,7 @@ hxwidgets_tan.swf: Tan/btn_normal_tan.as
 			cb_checked_tan \
 			rb_normal_tan \
 			rb_checked_tan \
-		-o $@ Tan/hxAssets.as
+		-o $@ skins/Tan/hxAssets.as
 
 clean:
 	rm -f hxwidgets_tan.swf
