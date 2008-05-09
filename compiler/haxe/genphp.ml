@@ -1,4 +1,27 @@
 (*
+
+wrap for TDynamic or TMono 
+
+
+match follow expr.etype with
+| TFun (args,_) ->  List.iter2  (fun e arg -> .... ) el args
+| _ -> assert false
+(11.10.39) Nicolas Cannasse: "el" is your arguments expressions
+(11.10.48) Nicolas Cannasse: "arg" will be you argument
+(11.11.00) Nicolas Cannasse: (name,opt,t) 
+(11.11.21) Nicolas Cannasse: so you can simply   "match follow t" to check if the function argument is Dynamic
+
+(11.12.26) Franco Ponticelli: but in a TCall, do I have the function type and its args list? or do I have only the arg values?
+(11.13.00) Nicolas Cannasse: TCall (e,eargs)
+(11.13.04) Nicolas Cannasse: e is the function itself
+(11.13.10) Nicolas Cannasse: so if you  follow its type
+(11.13.15) Nicolas Cannasse: you should get a TFun
+(11.13.18) Franco Ponticelli: yes, correct
+(11.13.24) Franco Ponticelli: ok, seems logical :)
+(11.13.57) Nicolas Cannasse: or TDynamic (then you're out of luck because you don't know if you need to wrap or not :) )
+
+*)
+(*
  *  haXe/PHP Compiler
  *  Copyright (c)2008 Franco Ponticelli
  *  based on and including code by (c)2005-2008 Nicolas Cannasse
@@ -82,6 +105,13 @@ let s_expr_name e =
 let s_type_name t =
 	s_type (print_context()) t
 
+let is_uncertain_type t =
+	let s = s_type_name t in
+	if (String.length s > 1 && String.sub s 0 1 = "{") || s = "Dynamic" || s = "#Dynamic" || (String.length s > 7 && String.sub s 0 7 = "Unknown<") then true else false
+  
+let is_uncertain_expr e =
+	is_uncertain_type e.etype
+
 let is_anonym_expr e =
 	let s = s_expr_name e in
 	if (String.length s > 1 && String.sub s 0 1 = "{") || s = "Dynamic" || s = "#Dynamic" then true else false
@@ -92,33 +122,38 @@ let is_unknown_expr e =
 
 let is_array_expr e =
 	let s = s_expr_name e in
-	if (String.length s > 4 && String.sub s 0 5 = "Array") || (String.length s > 5 && String.sub s 0 6 = "#Array") then true else false
+	if (String.length s > 11 && String.sub s 0 12 = "#Null<Array<") || (String.length s > 10 && String.sub s 0 11 = "Null<Array<") || (String.length s > 6 && String.sub s 0 7 = "#Array<") || (String.length s > 5 && String.sub s 0 6 = "Array<") then true else false
 
 let is_string_expr e = (* match follow e.etype with TInst ({ cl_path = [],"String" },_) -> true | _ -> false *)
-	  if (s_expr_name e) = "String" || (s_expr_name e) = "#String" then true else false
+	let s = s_expr_name e in
+	if s = "#Null<String>" || s = "Null<String>" || s = "#String" || s = "String" then true else false
 
 let spr ctx s = Buffer.add_string ctx.buf s
 let print ctx = Printf.kprintf (fun s -> Buffer.add_string ctx.buf s)
 
 let s_path ctx path isextern p =
-	if not isextern then register_required_path ctx path;
-	match path with
-	| ([],"List")			  -> "HList"
-	| ([],name)				-> name
-	| (["php"],"PhpXml__")	 -> "Xml"
-	| (["php"],"PhpDate__")	-> "Date"
-	| (["php"],"PhpMath__")	-> "Math"
-	| (pack,name) ->
-		try
-			(match Hashtbl.find ctx.imports name with
-			| [p] when p = pack ->
-				String.concat "_" pack ^ "_" ^ name
-			| packs ->
-				if not (List.mem pack packs) then Hashtbl.replace ctx.imports name (pack :: packs);
-				Ast.s_type_path path)
-		with Not_found ->
-			Hashtbl.add ctx.imports name [pack];
-			String.concat "_" pack ^ "_" ^ name
+	if isextern then 
+		snd path
+	else begin
+		register_required_path ctx path;
+		(match path with
+		| ([],"List")			-> "HList"
+		| ([],name)				-> name
+		| (["php"],"PhpXml__")	-> "Xml"
+		| (["php"],"PhpDate__")	-> "Date"
+		| (["php"],"PhpMath__")	-> "Math"
+		| (pack,name) ->
+			try
+				(match Hashtbl.find ctx.imports name with
+				| [p] when p = pack ->
+					String.concat "_" pack ^ "_" ^ name
+				| packs ->
+					if not (List.mem pack packs) then Hashtbl.replace ctx.imports name (pack :: packs);
+					Ast.s_type_path path)
+			with Not_found ->
+				Hashtbl.add ctx.imports name [pack];
+				String.concat "_" pack ^ "_" ^ name);
+	end
 
 let s_path_haxe path =
 	match fst path, snd path with
@@ -279,23 +314,30 @@ let this ctx =
 	let p = escphp ctx.quotes in
 	if ctx.in_value <> None then (p ^ "$__this") else (p ^ "$this")
 
-let s_funarg ctx arg t p = 
+let s_funarg ctx arg t p o = 
 	let byref = if String.length arg > 7 && String.sub arg 0 7 = "byref__" then "&" else "" in
 	(match t with
-	| TInst (c,_) -> (match c.cl_path with
+	| TInst (c,_) -> 
+		(match c.cl_path with
 		| ([], "Float")
 		| ([], "String")
 		| ([], "Array")
 		| ([], "Int") 
 		| ([], "Enum") 
 		| ([], "Class") 
-		| ([], "Bool") -> print ctx "%s%s$%s" byref (escphp ctx.quotes) arg
+		| ([], "Bool") -> 
+			print ctx "%s%s$%s" byref (escphp ctx.quotes) arg;
+			if o then spr ctx " = null"
 		| _ ->
 			if c.cl_kind = KNormal then
-				print ctx "%s %s%s$%s" (s_path ctx c.cl_path c.cl_extern p) byref (escphp ctx.quotes) arg
-			else
-				print ctx "%s%s$%s" byref (escphp ctx.quotes) arg)
-	| _ -> print ctx "%s%s$%s" byref (escphp ctx.quotes) arg)
+				print ctx "%s %s%s$%s = null /*%s*/" (s_path ctx c.cl_path c.cl_extern p) byref (escphp ctx.quotes) arg (if c.cl_extern then "EXTERN" else "INTERN")
+			else begin
+				print ctx "%s%s$%s" byref (escphp ctx.quotes) arg;
+				if o then spr ctx " = null"
+			end)
+	| _ -> 
+		print ctx "%s%s$%s" byref (escphp ctx.quotes) arg;
+		if o then spr ctx " = null")
 
 let is_in_dynamic_methods ctx e s =
 	List.exists (fun dm ->
@@ -323,16 +365,14 @@ let gen_function_header ctx name f params p =
 		spr ctx "create_function('";
 		concat ctx ", " (fun (arg,o,t) ->
 		let arg = define_local ctx arg in
-			s_funarg ctx arg t p;
-			if o then spr ctx " = null";
+			s_funarg ctx arg t p o;
 		) f.tf_args;
 		print ctx "', '') "
 	| Some n ->
 		print ctx "function %s(" n;
 		concat ctx ", " (fun (arg,o,t) ->
 		let arg = define_local ctx arg in
-			s_funarg ctx arg t p;
-			if o then spr ctx " = null";
+			s_funarg ctx arg t p o;
 		) f.tf_args;
 		print ctx ") ");
 	(fun () ->
@@ -612,6 +652,10 @@ and gen_member_access ctx isvar e s =
 		| _ -> print ctx "->%s" (s_ident s))
 	| _ -> print ctx "->%s" (s_ident s)
 	
+(*
+let isunc = is_uncertain_expr e1 in
+if isunc then print ctx "/* %s */" (s_type_name (follow e1.etype));
+*)
 and gen_field_access ctx isvar e s =
 	match e.eexpr with
 	| TTypeExpr t ->
@@ -650,8 +694,7 @@ and gen_dynamic_function ctx isstatic name f params p =
 	print ctx "function %s(" name;
 	concat ctx ", " (fun (arg,o,t) ->
 	let arg = define_local ctx arg in
-		s_funarg ctx arg t p;
-		if o then spr ctx " = null";
+		s_funarg ctx arg t p o;
 		) f.tf_args;
 	spr ctx ") {";
 
@@ -690,8 +733,7 @@ and gen_function ctx name f params p =
 	print ctx "function %s%s(" byref name;
 	concat ctx ", " (fun (arg,o,t) ->
 		let arg = define_local ctx arg in
-		s_funarg ctx arg t p;
-		if o then spr ctx " = null";
+		s_funarg ctx arg t p o;
 	) f.tf_args;
 	print ctx ") ";
 	gen_expr ctx (block f.tf_expr);
@@ -721,8 +763,7 @@ and gen_inline_function ctx f params p =
 	ctx.quotes <- ctx.quotes + 1;
 	concat ctx "," (fun (arg,o,t) ->
 		let arg = define_local ctx arg in
-		s_funarg ctx arg t p;
-		if o then spr ctx " = null";
+		s_funarg ctx arg t p o;
 	) f.tf_args;
 	ctx.quotes <- ctx.quotes - 1;
 	print ctx "%s\", %s\"" p p;
@@ -747,10 +788,18 @@ and gen_expr ctx e =
 		| TFun (args,_) -> print ctx "%s::%s" (s_path ctx en.e_path en.e_extern e.epos) (s_ident s)
 		| _ -> print ctx "%s::%s$%s" (s_path ctx en.e_path en.e_extern e.epos) (escphp ctx.quotes) (s_ident s))
 	| TArray (e1,e2) ->
-		gen_value ctx e1;
-		spr ctx "[";
-		gen_value ctx e2;
-		spr ctx "]";
+		(match e1.eexpr with
+		| TCall _ ->
+			spr ctx "php_Boot::__byref__array_get(";
+			gen_value ctx e1;
+			spr ctx ", ";
+			gen_value ctx e2;
+			spr ctx ")";
+		| _ ->
+			gen_value ctx e1;
+			spr ctx "[";
+			gen_value ctx e2;
+			print ctx "]/*%s*/" (s_expr_name e1));
 	| TBinop (op,e1,e2) ->
 		(match op with
 		| Ast.OpAssign ->
@@ -770,11 +819,26 @@ and gen_expr ctx e =
 		| Ast.OpAssignOp(Ast.OpAdd) when (is_string_expr e1 || is_string_expr e2) ->
 			gen_value_op ctx e1;
 			spr ctx " .= ";
-			gen_value_op ctx e2;
+			if is_uncertain_expr e2 then begin
+				spr ctx "php_Boot::__string(";
+				gen_value_op ctx e2;
+				spr ctx ")";
+			end else
+				gen_value_op ctx e2;
 		| Ast.OpAdd when (is_string_expr e1 || is_string_expr e2) ->
-			gen_value_op ctx e1;
+			if is_uncertain_expr e1 then begin
+				spr ctx "php_Boot::__string(";
+				gen_value_op ctx e1;
+				spr ctx ")";
+			end else 		
+				gen_value_op ctx e1;
 			spr ctx ".";
-			gen_value_op ctx e2;
+			if is_uncertain_expr e2 then begin
+				spr ctx "php_Boot::__string(";
+				gen_value_op ctx e2;
+				spr ctx ")";
+			end else 		
+				gen_value_op ctx e2;
 		| Ast.OpAssignOp(Ast.OpShl) ->
 			gen_value_op ctx e1;
 			spr ctx " <<= ";
@@ -937,8 +1001,7 @@ and gen_expr ctx e =
 					ctx.quotes <- ctx.quotes + 1;
 					concat ctx "," (fun (arg,o,t) ->
 					let arg = define_local ctx arg in
-					  s_funarg ctx arg t e.epos;
-					  if o then spr ctx " = null";
+					  s_funarg ctx arg t e.epos o;
 					) fd.tf_args;
 					ctx.quotes <- ctx.quotes - 1;
 					
@@ -984,8 +1047,9 @@ and gen_expr ctx e =
 		concat ctx ", " (gen_value ctx) el;
 		spr ctx ")";
 	| TThrow e ->
-		spr ctx "throw new php_HException(";
+		spr ctx "throw new HException(";
 		gen_value ctx e;
+(* TODO: add POS here *)
 		spr ctx ")";
 	| TVars [] ->
 		()
@@ -1070,7 +1134,7 @@ and gen_expr ctx e =
 		spr ctx "try ";
 		gen_expr ctx (block e);
 		let ex = define_local ctx "__e__" in
-		print ctx "catch(php_HException %s$%s) {" (escphp ctx.quotes) ex;
+		print ctx "catch(HException %s$%s) {" (escphp ctx.quotes) ex;
 		let p = escphp ctx.quotes in
 		let first = ref true in
 		List.iter (fun (v,t,e) ->
@@ -1326,8 +1390,7 @@ let generate_field ctx static f =
 			| TFun (args,r) ->
 				print ctx "function %s(" f.cf_name;
 				concat ctx ", " (fun (arg,o,t) ->
-					s_funarg ctx arg t p;
-					if o then spr ctx " = null";
+					s_funarg ctx arg t p o;
 				) args;
 				print ctx ")";
 			| _ -> spr ctx "//"; ()
@@ -1452,12 +1515,12 @@ let generate_class ctx all_dynamic_methods c =
 	(match c.cl_dynamic with
 		| Some _ when not c.cl_interface && not (super_has_dynamic c) ->
 			newline ctx;
-			spr ctx "private $__dynamics = array();\n\tpublic function &__get($n) {\n\t\tif(isset($this->__dynamics[$n]))\n\t\t\treturn $this->__dynamics[$n];\n\t}\n\tpublic function __set($n, $v) {\n\t\t$this->__dynamics[$n] = $v;\n\t}\n\tpublic function __call($n, $a) {\n\t\tif(is_callable($this->__dynamics[$n]))\n\t\t\treturn call_user_func_array($this->__dynamics[$n], $a);\n\t\tthrow new php_HException(\"Unable to call «\".$n.\"»\");\n\t}"
+			spr ctx "private $__dynamics = array();\n\tpublic function &__get($n) {\n\t\tif(isset($this->__dynamics[$n]))\n\t\t\treturn $this->__dynamics[$n];\n\t}\n\tpublic function __set($n, $v) {\n\t\t$this->__dynamics[$n] = $v;\n\t}\n\tpublic function __call($n, $a) {\n\t\tif(is_callable($this->__dynamics[$n]))\n\t\t\treturn call_user_func_array($this->__dynamics[$n], $a);\n\t\tthrow new HException(\"Unable to call «\".$n.\"»\");\n\t}"
 		| Some _
 		| _ -> 
 			if List.length ctx.dynamic_methods > 0 then begin
 				newline ctx;
-				spr ctx "public function __call($m, $a) {\n\t\tif(isset($this->$m) && is_callable($this->$m))\n\t\t\treturn call_user_func_array($this->$m, $a);\n\t\telse if(isset($this->__dynamics[$m]) && is_callable($this->__dynamics[$m]))\n\t\t\treturn call_user_func_array($this->__dynamics[$m], $a);\n\t\telse\n\t\t\tthrow new php_HException('Unable to call «'.$m.'»');\n\t}";
+				spr ctx "public function __call($m, $a) {\n\t\tif(isset($this->$m) && is_callable($this->$m))\n\t\t\treturn call_user_func_array($this->$m, $a);\n\t\telse if(isset($this->__dynamics[$m]) && is_callable($this->__dynamics[$m]))\n\t\t\treturn call_user_func_array($this->__dynamics[$m], $a);\n\t\telse\n\t\t\tthrow new HException('Unable to call «'.$m.'»');\n\t}";
 			end;
 	);
 
