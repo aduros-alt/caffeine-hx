@@ -82,6 +82,11 @@ class HWSprite extends flash.events.EventDispatcher {
 	function getScaleY() { return _mc.scaleY; }
 	function setScaleY(v) { _mc.scaleY = v; return v; }
 
+	function startDrag(?lockCenter:Bool, ?bounds:Rectangle) {
+		_mc.startDrag(lockCenter,bounds);
+	}
+	function stopDrag() { _mc.stopDrag(); }
+
 	function getDisplayObject() : DisplayObject {
 		return _mc;
 	}
@@ -131,5 +136,9 @@ class HWSprite extends flash.events.EventDispatcher {
 		_mc.mask = m;
 		if(om != null)
 			_mc.removeChild(om);
+	}
+
+	public function getSpriteBounds() {
+		return new hxwidgets.Rectangle(x,y,width,height);
 	}
 }

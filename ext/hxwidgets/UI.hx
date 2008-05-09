@@ -28,52 +28,15 @@
 package hxwidgets;
 import flash.display.DisplayObject;
 import hxwidgets.Component.ScaleMode;
+import flash.text.StyleSheet;
 
 class UI {
-	static var repaintQueue : List<List<Component>>;
-	static public var currentSkin : UISkin;
+	static var repaintQueue 		: List<List<Component>>;
+	static public var currentSkin 	: UISkin;
+	static public var defaultCss 	: StyleSheet 		= initCss();
 
 	static public function getSkinFor(c:Component) {
 		return currentSkin.getSkinFor(c);
-		/*
-		//trace(here.methodName);
-		var obj :Dynamic = Reflect.empty();
-		switch(c.getUIClassName()) {
-		case "Component":
-		case "Button":
-			var n = new BitmapAsset("btn_normal_tan");
-			n.scale9Grid = new flash.geom.Rectangle(5,5,118,22);
-			var no = new BitmapAsset("btn_over_tan");
-			no.scale9Grid = new flash.geom.Rectangle(5,5,118,22);
-			var np = new BitmapAsset("btn_press_tan");
-			np.scale9Grid = new flash.geom.Rectangle(5,5,118,22);
-			c.minimumSize = new Dimension(64,16);
-			c.maximumSize = new Dimension(200,200);
-			c.scaleMode = ScaleWidth;
-			obj.sprNormal = n;
-			obj.sprOver = no;
-			obj.sprPress = np;
-		case "CheckBox":
-			var n = new BitmapAsset("cb_normal_tan");
-			var c = new BitmapAsset("cb_checked_tan");
-			c.minimumSize = new Dimension(12,12);
-			obj.sprNormal = n;
-			obj.sprToggled = c;
-		case "RadioButton":
-			var n = new BitmapAsset("rb_normal_tan");
-			var c = new BitmapAsset("rb_checked_tan");
-			c.minimumSize = new Dimension(12,12);
-			obj.sprNormal = n;
-			obj.sprToggled = c;
-		case "ItemList":
-			c.minimumSize = new Dimension(50,12);
-			c.preferedSize = new Dimension(150,100);
-			c.maximumSize = new Dimension(500,500);
-		default:
-			throw c.getUIClassName() + " not registered in UI";
-		}
-		return obj;
-		*/
 	}
 
 	/**
@@ -103,13 +66,12 @@ class UI {
 	}
 
 	static public function repaint() {
-		var orq = repaintQueue;
-		repaintQueue = new List();
-		for(li in orq) {
+		for(li in repaintQueue) {
 			for(c in li) {
-				c.onRepaint();
-				//Reflect.callMethod(c,"onRepaint",[]);
-				repaintQueue.remove(li);
+				if(c.initialized) {
+					c.onRepaint();
+					repaintQueue.remove(li);
+				}
 			}
 		}
 	}
@@ -125,12 +87,31 @@ class UI {
 			cb(res, msg);
 			return;
 		}
-
 		cb(true,"Complete.");
 	}
 
+
+	////////////////////////////////////////
+	//          Initialization            //
+	////////////////////////////////////////
 	static function __init__() {
 		repaintQueue = new List();
+	}
 
+	/**
+	* @return default CSS
+	*/
+	private static function initCss() : StyleSheet
+	{
+		defaultCss = new StyleSheet();
+		defaultCss.setStyle( "p",
+			{
+				color		: "#000000",
+				display		: "inline",
+				fontFamily	: "Arial",
+				fontSize	: 10
+			}
+		);
+		return defaultCss;
 	}
 }

@@ -35,6 +35,8 @@ import flash.events.IOErrorEvent;
 import flash.events.ProgressEvent;
 import flash.events.HTTPStatusEvent;
 
+import hxwidgets.events.SizeEvent;
+
 enum ScaleMode {
 	ScaleWidth;
 	ScaleHeight;
@@ -50,27 +52,33 @@ class Component extends HWSprite {
 	public var index : Int;
 	public var parent(getParent,null) : Component;
 	public var enabled(default,setEnabled) : Bool;
+	public var initialized(default, null) : Bool;
 
 	public var minimumSize:Dimension;
 	public var maximumSize:Dimension;
 	public var preferedSize(default,setPreferedSize):Dimension;
 	public var scaleMode : ScaleMode;
-	public var bounds(getBounds, null) : hxwidgets.Rectangle;
+	public var componentBounds(default, setComponentBounds) : hxwidgets.Rectangle;
 
 
-	var children : Array<Component>;
-	var background : Component;
+	private var children : Array<Component>;
+	private var background : Component;
+	private var lastSize : Dimension;
+	private var lastPosition : Point;
 
 	public function new(id) {
 		super();
 		this.id = id;
-		register(this);
 		children = new Array();
 		minimumSize = new Dimension(10,10);
 		maximumSize = new Dimension(100,100);
-		setUI(UI.getSkinFor(this));
+		Reflect.setField(this,"componentBounds",new Rectangle(0,0,0,0));
+		initialized = false;
+		register(this);
 		repaint();
 	}
+
+	public function className() { return "Component"; }
 
 	public function add(v:Component) {
 		if(v.parent != this) {
@@ -188,39 +196,75 @@ class Component extends HWSprite {
 		}
 	}
 
-	/**
-		Signal when it's time to repaint all the components
-		in UI.repaintQueue
-	**/
-	public function updateUI() {
-		UI.repaint();
-	}
 
-	public function setUI(obj:Dynamic) : Void {
+	/**
+		Any skinnable component that overrides this should update the
+		component from the supplied object, set 'initialized' to true,
+		then call updateUI()
+	**/
+	public function setSkin(obj:Dynamic) : Void {
 		//throw "Override me";
 	}
 
-	public function getUIClassName() : String { return "Component"; }
-
-	function subscribeEvent(evt:String, f:flash.events.Event->Void) {
-		this._mc.addEventListener(evt, f);
+	public function destroy() {
+		_mc = null;
 	}
 
-	function unSubscribeEvent(evt:String, f:flash.events.Event->Void) {
-		this._mc.removeEventListener(evt, f);
+	/**
+		Redraw everything that is ready.
+	**/
+	function redraw() {
+		UI.scheduleRepaint(this);
+		UI.repaint();
 	}
 
+	/**
+		Schedule component to be redrawn on next call to redraw()
+	**/
 	public function repaint() {
 		UI.scheduleRepaint(this);
 	}
+
+	function onConstructed(name:String) {
+		if(name == className()) {
+			setSkin(UI.getSkinFor(this));
+			initialized = true;
+			redraw();
+		}
+	}
+
+
 
 	public function onRepaint() {
 		if(!Std.is(this,hxwidgets.AssetContainer) && Type.getClassName(Type.getClass(this)) != "hxwidgets.Component")
 			trace(Type.getClassName(Type.getClass(this)) + " has not overriden onRepaint");
 	}
 
-	function getBounds() {
-		return new Rectangle(x,y,width,height);
+	public function getComponentBounds() {
+		return componentBounds;
+	}
+
+	public function setComponentBounds(r:Rectangle) {
+		setPosition(new Point(r.x, r.y));
+		setSize(new Dimension(r.width, r.height));
+		return r;
+	}
+
+	public function setSize(d : Dimension) {
+		if(d == null)
+			d = new Dimension(0,0);
+		var newDim = d.clone().setAtLeastZero();
+		var b = getComponentBounds();
+		var prevSize = new Dimension(b.width, b.height);
+		if(!Dimension.equal(newDim, prevSize)) {
+			lastSize = prevSize;
+			componentBounds.width = newDim.width;
+			componentBounds.height = newDim.height;
+			repaint();
+			dispatchEvent(
+				new SizeEvent(SizeEvent.SIZE_CHANGE, this, lastSize, newDim)
+			);
+		}
 	}
 
 	public function adjustWidthValue(w) {
@@ -244,7 +288,7 @@ class Component extends HWSprite {
 	}
 
 	public function setPreferedSize(v:Dimension) {
-		var e = new hxwidgets.events.SizeEvent(hxwidgets.events.SizeEvent.PREFERED_SIZE_CHANGE, this, preferedSize, v);
+		var e = new SizeEvent(SizeEvent.PREFERED_SIZE_CHANGE, this, preferedSize, v);
 		preferedSize = v;
 		dispatchEvent( e );
 		return v;
@@ -262,6 +306,20 @@ class Component extends HWSprite {
 	///////////////////////////////////////////////////////
 	//             Event Handlers                        //
 	///////////////////////////////////////////////////////
+	/**
+		Subscribe to an event in the underlying movie clip.
+	**/
+	function subscribeEvent(evt:String, f:Dynamic->Void, ?useCapture : Bool, ?priority : Int, ?useWeakReference : Bool )
+	{
+		this._mc.addEventListener(evt, f, useCapture, priority, useWeakReference);
+	}
+	/**
+		Unsubscribe to the underlying Sprite event
+	**/
+	function unSubscribeEvent(evt:String, f:Dynamic->Void, ?useCapture :Bool) {
+		this._mc.removeEventListener(evt, f, useCapture);
+	}
+
 	public function addProgressHandler(f:ProgressEvent->Void,?priority:Int) {
 		addEventListener(ProgressEvent.PROGRESS, f, false, priority);
 	}

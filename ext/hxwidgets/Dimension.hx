@@ -28,15 +28,32 @@
 package hxwidgets;
 
 class Dimension {
-	public var width : Float;
-	public var height : Float;
+	public var width : Int;
+	public var height : Int;
 
-	public function new(w, h) {
-		this.width = w;
-		this.height = h;
+	public function new(w :Float, h:Float) {
+		this.width = Std.int(w);
+		this.height = Std.int(h);
 	}
 
 	public function clone() {
 		return new Dimension(width,height);
+	}
+
+	public function setAtLeastZero() {
+		width = Std.int(Math.max(0, width));
+		height = Std.int(Math.max(0, height));
+		return this;
+	}
+
+	public static function equal(d1, d2) {
+		if(d1 == null || d2 == null) {
+			if(d1 == d2)
+				return true;
+			return false;
+		}
+		if(d1.width == d2.width && d1.height == d2.height)
+			return true;
+		return false;
 	}
 }

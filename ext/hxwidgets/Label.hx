@@ -47,6 +47,8 @@ class Label extends Component {
 	private var isHtml : Bool;
 	private var tFormat : TextFormat;
 
+	override public function className() { return "Label"; }
+
 	public function new(id:String,txt:String, ?pos : Point, ?asHtml:Bool, ?css : StyleSheet) {
 		super(id);
 		super.setPosition(pos);
@@ -66,7 +68,7 @@ class Label extends Component {
 			isHtml = false;
 			setText(txt);
 		}
-		updateUI();
+		onConstructed("Label");
 	}
 
 	function iCreateField() {

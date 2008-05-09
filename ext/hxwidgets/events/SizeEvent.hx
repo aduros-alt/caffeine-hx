@@ -30,7 +30,8 @@ package hxwidgets.events;
 import hxwidgets.Dimension;
 
 class SizeEvent extends Event {
-	public static var PREFERED_SIZE_CHANGE : String = "preferedSize";
+	public static var SIZE_CHANGE : String = "componentSize";
+	public static var PREFERED_SIZE_CHANGE : String = "componentPreferedSize";
 
 	public var oldSize : Dimension;
 	public var newSize : Dimension;

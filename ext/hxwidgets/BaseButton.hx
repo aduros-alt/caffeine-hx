@@ -84,8 +84,6 @@ class BaseButton extends Component {
 			addChild(icon.getIcon(this));
 		Reflect.setField(this,"state",Normal);
 		setEnabled(true);
-		repaint();
-		updateUI();
 	}
 
 	public function addClickListener(f:ButtonEvent->Void, ?priority:Int) {
@@ -161,13 +159,13 @@ class BaseButton extends Component {
 			releaseOutside = false;
 			state = Over;
 		}
-		updateUI();
+		redraw();
 	}
 	function onPress(e) {
 		//trace(here.methodName);
 		_mc.y += 2; _mc.x += 1;
 		state = Press;
-		updateUI();
+		redraw();
 	}
 	function onRelease(e) {
 		//trace(here.methodName + " " + releaseOutside);
@@ -187,14 +185,14 @@ class BaseButton extends Component {
 		else {
 			state = Normal;
 		}
-		updateUI();
+		redraw();
 	}
 	function onMouseOut(e) {
 		releaseOutside = true;
 		state = Normal;
 		_mc.y = originalY;
 		_mc.x = originalX;
-		updateUI();
+		redraw();
 	}
 
 	function setButtonState(s:ButtonState) {
@@ -212,8 +210,7 @@ class BaseButton extends Component {
 			if(label != null) {
 				add(label);
 			}
-			repaint();
-			updateUI();
+			redraw();
 		}
 		return v;
 	}
@@ -253,7 +250,7 @@ class BaseButton extends Component {
 			var lblRect = new Rectangle(0,0,0,0);
 			var iconRect = new Rectangle(0,0,0,0);
 			if(label != null) {
-				lblRect = label.bounds;
+				lblRect = label.getSpriteBounds();
 				spr.width = label.width + p2;
 				spr.height = label.height + p2;
 			}
@@ -268,14 +265,14 @@ class BaseButton extends Component {
 					switch(verticalTextPosition) {
 					case MIDDLE:
 						spr.width = p3 + iconRect.width + lblRect.width;
-						sb = spr.bounds;
+						sb = spr.getSpriteBounds();
 						if(label != null)
 							label.x = padding;
 						if(icon != null)
 							icon.x = sb.width - padding - iconRect.width;
 					case TOP, BOTTOM:
 						spr.width = p2 + Math.max(iconRect.width, lblRect.width);
-						sb = spr.bounds;
+						sb = spr.getSpriteBounds();
 						if(label != null) {
 							label.x = padding;
 						}
@@ -289,14 +286,14 @@ class BaseButton extends Component {
 					// icon on left if vertical is MIDDLE
 					case MIDDLE:
 						setSprWidth( p3 + iconRect.width + lblRect.width );
-						sb = spr.bounds;
+						sb = spr.getSpriteBounds();
 						if(label != null)
 							label.x = sb.width - padding - lblRect.width;
 						if(icon != null)
 							icon.x = padding;
 					case TOP, BOTTOM: // icon above or below.
 						setSprWidth( p2 + Math.max(iconRect.width,lblRect.width) );
-						sb = spr.bounds;
+						sb = spr.getSpriteBounds();
 						if(label != null) {
 							lblRect.centerHorizontalIn(sb);
 							label.x = lblRect.x;
@@ -310,14 +307,14 @@ class BaseButton extends Component {
 					switch(verticalTextPosition) {
 					case MIDDLE:
 						setSprWidth( p3 + iconRect.width + lblRect.width );
-						sb = spr.bounds;
+						sb = spr.getSpriteBounds();
 						if(label != null)
 							label.x = sb.width - padding - label.width;
 						if(icon != null)
 							icon.x = padding;
 					case TOP,BOTTOM:
 						setSprWidth( p2 + Math.max(iconRect.width,lblRect.width) );
-						sb = spr.bounds;
+						sb = spr.getSpriteBounds();
 						if(label != null) {
 							lblRect.centerHorizontalIn(sb);
 							label.x = sb.width - padding - label.width;
@@ -332,14 +329,14 @@ class BaseButton extends Component {
 				switch(verticalTextPosition) {
 				case TOP: // icon on bottom
 					setSprHeight( p3 + iconRect.height + lblRect.height );
-					sb = spr.bounds;
+					sb = spr.getSpriteBounds();
 					if(label != null)
 						label.y = padding;
 					if(icon != null)
 						icon.y = sb.height - padding - icon.height;
 				case MIDDLE: // icon on left or right, X already set above.
 					setSprHeight( p2 + Math.max(iconRect.height,lblRect.height) );
-					sb = spr.bounds;
+					sb = spr.getSpriteBounds();
 					if(icon != null) {
 						iconRect.centerVerticalIn(sb);
 						icon.y = iconRect.y;
@@ -350,7 +347,7 @@ class BaseButton extends Component {
 					}
 				case BOTTOM: // icon on top
 					setSprHeight( p3 + iconRect.height + lblRect.height );
-					sb = spr.bounds;
+					sb = spr.getSpriteBounds();
 					if(label != null)
 						label.y = sb.height - padding - label.height;
 					if(icon != null)

@@ -27,63 +27,9 @@
 
 package hxwidgets;
 
-import hxwidgets.BaseButton.ButtonState;
-import flash.events.Event;
-
-class Button extends BaseButton {
-	var origTextColor : Null<UInt>;
-
-	override public function className() { return "Button"; }
-
-	public function new(
-			id : String,
-			label:Label,
-			?onClick : BaseButton->Event->Void,
-			?icon:BitmapAsset,
-			?pos:Point
-			)
-	{
-		super(id,label,onClick,icon,pos);
-		onConstructed("Button");
-	}
-
-	override public function setSkin(obj:Dynamic) {
-		sprNormal = obj.sprNormal;
-		sprOver = obj.sprOver;
-		sprPress = obj.sprPress;
-		redraw();
-	}
-
-	override function setButtonState(s:ButtonState) {
-		//trace(here.methodName + " " + enabled + " " + s);
-		if(!enabled)
-			state = Normal;
-		else
-			state = s;
-		repaint();
-		return s;
-	}
-
-	override function setEnabled(v) {
-		if(this.enabled != v) {
-			super.setEnabled(v);
-			if(label != null) {
-				var tf = untyped label._textField;
-				if(enabled) {
-					if(origTextColor != null)
-						tf.textColor = origTextColor;
-					if(icon != null)
-						icon.alpha = 1.0;
-				}
-				if(!enabled) {
-					origTextColor = tf.textColor;
-					tf.textColor = 0x999999;
-					alpha = 1.0;
-					if(icon != null)
-						icon.alpha = 0.5;
-				}
-			}
-		}
-		return v;
-	}
+enum CardinalPoints {
+	NORTH;
+	WEST;
+	EAST;
+	SOUTH;
 }

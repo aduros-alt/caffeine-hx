@@ -68,7 +68,7 @@ class UISkin {
 	/////////////////////////////////////////////
 	public function getSkinFor(c:Component) {
 		var obj :Dynamic = Reflect.empty();
-		switch(c.getUIClassName()) {
+		switch(c.className()) {
 		case "Component":
 		case "Button":
 			var button = fast.node.button;
@@ -83,9 +83,9 @@ class UISkin {
 			var rb = fast.node.radio;
 			obj.sprNormal = createAsset(rb.node.normal);
 			obj.sprToggled = createAsset(rb.node.checked);
-		case "ItemList":
+		case "ItemList", "Label":
 		default:
-			throw c.getUIClassName() + " not registered in UI";
+			throw c.className() + " not registered in UI";
 		}
 		return obj;
 	}

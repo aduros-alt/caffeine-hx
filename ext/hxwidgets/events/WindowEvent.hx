@@ -25,65 +25,20 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package hxwidgets;
+package hxwidgets.events;
 
-import hxwidgets.BaseButton.ButtonState;
-import flash.events.Event;
+class WindowEvent extends Event {
+	public static var FOCUS_IN : String = "windowGotFocus";
+	public static var FOCUS_OUT : String = "windowLostFocus";
+	public static var MINIMIZING : String = "windowMinimizing";
+	public static var MAXIMIZED : String = "windowMinimizing";
+	public static var RESTORED : String = "windowRestored";
+	public static var CLOSING : String = "windowClosing";
+	public static var DESTROYED : String = "windowClosed";
+	public static var RESIZING : String = "windowResizing";
+	public static var RESIZED : String = "windowResized";
 
-class Button extends BaseButton {
-	var origTextColor : Null<UInt>;
-
-	override public function className() { return "Button"; }
-
-	public function new(
-			id : String,
-			label:Label,
-			?onClick : BaseButton->Event->Void,
-			?icon:BitmapAsset,
-			?pos:Point
-			)
-	{
-		super(id,label,onClick,icon,pos);
-		onConstructed("Button");
-	}
-
-	override public function setSkin(obj:Dynamic) {
-		sprNormal = obj.sprNormal;
-		sprOver = obj.sprOver;
-		sprPress = obj.sprPress;
-		redraw();
-	}
-
-	override function setButtonState(s:ButtonState) {
-		//trace(here.methodName + " " + enabled + " " + s);
-		if(!enabled)
-			state = Normal;
-		else
-			state = s;
-		repaint();
-		return s;
-	}
-
-	override function setEnabled(v) {
-		if(this.enabled != v) {
-			super.setEnabled(v);
-			if(label != null) {
-				var tf = untyped label._textField;
-				if(enabled) {
-					if(origTextColor != null)
-						tf.textColor = origTextColor;
-					if(icon != null)
-						icon.alpha = 1.0;
-				}
-				if(!enabled) {
-					origTextColor = tf.textColor;
-					tf.textColor = 0x999999;
-					alpha = 1.0;
-					if(icon != null)
-						icon.alpha = 0.5;
-				}
-			}
-		}
-		return v;
+	public function new(type:String, comp:hxwidgets.Component, ?bubbles:Bool, ?cancelable:Bool) {
+		super(type, comp, bubbles, cancelable);
 	}
 }

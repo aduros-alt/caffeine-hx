@@ -33,6 +33,8 @@ import flash.events.Event;
 class CheckBox extends BaseButton {
 	public var checked(default, setChecked) : Bool;
 
+	override public function className() { return "CheckBox"; }
+
 	public function new(
 		id:String,
 		label:Label,
@@ -41,23 +43,23 @@ class CheckBox extends BaseButton {
 	{
 		super(id,label,onClick,null,pos);
 		checked = false;
+		onConstructed("CheckBox");
 	}
 
-	override public function getUIClassName() { return "CheckBox"; }
-	override public function setUI(obj:Dynamic) {
+	override public function setSkin(obj:Dynamic) {
+		remove(sprNormal);
+		remove(sprToggled);
 		sprNormal = obj.sprNormal;
 		sprToggled = obj.sprToggled;
 		add(sprNormal);
 		add(sprToggled);
-		repaint();
-		updateUI();
+		redraw();
 	}
 
 	function setChecked(v : Bool) : Bool {
 		if(v != checked) {
 			checked = v;
-			repaint();
-			updateUI();
+			redraw();
 		}
 		return v;
 	}
@@ -88,8 +90,8 @@ class CheckBox extends BaseButton {
 		}
 
 		if(label != null) {
-			var sb = sprNormal.bounds;
-			var lb = label.bounds;
+			var sb = sprNormal.getSpriteBounds();
+			var lb = label.getSpriteBounds();
 			lb.centerVerticalIn(sb);
 			label.x = sb.width + padding;
 			label.y = lb.y;

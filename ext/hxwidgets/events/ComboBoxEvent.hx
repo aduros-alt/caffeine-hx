@@ -25,7 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package hxwidgets.events
+package hxwidgets.events;
 
 class ComboBoxEvent extends Event {
 	public static var SELECTION_CHANGED : String = "selectionChanged";

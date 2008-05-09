@@ -30,7 +30,7 @@ import flash.display.DisplayObject;
 import flash.display.Sprite;
 
 
-class AssetContainer extends Component {
+class AssetContainer extends Container {
 	var asset : DisplayObject;
 
 	public var assetWidth(default,null) : Float;
@@ -87,5 +87,5 @@ class AssetContainer extends Component {
 		}
 	}
 
-	override public function setUI(obj:Dynamic) {}
+	override public function setSkin(obj:Dynamic) {}
 }

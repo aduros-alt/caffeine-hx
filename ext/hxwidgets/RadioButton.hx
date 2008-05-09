@@ -33,6 +33,8 @@ class RadioButton extends CheckBox {
 	static var rbGroups : Hash<List<RadioButton>> = new Hash();
 	var rbMemberOf : List<String>;
 
+	override public function className() { return "RadioButton"; }
+
 	public function new(
 		id:String,
 		label:Label,
@@ -41,16 +43,16 @@ class RadioButton extends CheckBox {
 		?pos:Point)
 	{
 		rbMemberOf  = new List();
-		super(id,label,onClick,pos);
-		checked = false;
 		if(groups != null) {
 			for(s in groups) {
 				rbSubscribeTo(s);
 			}
 		}
+		checked = false;
+		super(id,label,onClick,pos);
+		onConstructed("RadioButton");
 	}
 
-	override public function getUIClassName() { return "RadioButton"; }
 
 	override function setChecked(v) {
 		var ov = v;
