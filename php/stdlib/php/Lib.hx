@@ -34,6 +34,10 @@ class Lib {
 	public static function extensionLoaded(name : String) {
 		return untyped __call__("extension_loaded", name);
 	}
+	
+	public static function isCli() {
+		return untyped __php__("0 == strncasecmp(PHP_SAPI, 'cli', 3)");
+	}
 }
 
 

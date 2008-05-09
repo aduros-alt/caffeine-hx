@@ -386,6 +386,7 @@ class HArrayIterator {
 	}
 	
 	public function next() {
+		if(!$this->hasNext()) return null;
 		return $this->a[$this->i++];
 	}
 	
@@ -394,8 +395,9 @@ class HArrayIterator {
 	}
 }
 
-class php_HException extends Exception {
+class HException extends Exception {
 	public function __construct($e, $message = null, $code = null, $p = null) { if( !php_Boot::$skip_constructor ) {
+		$message = php_Boot::__string_rec($e) . $message;
 		parent::__construct($message,$code);
 		$this->e = $e;
 		$this->p = $p;
@@ -510,7 +512,7 @@ require_once(dirname(__FILE__).'/HArray.php')");
 				b += "\n" + s + "}";
 				return b;
 			} else if(untyped __php__("$o instanceof _typedef")) {
-				return untyped __qtype(o.__qname__);
+				return untyped o.__qname__;
 			} else {
 				if(untyped __call__("is_callable", [o, "toString"]))
 					return o.toString();

@@ -128,7 +128,7 @@ class Web {
 			case 505: code = "505 HTTP Version Not Supported";
 			default: code = Std.string(r);
 		}
-		untyped __call__('header', "HTTP/1.1 " + code, true);
+		untyped __call__('header', "HTTP/1.1 " + code, true, r);
 	}
 
 	/**
@@ -315,5 +315,15 @@ class Web {
 	**/
 	public static function flush() : Void {
 		untyped __call__("flush");
+	}
+	
+	/**
+		Get the HTTP method used by the client.
+	**/
+	public static function getMethod() : String {
+		if(untyped __php__("isset($_SERVER['REQUEST_METHOD'])")) 
+			return untyped __php__("$_SERVER['REQUEST_METHOD']");
+		else
+			return null;
 	}
 }

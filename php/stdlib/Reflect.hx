@@ -366,8 +366,6 @@ class Reflect {
 	public static function copy<T>( o : T ) : T {
 		#if neko
 		return untyped __dollar__new(o);
-		#else php
-		return untyped php.Boot.__anonymous(o);
 		#else true
 		var o2 = cast empty();
 		for( f in Reflect.fields(o) )

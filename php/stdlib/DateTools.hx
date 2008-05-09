@@ -34,55 +34,55 @@ class DateTools {
 	#if neko
 	#else true
 	private static function __jsflash_format_get( d : Date, e : String ) : String {
-		switch( e ){
+		return switch( e ){
 			case "%":
-				return "%";
+				"%";
 			case "C":
-				return untyped StringTools.lpad(Std.string(Std.int(d.getFullYear()/100)),"0",2);
+				untyped StringTools.lpad(Std.string(Std.int(d.getFullYear()/100)),"0",2);
 			case "d":
-				return untyped StringTools.lpad(Std.string(d.getDate()),"0",2);
+				untyped StringTools.lpad(Std.string(d.getDate()),"0",2);
 			case "D":
-				return __jsflash_format(d,"%m/%d/%y");
+				__jsflash_format(d,"%m/%d/%y");
 			case "e":
-				return untyped Std.string(d.getDate());
+				untyped Std.string(d.getDate());
 			case "H","k":
-				return untyped StringTools.lpad(Std.string(d.getHours()),if( e == "H" ) "0" else " ",2);
+				untyped StringTools.lpad(Std.string(d.getHours()),if( e == "H" ) "0" else " ",2);
 			case "I","l":
 				var hour = d.getHours()%12;
-				return untyped StringTools.lpad(Std.string(hour == 0 ? 12 : hour),if( e == "I" ) "0" else " ",2);
+				untyped StringTools.lpad(Std.string(hour == 0 ? 12 : hour),if( e == "I" ) "0" else " ",2);
 			case "m":
-				return untyped StringTools.lpad(Std.string(d.getMonth()+1),"0",2);
+				untyped StringTools.lpad(Std.string(d.getMonth()+1),"0",2);
 			case "M":
-				return untyped StringTools.lpad(Std.string(d.getMinutes()),"0",2);
+				untyped StringTools.lpad(Std.string(d.getMinutes()),"0",2);
 			case "n":
-				return "\n";
+				"\n";
 			case "p":
-				return untyped if( d.getHours() > 11 ) "PM"; else "AM";
+				untyped if( d.getHours() > 11 ) "PM"; else "AM";
 			case "r":
-				return __jsflash_format(d,"%I:%M:%S %p");
+				__jsflash_format(d,"%I:%M:%S %p");
 			case "R":
-				return __jsflash_format(d,"%H:%M");
+				__jsflash_format(d,"%H:%M");
 			case "s":
-				return Std.string(Std.int(d.getTime()/1000));
+				Std.string(Std.int(d.getTime()/1000));
 			case "S":
-				return untyped StringTools.lpad(Std.string(d.getSeconds()),"0",2);
+				untyped StringTools.lpad(Std.string(d.getSeconds()),"0",2);
 			case "t":
-				return "\t";
+				"\t";
 			case "T":
-				return __jsflash_format(d,"%H:%M:%S");
+				__jsflash_format(d,"%H:%M:%S");
 			case "u":
 				untyped{
 					var t = d.getDay();
-					return t == 0 ? "7" : Std.string(t);
+					if( t == 0 ) "7"; else Std.string(t);
 				}
 			case "w":
-				return untyped Std.string(d.getDay());
+				untyped Std.string(d.getDay());
 			case "y":
-				return untyped StringTools.lpad(Std.string(d.getFullYear()%100),"0",2);
+				untyped StringTools.lpad(Std.string(d.getFullYear()%100),"0",2);
 			case "Y":
-				return untyped Std.string(d.getFullYear());
+				untyped Std.string(d.getFullYear());
 			default:
-				return throw "Date.format %"+e+"- not implemented yet.";
+				throw "Date.format %"+e+"- not implemented yet.";
 		}
 	}
 
@@ -123,21 +123,6 @@ class DateTools {
 		#else flash
 			return __jsflash_format(d, f );
 		#else php
-		/*
-			var from = ['%%','%C','%d','%D','%e','%H','%I','%k','%l','%m','%M','%p','%r','%R','%s','%S','%T','%u','%w','%y','%Y'];
-			var to   = [ '%', 'C', 'd', 'D', 'e', 'H', 'I', 'k', 'l', 'm', 'i', 'p', 'r', 'R', 's', 's', 'T', 'u', 'w', 'y', 'Y'];
-			
-//          "%% %C %d %D %e %H %I %k %l %m %M %p %r %R %s %S %T %u %w %y %Y"
-//			'% 20 19 03/19/06 19 08 08  8  8 03 20 AM 08:20:03 AM 08:20 1142752803 03 08:20:03 7 0 06 2006' 
-//			'% C 19 Sun Europe/London 08 0 k Sunday 03 20 p Sun, 19 Mar 2006 08:20:03 +0000 R 03 03 GMT 000000 0 06 2006'
-
-			
-			
-			var len = from.length;
-			for(i in 0...len)
-				f = StringTools.replace(f, from[i], to[i]);
-			return untyped __call__("date", f, d.getTime());
-			*/
 			return __jsflash_format(d, f );
 		#else error
 		#end

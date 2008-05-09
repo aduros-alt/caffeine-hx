@@ -87,12 +87,7 @@ class Firebug {
 		#else (neko || php)
 			var str = inf.fileName + ":" + inf.lineNumber + " : ";
 			try str += Std.string(v) catch( e : Dynamic ) str += "???";
-			#if neko
-			neko.Lib
-			#else php
-			php.Lib
-			#end
-			.print('<script type="text/javascript">console.'+type+'(decodeURIComponent("'+StringTools.urlEncode(str)+'"))</script>');
+			neutral.Lib.print('<script type="text/javascript">console.'+type+'(decodeURIComponent("'+StringTools.urlEncode(str)+'"))</script>');
 		#else error
 		#end
 	}
