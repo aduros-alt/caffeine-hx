@@ -35,6 +35,7 @@ class HWSprite extends flash.events.EventDispatcher {
 	public var _mc(default,null) : Sprite;
 	var backgroundChild : DisplayObject;
 	var foregroundChild : DisplayObject;
+	public var _data : Dynamic;
 
 	public var alpha(getAlpha,setAlpha) : Float;
 	public var dropTarget(getDropTarget,null) : DisplayObject;
@@ -91,38 +92,6 @@ class HWSprite extends flash.events.EventDispatcher {
 		return _mc;
 	}
 
-	function setBackgroundChild(?child:DisplayObject) {
-		if(child != backgroundChild){
-			if(backgroundChild != null){
-				_mc.removeChild(backgroundChild);
-			}
-			backgroundChild = child;
-			if(child != null){
-				_mc.addChildAt(child, 0);
-			}
-		}
-	}
-
-	function getBackgroundChild():DisplayObject {
-		return backgroundChild;
-	}
-
-	function setForegroundChild(?child:DisplayObject) {
-		if(child != foregroundChild){
-			if(foregroundChild != null){
-				_mc.removeChild(foregroundChild);
-			}
-			foregroundChild = child;
-			if(child != null){
-				_mc.addChild(child);
-			}
-		}
-	}
-
-	function getForegroundChild():DisplayObject{
-		return foregroundChild;
-	}
-
 	public function getDisplay() : DisplayObject {
 		return _mc;
 	}
@@ -141,4 +110,133 @@ class HWSprite extends flash.events.EventDispatcher {
 	public function getSpriteBounds() {
 		return new hxwidgets.Rectangle(x,y,width,height);
 	}
+
+
+	////////////////////////////////////////
+	//          Child display objects     //
+	////////////////////////////////////////
+	public function addChild(v:DisplayObject) {
+		var fgi : Int = getForegroundChildIndex();
+		if(fgi >= 0) {
+			_mc.addChildAt(v, fgi);
+			onChildAdded(v, fgi);
+		}
+		else {
+			_mc.addChild(v);
+			onChildAdded(v, _mc.numChildren - 1);
+		}
+	}
+
+	public function addChildAt(v:DisplayObject, pos:Int) {
+		var fgi : Int = getForegroundChildIndex();
+		_mc.addChildAt(v, pos);
+		if(pos == 0 && backgroundChild != null) {
+			_mc.removeChild(backgroundChild);
+			_mc.addChildAt(backgroundChild, 0);
+		}
+		if( fgi >=0 && fgi < pos ) {
+			_mc.removeChild(foregroundChild);
+			_mc.addChild(foregroundChild);
+		}
+		onChildAdded(v, pos);
+	}
+
+	/**
+		Remove all children from the sprite. The background and foreground
+		can be left alone by setting saveForeground or saveBackground to true.
+	**/
+	public function clearChildren(?saveForeground : Bool, ?saveBackground : Bool) {
+		var nc = _mc.numChildren;
+		var idx : Int = 0;
+		for(i in 0...nc) {
+			if(
+				(saveBackground && _mc.getChildAt(idx) == backgroundChild) ||
+				(saveForeground && _mc.getChildAt(idx) == foregroundChild)
+			)
+			{
+				idx ++;
+				continue;
+			}
+			removeChildAt(idx);
+		}
+	}
+
+	public function contains(c : DisplayObject) {
+		return _mc.contains(c);
+	}
+
+	public function getBackgroundChild():DisplayObject {
+		return backgroundChild;
+	}
+
+	public function getForegroundChild():DisplayObject{
+		return foregroundChild;
+	}
+
+	/**
+		Get the current index of the foregroundChild object.
+		Returns -1 if the foregroundChild does not exist.
+	**/
+	public function getForegroundChildIndex(): Int {
+		var fgi : Int = -1;
+		if(foregroundChild != null) {
+			try {
+				fgi = _mc.getChildIndex(foregroundChild);
+			}
+			catch(e:Dynamic) { }
+		}
+		return fgi;
+	}
+
+	/**
+		override to set data for child added to container
+	**/
+	function onChildAdded(v : DisplayObject, pos:Int) {}
+
+	function onChildRemoved(v : DisplayObject, pos:Int) {}
+
+	public function setBackgroundChild(child:DisplayObject) {
+		if(child != backgroundChild){
+			if(backgroundChild != null){
+				_mc.removeChild(backgroundChild);
+			}
+			backgroundChild = child;
+			if(child != null){
+				_mc.addChildAt(child, 0);
+			}
+		}
+	}
+
+	public function setForegroundChild(child:DisplayObject) {
+		if(child != foregroundChild){
+			if(foregroundChild != null){
+				_mc.removeChild(foregroundChild);
+			}
+			foregroundChild = child;
+			if(child != null){
+				_mc.addChild(child);
+			}
+		}
+	}
+
+	public function removeChild(v:DisplayObject) {
+		_mc.removeChild(v);
+	}
+
+	public function removeChildAt(pos : Int) {
+		_mc.removeChildAt(pos);
+	}
+
+/*
+	override public function addEventListener(evt:String, f:Dynamic->Void, ?useCapture : Bool, ?priority : Int, ?useWeakReference : Bool )
+	{
+		_mc.addEventListener(evt, f, useCapture, priority, useWeakReference);
+	}
+	/**
+		Unsubscribe to the underlying Sprite event
+	**
+	override public function removeEventListener(evt:String, f:Dynamic->Void, ?useCapture :Bool) {
+		_mc.removeEventListener(evt, f, useCapture);
+	}
+*/
 }

@@ -225,6 +225,15 @@ class Rectangle {
 		centerVerticalIn(r);
 	}
 
+#if flash
+	/**
+		Sprite.startDrag chokes on this class.
+	**/
+	public function toFlash() : flash.geom.Rectangle {
+		return new flash.geom.Rectangle(x,y,width,height);
+	}
+#end
+
 	//////////////////////////////////////
 	//			Statics 				//
 	//////////////////////////////////////

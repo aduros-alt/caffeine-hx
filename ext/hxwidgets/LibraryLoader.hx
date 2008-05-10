@@ -32,7 +32,6 @@ package hxwidgets;
 **/
 class LibraryLoader extends AssetLoader {
 	public function new(url:String) {
-trace(here.methodName);
 		var ctx = new flash.system.LoaderContext();
 		ctx.securityDomain = flash.system.SecurityDomain.currentDomain;
 		ctx.applicationDomain = flash.system.ApplicationDomain.currentDomain;
@@ -40,7 +39,6 @@ trace(here.methodName);
 	}
 
 	override public function setAsset(newasset:flash.display.DisplayObject) {
-trace(newasset);
 		if(newasset != asset) {
 			if(asset != null) {
 				if(asset.parent == assetContainer)

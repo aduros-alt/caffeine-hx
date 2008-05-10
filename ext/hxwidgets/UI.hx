@@ -57,10 +57,10 @@ class UI {
 		if(l == null)
 			l = new List<Component>();
 		l.add(c);
-		var p : Component = c.parent;
+		var p : Component = c.parentComponent;
 		while(p != null) {
 			l.add(p);
-			p = p.parent;
+			p = p.parentComponent;
 		}
 		repaintQueue.add(l);
 	}

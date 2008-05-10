@@ -52,6 +52,7 @@ class BaseButton extends Component {
 
 	private var toggleButton : Bool;
 	private var releaseOutside : Bool;
+	private var pressInside : Bool;
 	private var sprNormal : BitmapAsset;
 	private var sprOver   : BitmapAsset;
 	private var sprToggled: BitmapAsset;
@@ -165,13 +166,14 @@ class BaseButton extends Component {
 		//trace(here.methodName);
 		_mc.y += 2; _mc.x += 1;
 		state = Press;
+		pressInside = true;
 		redraw();
 	}
 	function onRelease(e) {
 		//trace(here.methodName + " " + releaseOutside);
 		_mc.y = originalY;
 		_mc.x = originalX;
-		if(!releaseOutside) {
+		if(!releaseOutside && pressInside) {
 			state = Over;
 			if(onMouseClick != null)
 				onMouseClick(this, e);
@@ -244,7 +246,7 @@ class BaseButton extends Component {
 		}
 
 		if(spr != null) {
-			setBackground(spr);
+			setBackgroundChild(spr.getDisplay());
 			var p2 = 2*padding;
 			var p3 = p2 + padding;
 			var lblRect = new Rectangle(0,0,0,0);

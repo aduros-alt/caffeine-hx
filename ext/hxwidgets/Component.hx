@@ -50,7 +50,7 @@ class Component extends HWSprite {
 	/** Arbitrary id string **/
 	public var id(default,null) : String;
 	public var index : Int;
-	public var parent(getParent,null) : Component;
+	public var parentComponent(getParentComponent,null) : Component;
 	public var enabled(default,setEnabled) : Bool;
 	public var initialized(default, null) : Bool;
 
@@ -61,122 +61,137 @@ class Component extends HWSprite {
 	public var componentBounds(default, setComponentBounds) : hxwidgets.Rectangle;
 
 
-	private var children : Array<Component>;
-	private var background : Component;
+	private var children : List<Component>;
+	//private var background : Component;
 	private var lastSize : Dimension;
 	private var lastPosition : Point;
+
+	public function className() { return "Component"; }
 
 	public function new(id) {
 		super();
 		this.id = id;
-		children = new Array();
+		children = new List();
 		minimumSize = new Dimension(10,10);
 		maximumSize = new Dimension(100,100);
 		Reflect.setField(this,"componentBounds",new Rectangle(0,0,0,0));
 		initialized = false;
 		register(this);
+		enabled = true;
 		repaint();
 	}
 
-	public function className() { return "Component"; }
+	public function destroy() {
+		for(c in children) {
+			c.destroy();
+		}
+		_mc.parent.removeChild(_mc);
+		_mc = null;
+		var r = registry.get(id);
+		if(r == this) {
+			registry.remove(id);
+		}
+		parentComponent = null;
+	}
 
+
+	///////////////////////////////////////////////////////
+	//          Global component registry                //
+	///////////////////////////////////////////////////////
+	public static function register(c:Component) {
+		if(c.id != null && c.id != "")
+			registry.set(c.id, c);
+	}
+
+	/**
+		Find a component by it's ID string
+	**/
+	public static function findById(idstr:String) {
+		return registry.get(idstr);
+	}
+
+	///////////////////////////////////////////////////////
+	//          Parent/Child Releationship               //
+	///////////////////////////////////////////////////////
+	/**
+		Set the parent<->child relationship between components
+	**/
+	function attachChildComponent(v:Component) {
+		v.parentComponent = this;
+		for(c in children) {
+			if(c == v)
+				return;
+		}
+		children.add(v);
+	}
+
+	/**
+		Clear the parent<->child relationship between components
+	**/
+	function detachChildComponent(v:Component) {
+		v.parentComponent = null;
+		children.remove(v);
+	}
+
+	///////////////////////////////////////////////////////
+	//       Adding/Removing Child Components            //
+	///////////////////////////////////////////////////////
 	public function add(v:Component) {
-		if(v.parent != this) {
-			if(v.parent != null)
-				v.parent.remove(v);
-
+		if(v.parentComponent != this) {
+			if(v.parentComponent != null)
+				v.parentComponent.remove(v);
 		}
 		else {
 			remove(v);
 		}
-		_mc.addChild(v._mc);
-		v.parent = this;
-		children.push(v);
-	}
-
-	public function addChild(v:DisplayObject) {
-		var s = new Component("");
-		s._mc.addChild(v);
-		add(s);
+		addChild(v.getDisplay());
+		v.parentComponent = this;
+		attachChildComponent(v);
 	}
 
 	public function addAt(v:Component, pos:Int) {
-		if(v.parent != this) {
-			if(v.parent != null)
-				v.parent.remove(v);
+		if(v.parentComponent != this) {
+			if(v.parentComponent != null)
+				v.parentComponent.remove(v);
 		}
 		else {
 			remove(v);
 		}
-		_mc.addChildAt(v._mc, pos);
-		v.parent = this;
-		children.insert(pos, v);
+		addChildAt(v.getDisplay(), pos);
+		v.parentComponent = this;
+		attachChildComponent(v);
 	}
 
-	function setBackground(v:Component) {
-		if(v != background) {
-			if(background != null)
-				remove(background);
-			background = v;
-			addAt(v,0);
-		}
+	override function onChildAdded(v:DisplayObject, idx : Int) {
 	}
 
-	public function addChildAt(v:DisplayObject, pos:Int) {
-		var s = new Component("");
-		s._mc.addChild(v);
-		addAt(s, pos);
-	}
-
-	function clearChildren() {
-		var px : Int = children.length - 1;
-		while(px >=0) {
-			removeChildAt(px);
-			px = px -1;
-		}
-		while(_mc.numChildren > 0) {
-			_mc.removeChildAt(0);
-		}
-		children = new Array();
-	}
-
-	public function remove(v:Component) {
-		for(i in 0...children.length) {
-			if(children[i] == v) {
-				children.splice(i,1);
-				_mc.removeChild(v._mc);
-				v.parent = null;
+	override function onChildRemoved(v:DisplayObject, idx : Int) {
+		for(c in children) {
+			if(v == c.getDisplay()) {
+				detachChildComponent(c);
+				return;
 			}
 		}
 	}
 
-	public function removeChild(v:DisplayObject) {
-		for(i in 0...children.length) {
-			if(children[i]._mc == v) {
-				children.splice(i,1);
-				_mc.removeChild(v);
-			}
-		}
+	public function remove(v) {
+		if(v != null)
+			removeChild(v.getDisplay());
 	}
 
-	public function removeChildAt(pos : Int) {
-		if(pos < children.length) {
-			var c = children.splice(pos,1);
-			_mc.removeChildAt(pos);
-			if(c != null)
-				c[0].parent = null;
-		}
+	public function removeAt(pos : Int) {
+		removeChildAt(pos);
 	}
 
-	function getParent() { return parent; }
-
-	// xxx Do I have to do this?
-	override function setAlpha(v:Float) {
-		//trace(here.methodName);
-		super.setAlpha(v);
-		for(i in children)
-			i.setAlpha(v);
-		return v;
+	function getParentComponent() { return parentComponent; }
+	function getParentContainer() : Container
+	{
+		if(parentComponent != null) {
+			if(Std.is(parentComponent, hxwidgets.Container))
+				return cast parentComponent;
+			return parentComponent.getParentContainer();
+		}
+		return null;
 	}
 
 	function setEnabled(v) {
@@ -204,10 +219,6 @@ class Component extends HWSprite {
 	**/
 	public function setSkin(obj:Dynamic) : Void {
 		//throw "Override me";
-	}
-
-	public function destroy() {
-		_mc = null;
 	}
 
 	/**
@@ -245,8 +256,10 @@ class Component extends HWSprite {
 	}
 
 	public function setComponentBounds(r:Rectangle) {
-		setPosition(new Point(r.x, r.y));
-		setSize(new Dimension(r.width, r.height));
+		if(r != null) {
+			setPosition(new Point(r.x, r.y));
+			setSize(new Dimension(r.width, r.height));
+		}
 		return r;
 	}
 
@@ -260,11 +273,19 @@ class Component extends HWSprite {
 			lastSize = prevSize;
 			componentBounds.width = newDim.width;
 			componentBounds.height = newDim.height;
-			repaint();
+			sizeChanged();
 			dispatchEvent(
 				new SizeEvent(SizeEvent.SIZE_CHANGE, this, lastSize, newDim)
 			);
 		}
+	}
+
+	/**
+		Override this. Called after a call to setSize() determines that
+		the size is different.
+	**/
+	function sizeChanged() {
+		repaint();
 	}
 
 	public function adjustWidthValue(w) {
@@ -292,15 +313,6 @@ class Component extends HWSprite {
 		preferedSize = v;
 		dispatchEvent( e );
 		return v;
-	}
-
-	public static function register(c:Component) {
-		if(c.id != null && c.id != "")
-			registry.set(c.id, c);
-	}
-
-	public static function findById(idstr:String) {
-		return registry.get(idstr);
 	}
 
 	///////////////////////////////////////////////////////

@@ -54,9 +54,9 @@ class AssetLoader extends AssetContainer {
 	}
 
 	function onLoadComplete(e:flash.events.Event) {
-trace(here.methodName);
-trace(loader.contentLoaderInfo.parentAllowsChild);
-trace(loader.contentLoaderInfo.sameDomain);
+		//trace(here.methodName);
+		//trace(loader.contentLoaderInfo.parentAllowsChild);
+		//trace(loader.contentLoaderInfo.sameDomain);
 		setAsset(loader.content);
 		dispatchEvent(new Event(Event.COMPLETE));
 	}

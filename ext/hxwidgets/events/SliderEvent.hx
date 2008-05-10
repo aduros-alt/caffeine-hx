@@ -25,24 +25,14 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package hxwidgets;
+package hxwidgets.events;
 
+class SliderEvent extends Event {
+	public static var VALUE_CHANGED : String = "sliderValueChanged";
+	public var value : Float;
 
-class Container extends Component {
-	public function new(id:String) {
-		super(id);
-	}
-
-	public function findChildById(idstr:String) {
-		for(c in children) {
-			if(c.id == idstr)
-				return c;
-			if(Std.is(c, hxwidgets.Container)) {
-				var cc = untyped c.findChildById(idstr);
-				if(cc != null)
-					return cc;
-			}
-		}
-		return null;
+	public function new(type:String, comp:hxwidgets.Component, val : Float, ?bubbles:Bool, ?cancelable:Bool) {
+		super(type, comp, bubbles, cancelable);
+		this.value = val;
 	}
 }

@@ -27,22 +27,12 @@
 
 package hxwidgets;
 
+class AlphaColor {
 
-class Container extends Component {
-	public function new(id:String) {
-		super(id);
-	}
-
-	public function findChildById(idstr:String) {
-		for(c in children) {
-			if(c.id == idstr)
-				return c;
-			if(Std.is(c, hxwidgets.Container)) {
-				var cc = untyped c.findChildById(idstr);
-				if(cc != null)
-					return cc;
-			}
-		}
-		return null;
+	public var rgb : Int;
+	public var alpha : Float;
+	public function new(rgb : Int, alpha:Float) {
+		this.rgb = rgb;
+		this.alpha = alpha;
 	}
 }

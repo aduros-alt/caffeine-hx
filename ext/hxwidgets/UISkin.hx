@@ -83,6 +83,11 @@ class UISkin {
 			var rb = fast.node.radio;
 			obj.sprNormal = createAsset(rb.node.normal);
 			obj.sprToggled = createAsset(rb.node.checked);
+		case "Slider":
+			var sn = fast.node.slider;
+			obj.sprNormal = createAsset(sn.node.normal);
+			obj.sprOver = createAsset(sn.node.over);
+			createColors(obj, sn);
 		case "ItemList", "Label":
 		default:
 			throw c.className() + " not registered in UI";
@@ -100,6 +105,20 @@ class UISkin {
 		c.minimumSize = new Dimension(minw,minh);
 		c.maximumSize = new Dimension(maxw,maxh);
 		c.preferedSize = new Dimension(prefw,prefh);
+	}
+
+	function createColors(obj:Dynamic, fn:Fast) {
+		var oc = Reflect.empty();
+		obj.colors = oc;
+		if(!fn.hasNode.colors) return;
+		var colors = fn.node.colors;
+		for(n in colors.nodes.color) {
+			var c = new AlphaColor(
+				Std.parseInt(n.att.rgb),
+				Std.parseFloat(n.att.alpha)
+			);
+			Reflect.setField(oc,n.att.name,c);
+		}
 	}
 
 	function createAsset(fn:Fast) : AssetContainer {
