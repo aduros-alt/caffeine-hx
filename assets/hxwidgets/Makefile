@@ -17,6 +17,8 @@ hxwidgets_tan.swf: skins/Tan/btn_normal_tan.as
 			cb_checked_tan \
 			rb_normal_tan \
 			rb_checked_tan \
+			slider_one_tan \
+			slider_one_over_tan \
 		-o $@ skins/Tan/hxAssets.as
 
 clean:
