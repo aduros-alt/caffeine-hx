@@ -1,29 +1,29 @@
 <skin name="Tan" assetSwf="hxwidgets_tan.swf">
 	<button minWidth="64" minHeight="16" maxWidth="300" maxHeight="120">
-		<normal id="btn_normal_tan" type="bitmap">
+		<normal id="button_normal_tan" type="bitmap">
 			<scale9Grid x="5" y="5" width="118" height="22" />
 		</normal>
-		<over id="btn_over_tan" type="bitmap">
+		<over id="button_over_tan" type="bitmap">
 			<scale9Grid x="5" y="5" width="118" height="22" />
 		</over>
-		<press id="btn_press_tan" type="bitmap">
+		<press id="button_press_tan" type="bitmap">
 			<scale9Grid x="5" y="5" width="118" height="22" />
 		</press>
 	</button>
 
 	<checkbox minWidth="12" minHeight="12" maxWidth="12" maxHeight="12">
-		<normal id="cb_normal_tan" type="bitmap" />
-		<checked id="cb_checked_tan" type="bitmap" />
+		<normal id="checkbox_normal_tan" type="bitmap" />
+		<checked id="checkbox_checked_tan" type="bitmap" />
 	</checkbox>
 
 	<radio minWidth="12" minHeight="12" maxWidth="12" maxHeight="12">
-		<normal id="rb_normal_tan" type="bitmap" />
-		<checked id="rb_checked_tan" type="bitmap" />
+		<normal id="radio_normal_tan" type="bitmap" />
+		<checked id="radio_checked_tan" type="bitmap" />
 	</radio>
 
 	<slider minWidth="25" minHeight="15" maxWidth="1024" maxHeight="15">
-		<normal id="slider_one_tan" type="bitmap" />
-		<over id="slider_one_over_tan" type="bitmap" />
+		<normal id="slider_south_tan" type="bitmap" />
+		<over id="slider_south_over_tan" type="bitmap" />
 		<colors>
 			<color name="border" type="solid" rgb="0x787870" alpha="1.0" />
 			<color name="fill" type="solid" rgb="0x000000" alpha="1.0" />

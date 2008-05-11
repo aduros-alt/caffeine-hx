@@ -8,3 +8,10 @@
 -neko prtool.n
 -cp ext
 -main tools/PrTool.hx
+
+--next
+
+#the AS3 library builder
+-neko as3libtool.n
+-cp ext
+-main tools/AS3LibTool.hx

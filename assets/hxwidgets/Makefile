@@ -4,7 +4,10 @@
 COMPC:=compc
 MXMLC:=mxmlc
 
-all: hxwidgets_tan.swf
+all: tan
+
+tan: dummy
+	neko ../../as3libtool.n -i skins/Tan -o hxwidgets_tan.swf --build out --img-append _tan --mxmlc ~/bin/flex/bin/mxmlc
 
 hxwidgets_tan.swf: skins/Tan/btn_normal_tan.as
 	$(MXMLC) \
@@ -23,5 +26,8 @@ hxwidgets_tan.swf: skins/Tan/btn_normal_tan.as
 
 clean:
 	rm -f hxwidgets_tan.swf
+	rm -rf out
 
 dummy:
+
+
