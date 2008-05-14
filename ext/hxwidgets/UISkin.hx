@@ -85,9 +85,27 @@ class UISkin {
 			obj.sprToggled = createAsset(rb.node.checked);
 		case "Slider":
 			var sn = fast.node.slider;
-			obj.sprNormal = createAsset(sn.node.normal);
-			obj.sprOver = createAsset(sn.node.over);
 			createColors(obj, sn);
+			obj.normal = Reflect.empty();
+			obj.over = Reflect.empty();
+			var norm = sn.node.normal;
+			var over = sn.node.over;
+			obj.normal.north = createAsset(norm.node.north);
+			obj.normal.south = createAsset(norm.node.south);
+			obj.normal.west = createAsset(norm.node.west);
+			obj.normal.east = createAsset(norm.node.east);
+			obj.over.north = createAsset(over.node.north);
+			obj.over.south = createAsset(over.node.south);
+			obj.over.west = createAsset(over.node.west);
+			obj.over.east = createAsset(over.node.east);
+		case "ProgressBar":
+			var pn = fast.node.progressbar;
+			if(pn.hasNode.as3) {
+				var as3 = pn.node.as3;
+				obj.classname = as3.att.classname;
+			}
+			else
+				throw "Not complete";
 		case "ItemList", "Label":
 		default:
 			throw c.className() + " not registered in UI";

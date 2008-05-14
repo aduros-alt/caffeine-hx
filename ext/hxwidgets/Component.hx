@@ -315,6 +315,25 @@ class Component extends HWSprite {
 		return v;
 	}
 
+
+	public function centerIn(r:Rectangle) {
+		var rb = getComponentBounds();
+		rb.centerIn(r);
+		setPosition(new Point(rb.x, rb.y));
+	}
+
+	public function centerHorizontalIn(r : Rectangle) {
+		var rb = getComponentBounds();
+		rb.centerHorizontalIn(r);
+		setPosition(new Point(rb.x, rb.y));
+	}
+
+	public function centerVerticalIn(r : Rectangle) {
+		var rb = getComponentBounds();
+		rb.centerVerticalIn(r);
+		setPosition(new Point(rb.x, rb.y));
+	}
+
 	///////////////////////////////////////////////////////
 	//             Event Handlers                        //
 	///////////////////////////////////////////////////////

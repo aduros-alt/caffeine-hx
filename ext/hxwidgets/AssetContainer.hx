@@ -31,7 +31,7 @@ import flash.display.Sprite;
 
 
 class AssetContainer extends Container {
-	var asset : DisplayObject;
+	public var asset(default,null) : DisplayObject;
 
 	public var assetWidth(default,null) : Float;
 	public var assetHeight(default,null) : Float;

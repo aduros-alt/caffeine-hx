@@ -29,6 +29,8 @@ package hxwidgets;
 
 import hxwidgets.events.SliderEvent;
 
+import flash.events.MouseEvent;
+
 enum SliderState {
 	NORMAL;
 	OVER;
@@ -44,8 +46,10 @@ class Slider extends Component {
 	public var colorFill : AlphaColor;
 	/** size of the slot in pixels **/
 	public var slotSize : Int;
+	/** Send events as slider moves or when it's released only **/
+	public var updateLive : Bool;
 
-
+	private var orientation : CardinalPoints;
 	private var sliderState : SliderState;
 	private var sliderBounds : Rectangle;
 	// canvases
@@ -55,16 +59,19 @@ class Slider extends Component {
 	private var sprNormal : BitmapAsset;
 	private var sprOver : BitmapAsset;
 
-
+	private var lastEventValue : Float;
 
 	override public function className() { return "Slider"; }
 
-	public function new(id:String, ?bounds:Rectangle) {
+	public function new(id:String, orientation:CardinalPoints, ?bounds:Rectangle) {
 		super(id);
-		slotSize = 2;
+		this.slotSize = 2;
+		this.orientation = orientation;
+		this.updateLive = true;
 		sliderState = NORMAL;
 		sprSlot = new HWSprite();
 		sprIndicator = new HWSprite();
+
 		addChild(sprSlot.getDisplay());
 		addChild(sprIndicator.getDisplay());
 		setComponentBounds(bounds);
@@ -87,8 +94,20 @@ class Slider extends Component {
 			sprOver.destroy();
 		sprIndicator.clearChildren();
 
-		sprNormal = obj.sprNormal;
-		sprOver = obj.sprOver;
+		switch(orientation) {
+		case NORTH:
+			sprNormal = obj.normal.north;
+			sprOver = obj.over.north;
+		case SOUTH:
+			sprNormal = obj.normal.south;
+			sprOver = obj.over.south;
+		case WEST:
+			sprNormal = obj.normal.west;
+			sprOver = obj.over.west;
+		case EAST:
+			sprNormal = obj.normal.east;
+			sprOver = obj.over.east;
+		}
 		colorBorder = obj.colors.border;
 		colorFill = obj.colors.fill;
 
@@ -112,6 +131,7 @@ class Slider extends Component {
 			if(enabled) {
 				s.addEventListener(flash.events.MouseEvent.MOUSE_OVER, onMouseOver);
 				s.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, onPress);
+				getDisplay().addEventListener(flash.events.MouseEvent.MOUSE_DOWN, onSlotPress);
 				s.addEventListener(flash.events.MouseEvent.MOUSE_UP, onRelease);
 				s.addEventListener(flash.events.MouseEvent.MOUSE_OUT, onMouseOut);
 			}
@@ -132,17 +152,27 @@ class Slider extends Component {
 			sprNormal.visible = false;
 		}
 	}
-	function onPress(e) {
+	function onSlotPress(e:MouseEvent) {
+		if(e.currentTarget != sprIndicator.getDisplay()) {
+			e.stopImmediatePropagation();
+			setSliderValue(e.localX / (componentBounds.width - sprIndicator.width));
+			checkDispatch();
+		}
+	}
+	function onPress(e:MouseEvent) {
 		// redraw first, or the onMouseOut is fired
 		redraw();
+		e.stopImmediatePropagation();
 		sliderState = DRAGGING;
 		sprIndicator.startDrag(false, sliderBounds.toFlash());
-		sprIndicator.getDisplay().addEventListener(flash.events.MouseEvent.MOUSE_MOVE, onMouseMove);
+		if(updateLive)
+			sprIndicator.getDisplay().addEventListener(flash.events.MouseEvent.MOUSE_MOVE, onMouseMove);
 	}
 	function onRelease(e) {
 		sprIndicator.stopDrag();
 		sliderState = OVER;
 		sprIndicator.getDisplay().removeEventListener(flash.events.MouseEvent.MOUSE_MOVE, onMouseMove);
+		checkDispatch();
 		redraw();
 	}
 	function onMouseOut(e) {
@@ -158,9 +188,22 @@ class Slider extends Component {
 	}
 
 	function onMouseMove(e:flash.events.MouseEvent) {
-		dispatchEvent(
-			new SliderEvent(SliderEvent.VALUE_CHANGED, this, getSliderValue())
-		);
+		checkDispatch();
+	}
+
+	function checkDispatch() {
+		var d = false;
+		var v = getSliderValue();
+		if(Math.isNaN(lastEventValue))
+			d = true;
+		else if(Math.abs(lastEventValue - v) > 0.01)
+			d = true;
+		if(d) {
+			lastEventValue = value;
+			dispatchEvent(
+				new SliderEvent(SliderEvent.VALUE_CHANGED, this, v)
+			);
+		}
 	}
 
 	override function sizeChanged() {
@@ -207,7 +250,7 @@ class Slider extends Component {
 	public function getSliderValue() : Float {
 		var rv = 0.0;
 		if(sprIndicator != null && componentBounds != null) {
-			rv = Math.min(100, sprIndicator.x / (componentBounds.width - sprIndicator.width));
+			rv = Math.min(1.0, sprIndicator.x / (componentBounds.width - sprIndicator.width));
 		}
 		rv = Math.max(0,rv);
 		return rv;

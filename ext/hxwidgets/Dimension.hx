@@ -46,6 +46,10 @@ class Dimension {
 		return this;
 	}
 
+	public function toString() : String {
+		return "["+Std.string(width)+"x"+Std.string(height)+"]";
+	}
+
 	public static function equal(d1, d2) {
 		if(d1 == null || d2 == null) {
 			if(d1 == d2)
