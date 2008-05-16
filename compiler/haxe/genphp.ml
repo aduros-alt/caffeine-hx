@@ -1,27 +1,4 @@
 (*
-
-wrap for TDynamic or TMono 
-
-
-match follow expr.etype with
-| TFun (args,_) ->  List.iter2  (fun e arg -> .... ) el args
-| _ -> assert false
-(11.10.39) Nicolas Cannasse: "el" is your arguments expressions
-(11.10.48) Nicolas Cannasse: "arg" will be you argument
-(11.11.00) Nicolas Cannasse: (name,opt,t) 
-(11.11.21) Nicolas Cannasse: so you can simply   "match follow t" to check if the function argument is Dynamic
-
-(11.12.26) Franco Ponticelli: but in a TCall, do I have the function type and its args list? or do I have only the arg values?
-(11.13.00) Nicolas Cannasse: TCall (e,eargs)
-(11.13.04) Nicolas Cannasse: e is the function itself
-(11.13.10) Nicolas Cannasse: so if you  follow its type
-(11.13.15) Nicolas Cannasse: you should get a TFun
-(11.13.18) Franco Ponticelli: yes, correct
-(11.13.24) Franco Ponticelli: ok, seems logical :)
-(11.13.57) Nicolas Cannasse: or TDynamic (then you're out of luck because you don't know if you need to wrap or not :) )
-
-*)
-(*
  *  haXe/PHP Compiler
  *  Copyright (c)2008 Franco Ponticelli
  *  based on and including code by (c)2005-2008 Nicolas Cannasse
@@ -105,28 +82,72 @@ let s_expr_name e =
 let s_type_name t =
 	s_type (print_context()) t
 
-let is_uncertain_type t =
-	let s = s_type_name t in
-	if (String.length s > 1 && String.sub s 0 1 = "{") || s = "Dynamic" || s = "#Dynamic" || (String.length s > 7 && String.sub s 0 7 = "Unknown<") then true else false
+let rec is_uncertain_type t =
+	match follow t with
+	| TInst (c, _) -> c.cl_interface
+	| TMono _ -> true
+	| TAnon a ->
+	  (match !(a.a_status) with
+	  | Statics _
+	  | EnumStatics _ -> false
+	  | _ -> true)
+	| TDynamic _ -> true
+	| _ -> false
   
 let is_uncertain_expr e =
 	is_uncertain_type e.etype
 
-let is_anonym_expr e =
-	let s = s_expr_name e in
-	if (String.length s > 1 && String.sub s 0 1 = "{") || s = "Dynamic" || s = "#Dynamic" then true else false
+let rec is_anonym_type t =
+	match follow t with
+	| TAnon a ->
+	  (match !(a.a_status) with
+	  | Statics _
+	  | EnumStatics _ -> false
+	  | _ -> true)
+	| TDynamic _ -> true
+	| _ -> false
+	
+let is_anonym_expr e = is_anonym_type e.etype
 
-let is_unknown_expr e =
-	let s = s_expr_name e in
-	if (String.length s > 7 && String.sub s 0 7 = "Unknown<") then true else false
+let rec is_unknown_type t =
+	match follow t with
+	| TMono r ->
+		(match !r with
+		| None -> true
+		| Some t -> is_unknown_type t)
+	| _ -> false
 
-let is_array_expr e =
+let is_unknown_expr e =	is_unknown_type e.etype
+
+let rec is_array_type t =
+	match follow t with
+	| TInst ({cl_path = ([], "Array")}, _) -> true
+	| TAnon a ->
+	   (match !(a.a_status) with 
+	   | Statics ({cl_path = ([], "Array")}) -> true
+	   | _ -> false)
+	| _ -> false
+
+let is_array_expr e =  is_array_type e.etype
+(*
 	let s = s_expr_name e in
 	if (String.length s > 11 && String.sub s 0 12 = "#Null<Array<") || (String.length s > 10 && String.sub s 0 11 = "Null<Array<") || (String.length s > 6 && String.sub s 0 7 = "#Array<") || (String.length s > 5 && String.sub s 0 6 = "Array<") then true else false
+*)
 
-let is_string_expr e = (* match follow e.etype with TInst ({ cl_path = [],"String" },_) -> true | _ -> false *)
+let rec is_string_type t =
+	match follow t with
+	| TInst ({cl_path = ([], "String")}, _) -> true
+	| TAnon a ->
+	   (match !(a.a_status) with 
+	   | Statics ({cl_path = ([], "String")}) -> true
+	   | _ -> false)
+	| _ -> false
+
+let is_string_expr e = is_string_type e.etype (* match follow e.etype with TInst ({ cl_path = [],"String" },_) -> true | _ -> false *)
+(*
 	let s = s_expr_name e in
 	if s = "#Null<String>" || s = "Null<String>" || s = "#String" || s = "String" then true else false
+*)
 
 let spr ctx s = Buffer.add_string ctx.buf s
 let print ctx = Printf.kprintf (fun s -> Buffer.add_string ctx.buf s)
@@ -329,8 +350,8 @@ let s_funarg ctx arg t p o =
 			print ctx "%s%s$%s" byref (escphp ctx.quotes) arg;
 			if o then spr ctx " = null"
 		| _ ->
-			if c.cl_kind = KNormal then
-				print ctx "%s %s%s$%s = null /*%s*/" (s_path ctx c.cl_path c.cl_extern p) byref (escphp ctx.quotes) arg (if c.cl_extern then "EXTERN" else "INTERN")
+			if c.cl_kind = KNormal && not c.cl_extern then
+				print ctx "%s %s%s$%s = null" (s_path ctx c.cl_path c.cl_extern p) byref (escphp ctx.quotes) arg
 			else begin
 				print ctx "%s%s$%s" byref (escphp ctx.quotes) arg;
 				if o then spr ctx " = null"
@@ -341,7 +362,7 @@ let s_funarg ctx arg t p o =
 
 let is_in_dynamic_methods ctx e s =
 	List.exists (fun dm ->
-		(* TODO: I agree, this is a mess ... but after ours of trials and errors I gave up; maybe in a calmer day *)
+		(* TODO: I agree, this is a mess ... but after hours of trials and errors I gave up; maybe in a calmer day *)
 		((String.concat "." ((fst dm.mpath) @ ["#" ^ (snd dm.mpath)])) ^ "." ^ dm.mname) = (s_type_name e.etype ^ "." ^ s)
 	) ctx.all_dynamic_methods
 
@@ -402,7 +423,7 @@ let gen_constant ctx p = function
 	| TBool b -> spr ctx (if b then "true" else "false")
 	| TNull -> spr ctx "null"
 	| TThis -> spr ctx (this ctx)
-	| TSuper -> spr ctx "ERROR /* TODO: unexpected call to super in gen_constant */"
+	| TSuper -> spr ctx "ERROR /* unexpected call to super in gen_constant */"
 
 let rec gen_call ctx e el =
 	match e.eexpr , el with
@@ -458,6 +479,18 @@ let rec gen_call ctx e el =
 		concat ctx ", " (gen_value ctx) el;
 		spr ctx ")";
 
+and could_be_string_or_array_var s =
+	s = "length"
+		
+and gen_uncertain_string_or_array_var ctx s e =
+	match s with
+	| "length" ->
+		spr ctx "php_Boot::__len(";
+		gen_value ctx e;
+		spr ctx ")"
+	| _ ->
+		gen_field_access ctx true e s;
+		
 and gen_string_var ctx s e =
 	match s with
 	| "length" ->
@@ -484,6 +517,13 @@ and gen_string_static_call ctx s e el =
 		spr ctx ")";
 	| _ -> unsupported e.epos;
 
+and could_be_string_or_array_call s =
+	s = "toString"
+	
+and could_be_string_call s =
+	s = "substr" || s = "charAt" || s = "charCodeAt" || s = "indexOf" || 
+	s = "lastIndexOf" || s = "split" || s = "toLowerCase" || s = "toUpperCase"
+	
 and gen_string_call ctx s e el =
 	match s with
 	| "substr" ->
@@ -535,6 +575,31 @@ and gen_string_call ctx s e el =
 	| _ ->
 		unsupported e.epos;
 
+and could_be_array_call s =
+	s = "push" || s = "concat" || s = "join" || s = "pop" || s = "reverse" || 
+	s = "shift" || s = "slice" || s = "sort" || s = "splice" ||
+	s = "copy" || s = "unshift" || s = "insert" || s = "remove" || s = "iterator"
+
+and gen_uncertain_string_or_array_call ctx s e el =
+(* only toString so far *)
+	spr ctx "php_Boot::__string_rec(";
+	gen_value ctx e;
+	print ctx ")"
+	
+and gen_uncertain_string_call ctx s e el =
+	spr ctx "php_Boot::__string_call(";
+	gen_value ctx e;
+	print ctx ", \"%s\", array(" s;
+	concat ctx ", " (gen_value ctx) el;
+	spr ctx "))"
+	
+and gen_uncertain_array_call ctx s e el =
+	spr ctx "php_Boot::__array_call(array(&";
+	gen_value ctx e;
+	print ctx "), \"%s\", array(" s;
+	concat ctx ", " (gen_value ctx) el;
+	spr ctx "))"
+	
 and gen_array_call ctx s e el =
 	match s with
 	| "push" ->
@@ -799,7 +864,7 @@ and gen_expr ctx e =
 			gen_value ctx e1;
 			spr ctx "[";
 			gen_value ctx e2;
-			print ctx "]/*%s*/" (s_expr_name e1));
+			spr ctx "]");
 	| TBinop (op,e1,e2) ->
 		(match op with
 		| Ast.OpAssign ->
@@ -949,11 +1014,16 @@ and gen_expr ctx e =
 			if ctx.is_call then
 				gen_field_access ctx false e1 s 
 			else
-				gen_field_access ctx true e1 s;
+				gen_uncertain_string_or_array_var ctx s e1
 		| _ ->
-			if is_string_expr e1 then gen_string_var ctx s e1
-			else if is_array_expr e1 then gen_array_var ctx s e1
-			else gen_field_access ctx true e1 s
+			if is_string_expr e1 then
+				gen_string_var ctx s e1
+			else if is_array_expr e1 then
+				gen_array_var ctx s e1
+			else if is_uncertain_expr e1 then
+				gen_uncertain_string_or_array_var ctx s e1
+			else
+				gen_field_access ctx true e1 s
 		)
 
 	| TTypeExpr t ->
@@ -1032,12 +1102,21 @@ and gen_expr ctx e =
 		ctx.in_static <- old
 	| TCall (ec,el) ->
 		(match ec.eexpr with
-		| TField (e1,s) when is_array_expr e1 -> 
-			gen_array_call ctx s e1 el
-		| TField (e1,s) when is_static e1.etype && is_string_expr e1 -> 
-			gen_string_static_call ctx s e1 el
-		| TField (e1,s) when is_string_expr e1 -> 
-			gen_string_call ctx s e1 el
+		| TField (ef,s) when is_array_expr ef -> 
+			gen_array_call ctx s ef el
+		| TField (ef,s) when is_static ef.etype && is_string_expr ef -> 
+			gen_string_static_call ctx s ef el
+		| TField (ef,s) when is_string_expr ef -> 
+			gen_string_call ctx s ef el
+		| TField (ef,s) when is_anonym_expr ef -> 
+			if could_be_string_or_array_call s then begin
+				gen_uncertain_string_or_array_call ctx s ef el
+			end else if could_be_string_call s then begin
+				gen_uncertain_string_call ctx s ef el
+			end else if could_be_array_call s then begin
+				gen_uncertain_array_call ctx s ef el
+			end else
+				gen_call ctx ec el
 		| TCall _ ->
 			gen_call ctx ec el
 		| _ -> 
