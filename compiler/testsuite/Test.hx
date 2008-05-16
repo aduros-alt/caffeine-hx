@@ -1,7 +1,6 @@
 class Test {
 	public static function main() {
-		var runner = new unit.Runner(); 
-
+		var runner = new unit.Runner();  	
 #if (php || neko)
 		runner.register(new testneutral.TestSPOD());
 		runner.register(new testneutral.TestFileSystem());
@@ -28,10 +27,10 @@ class Test {
 		runner.register(new syntax.InterfaceAccess());
 		runner.register(new syntax.IntIteratorAccess());
 		runner.register(new syntax.MagicMethods());
-		
+		runner.register(new syntax.NativeString());
+		runner.register(new syntax.NativeArray());
 #if php
 		runner.register(new syntax.PhpDollarEscape());
-		runner.register(new syntax.PhpNatives());
 		runner.register(new syntax.PhpReservedWords());
 #end
 		runner.register(new syntax.PrivateClassAccess());
@@ -60,9 +59,7 @@ class Test {
 #if neko
 		runner.register(new stdlib.TestNekoSerialization());
 #end
-
 		runner.register(new stdlib.TestReflect());
-
 		runner.register(new stdlib.TestSerialize());
 		runner.register(new stdlib.TestStd());
 		runner.register(new stdlib.TestString());

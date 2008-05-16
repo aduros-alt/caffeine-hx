@@ -40,6 +40,8 @@ class TestStd {
 
 	public function testConv() {
 		Assert.equals( "A", Std.chr(65) );
+		// TODO: check behavior for other platforms
+		Assert.equals( null , Std.ord('') );
 		Assert.equals( 65 , Std.ord("A") );
 		Assert.equals( 65 , Std.int(65) );
 		Assert.equals( 65 , Std.int(65.456) );
@@ -51,6 +53,17 @@ class TestStd {
 		Assert.isTrue( Math.isNaN(Std.parseFloat("abc")) );
 		#end
 		Assert.equals( 255 , Std.parseInt("0xFF") );
+	}
+	
+	public function testStdRandom() {
+		var max = 100;
+		var t = 0;
+		for(i in 0...max) {
+			var x = Std.random(max);
+			t += x;
+			Assert.isTrue(x >= 0 && x < max);
+		}
+		Assert.isTrue(t > 0); // it is not strictly correct but it is quite improbable that 100 extractions result all in zeros
 	}
 
 }

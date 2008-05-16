@@ -298,8 +298,6 @@ class TestReflect {
 	}
 	#end
 
-	// TODO: when this will pass, we can remove the customized version of haxe.Template
-	// TODO: to solve this we can disable the specific error (code 8) and transform the != into !( == )
 	public function testFunctionNullityOnInstance() {
 		var o : Dynamic = this;
 		Assert.isTrue(o.f == null);
