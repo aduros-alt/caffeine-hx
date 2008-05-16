@@ -16,6 +16,10 @@ class Lib {
 		print("\n");
 	}
 	
+	public static function dump(v : Dynamic) : Void {
+		untyped __call__("var_dump", v);
+	}
+	
 	/**
 		Serialize using native PHP serialization. This will return a Binary string that can be
 		stored for long term usage.
@@ -37,6 +41,14 @@ class Lib {
 	
 	public static function isCli() {
 		return untyped __php__("0 == strncasecmp(PHP_SAPI, 'cli', 3)");
+	}
+	
+	public static function exit(?msg : String) {
+		return untyped __call__("exit", msg);
+	}
+	
+	public static function exitCode(code : Int) {
+		return untyped __call__("exit", code);
 	}
 }
 

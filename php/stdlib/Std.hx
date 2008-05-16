@@ -171,13 +171,11 @@ class Std {
 			else
 				return __dollar__sget(x.__s,0);
 		}
-		#else js
+		#else (js || php)
 		if( x == "" )
 			return null;
 		else
 			return x.charCodeAt(0);
-		#else php
-			return x.charCodeAt(0); // TODO: implement
 		#else true
 		return null;
 		#end
@@ -197,7 +195,7 @@ class Std {
 		#else js
 		Math.floor(Math.random()*x);
 		#else php
-		null; // TODO: implement
+		__call__("rand", 0, x-1);
 		#else true
 		0;
 		#end

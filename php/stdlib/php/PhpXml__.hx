@@ -182,7 +182,7 @@ class PhpXml__ {
 	public function set( att : String, value : String ) : Void {
 		if( nodeType != Xml.Element )
 			throw "bad nodeType";
-		_attributes.set( att, untyped __call__("htmlentities", value));
+		_attributes.set( att, untyped __call__("htmlspecialchars", value, __php__('ENT_COMPAT'), 'UTF-8', true));
 	}
 
 	public function remove( att : String ) : Void{

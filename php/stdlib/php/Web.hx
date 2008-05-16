@@ -326,4 +326,8 @@ class Web {
 		else
 			return null;
 	}
+	
+	public static function isModNeko() : Bool {
+		return !php.Lib.isCli();
+	}
 }

@@ -32,6 +32,10 @@ class Boot {
 		return f;
 	}
 	
+	static public function __is_lambda(s : Dynamic) : Bool {
+		return untyped __call__("is_string", s) && s.substr(0, 8) == __call__("chr", 0) + "lambda_";
+	}
+	
 	static public function __array_iterator<T>(arr : Dynamic) : Iterator<T> {
 		return untyped __php__("new HArrayIterator($arr)");
 	}
@@ -180,20 +184,14 @@ class Boot {
 	}
   
 	static public function __equal(x : Dynamic, y : Dynamic) untyped {
-/*
-		__php__("$x = self::__unbox($x)");
-		__php__("$y = self::__unbox($y)");
-*/
 		if(__call__("is_null", x)) {
 			return __call__("is_null", y);
 		} else if(__call__("is_null", y)) {
 			return false;
-		} else {
-		if((__call__("is_float", x) || __call__("is_int", x)) && (__call__("is_float", y) || __call__("is_int", y))) {
+		} else  if((__call__("is_float", x) || __call__("is_int", x)) && (__call__("is_float", y) || __call__("is_int", y))) {
 			return __php__("$x == $y");
 		} else {
 			return __php__("$x === $y");
-		}
 		}
 	}
 
@@ -225,27 +223,7 @@ class Boot {
 	static public function __byref__array_get(byref__o : Dynamic, index : Dynamic) {
 		return untyped byref__o[index];
 	}
-/*
-	static public function __box(o : Dynamic) : Dynamic untyped {
-		if(__call__("is_callable", o))
-			return o;
-		if(__call__("is_array", o))
-			return __php__("php_HArray::new1($o)");
-		else if(__call__("is_string", o))
-			return __php__("php_HString::new1($o)");
-		else
-			return o;
-	}
-	
-	static public function __unbox(o : Dynamic) : Dynamic untyped {
-		if(__php__("$o instanceof php_HArray"))
-			return untyped o.__a;
-		else if(__php__("$o instanceof php_HString"))
-			return untyped o.__s;
-		else
-			return o;
-	}
-*/
+
 	static private var __resources = [];
 	static public function __res(n : String) : String untyped {
 		if(! __php__("isset(self::$__resources[$n])")) {
@@ -255,6 +233,48 @@ class Boot {
 			__php__("self::$__resources[$n] = file_get_contents($file)");
 		}
 		return __php__("self::$__resources[$n]");
+	}
+	
+	public static function __string_call(s : Dynamic, method : String, params : Array<Dynamic>) {
+		if(!untyped __call__("is_string", s)) return untyped __php__("call_user_func_array(array($s, $method), $params)");
+		var s2 : String = s;
+		switch(method) {
+			case "toUpperCase": return untyped s2.toUpperCase();
+			case "toLowerCase": return untyped s2.toLowerCase();
+			case "charAt"     : return untyped s2.charAt(params[0]);
+			case "charCodeAt" : return untyped s2.charCodeAt(params[0]);
+			case "indexOf"    : return untyped s2.indexOf(params[0], params.length > 1 ? params[1] : null);
+			case "lastIndexOf": return untyped s2.lastIndexOf(params.length > 1 ? params[1] : null);
+			case "split"      : return untyped s2.split(params[0]);
+			case "substr"     : return untyped s2.substr(params[0], params.length > 1 ? params[1] : null);
+			default: throw "Invalid Operation: " + method;
+		}
+	}
+	
+	public static function __array_call(arr : Array<Dynamic>, method : String, params : Array<Dynamic>) {
+		if(!untyped __call__("is_array", arr[0])) return untyped __php__("call_user_func_array(array($arr, $method), $params)");
+		var a2 : Array<Dynamic> = untyped __php__("& $arr[0]");
+		switch(method) {
+			case "concat"  : return untyped a2.concat(params[0]);
+			case "copy"    : return untyped a2.copy();
+			case "insert"  : return untyped a2.insert(params[0], params[1]);
+			case "iterator": return untyped a2.iterator();
+			case "join"    : return untyped a2.join(params[0]);
+			case "pop"     : return untyped a2.pop();
+			case "push"    : return untyped a2.push(params[0]);
+			case "remove"  : return untyped a2.remove(params[0]);
+			case "reverse" : return untyped a2.reverse();
+			case "shift"   : return untyped a2.shift();
+			case "slice"   : return untyped a2.slice(params[0], params.length > 1 ? params[1] : null);
+			case "sort"    : return untyped a2.sort(params[0]);
+			case "splice"  : return untyped a2.splice(params[0], params[1]);
+			case "unshift" : return untyped a2.unshift(params[0]);
+			default: throw "Invalid Operation: " + method;
+		}
+	}
+	
+	public static function __len(o : Dynamic) {
+		return untyped __php__("is_array($o) ? count($o) : (is_string($o) ? strlen($o) : $o->length)");
 	}
   
 	static function __init__() untyped {
@@ -272,7 +292,7 @@ class Anonymous extends stdClass{
 		try {
 			return call_user_func_array($v, $a);
 		} catch(Exception $e) {
-			throw new php_HException('Unable to call «'.$m.'»');
+			throw new HException('Unable to call «'.$m.'»');
 		}
 	}
 	
@@ -458,11 +478,13 @@ require_once(dirname(__FILE__).'/HArray.php')");
 					return "[" + __ttype(c) + "]";
 			}
 		}
-		if(untyped __call__("is_callable", o))
-			return "«function»";
-		if(untyped __call__("is_string", o))
+		
+		if(untyped __call__("is_string", o)) {
+			if(__is_lambda(o)) return "«function»";
 			return o;
+		}
 		if(untyped __call__("is_array", o)) {
+			if(untyped __call__("is_callable", o)) return "«function»";
 			return "Array";
 		}
 		
@@ -490,7 +512,7 @@ require_once(dirname(__FILE__).'/HArray.php')");
 					b += '(';
 					for( i in 0...untyped __call__("count", o.params) ) {
 						if(i > 0) 
-							b += ',' + __string_rec(o.params[i],s);
+							b += ', ' + __string_rec(o.params[i],s);
 						else
 							b += __string_rec(o.params[i],s);
 					}
@@ -515,7 +537,7 @@ require_once(dirname(__FILE__).'/HArray.php')");
 				return untyped o.__qname__;
 			} else {
 				if(untyped __call__("is_callable", [o, "toString"]))
-					return o.toString();
+					return untyped __php__("$o->toString()");
 				else if(untyped __call__("is_callable", [o, "__toString"]))
 					return o.__toString();
 				else
@@ -523,21 +545,20 @@ require_once(dirname(__FILE__).'/HArray.php')");
 			}
 		}
 			
-		if(untyped __call__("is_callable", o))
-			return "«function»";
-			
-		if(untyped __call__("is_string", o))
+		if(untyped __call__("is_string", o)) {
+			if(__is_lambda(o)) return "«function»";
 			if(s != null)
-				return '"'+untyped __call__("str_replace", '"', '\"', o)+'"';
+				return '"'+untyped __call__("str_replace", '"', '\\"', o)+'"';
 			else
 				return o;
-			
+		}
 			
 		if(untyped __call__("is_array", o)) {
+			if(untyped __call__("is_callable", o)) return "«function»";
 			var str = "[";
 			s += "\t";
 			for( i in 0...untyped __call__("count", o) )
-				str += (if (i > 0) "," else "")+__string_rec(untyped o[i],s);
+				str += (if (i > 0) ", " else "")+__string_rec(untyped o[i],s);
 			str += "]";
 			return str;
 		}

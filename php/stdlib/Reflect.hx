@@ -68,7 +68,13 @@ class Reflect {
 		#else neko
 			return __dollar__typeof(o) == __dollar__tobject && __dollar__objfield(o,__dollar__hash(field.__s));
 		#else php
-			return __php__("is_object($o) && (method_exists($o, $field) || isset($o->$field) || property_exists($o, $field))");
+			return __php__("
+			(is_object($o) && (method_exists($o, $field) || isset($o->$field) || property_exists($o, $field)))
+			||
+			(is_string($o) && (in_array($field, array('toUpperCase', 'toLowerCase', 'charAt', 'charCodeAt', 'indexOf', 'lastIndexOf', 'split', 'substr', 'toString', 'length'))))
+			||
+			(is_array($o)  && (in_array($field, array('concat', 'copy', 'insert', 'iterator', 'join', 'pop', 'push', 'remove', 'reverse', 'shift', 'slice', 'sort', 'splice', 'unshift', 'toString', 'length'))))
+			");
 		#else error
 		#end
 		}
@@ -103,8 +109,49 @@ class Reflect {
 						} else {
 							return __php__("eval('return '.$o->__tname__.'::$'.$field.';')");
 						}
+					} else if(__call__("is_string", o)) {
+						if(field == 'length')
+							return php.Boot.__len(o);
+						else {
+							switch(field) {
+								case 'charAt':      return php.Boot.__closure(__php__("array('o' => $o)"), '$index', 'return substr($o, $index,1 );');
+								case 'charCodeAt':  return php.Boot.__closure(__php__("array('o' => $o)"), '$index', 'return ord(substr($o, $index, 1));');
+								case 'indexOf':     return php.Boot.__closure(__php__("array('o' => $o)"), '$value,$startIndex', 'return php_Boot::__index_of($o, $value, $startIndex);');
+								case 'lastIndexOf': return php.Boot.__closure(__php__("array('o' => $o)"), '$value,$startIndex', 'return php_Boot::__last_index_of($o, $value, $startIndex);');
+								case 'split':       return php.Boot.__closure(__php__("array('o' => $o)"), '$delimiter', 'return explode($delimiter, $o);');
+								case 'substr':      return php.Boot.__closure(__php__("array('o' => $o)"), '$pos,$len', 'return php_Boot::__substr($o, $pos, $len);');
+								case 'toUpperCase': return php.Boot.__closure(__php__("array('o' => $o)"), '', 'return strtoupper($o);');
+								case 'toLowerCase': return php.Boot.__closure(__php__("array('o' => $o)"), '', 'return strtolower($o);');
+								case 'toString':    return php.Boot.__closure(__php__("array('o' => $o)"), '', 'return $o;');
+							}
+							return null;
+						}
+					} else if(__call__("is_array", o)) {
+						if(field == 'length')
+							return php.Boot.__len(o);
+						else
+							switch(field) {
+								case 'concat':   return php.Boot.__closure(__php__("array('o' => &$o)"), '$a', 'return array_merge($o, $a);');
+								case 'join':     return php.Boot.__closure(__php__("array('o' => &$o)"), '$sep', 'return join($sep, $o);');
+								case 'pop':      return php.Boot.__closure(__php__("array('o' => &$o)"), '', 'return array_pop($o);');
+								case 'push':     return php.Boot.__closure(__php__("array('o' => &$o)"), '$x', 'return array_push($o, $x);');
+								case 'reverse':  return php.Boot.__closure(__php__("array('o' => &$o)"), '', 'return rsort($o);');
+								case 'shift':    return php.Boot.__closure(__php__("array('o' => &$o)"), '', 'return array_shift($o);');
+								case 'slice':    return php.Boot.__closure(__php__("array('o' => &$o)"), '$pos,$end', 'return php_Boot::__array_slice(array(&$o), $pos, $end);');
+								case 'sort':     return php.Boot.__closure(__php__("array('o' => &$o)"), '$f', 'return php_Boot::__array_sort($o, $f);');
+								case 'splice':   return php.Boot.__closure(__php__("array('o' => &$o)"), '$pos,$len', 'return php_Boot::__array_splice(array(&$o), $pos, $len);');
+								case 'toString': return php.Boot.__closure(__php__("array('o' => &$o)"), '', 'return "[".join(", ", $o)."]";');
+								case 'unshift':  return php.Boot.__closure(__php__("array('o' => &$o)"), '$x', 'return array_unshift($o, $x);');
+								case 'insert':   return php.Boot.__closure(__php__("array('o' => &$o)"), '$pos,$x', 'return php_Boot::__array_insert(array(&$o), $pos, $x);');
+								case 'remove':   return php.Boot.__closure(__php__("array('o' => &$o)"), '$x', 'return php_Boot::__array_remove(array(&$o), $x);');
+								case 'iterator': return php.Boot.__closure(__php__("array('o' => &$o)"), '', 'return new HArrayIterator($o);');
+								case 'copy':     return php.Boot.__closure(__php__("array('o' => $o)"), '', 'return $o;');
+							}
+							return null;
 					} else if(__php__("property_exists($o, $field)")) {
-						if(__php__("is_callable($o->$field)")) {
+						if(__php__("is_array($o->$field) && is_callable($o->$field)")) {
+							return __php__("$o->$field");
+						} else if(__php__("is_string($o->$field) && php_Boot::__is_lambda($o->$field)")) {
 							return __php__("array($o, $field)");
 						} else {
 							return __php__("$o->$field");
@@ -142,26 +189,24 @@ class Reflect {
 	/**
 		Call a method with the given object and arguments.
 	**/
-	public static function callMethod( o : Dynamic, func : Dynamic, args : Array<Dynamic> ) : Dynamic {
-		return untyped
+	public static function callMethod( o : Dynamic, func : Dynamic, args : Array<Dynamic> ) : Dynamic untyped {
 		#if flash9
-			func.apply(o,args)
+			return func.apply(o,args);
 		#else flash
-			func["apply"](o,args)
+			return func["apply"](o,args);
 		#else js
-			func.apply(o,args)
+			return func.apply(o,args);
 		#else neko
-			__dollar__call(func,o,args.__neko())
+			return __dollar__call(func,o,args.__neko());
 		#else php
-			__php__("call_user_func_array(
-						is_callable($func) ?
-							$func
-						:
-							array($o, $func)
-						, $args)")
+			if(__call__("is_string", o) || __call__("is_array", o)) {
+				if(args.length == 0) return field(o, func)();
+				else if(args.length == 1) return field(o, func)(args[0]);
+				else return field(o, func)(args[0], args[1]);
+			}
+			return __php__("call_user_func_array(is_callable($func) ? $func : array($o, $func) , $args)");
 		#else error
 		#end
-			;
 	}
 
 	/**
@@ -226,7 +271,7 @@ class Reflect {
 				return Array.new1(a,l);
 			}
 		#else php
-			return __php__("array_keys(get_object_vars($o))");
+			return __php__("is_array($o) ? array('concat', 'copy', 'insert', 'iterator', 'length', 'join', 'pop', 'push', 'remove', 'reverse', 'shift', 'slice', 'sort', 'splice', 'toString', 'unshift') : (is_string($o) ? array('charAt', 'charCodeAt', 'indexOf', 'lastIndexOf', 'length', 'split', 'substr', 'toLowerCase', 'toString', 'toUpperCase') : array_keys(get_object_vars($o)))");
 		#else error
 		#end
 		}
@@ -246,7 +291,10 @@ class Reflect {
 		#else neko
 			__dollar__typeof(f) == __dollar__tfunction
 		#else php
-			__php__("is_callable($f)")
+			// TODO: test me for String/Array values
+			__php__("(is_array($f) && is_callable($f)) || php_Boot::__is_lambda($f)")
+			||
+			(__php__("is_array($f)") && hasField(f[0], f[1]) && f[1] != "length")
 		#else error
 		#end
 			;
@@ -265,6 +313,7 @@ class Reflect {
 	**/
 	public static function compareMethods( f1 : Dynamic, f2 : Dynamic ) : Bool {
 		#if php
+		// TODO: test me for String/Array values
 		if( f1 == f2 )
 			return true;
 		if( !isFunction(f1) || !isFunction(f2) )
@@ -322,7 +371,13 @@ class Reflect {
 		var t = __js__("typeof(v)");
 		return (t == "string" || (t == "object" && !v.__enum__) || (t == "function" && v.__name__ != null));
 		#else php
-		return false; // TODO
+		if( v == null )
+			return false;
+		if(__call__("is_object", v))
+			return __php__("$v instanceof Anonymous") || Type.getClass(v) != null;
+		if(__php__("is_string($v) && !php_Boot::__is_lambda($v)")) return true;
+		if(__php__("is_array($v) && !is_callable($v)")) return true;
+		return false;
 		#else error
 		#end
 	}
@@ -367,6 +422,7 @@ class Reflect {
 		#if neko
 		return untyped __dollar__new(o);
 		#else true
+		if(untyped __call__("is_string", o) || untyped __call__("is_array", o)) return o;
 		var o2 = cast empty();
 		for( f in Reflect.fields(o) )
 			Reflect.setField(o2,f,Reflect.field(o,f));

@@ -37,7 +37,7 @@ class Md5 {
 		#else js
 			return __jsflash_encode(s);
 		#else php
-			return untyped __php__("md5")(s); // TODO
+			return untyped __call__("md5", s);
 		#else error
 		#end
 	}

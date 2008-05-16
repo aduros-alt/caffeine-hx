@@ -108,6 +108,7 @@ class Type {
 				return __php__("php_Boot::__ttype('Array')");
 			}
 			if(untyped __call__("is_string", o)) {
+				if(php.Boot.__is_lambda(untyped o)) return null;
 				return __php__("php_Boot::__ttype('String')");
 			}
 			var c = __php__("get_class")(o);
@@ -330,6 +331,9 @@ class Type {
 			if( args.length >= 6 ) throw "Too many arguments";
 			return untyped __new__(cl,args[0],args[1],args[2],args[3],args[4],args[5]);
 		#else php
+		// TODO: test me for String/Array values
+			if(cl.__qname__ == 'Array') return [];
+			if(cl.__qname__ == 'String') return args[0];
 			var c = cl.__rfl__;
 			return __php__("$inst = $c->getConstructor() ? $c->newInstanceArgs($args) : $c->newInstanceArgs()");
 		#else error
@@ -363,6 +367,8 @@ class Type {
 			__dollar__objsetproto(o,cl.prototype);
 			return o;
 		#else php
+			if(cl.__qname__ == 'Array') return [];
+			if(cl.__qname__ == 'String') return '';
 			try {
 				php.Boot.skip_constructor = true;
 				var m = __php__("$cl->__rfl__->getConstructor()");
@@ -408,7 +414,10 @@ class Type {
 		#if flash9
 			return describe(c,true);
 		#else php
+		// TODO: test me for String/Array values
 			untyped __php__("
+			if($c->__qname__ == 'String') return array('substr', 'charAt', 'charCodeAt', 'indexOf', 'lastIndexOf', 'split', 'toLowerCase', 'toUpperCase', 'toString', 'length');
+			if($c->__qname__ == 'Array') return array('push', 'concat', 'join', 'pop', 'reverse', 'shift', 'slice', 'sort', 'splice', 'toString', 'copy', 'unshift', 'insert', 'remove', 'iterator', 'length');
 			$ms = $c->__rfl__->getMethods();
 			$ps = $c->__rfl__->getProperties();
 			$r = array();
@@ -447,7 +456,10 @@ class Type {
 			a.remove("__construct__");
 			return a;
 		#else php
+		// TODO: test me for String/Array values
 			untyped __php__("
+			if($c->__qname__ == 'String') return array('fromCharCode');
+			if($c->__qname__ == 'Array') return array();
 			$ms = $c->__rfl__->getMethods();
 			$ps = $c->__rfl__->getProperties();
 			$r = array();
@@ -580,7 +592,7 @@ class Type {
 		}
 		if(__call__("is_string", v)) {
 			if(__call__("class_exists", v)) return TObject;
-			if(__call__("is_callable", v)) return TFunction;
+			if(php.Boot.__is_lambda(v)) return TFunction;
 			return TClass(String);
 		}
 		if(__call__("is_bool", v)) return TBool;
