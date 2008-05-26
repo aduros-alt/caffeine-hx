@@ -222,13 +222,39 @@ class StringTools {
 		return s.split(sub).join(by);
 	}
 
+//BEGINPR/rw01/2008-05-23//Russell Weir/Replace all chars
+	/**
+		Replace all characters that are in [sub] with the string [by]
+	**/
+	public static function replaceAll(s : String, sub : String, by : String) : String {
+
+		var rv : String = "";
+		var subs = new Hash<Bool>();
+		var l = sub.length;
+		for(i in 0...l) {
+			subs.set(sub.charAt(i), true);
+		}
+		l = s.length;
+		for(i in 0...l) {
+			var c = s.charAt(i);
+			if(subs.get(c) != null)
+				rv += by;
+			else
+				rv += c;
+		}
+		return rv;
+	}
+//ENDPR/rw01///
+
 //BEGINPR/rw01/2008-03-02//Russell Weir/Replace recursive
 	/**
 		Continues to replace [sub] with [by] until no more instances of [sub] exist.
 	**/
-	public static function replaceAll( s : String, sub : String, by : String ) : String {
+	public static function replaceRecurse( s : String, sub : String, by : String ) : String {
 		if(sub.length == 0)
 			return replace(s, sub, by);
+		if(by.indexOf(sub) >= 0)
+			throw "Infinite recursion";
 		var ns : String = s.toString();
 		var olen = 0;
 		var nlen = ns.length;
