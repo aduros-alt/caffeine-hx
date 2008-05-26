@@ -29,10 +29,10 @@ package crypt;
 //import crypt.Base.CryptMode;
 
 #if neko
-enum Keycontext {
+private enum NekoKeycontext {
 }
 #else true
-typedef Keycontext = {
+private typedef Keycontext = {
 	var rounds : Int;
 	var rk : Array<Array<Int>>;
 };
@@ -46,8 +46,13 @@ class Aes implements IBlockCipher {
 	public var blockSize(getBlockSize,null) : Int;
 	//TODO: neko needs to respect this flag
 	var initialized : Bool;
+#if !neko
 	var encKey : Keycontext;
 	var decKey : Keycontext;
+#else true
+	var encKey : NekoKeycontext;
+	var decKey : NekoKeycontext;
+#end
 
 	public function new(keylen : Int, phrase:String) {
 		setKeylen(keylen);
