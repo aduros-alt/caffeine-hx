@@ -25,7 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package couchdb;
+package protocols.couchdb;
 
 import formats.json.JsonObject;
 import formats.json.JsonArray;

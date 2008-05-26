@@ -25,7 +25,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package couchdb;
+package protocols.couchdb;
+
 /**
 	DocumentOptions are used in Database.open(). To fetch a specific revision
 	of a document, db.open(id, new DocumentOptions().byRevision("abcdef"))

@@ -25,7 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package couchdb;
+package protocols.couchdb;
 
 /**
 	A view Filter, which limits the rows returned in a view.

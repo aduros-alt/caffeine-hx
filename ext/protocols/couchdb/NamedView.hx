@@ -25,7 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package couchdb;
+package protocols.couchdb;
 
 /**
 	A view that exists in the design documents of the database.

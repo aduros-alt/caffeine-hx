@@ -25,7 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package couchdb;
+package protocols.couchdb;
 
 /**
 	A DesignView is a View that is stored in a Database's design document.
