@@ -30,7 +30,25 @@ package protocols.couchdb;
 import formats.json.JsonObject;
 
 /**
-	A dynamic, or "AdHoc", View.
+	A dynamic, or "AdHoc", View. Some map examples: <br />
+	function (doc) { emit(doc._id, { Name: doc.name} ); } <br />
+<pre>
+{"id":"0","key":"0","value":{"Name":"Jill"}},
+{"id":"1","key":"1","value":{"Name":"Judy"}},
+{"id":"2","key":"2","value":{"Name":"Jim"}},
+</pre>
+	A 'senior citizens' map function<br />
+	function (doc) { if (doc.age >= 65) { emit(null, {Name:doc.name, Age: doc.age}); }}<br />
+<pre>
+"id":"5","key":null,"value":{"Name":"Jack","Age":89}},
+{"id":"6","key":null,"value":{"Name":"Judy","Age":92}},
+{"id":"9","key":null,"value":{"Name":"Jaqueline","Age":89}}
+</pre>
+<br />
+A reduce function: <br />
+<pre>
+function(keys, values) { return sum(values); };
+</pre>
 **/
 
 /*
@@ -91,7 +109,7 @@ class View {
 	/**
 		The map function, if one exists.
 	**/
-	function getMapFunction() : String {
+	public function getMapFunction() : String {
 		return json.optString("map", null);
 	}
 
@@ -113,14 +131,14 @@ class View {
 	/**
 		The reduce function, if one exists
 	**/
-	function getReduceFunction() : String {
+	public function getReduceFunction() : String {
 		return json.optString("reduce", null);
 	}
 
 	/**
 		Setting the filter to null removes it.
 	**/
-	function setFilter(f : Filter) : Filter {
+	public function setFilter(f : Filter) : Filter {
 		this.filter = f;
 		return f;
 	}
@@ -128,7 +146,7 @@ class View {
 	/**
 		Set the language interpreter for this view script
 	**/
-	function setLanguage(v : String) : String {
+	public function setLanguage(v : String) : String {
 		// when not provided, javascript is the default that CouchDB will use
 		if(v == null)
 			//json.set("language", "javascript");
@@ -138,7 +156,7 @@ class View {
 		return v;
 	}
 
-	function setMapFunction(code : String) : String {
+	public function setMapFunction(code : String) : String {
 		if(code == null)
 			json.remove("map");
 		else
@@ -147,7 +165,7 @@ class View {
 	}
 
 
-	function setReduceFunction(code:String) : String {
+	public function setReduceFunction(code:String) : String {
 		if(code == null)
 			json.remove("reduce");
 		else

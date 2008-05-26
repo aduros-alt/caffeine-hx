@@ -96,7 +96,10 @@ class DesignDocument extends Document {
 		}
 		dv.setDesignDocument(this);
 		var k = "views." + dv.getName();
-		set(k, dv.toString());
+		var def = dv.getDefinition();
+		// the language is not needed in the view records.
+		Reflect.deleteField(def, "language");
+		set(k, def);
 	}
 
 	/**
@@ -115,11 +118,13 @@ class DesignDocument extends Document {
 	}
 
 	/**
-		Get a view. If it does not exist in the collection, null will be returned
+		Get a view. If it does not exist in the collection, null will be returned. If you
+		modify the view that is returned, and want it save, re-add it to the
+		DesignDocument with addView()
 	**/
 	public function getView(viewName : String) : DesignView {
 		var v = null;
-		var n = "view." + viewName;
+		var n = "views." + viewName;
 		if (has(n)) {
 			var o = new JsonObject(get(n));
 			v = new DesignView(
@@ -128,6 +133,7 @@ class DesignDocument extends Document {
 				o.optString("reduce", null),
 				this.language
 			);
+			v.setDesignDocument(this);
 		}
 		return v;
 	}
@@ -152,6 +158,7 @@ class DesignDocument extends Document {
 	}
 
 	public function removeViewNamed(name:String) {
+trace(here.methodName);
 		remove("views." + name);
 	}
 }

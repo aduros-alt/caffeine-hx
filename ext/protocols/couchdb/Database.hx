@@ -92,7 +92,7 @@ class Database {
 		Delete supplied document
 	**/
 	public function delete(d : Document) : Bool {
-		var t = session.delete(name+"/"+d.getId() + "?rev=" + d.getRevision());
+		var t = session.delete(this.uri + StringTools.urlEncode(d.getId()) + "?rev=" + d.getRevision());
 		if(t.isOk())
 			return true;
 		return false;
@@ -123,6 +123,19 @@ class Database {
 		var doc = new Document(t.getJsonObject());
 		doc.setDatabase(this);
 		return doc;
+	}
+
+	/**
+	**/
+	public function openDesignDocument(ddName : String, ?options:DocumentOptions) {
+		var doc: DesignDocument = cast open("_design/"+ddName, options);
+		if(doc == null) return null;
+
+		var dd : DesignDocument = new DesignDocument(ddName,"javascript",this);
+		dd.clear();
+		dd.setAll(doc.data);
+		dd.setName(ddName);
+		return dd;
 	}
 
 	/**

@@ -28,7 +28,8 @@
 package protocols.couchdb;
 
 /**
-	A view that exists in the design documents of the database.
+	A view that exists in the design documents of the database. The name parameter
+	should be a uri without a leading slash, ie. testviews/by_age
 **/
 class NamedView extends View  {
 
@@ -37,5 +38,13 @@ class NamedView extends View  {
 		this.name = name;
 	}
 
-
+	override public function getPathEncoded() : String {
+		var pp = name.split("/");
+		var u  = "";
+		for(i in pp) {
+			if(u != "") u += "/";
+			u += StringTools.urlEncode(i);
+		}
+		return "_view/" + u;
+	}
 }

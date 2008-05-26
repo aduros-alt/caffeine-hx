@@ -28,7 +28,10 @@
 package protocols.couchdb;
 
 /**
-	A DesignView is a View that is stored in a Database's design document.
+	A DesignView is a View that is stored in a Database's design document. The name
+	parameter should be the name of this view without the DesignDocument name. That
+	is, if the DesignDocument is named 'testviews', and this DesignView is supposed
+	to be testviews/by_age, the name of this DesignView should be set to by_age only.
 **/
 
 /*
@@ -52,8 +55,7 @@ class DesignView extends NamedView {
 		Return the name URL encoded, the full path for this view.
 	**/
 	override public function getPathEncoded() : String {
-		//var fullpath = "_view/" + document.name + "/" + name;
-		var fullpath = StringTools.urlEncode("" + document.name + "/" + name);
+		var fullpath = "_view/" + StringTools.urlEncode(document.name) + "/" + StringTools.urlEncode(name);
 		return fullpath;
 	}
 

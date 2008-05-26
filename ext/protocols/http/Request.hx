@@ -46,6 +46,8 @@ private typedef AbstractSocket = {
 class Request {
 
 	public var url : String;
+	public var requestText(default,null) : String;
+	public var status(default, null) : Int;
 #if neko
 	public var noShutdown : Bool;
 	public var cnxTimeout : Float;
@@ -395,7 +397,7 @@ class Request {
 			else
 				sock.connect(new neko.net.Host(host),port);
 			sock.write(b.toString());
-			trace(b.toString());
+			this.requestText = b.toString();
 			if( multipart ) {
 				var bufsize = 4096;
 				var buf = neko.Lib.makeString(bufsize);
@@ -484,7 +486,7 @@ class Request {
 		var headers = b.toString().split("\r\n");
 		var response = headers.shift();
 		var rp = response.split(" ");
-		var status = Std.parseInt(rp[1]);
+		status = Std.parseInt(rp[1]);
 
 		if( status == 0 || status == null )
 			throw "Response status error";

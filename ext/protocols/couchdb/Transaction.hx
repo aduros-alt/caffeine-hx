@@ -174,6 +174,13 @@ class Transaction {
 	}
 
 	/**
+		Return Http status code
+	**/
+	public function getStatus() : Int {
+		return http.status;
+	}
+
+	/**
 		True if the Transaction is successful
 	**/
 	public function isOk() : Bool {

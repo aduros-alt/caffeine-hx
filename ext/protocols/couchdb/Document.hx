@@ -49,6 +49,18 @@ class Document extends JsonObject {
 	}
 
 	/**
+		Clearing a document preserves it's _id and _rev, so only the
+		data is cleared.
+	**/
+	override public function clear() {
+		var oid = id;
+		var orev = revision;
+		super.clear();
+		id = oid;
+		revision = orev;
+	}
+
+	/**
 		Get the Document id, if it has been set.
 	**/
 	public function getId() : String { return optString("_id"); }

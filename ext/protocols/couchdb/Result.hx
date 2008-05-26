@@ -34,14 +34,22 @@ import formats.json.JsonArray;
 	A Result set for a query, much like that in any relational database.
 **/
 class Result extends Document {
+	// only for debugging.
+	static var SAVE_OUTPUT_REQUEST : Bool = false;
+
 	public var rowCount(default, null) : Int;
 	public var offset(default, null) : Int;
 	public var ok(default,null) : Bool;
+	/** only available if the view has a reduce function, but is
+	also stored as the first row.value **/
+	public var value(default,null) : Dynamic;
 
 	private var view : View;
 	private var result : Dynamic;
 	private var errId : String;
 	private var errReason : String;
+
+	private var outputRequest : String;
 
 	public function new(d: Database, v : View, t : Transaction) {
 		/**
@@ -55,6 +63,8 @@ class Result extends Document {
 		}
 		**/
 		super();
+		if(SAVE_OUTPUT_REQUEST)
+			this.outputRequest = untyped t.http.requestText;
 		this.database = d;
 		this.view = v;
 		if(!t.isOk()) {
@@ -83,9 +93,11 @@ class Result extends Document {
 					throw "Unhandled exception. Contact developers.";
 				} catch(e : Dynamic) {}
 				this.rowCount = 1;
+				var v = get("result");
+				value = v;
 				this.data =
 				{
-					rows : [{id: null, key:null, value: get("result")}]
+					rows : [{id: null, key:null, value: v}]
 				};
 			}
 			else {
@@ -93,7 +105,6 @@ class Result extends Document {
 				this.offset = getInt("offset");
 			}
 		}
-		trace(Std.string(data));
 	}
 
 	/**
@@ -149,6 +160,14 @@ class Result extends Document {
 	**/
 	public function isOk() {
 		return ok;
+	}
+
+	/**
+		Only available if the view has a reduce function, but is
+		also stored as the first row.value
+	**/
+	public function getValue() : Dynamic {
+		return value;
 	}
 
 	/**

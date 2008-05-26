@@ -45,7 +45,6 @@ class Row extends Document {
 	public function new(db : Database, o:JsonObject) {
 		super(o);
 		this.database = db;
-		trace(Std.string(o));
 
 		this.key = o.getString("key");
 		try {
