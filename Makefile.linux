@@ -12,7 +12,7 @@ clean-neko:
 	find . -name "*.n" -exec rm {} \;
 
 clean-docs:
-	cd ext/Doc && $(RM) index.html && $(RM) -r content
+	cd ext/Doc && $(RM) index.html && cd content && find . -name "*.html" -exec rm {} \;
 
 clean-dllbuilds:
 	cd dll_src && find . -name "*.ndll" -exec rm {} \;
@@ -22,9 +22,9 @@ clean-exttests:
 
 distclean: clean clean-kate clean-neko clean-dllbuilds clean-docs
 
-docs:
+docs: clean-docs
 	cd ext && haxe all.hxml
-	cd ext/Doc && haxedoc "../flash.xml;flash\" \"../neko.xml;neko\" \"../js.xml;js"
+	cd ext/Doc && haxedoc "../flash.xml;flash" "../neko.xml;neko" "../js.xml;js"
 	cd ext && $(RM) *.swf *.n *.js *.xml
 
 tools: dummy
