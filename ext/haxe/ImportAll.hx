@@ -81,6 +81,10 @@ import formats.der.Sequence;
 import formats.der.Set;
 import formats.der.Types;
 import formats.der.UTCTime;
+import formats.json.JsonArray;
+import formats.json.JsonException;
+import formats.json.JSON;
+import formats.json.JsonObject;
 
 import hash.HMAC;
 import hash.Md5;
@@ -650,8 +654,22 @@ import math.reduction.Null;
 
 import protocols.Mime;
 import protocols.http.Cookie;
+import protocols.http.Request;
 
 #if neko
+import protocols.couchdb.Database;
+import protocols.couchdb.DesignDocument;
+import protocols.couchdb.DesignView;
+import protocols.couchdb.Document;
+import protocols.couchdb.DocumentOptions;
+import protocols.couchdb.Filter;
+import protocols.couchdb.NamedView;
+import protocols.couchdb.Result;
+import protocols.couchdb.Row;
+import protocols.couchdb.Session;
+import protocols.couchdb.Transaction;
+import protocols.couchdb.View;
+
 import servers.http.Range;
 //import servers.http.hive.Client;
 //import servers.http.hive.Handler;
