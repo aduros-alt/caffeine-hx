@@ -60,51 +60,10 @@ class JsonObject {
 	}
 
 	/**
-		Descend down an object dot notation path to recover the object there.
-		Returns null if the object, or any path part, does not exist.
+		Erases all keys/data
 	**/
-	public function get(k : String) : Dynamic {
-		if(data == null) return null;
-
-		var kp = k.split(".");
-		var o = data;
-		for(i in kp) {
-			if(!Reflect.hasField(o, i)) {
-				return null;
-			}
-			o = Reflect.field(o, i);
-		}
-		return o;
-	}
-
-	public function set(k :String, v : Dynamic) {
-		if(data == null)
-			data = {};
-		var kp = k.split(".");
-		var o = data;
-		var lastO = data;
-		var key : String;
-		for(i in kp) {
-			lastO = o;
-			if(!Reflect.hasField(o, i))
-				Reflect.setField(o, i, {});
-			o = Reflect.field(o, i);
-			key = i;
-		}
-		if(Std.is(v, JsonObject))
-			Reflect.setField(lastO, key, v.data);
-		else
-			Reflect.setField(lastO, key, v);
-	}
-
-	/**
-		TODO: merge with/seperate from concat()
-	**/
-	public function setAll(o:Dynamic) {
-		if(!Reflect.isObject(o))
-			throw new JsonException("Must be an object");
-		for(i in Reflect.fields(o))
-			data.set(i, Reflect.field(o, i));
+	public function clear() {
+		data = {};
 	}
 
 	/**
@@ -123,18 +82,23 @@ class JsonObject {
 		return nj;
 	}
 
-	public function has(k : String) : Bool {
-		if(data == null) return false;
+	/**
+		Descend down an object dot notation path to recover the object there.
+		Returns null if the object, or any path part, does not exist.
+	**/
+	public function get(k : String) : Dynamic {
+		if(data == null) return null;
+
 		var kp = k.split(".");
 		var o = data;
 		for(i in kp) {
-			if(!Reflect.hasField(o, i))
-				return false;
+			if(!Reflect.hasField(o, i)) {
+				return null;
+			}
 			o = Reflect.field(o, i);
 		}
-		return true;
+		return o;
 	}
-
 
 	/**
 		Returns a bool.
@@ -232,6 +196,20 @@ class JsonObject {
 		return Std.string(o);
 	}
 
+	/**
+		Check if key [k] exists
+	**/
+	public function has(k : String) : Bool {
+		if(data == null) return false;
+		var kp = k.split(".");
+		var o = data;
+		for(i in kp) {
+			if(!Reflect.hasField(o, i))
+				return false;
+			o = Reflect.field(o, i);
+		}
+		return true;
+	}
 
 	public function optBool(key:String, ?defaultValue : Bool) : Bool {
 		return try {
@@ -265,6 +243,9 @@ class JsonObject {
 		}
 	}
 
+	/**
+		Remove data on key [k]
+	**/
 	public function remove(k :String) {
 		if(data == null) {
 			data = {};
@@ -284,6 +265,38 @@ class JsonObject {
 		Reflect.deleteField(lastO, key);
 	}
 
+	/**
+		Set key [k] to value [v]
+	**/
+	public function set(k :String, v : Dynamic) {
+		if(data == null)
+			data = {};
+		var kp = k.split(".");
+		var o = data;
+		var lastO = data;
+		var key : String;
+		for(i in kp) {
+			lastO = o;
+			if(!Reflect.hasField(o, i))
+				Reflect.setField(o, i, {});
+			o = Reflect.field(o, i);
+			key = i;
+		}
+		if(Std.is(v, JsonObject))
+			Reflect.setField(lastO, key, v.data);
+		else
+			Reflect.setField(lastO, key, v);
+	}
+
+	/**
+		Add all fields from object o to this
+	**/
+	public function setAll(o:Dynamic) {
+		if(!Reflect.isObject(o))
+			throw new JsonException("Must be an object");
+		for(i in Reflect.fields(o))
+			Reflect.setField(data,i, Reflect.field(o, i));
+	}
 }
 
 
