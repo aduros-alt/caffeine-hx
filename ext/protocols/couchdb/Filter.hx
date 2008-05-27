@@ -42,12 +42,13 @@ class Filter {
 	/** the last key to include in the result set **/
 	public var endKey : Dynamic;
 
+	/** get a specific key **/
 	public var key : Dynamic;
 
 	/** rows to skip **/
 	public var skip : Int;
 
-	/** the first key to use in result set **/
+	/** the first key to start building a result set. See notes in setStartKey() **/
 	public var startKey : Dynamic;
 
 	/** The starting document ID **/
@@ -59,12 +60,7 @@ class Filter {
 	public function new( ) {
 		this.update = false;
 	}
-/*
-<damienkatz> kris, there is a built in view _all_docs_by_seq
-<damienkatz> GET /db/_all_docs_by_seq
-<damienkatz> it uses the same start key and endkey stuff. It's used by the replicator.
-<damienkatz> kris: the seq num is per node, its doesn't replicate.
-*/
+
 	/**
 		The query params to be added to the URL for this Query
 	**/
@@ -113,6 +109,9 @@ class Filter {
 		return this;
 	}
 
+	/**
+		Fetch a specific key
+	**/
 	public function setKey(v : Dynamic) : Filter {
 		this.key = v;
 		return this;
@@ -127,7 +126,11 @@ class Filter {
 	}
 
 	/**
-		Key to start at
+		Key to start after. This is not the key that will be first in the Result set, but rather
+		the key that marks when to start collecting rows. This makes paging very simple in that the
+		next page would be startKey'd by the last record in the current view. If you wish to include
+		the key in the set, follow the http://wiki.apache.org/couchdb/ViewCollation order of keys, and
+		reduce your startkey by one level of precedence.
 	**/
 	public function setStartKey(v : Dynamic) : Filter {
 		this.startKey = v;
