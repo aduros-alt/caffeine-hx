@@ -2,7 +2,16 @@
 --override
 -cp ../../
 -debug
--neko wordcount.n
+-neko createwordcount.n
+
+--next
+
+-main AddBook
+--override
+-cp ../../
+-debug
+-neko addbook.n
+
 
 --next
 

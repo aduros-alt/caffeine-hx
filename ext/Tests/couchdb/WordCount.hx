@@ -12,7 +12,7 @@ class WordCount {
 	static var DBNAME : String = "word-count-example";
 	static var FILES : Array<String> = ['da-vinci.txt', 'outline-of-science.txt', 'ulysses.txt'];
 
-	static function recordText() {
+	static function recreateDatabase() {
 		var session = new Session("localhost", 5984);
 		try {
 			session.deleteDatabaseByName(DBNAME);
@@ -20,34 +20,6 @@ class WordCount {
 		var db = session.createDatabase(DBNAME);
 		if(db == null)
 			throw "Unable to create database";
-		for(book in FILES) {
-			var title = book.split('.')[0];
-			var fi = neko.io.File.read(book, false);
-
-			var lines : Array<String> = new Array();
-			var chunk = 0;
-			var cont : Bool = true;
-			while(cont) {
-				try {
-					lines.push(fi.readLine());
-				}
-				catch(e:neko.io.Eof) {
-					cont = false;
-				}
-				if(lines.length > 100 || !cont) {
-					db.save(new Document(new JsonObject(
-						{
-							title : title,
-							chunk : chunk,
-							text : lines.join('')
-						}
-					)));
-					chunk++;
-					lines = [];
-				}
-			}
-		}
-
 	}
 
 	static function createDesign() {
@@ -56,8 +28,6 @@ class WordCount {
 		if(db == null)
 			throw "Unable to open database";
 		var dd = new DesignDocument("word_count", null, db);
-
-
 		var word_count = {
 			map :
 			"function(doc) { " +
@@ -91,9 +61,7 @@ class WordCount {
 	}
 
 	static public function main() {
-		recordText();
+		recreateDatabase();
 		createDesign();
-		neko.Lib.println("The books have been stored in your CouchDB. To initiate the MapReduce process, visit http://localhost:5984/_utils/ in your browser and click 'word-count-example', then select view 'words' or 'count'. The process could take about 15 minutes.");
 	}
-
 }
