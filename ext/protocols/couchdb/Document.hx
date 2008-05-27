@@ -40,12 +40,10 @@ class Document extends JsonObject {
 	private var database : Database;
 
 	/**
-		Create a new document. It can be created from an JSON object.
+		Create a new document.
 	**/
-	public function new(?json:JsonObject) {
-		super(null);
-		if(json != null)
-			this.data = json.data;
+	public function new(?def:Dynamic) {
+		super(def);
 	}
 
 	/**

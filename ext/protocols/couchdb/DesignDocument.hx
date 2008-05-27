@@ -158,7 +158,6 @@ class DesignDocument extends Document {
 	}
 
 	public function removeViewNamed(name:String) {
-trace(here.methodName);
 		remove("views." + name);
 	}
 }

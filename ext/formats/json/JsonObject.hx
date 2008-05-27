@@ -32,7 +32,7 @@ class JsonObject {
 	public var data(default,null) : Dynamic;
 
 	/**
-		Initial data may be a JSON formatted String, or an
+		Initial data may be a JSON formatted String, JsonObject, or an
 		Object, or null.
 	**/
 	public function new(?initialData : Dynamic) {
@@ -40,6 +40,8 @@ class JsonObject {
 			this.data = {};
 		else if(Std.is(initialData, String))
 			this.data = JSON.decode(initialData);
+		else if(Std.is(initialData, JsonObject))
+			this.data = initialData.data;
 		else if(Reflect.isObject(initialData))
 			this.data = initialData;
 		else
