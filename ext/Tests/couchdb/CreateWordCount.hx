@@ -8,7 +8,7 @@ import protocols.couchdb.Row;
 import protocols.couchdb.View;
 import formats.json.JsonObject;
 
-class WordCount {
+class CreateWordCount {
 	static var DBNAME : String = "word-count-example";
 	static var FILES : Array<String> = ['da-vinci.txt', 'outline-of-science.txt', 'ulysses.txt'];
 
