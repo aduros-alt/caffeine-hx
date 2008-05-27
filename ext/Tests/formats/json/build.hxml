@@ -1,0 +1,26 @@
+-cp ../../../
+-neko test.n
+-main Tests
+
+--next
+
+-cp ../../../
+-js test.js
+-main Tests
+
+--next
+
+-cp ../../../
+-swf test9.swf
+-swf-version 9
+-swf-header 800:600:1:FFFFFF
+-main Tests
+
+--next
+
+-cp ../../../
+-swf test8.swf
+-swf-version 8
+-swf-header 800:600:1:FFFFFF
+-main Tests
+

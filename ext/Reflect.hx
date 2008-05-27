@@ -62,7 +62,7 @@ class Reflect {
 			if( o.hasOwnProperty != null )
 				return o.hasOwnProperty(field);
 			var arr = fields(o);
-			for( t in arr.iterator() )
+			for( t in arr )
 				if( t == field ) return true;
 			return false;
 		#else neko
@@ -187,12 +187,10 @@ class Reflect {
 				return new Array<String>();
 			else {
 				var a = __dollar__objfields(o);
-				var i = 0;
 				var l = __dollar__asize(a);
-				while( i < l ) {
+				for(i in 0 ... l)
 					a[i] = new String(__dollar__field(a[i]));
-					i++;
-				}
+				
 				return Array.new1(a,l);
 			}
 		#else hllua

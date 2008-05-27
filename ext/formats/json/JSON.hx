@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2008, The Caffeine-hx project contributors
  * Original author : Ritchie Turner, Copyright (c) 2007 ritchie@blackdog-haxe.com
- * Contributors: Russell Weir
+ * Contributors: Russell Weir, Danny Wilson
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -24,15 +24,19 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-/*
-* The Software shall be used for Good, not Evil.
-*
-* Updated for haxe by ritchie turner
-* Copyright (c) 2007 ritchie@blackdog-haxe.com
-*
-* There are control character things I didn't bother with.
-*/
 
+/*
+ * The Software shall be used for Good, not Evil.
+ *
+ * Updated for haxe by ritchie turner
+ * Copyright (c) 2007 ritchie@blackdog-haxe.com
+ *
+ * There are control character things I didn't bother with.
+ */
+
+/*
+ * Danny: added control character support based on: http://www.json.org/json2.js
+ */
 
 package formats.json;
 
@@ -43,102 +47,86 @@ class JSON {
 	/**
 		Encode an object to JSON
 	**/
-	public static function encode(v:Dynamic) : String {
-		var e = new Encode(v);
-		return e.getString();
+	public static inline function encode(v:Dynamic) : String {
+		return Encode.convertToString(v);
 	}
 
 	/**
 		Decode a string to an Object
 	**/
-	public static function decode(v:String) : Dynamic	{
-		var d = new Decode(v);
-		return d.getObject();
+	public static inline function decode(v:String) : Dynamic {
+		return new Decode(v).getObject();
 	}
 }
 
 private class Encode {
 
-	var jsonString:String;
-
-	public function new(value:Dynamic ) {
-		jsonString = convertToString( value );
+	public static function convertToString(value:Dynamic):String {
+		if (value == null)					return "null";
+		if (Std.is(value,String))			return escapeString(Std.string(value));
+		else if (Std.is(value,Float))		return Math.isFinite(value) ? Std.string(value) : "null";
+		else if (Std.is(value,Bool))		return value ? "true" : "false";
+		else if (Std.is(value,Array))		return arrayToString(value);
+		else if (Std.is(value,List))		return listToString(value);
+		else if (Reflect.isObject(value))	return objectToString( value );
+		
+		throw new JsonException("JSON.encode() failed");
 	}
 
-	public function getString():String {
-		return jsonString;
-	}
-
-	function convertToString(value:Dynamic):String {
-
-		if (Std.is(value,String)) {
-			return escapeString(Std.string(value));
-
-		} else if (Std.is(value,Float)) {
-			return Math.isFinite(value) ? Std.string(value) : "null";
-
-		} else if (Std.is(value,Bool)) {
-			return value ? "true" : "false";
-
-		} else if (Std.is(value,Array)) {
-			return arrayToString(value);
-
-		}  else if (Std.is(value,List)) {
-	trace("process a list");
-			return listToString(value);
-		} else if (value != null && Reflect.isObject(value)) {
-			return objectToString( value );
-
-		}
-
-		return "null";
-	}
-
-	function escapeString( str:String ):String {
+	private static function escapeString( str:String ):String {
+		var ch:Int;
 		var s = new StringBuf();
-		var ch:String;
-		var i = 0;
-		while ((ch = str.charAt( i )) != ""){
+		var addChar = s.addChar;
+		
+		for (i in 0 ... str.length){
+			#if neko 
+				ch = neko.Utf8.charCodeAt(str, i);
+			#else true
+				ch = str.charCodeAt(i);
+			#end
 			switch ( ch ) {
-				case '"':	// quotation mark
-					s.add('\\"');
-				case '\\':	// reverse solidus
-					s.add("\\\\");
-				case '\\b':	// backspace
-					s.add("\\b");
-				case '\\f':	// form feed
-					s.add("\\f");
-				case '\\n':	// newline
-					s.add("\\n");
-				case '\\r':	// carriage return
-					s.add("\\r");
-				case '\\t':	// horizontal tab
-					s.add("\\t");
-				default: // skipped encoding control chars here
-					s.add(ch);
+				case 34:	s.add('\\"');	// quotation mark	"
+				case 92:	s.add("\\\\");	// reverse solidus	\
+				case 8:		s.add("\\b");	// backspace		\b
+				case 12:	s.add("\\f");	// form feed		\f
+				case 10:	s.add("\\n");	// newline			\n
+				case 13:	s.add("\\r");	// carriage return	\r
+				case 9:		s.add("\\t");	// horizontal tab	\t
+				default:
+					if( (ch >= 0 && ch <= 31)			/* \x00-\x1f */
+					 || (ch >= 127 && ch <= 159)		/* \x7f-\x9f */
+					 ||  ch == 173						/* \u00ad */
+					 ||  ch >= 1536 && 					// -- Breaks the if sooner :-)
+						(    ch <= 1540					/* \u0600-\u0604 */
+						||  ch == 1807					/* \u070f */
+						||  ch == 6068					/* \u17b4 */
+						||  ch == 6069					/* \u17b5 */
+						|| (ch >= 8204 && ch <= 8207)	/* \u200c-\u200f */
+						|| (ch >= 8232 && ch <= 8239)	/* \u2028-\u202f */
+						|| (ch >= 8288 && ch <= 8303)	/* \u2060-\u206f */
+						||  ch == 65279					/* \ufeff */
+						|| (ch >= 65520 && ch <= 65535)	/* \ufff0-\uffff */
+						)
+					) s.add("\\u" + StringTools.hex(ch, 4));
+					
+					addChar(ch);
 			}
-			i++;
-		}	// end for loop
+			
+		}
 
 		return "\"" + s.toString() + "\"";
 	}
 
-	function arrayToString( a:Array<Dynamic> ):String {
-
+	private static function arrayToString( a:Array<Dynamic> ):String {
 		var s = new StringBuf();
-
-		var i:Int= 0;
-
-		while(i < a.length) {
-
+		for(i in 0 ... a.length) {
 			s.add(convertToString( a[i] ));
 			s.add(",");
-			i++;
 		}
 		return "[" + s.toString().substr(0,-1) + "]";
 	}
 
-	function objectToString( o:Dynamic):String {
+	private static function objectToString( o:Dynamic):String {
 		var s = new StringBuf();
 		if ( Reflect.isObject(o)) {
 			if (Reflect.hasField(o,"__cache__")) {
@@ -148,25 +136,25 @@ private class Encode {
 			}
 			var value:Dynamic;
 			var sortedFields = Reflect.fields(o);
-			sortedFields.sort(function(k1, k2) { if (k1 == k2) return 0; if (k1 < k2) return -1; return 1;});
+			sortedFields.sort(function(k1, k2) { return (k1 == k2) ? 0 : (k1 < k2) ? -1 : 1; });
 			for (key in sortedFields) {
 				value = Reflect.field(o,key);
-
+				
 				if (Reflect.isFunction(value))
 					continue;
-
+				
 				s.add(escapeString( key ) + ":" + convertToString( value ));
 				s.add(",");
 			}
-		}  else {
-
+		}
+		else {
 			for(v in Reflect.fields(o)) {
 				s.add(escapeString(v) + ":" + convertToString( Reflect.field(o,v) ));
 				s.add(",");
 			}
 			var sortedFields = Reflect.fields(o);
 			sortedFields.sort(function(k1, k2) { if (k1 == k2) return 0; if (k1 < k2) return -1; return 1;});
-
+			
 			for(v in sortedFields) {
 				s.add(escapeString(v) + ":" + convertToString( Reflect.field(o,v)));
 				s.add(",");
@@ -175,15 +163,15 @@ private class Encode {
 		return "{" + s.toString().substr(0,-1) + "}";
 	}
 
-	function listToString( l: List<Dynamic>) :  String {
+	private static function listToString( l: List<Dynamic>) :  String {
 		var s:StringBuf = new StringBuf();
 		var i:Int= 0;
-
+		
 		for(v in l) {
 		s.add(convertToString( v ));
 		s.add(",");
 		}
-
+		
 		return "[" + s.toString().substr(0,-1) + "]";
 	}
 }
@@ -216,10 +204,10 @@ private class Decode {
 		catch(e : JsonException) {
 			throw(e);
 		}
-		catch (e : Dynamic) {
-			throw(new JsonException("unhandled error"));
+	/*	catch (e : Dynamic) {
+			throw(new JsonException("unhandled error "+Std.string(e)));
 		}
-		return {};
+	*/	return {};
 	}
 
 	function error(m):Void {
@@ -229,33 +217,30 @@ private class Decode {
 	function next() {
 		ch = text.charAt(at);
 		at += 1;
-		if (ch == '') return ch = '0';
+		if (ch == '') return ch = null;
 		return ch;
 	}
 
 	function white() {
-		while (Std.bool(ch)) {
+		while (ch != null) {
 			if (ch <= ' ') {
 				next();
 			} else if (ch == '/') {
 				switch (next()) {
 					case '/':
-						while (Std.bool(next()) && ch != '\n' && ch != '\r') {}
+						while (next() != null && ch != '\n' && ch != '\r') {}
 						break;
 					case '*':
 						next();
 						while (true) {
-							if (Std.bool(ch)) {
-								if (ch == '*') {
-									if (next() == '/') {
-										next();
-										break;
-									}
-								} else {
-									next();
-								}
-							} else {
+							if (ch == null)
 								error("Unterminated comment");
+							
+							if (ch == '*' && next() == '/') {
+								next();
+								break;
+							} else {
+								next();
 							}
 						}
 						break;
@@ -269,59 +254,52 @@ private class Decode {
 	}
 
 	function str():String {
-		var i, s = '', t, u;
+		var s = new StringBuf(), t:Int, u:Int;
 		var outer:Bool = false;
 
-		if (ch == '"') {
-			while (Std.bool(next())) {
-				if (ch == '"') {
-					next();
-					return s;
-				} else if (ch == '\\') {
-					switch (next()) {
-
-
-				/*	case 'b':
-						s += "\\b";
-						break;
-
-					case 'f':
-						s += '\f';
-						break;
-*/
-					case 'n':
-						s += '\n';
-					case 'r':
-						s += '\r';
-					case 't':
-						s += '\t';
-					case 'u':			// unicode
-						u = 0;
-						for (i in 0...4) {
-							t = Std.parseInt(next());
-							if (!Math.isFinite(t)) {
-								outer = true;
-								break;
-							}
-							u = u * 16 + t;
-						}
-						if(outer) {
-							outer = false;
+		if (ch != '"') {
+			error("This should be a quote");
+			return '';
+		}
+		
+		while (next() != null) {
+			if (ch == '"') {
+				next();
+				return s.toString();
+			} else if (ch == '\\') {
+				switch (next()) {
+				case 'n': s.addChar(10);	// += '\n';
+				case 'r': s.addChar(13);	// += '\r';
+				case 't': s.addChar(9);		// += '\t';
+				case 'u': // unicode
+					u = 0;
+					for (i in 0...4) {
+						t = Std.parseInt(next());
+						if (!Math.isFinite(t)) {
+							outer = true;
 							break;
 						}
-						s += String.fromCharCode(u);
-					default:
-						s += ch;
+						u = u * 16 + t;
 					}
-				} else {
-					s += ch;
+					if(outer) {
+						outer = false;
+						break;
+					}
+					#if neko 
+						var utf = new neko.Utf8(4); utf.addChar(u);
+						s.add(utf.toString());
+					#else true
+						s.addChar(u);
+					#end
+				default:
+					s.add(ch);
 				}
+			} else {
+				s.add(ch);
 			}
-		} else {
-			error("ok this should be a quote");
 		}
 		error("Bad string");
-		return s;
+		return s.toString();
 	}
 
 	function arr():Array<Dynamic> {
@@ -334,7 +312,7 @@ private class Decode {
 				next();
 				return a;
 			}
-			while (Std.bool(ch)) {
+			while (ch != null) {
 				var v:Dynamic;
 				v = value();
 				a.push(v);
@@ -356,7 +334,7 @@ private class Decode {
 	function obj():Dynamic {
 		var k;
 		var o = Reflect.empty();
-
+		
 		if (ch == '{') {
 			next();
 			white();
@@ -364,7 +342,7 @@ private class Decode {
 				next();
 				return o;
 			}
-			while (Std.bool(ch)) {
+			while (ch != null) {
 				k = str();
 				white();
 				if (ch != ':') {
@@ -374,7 +352,7 @@ private class Decode {
 				var v:Dynamic;
 				v = value();
 				Reflect.setField(o,k,v);
-
+				
 				white();
 				if (ch == '}') {
 					next();
@@ -393,7 +371,7 @@ private class Decode {
 	function num():Float {
 		var n = '';
 		var v:Float;
-
+		
 		if (ch == '-') {
 			n = '-';
 			next();
@@ -458,23 +436,17 @@ private class Decode {
 		white();
 		var v:Dynamic;
 		switch (ch) {
-			case '{':
-				v = obj() ;
-			case '[':
-				v = arr();
-			case '"':
-				v = str();
-			case '-':
-				v = num();
+			case '{':	v = obj();
+			case '[':	v = arr();
+			case '"':	v = str();
+			case '-':	v = num();
 			default:
-				if (ch >= '0' && ch <= '9'){
+				if (ch >= '0' && ch <= '9')
 					v = num();
-				}else {
-					v = word() ;
-				}
+				else
+					v = word();
 		}
 		return v;
 	}
 
 }
-

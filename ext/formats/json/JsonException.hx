@@ -37,4 +37,8 @@ class JsonException {
 		this.at = at;
 		this.text = text;
 	}
+	public function toString()
+	{
+		return "JSON Exception: "+msg;
+	}
 }
