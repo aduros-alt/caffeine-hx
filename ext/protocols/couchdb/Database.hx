@@ -34,6 +34,11 @@ import formats.json.JSON;
 /**
 	A couchdb Database interface to create, get, delete, update Documents and perform View operations.
 **/
+/*
+How Do I Use Replication?
+POST /_replicate?source=$source_database&target=$target_database
+Where $source_database and $target_database can be the names of local database or full URIs of remote databases. Both databases need to be created before they can be replicated from or to.
+*/
 class Database {
 	/** this is the name as returned by CouchDB **/
 	public var name(default, null) : String;
@@ -99,13 +104,19 @@ class Database {
 	}
 
 	/**
-		Return all documents in database, optionally past a revision.
-		Runs either "_all_docs" or the "_all_docs_by_update_seq?startkey=revision" view.
+		Return all documents in database. This is keyed on the revision, so a filter
+		could specify a starting revision number.
 	**/
-	public function getAllDocuments(?revision:String) : Result {
-		if(revision == null || revision == "")
-			return view("_all_docs");
-		return view("_all_docs_by_seq?startkey=" + revision);
+	public function getAll(?filter : Filter) : Result {
+		return view("_all_docs", filter);
+	}
+
+	/**
+		Ordered list of Documents by seq number. Filter could have a startKey or endKey
+		to limit the results.
+	**/
+	public function getAllBySeq(?filter : Filter) : Result {
+		return view("_all_docs_by_seq", filter);
 	}
 
 	/**

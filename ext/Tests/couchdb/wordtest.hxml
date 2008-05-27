@@ -1,0 +1,13 @@
+-main WordCount
+--override
+-cp ../../
+-debug
+-neko wordcount.n
+
+--next
+
+-main WordCountQuery
+--override
+-cp ../../
+-debug
+-neko wordquery.n

@@ -115,7 +115,7 @@ class Couch {
 		if(db == null) {
 			throw "exit";
 		}
-		var result : Result = db.getAllDocuments();
+		var result : Result = db.getAll();
 		//trace(result.getView());
 		var rows = result.getRows();
 

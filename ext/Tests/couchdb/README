@@ -1,0 +1,15 @@
+
+The WordCount example is base3d on the Ruby code at
+http://jchris.mfdz.com/posts/106
+
+In order to run it, the three texts will need to be fetched from http://github.com/jchris/couchrest/tree/master/examples/word_count or get your own favourite large texts at Project Gutenburg http://www.gutenberg.org/, and change the WordCount.hx file to load your texts.
+
+The first step is to run wordcount.n, which will populate the database. Each of the views will take some time to generate. Run them by opening your browser to:
+
+http://localhost:5984/word-count-example/_view/word_count/count
+http://localhost:5984/word-count-example/_view/word_count/words
+
+After that completes, the following url should load instantly
+http://localhost:5984/word-count-example/_view/word_count/words?startkey=[%22flight%22]&endkey=[%22flight%22,%22Z%22]
+
+The demo for the newly indexed database is the file wordquery.n . Run it to see results from the Views that were generated in step 1.

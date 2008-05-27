@@ -37,7 +37,7 @@ class Result extends Document {
 	// only for debugging.
 	static var SAVE_OUTPUT_REQUEST : Bool = false;
 
-	public var rowCount(default, null) : Int;
+	public var rowCount(getRowCount, null) : Null<Int>;
 	public var offset(default, null) : Int;
 	public var ok(default,null) : Bool;
 	/** only available if the view has a reduce function, but is
@@ -101,8 +101,12 @@ class Result extends Document {
 				};
 			}
 			else {
-				this.rowCount = getInt("total_rows");
-				this.offset = getInt("offset");
+				// this is not correct in any view that defines a startkey or endkey, it
+				// returns the total rows in the database
+				// this.rowCount = getInt("total_rows");
+				// the Null<rowCount> will not be updated unless it is requested
+				this.rowCount = null;
+				this.offset = optInt("offset",0);
 			}
 		}
 	}
@@ -132,6 +136,19 @@ class Result extends Document {
 			}
 		}
 		return rv;
+	}
+
+	public function getRowCount() : Int {
+		if(rowCount == null) {
+			if(!has("rows")) {
+				rowCount = 0;
+			}
+			else {
+				var a = getJsonArray("rows");
+				rowCount = a.length;
+			}
+		}
+		return rowCount;
 	}
 
 	/**
