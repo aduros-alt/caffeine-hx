@@ -58,7 +58,7 @@ class Filter {
 	public var update : Bool;
 
 	public function new( ) {
-		this.update = false;
+		this.update = true;
 	}
 
 	/**
