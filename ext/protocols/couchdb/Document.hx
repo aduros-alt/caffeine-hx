@@ -42,8 +42,10 @@ class Document extends JsonObject {
 	/**
 		Create a new document.
 	**/
-	public function new(?def:Dynamic) {
+	public function new(?def:Dynamic,?id:String) {
 		super(def);
+		if(id != null)
+			setId(id);
 	}
 
 	/**
