@@ -42,17 +42,29 @@ class Syslog implements EventLog {
 		this.level = level;
 	}
 
-	public function debug(s:String) : Void { log(s,"user.debug"); }
-	public function info(s:String) : Void { log(s,"user.info"); }
-	public function notice(s : String) : Void { log(s,"user.notice"); }
-	public function warn(s : String) : Void { log(s,"user.warning"); }
-	public function error(s : String) : Void { log(s,"user.err" ); }
-	public function critical(s : String) : Void { log(s,"user.crit"); }
-	public function alert(s : String) : Void { log(s,"user.alert"); }
-	public function emerg(s : String) : Void { log(s,"user.emerg"); }
+	public function debug(s:String) : Void { log(s,DEBUG); }
+	public function info(s:String) : Void { log(s,INFO); }
+	public function notice(s : String) : Void { log(s,NOTICE); }
+	public function warn(s : String) : Void { log(s,WARN); }
+	public function error(s : String) : Void { log(s,ERROR); }
+	public function critical(s : String) : Void { log(s,CRITICAL); }
+	public function alert(s : String) : Void { log(s,ALERT); }
+	public function emerg(s : String) : Void { log(s,EMERG); }
 
-	function log(s:String, lvl:String) {
-		neko.Sys.command(loggerCmd, ["-i", "-p", lvl, "-t", StringTools.urlEncode(PROGNAME), s]);
+	function log(s:String, lvl:LogLevel) {
+		if(Type.enumIndex(lvl) >= Type.enumIndex(level)) {
+			var priority : String = switch(lvl) {
+			case DEBUG: "user.debug";
+			case INFO: "user.info";
+			case NOTICE: "user.notice";
+			case WARN: "user.warning";
+			case ERROR: "user.err";
+			case CRITICAL: "user.crit";
+			case ALERT: "user.alert";
+			case EMERG: "user.emerg";
+			}
+			neko.Sys.command(loggerCmd, ["-i", "-p", priority, "-t", StringTools.urlEncode(PROGNAME), s]);
+		}
 	}
 }
 #end
