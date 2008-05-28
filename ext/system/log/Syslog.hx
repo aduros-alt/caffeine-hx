@@ -37,7 +37,7 @@ class Syslog implements EventLog {
 
 	var PROGNAME : String;
 
-	public function new(service: String, file : String, level:LogLevel) {
+	public function new(service: String, level:LogLevel) {
 		PROGNAME = service;
 		this.level = level;
 	}
