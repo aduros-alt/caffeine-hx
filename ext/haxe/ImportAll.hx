@@ -683,6 +683,9 @@ import servers.http.hive.ThreadPollServer;
 import servers.http.hive.TypesHttp;
 #end
 
+#if (neko || hllua)
+import system.log.File;
+#end
 #if neko
 import xdiff.Tools;
 #end

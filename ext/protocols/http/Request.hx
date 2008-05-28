@@ -48,6 +48,7 @@ class Request {
 	public var url : String;
 	public var requestText(default,null) : String;
 	public var status(default, null) : Int;
+	public var ignoreResponse : Bool;
 #if neko
 	public var noShutdown : Bool;
 	public var cnxTimeout : Float;
@@ -412,7 +413,8 @@ class Request {
 				sock.write(boundary);
 				sock.write("--");
 			}
-			readHttpResponse(api,sock);
+			if(!ignoreResponse)
+				readHttpResponse(api,sock);
 			sock.close();
 		} catch( e : Dynamic ) {
 			try sock.close() catch( e : Dynamic ) { };
