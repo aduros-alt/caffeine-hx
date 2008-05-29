@@ -1,0 +1,4 @@
+-cp ../../../
+-hllua hllua
+-main Tests
+

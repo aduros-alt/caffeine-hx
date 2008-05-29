@@ -27,7 +27,7 @@
 
 module ("Haxe", package.seeall)
 require "Array"
---require "std"
+require "std"
 require "HLLString"
 
 Array.__name__ = Array:new({"Array"});
@@ -186,7 +186,7 @@ end
 function findMethodByRef(o,func,follow)
 	dprint("Haxe:findMethodByRef")
 	-- anon object, must be a static
-	if(o.__name__ == nil) then
+	if(o.__name__ == nil or o.prototype == nil) then
 		do return "static" end
 	end
 	for k,v in pairs(o.prototype) do
@@ -350,6 +350,7 @@ end
 function function_closure(o, fname, ...)
 	local m = o[fname]
 	if (m == nil) or (type(m) ~= "function") then
+		do throw "m null or not func" end
 		do return nil end;
 	end
 	local funcargs = unpack(arg)

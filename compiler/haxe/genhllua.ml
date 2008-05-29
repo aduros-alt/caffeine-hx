@@ -831,12 +831,12 @@ and gen_expr ctx e =
 	| TField (x,s) ->
 		commentcode ctx "gen_expr TField";
 		(match follow e.etype with
-(*		| TFun _ ->
-			spr ctx "Haxe.closure(";
+		| TFun _ ->
+			spr ctx "Haxe.function_closure(";
 			gen_value ctx x;
 			spr ctx ",";
 			gen_constant ctx e.epos (TString s);
-			spr ctx ")";*)
+			spr ctx ")";
 		| _ ->
 			(* Check for { var="val"}.var *)
 			(match x.eexpr with
