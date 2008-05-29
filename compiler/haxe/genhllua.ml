@@ -1150,21 +1150,29 @@ and gen_expr ctx e =
 
 		(* TSwitch of texpr * (texpr list * texpr) list * texpr option *)
 		(* pop and create first case *)
+		spr ctx "if (";
+		let first = ref true in
 		let b = (List.hd cases) in
 		List.iter (fun e ->
-			spr ctx "if (switch ==";
+			if not !first then spr ctx " or ";
+			spr ctx "switch ==";
 			gen_value ctx e;
-			spr ctx ") then ";
+			first := false;
 		) (fst b);
+		spr ctx ") then ";
 		gen_expr ctx (block (snd b));
 		newline ctx;
 
 		List.iter (fun (tail,e2) ->
+			spr ctx "elseif (";
+			let first = ref true in
 			List.iter (fun e ->
-				spr ctx "elseif (switch == ";
+				if not !first then spr ctx " or ";
+				spr ctx "switch == ";
 				gen_value ctx e;
-				spr ctx ") then ";
+				first := false;
 			) tail;
+			spr ctx ") then ";
 			gen_expr ctx (block e2);
 			newline ctx;
 		) (List.tl cases);
