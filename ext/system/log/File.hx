@@ -34,34 +34,28 @@ import system.log.LogLevel;
 	Log to a text file. The class is started with a logging level
 **/
 
-#if (neko || hllua)
+#if neko
 
-class File implements EventLog {
-	var PROGNAME : String;
-	var STDOUT : neko.io.FileOutput;
-	public var level : LogLevel;
+class File extends EventLog, implements IEventLog {
+	var STDOUT 		: neko.io.FileOutput;
 
-	public function new(service: String, file : String, level:LogLevel) {
-		PROGNAME = service;
-		STDOUT = neko.io.File.append(file, false);
-		if(STDOUT == null)
-			throw "Can not open logfile.";
-		this.level = level;
+	/**
+		Logs to the provided file handle. If the handle is null, logging will go
+		to STDOUT
+	**/
+	public function new(service: String,  level:LogLevel, ?hndFile : neko.io.FileOutput ) {
+		super(service, level);
+		if(hndFile == null)
+			STDOUT = neko.io.File.stdout();
+		else
+			STDOUT = hndFile;
 	}
 
-	public function debug(s:String) { log(s, DEBUG); }
-	public function info(s:String) { log(s, INFO); }
-	public function notice(s : String) { log(s, NOTICE); }
-	public function warn(s : String) { log(s, WARN); }
-	public function error(s : String) { log(s, ERROR); }
-	public function critical(s : String) { log(s, CRITICAL); }
-	public function alert(s : String) { log(s, ALERT); }
-	public function emerg(s : String) { log(s, EMERG); }
-
-	function log(s : String, lvl:LogLevel) {
-		var doLog = false;
+	override public function _log(s : String, ?lvl : LogLevel) {
+		if(lvl == null)
+			lvl = INFO;
 		if(Type.enumIndex(lvl) >= Type.enumIndex(level)) {
-			STDOUT.write(PROGNAME + ": "+Std.string(lvl)+" : "+ s + "\n");
+			STDOUT.write(serviceName + ": "+Std.string(lvl)+" : "+ s + "\n");
 			STDOUT.flush();
 		}
 	}

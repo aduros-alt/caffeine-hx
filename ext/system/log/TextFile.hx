@@ -31,30 +31,21 @@ package system.log;
 import system.log.LogLevel;
 
 #if neko
-class Syslog extends EventLog, implements IEventLog {
-	/** the system command needed to add entries to the syslog service **/
-	public static var loggerCmd : String = "logger";
 
-	public function new(service: String, level:LogLevel) {
-		super(service, level);
+/**
+	Log to a provided FileHandle
+**/
+class TextFile extends File, implements EventLog {
+
+	public function new(service: String, level:LogLevel, file : String) {
+		var fo : neko.io.FileOutput = null;
+		try {
+			fo = neko.io.File.append(file, false);
+		} catch(e:Dynamic) {}
+		if(fo == null)
+			throw "Can not open logfile " + file;
+		super(service, level, fo);
 	}
 
-	override public function _log(s:String, ?lvl:LogLevel) {
-		if(lvl == null)
-			lvl = INFO;
-		if(Type.enumIndex(lvl) >= Type.enumIndex(level)) {
-			var priority : String = switch(lvl) {
-			case DEBUG: "user.debug";
-			case INFO: "user.info";
-			case NOTICE: "user.notice";
-			case WARN: "user.warning";
-			case ERROR: "user.err";
-			case CRITICAL: "user.crit";
-			case ALERT: "user.alert";
-			case EMERG: "user.emerg";
-			}
-			neko.Sys.command(loggerCmd, ["-i", "-p", priority, "-t", StringTools.urlEncode(serviceName), s]);
-		}
-	}
 }
 #end

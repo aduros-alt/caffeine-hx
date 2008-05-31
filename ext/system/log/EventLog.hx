@@ -27,13 +27,48 @@
 
 package system.log;
 
-interface EventLog {
-	function debug(s:String) : Void;
-	function info(s:String) : Void;
-	function notice(s : String) : Void;
-	function warn(s : String) : Void;
-	function error(s : String) : Void;
-	function critical(s : String) : Void;
-	function alert(s : String) : Void;
-	function emerg(s : String) : Void;
+import system.log.LogLevel;
+
+/**
+	This is the base EventLog class. If a default logger is not created,
+	the static function log() will create one based on the target platform
+**/
+class EventLog implements IEventLog {
+	public static var defaultLogger : IEventLog;
+	public static var defaultServiceName : String;
+
+	public var serviceName : String;
+	public var level : LogLevel;
+
+	/**
+		Create a logger under the program name [service], which
+		will only log events that are greater than or equal to
+		LogLevel [level]
+	**/
+	public function new(service : String, level : LogLevel) {
+		if(defaultLogger == null)
+			defaultLogger = this;
+		if(defaultServiceName == null)
+			defaultServiceName = service;
+		this.serviceName = service;
+		this.level = level;
+	}
+
+	public function debug(s:String) : Void { _log(s,DEBUG); }
+	public function info(s:String) : Void { _log(s,INFO); }
+	public function notice(s : String) : Void { _log(s,NOTICE); }
+	public function warn(s : String) : Void { _log(s,WARN); }
+	public function error(s : String) : Void { _log(s,ERROR); }
+	public function critical(s : String) : Void { _log(s,CRITICAL); }
+	public function alert(s : String) : Void { _log(s,ALERT); }
+	public function emerg(s : String) : Void { _log(s,EMERG); }
+
+	public function _log(s : String, ?lvl:LogLevel) {
+		throw "override";
+	}
+
+	public static function log(s : String, ?lvl:LogLevel) {
+		if(defaultLogger == null) return;
+		defaultLogger._log(s, lvl);
+	}
 }
