@@ -1,3 +1,29 @@
+/*
+ * Copyright (c) 2008, The Caffeine-hx project contributors
+ * Original author : Russell Weir
+ * Contributors:
+ * All rights reserved.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *   - Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   - Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE CAFFEINE-HX PROJECT CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE CAFFEINE-HX PROJECT CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
+ */
 
 package clients.irc;
 
@@ -310,11 +336,13 @@ class Connection {
 			}
 
 			var pos = 0;
+			var found = false;
 			while(bytes > 0) {
 				pos = buffer.indexOf("\n", lastPos);
-				if(pos == -1)
+				if(pos == -1 || pos >= lastPos + bytes)
 					break;
 
+				found = true;
 				var len = pos - lastPos + 1;
 				var trim = 1;
 				if(buffer.charCodeAt(lastPos + len - 2) == 0x13)
@@ -335,15 +363,18 @@ class Connection {
 				lastPos = pos;
 			}
 
+			if(!found)
+				continue;
 			if(pos > 0)
-				neko.Lib.copyBytes(buffer, 0, buffer, pos+1, bytes);
+				neko.Lib.copyBytes(buffer, 0, buffer, pos, bytes);
+			pos = 0;
 			lastPos = 0;
 		}
 	}
 
 
 	public function handleMessage( msg : String ) : Void {
-		trace(here.methodName + " " + msg);
+		//trace(here.methodName + " " + msg);
 		if(msg == null) {
 			return;
 		}
