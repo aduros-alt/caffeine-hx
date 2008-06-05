@@ -51,7 +51,7 @@ class XmlConfigSection {
 		this.v = validator;
 	}
 
-	function checkFormat( ) {
+	public function checkFormat( ) {
 		var rule = v();
 		try {
 			haxe.xml.Check.checkNode(xml, rule);
@@ -152,6 +152,7 @@ class XmlConfig {
 		if(sections.exists(name))
 			return sections.get(name);
 		var sec = new XmlConfigSection(name, xml, validator);
+		sec.checkFormat();
 		sections.set(name, sec);
 		return sec;
 	}
