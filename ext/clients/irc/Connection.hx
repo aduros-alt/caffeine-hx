@@ -65,6 +65,23 @@ class Connection {
 	}
 
 	/**
+		Takes an array of nicks with possible @ (ops) and + (voice) characters, returning
+		clean nicknames with 'type' set to "normal", "op" or "voice".
+	**/
+	public function cleanNicks(nicks:Array<String>) : Array<{type: String, name:String}>
+	{
+		var rv = new Array();
+		for(i in nicks) {
+			if(i.charAt(0) == "@")
+				rv.push({type:"op", name:i.substr(1)});
+			else if(i.charAt(0) == "+")
+				rv.push({type:"voice", name:i.substr(1)});
+			else
+				rv.push({type:"normal", name:i});
+		}
+		return rv;
+	}
+	/**
 		Connect to server.
 	**/
 	public function connect() {
@@ -131,8 +148,12 @@ class Connection {
 		v - give/take the ability to speak on a moderated channel;<br />
 		k - set a channel key (password).
 	**/
-	public function channelMode(channel : String, mode : String) {
-		send("MODE "+mode);
+	public function channelMode(channel : String, mode : String, ?extraData:String) {
+		if(extraData != null)
+			extraData = " " + extraData;
+		else
+			extraData = "";
+		send("MODE "+ channel + " " + mode + extraData);
 	}
 
 	/**
@@ -150,6 +171,20 @@ class Connection {
 	}
 
 	/**
+		Give user ops in channel
+	**/
+	public function giveOps(channel : String, username : String) {
+		channelMode(channel, "+o", username);
+	}
+
+	/**
+		Give user voice in channel
+	**/
+	public function giveVoice(channel : String, username : String) {
+		channelMode(channel, "+v", username);
+	}
+
+	/**
 		Join a channel.
 	**/
 	public function join(channel:String) {
@@ -161,6 +196,20 @@ class Connection {
 
 	public function kick(channel : String, username : String, reason: String) {
 		send("KICK "+ channel + " "+username + " :" + reason);
+	}
+
+	/**
+		Remove user ops in channel
+	**/
+	public function removeOps(channel : String, username : String) {
+		channelMode(channel, "-o", username);
+	}
+
+	/**
+		Remove user voice in channel
+	**/
+	public function removeVoice(channel : String, username : String) {
+		channelMode(channel, "-v", username);
 	}
 
 	/**
@@ -355,7 +404,10 @@ class Connection {
 						handleMessage(rv);
 					}
 					catch(e:Dynamic) {
-						trace(haxe.Stack.exceptionStack());
+						trace("error in irc handleMessage : " + Std.string(e));
+						for(i in haxe.Stack.exceptionStack()) {
+							trace("Called from: " + i);
+						}
 					}
 				}
 				pos++;
