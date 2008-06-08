@@ -88,12 +88,13 @@ class Connection {
 		if(connected)
 			throw "already connected";
 		sock = new neko.net.Socket();
-		sock.setBlocking(true);
+		sock.setTimeout(8);
 		try {
 			sock.connect(new neko.net.Host(host), port);
+			sock.setBlocking(true);
+			sock.setTimeout(null);
 		}
 		catch (e : Dynamic) {
-			disconnect();
 			throw "could not connect: " + Std.string(e);
 		}
 		connected = true;
