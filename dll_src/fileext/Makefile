@@ -8,10 +8,10 @@ LIBS=-L$(HOME)/neko/ -lneko
 all: archtest $(NDLLS)
 
 %.ndll: src/%.o
-	gcc $(LIBPATH) $(INCPATH) -fPIC -O3 -march=native -shared -o $@ $< $(LIBS)
+	gcc $(LIBPATH) $(INCPATH) -fPIC -O2 -shared -o $@ $< $(LIBS)
 
 src/%.o: src/%.c
-	gcc -fPIC -c $(INCPATH) -O3 -march=native -o $@ $<
+	gcc -fPIC -c $(INCPATH) -O3 -o $@ $<
 
 install:
 	@mv *.ndll ../../ext/ndll/$(ARCH_CAP)/
@@ -31,7 +31,7 @@ distclean: clean
 archtest:
 	@if [ -z $(ARCH_CAP) ]; then \
 		echo "You must specify the architecture to build for (make ARCH=?): "; \
-		echo " ARCH: linux windows mac bsd wine"; \
+		echo " ARCH: linux linux64 windows mac bsd wine"; \
 		exit 1; \
 	fi;
 

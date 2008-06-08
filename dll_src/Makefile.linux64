@@ -1,31 +1,31 @@
 all: crypt hash reliableudp fileext
 
 crypt: crypt-clean
-	cd crypt && make -f Makefile.linux
+	cd crypt && make -f Makefile.linux64
 crypt-install:
-	cd crypt && make -f Makefile.linux install
+	cd crypt && make -f Makefile.linux64 install
 crypt-clean:
 	cd crypt && make -f Makefile.linux clean && make -f Makefile.linux64 clean
 
 hash: hash-clean
-	cd hash && make -f Makefile.linux
+	cd hash && make -f Makefile.linux64
 hash-install:
-	cd hash && make -f Makefile.linux install
+	cd hash && make -f Makefile.linux64 install
 hash-clean:
 	cd hash && make -f Makefile.linux clean && make -f Makefile.linux64 clean
 
 
 reliableudp: reliableudp-clean
-	cd reliableudp && make -f Makefile.linux
+	cd reliableudp && make -f Makefile.linux64
 reliableudp-install:
-	cd reliableudp && make -f Makefile.linux install	
+	cd reliableudp && make -f Makefile.linux64 install	
 reliableudp-clean:
 	cd reliableudp && make -f Makefile.linux clean && make -f Makefile.linux64 clean
 
 fileext: fileext-clean
-	cd fileext && make ARCH=linux
+	cd fileext && make ARCH=linux64
 fileext-install: dummy
-	cd fileext && make ARCH=linux install
+	cd fileext && make ARCH=linux64 install
 fileext-clean:
 	cd fileext && make clean
 

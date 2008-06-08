@@ -1,4 +1,4 @@
-ARCH=Linux
+ARCH=Linux64
 ARCH_PATHS:=
 
 CC:=gcc -Isrc
