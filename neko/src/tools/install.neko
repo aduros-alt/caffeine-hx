@@ -132,7 +132,6 @@ search_includes = function(ism2) {
 		"/opt/local/include/apr-1",
 		"/opt/local/include/apr-1.0",
 		"/opt/local/include/apr-0",
-		"/usr/lib/mysql",
 		"/opt/local/include/mysql",
 		"/Developer/Headers/FlatCarbon",
 	);
