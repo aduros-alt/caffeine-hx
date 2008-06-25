@@ -41,7 +41,7 @@ static struct tm *get_localtime(time_t *d) {
 #ifdef NEKO_WINDOWS
 	t = localtime(d);
 #else
-	t = alloc(sizeof(struct tm));
+	t = (time_t *)malloc(sizeof(struct tm));
 	if( t == NULL)
 		return NULL;
 	localtime_r(d, t);
