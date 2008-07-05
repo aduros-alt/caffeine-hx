@@ -1,25 +1,23 @@
 module haxe.Serializer;
 
-import haxe.HaxeTypes;
-import haxe.Hash;
-import haxe.IntHash;
-
-import tango.core.Variant;
 import tango.util.container.HashMap;
+import tango.core.Variant;
 import tango.net.Uri;
 import Integer = tango.text.convert.Integer;
 
 import tango.io.Console;
 
+import haxe.HaxeTypes;
+import haxe.Hash;
+import haxe.IntHash;
 
-alias HashMap!(char[], int) HashOfInts;
-alias HashMap!(char[], char[]) HashOfStrings;
-
+private alias HashMap!(char[], int) HashOfInts;
+private alias HashMap!(char[], char[]) HashOfStrings;
 
 class Serializer {
 	public static bool 	USE_CACHE;
 	public static bool	USE_ENUM_INDEX;
-	private char[]		buf;
+	package char[]		buf;
 	private Variant[]	cache;
 	private HashOfInts	shash;
 	private int			scount;
@@ -36,6 +34,7 @@ class Serializer {
 		useEnumIndex = USE_ENUM_INDEX;
 		scount = 0;
 		this.shash = new HashOfInts();
+		buf = "";
 	}
 
 	public override char[] toString() {
@@ -107,7 +106,7 @@ class Serializer {
 	}
 */
 
-	public void serialize(int v) {
+	public void serializeInt(int v) {
 		if(v == 0) {
 			buf ~= "z";
 			return;
@@ -116,134 +115,88 @@ class Serializer {
 		buf ~= Integer.toString(v);
 	}
 
-	public void serialize(int[] v) {
+	public void serializeIntArray(int[] v) {
 		buf ~= "a";
 		foreach(i; v)
-			serialize(i);
+			serializeInt(i);
 		buf ~= "h";
 	}
 
-	public void serialize(bool v) {
+	public void serializeDouble(double v) {
+		if(v == -double.infinity)
+			buf ~= "m";
+		else if( v == double.infinity )
+			buf ~= "p";
+		else if(v == double.nan) {
+			buf ~= "k";
+		}
+		else {
+			buf ~= "d";
+			buf ~= FloatUtil.toString(v);
+		}
+	}
+
+	public void serializeDoubleArray(double[] v) {
+		buf ~= "a";
+		foreach(i; v)
+			serializeDouble(i);
+		buf ~= "h";
+	}
+
+	public void serializeBool(bool v) {
 		buf ~= (v ? "t" : "f");
 	}
 
-	public void serialize(char v) {
-		char[] a;
-		a ~= v;
-		serializeString(a);
-	}
-
-	public void serialize(char[] v) {
-		serializeString(v);
-	}
-
-// 	public void serialize(Dynamic v) {
-// 	}
-
-/*
-	public void serialize(Object o) {
-		Cout("SERIALIZE OBJECT ")(o.toString).newline;
-/+
-		TypeInfo ti = typeid(v);
-		Cout("Type: {} ")(ti.classinfo.name).newline;
-		Cout("Base: {} {}")
-			(ti.classinfo.base.name)(" ")
-			(v.toString)(" ").newline;
-			//(v.get!(char [])).newline;
-+/
-	}
-*/
-
 	public void serialize(HaxeValue val) {
+		if(val is null)
+			val = new Null();
 		switch(val.type) {
 		case HaxeType.TNull:
+			buf ~= "n";
 			break;
 		case HaxeType.TDynamic:
 			serialize((cast(Dynamic) val).value);
 			break;
 		case HaxeType.TString:
-			serialize((cast(String) val).value);
+			serializeString((cast(String) val).value);
 			break;
 		case HaxeType.TInt:
+			int v = (cast(Int) val).value;
+			serializeInt(v);
+			break;
 		case HaxeType.TFloat:
+			double v = cast(double)((cast(Float) val).value);
+			serializeDouble(v);
+			break;
 		case HaxeType.TBool:
+			bool v = (cast(Bool) val).value;
+			serializeBool(v);
+			break;
 		case HaxeType.TArray:
+			buf ~= (cast(Array)val).__serialize();
+			break;
 		case HaxeType.TList:
+			buf ~= (cast(List)val).__serialize();
+			break;
 		case HaxeType.TDate:
 			break;
 		case HaxeType.THash:
-// 			buf ~= (cast(Hash)val).__serialize();
+			buf ~= (cast(Hash)val).__serialize();
 			break;
 		case HaxeType.TIntHash:
-// 			buf ~= (cast(IntHash)val).__serialize();
+			buf ~= (cast(IntHash)val).__serialize();
 			break;
 		case HaxeType.TEnum:
+			break;
 		case HaxeType.TObject:
+			//buf ~= (cast(Object)val).__serialize();
+			break;
 		case HaxeType.TClass:
+			//buf ~= (cast(Class)val).__serialize();
+			break;
 		case HaxeType.TFunction:
 			throw new Exception("Unable to serialize functions");
 			break;
 		}
 	}
-
-/*
-	public void serialize(T)( T val ) {
-
-// 		if(value is null) {
-// 			buf ~= "n";
-// 			return;
-// 		}
-
-		Variant var = val;
-		TypeInfo ti = var.type();
-		auto name = var.toString;
-/+
-		//TypeInfo ti = typeid(v);
-		Cout("Type: {} ")(ti.classinfo.name).newline;
-		Cout("Base: {} {}")
-			(ti.classinfo.base.name)(" ")
-			(v.toString)(" ").newline;
-			//(v.get!(char [])).newline;
-+/
-		bool handled = true;
-
-		switch(name) {
-		case "int":
-			if(var.get!(int) == 0) {
-				buf ~= "z";
-				return;
-			}
-			buf ~= "i";
-			buf ~= Integer.toString(var.get!(int));
-			break;
-		case "bool":
-			buf ~= (var.get!(bool) ? "t" : "f");
-			break;
-		case "char[]":
-			serializeString(var.get!(char[]));
-			break;
-		case "int[]":
-			break;
-		default:
-			handled = false;
-		}
-		if(handled) return;
-
-
-		// tango.util.container.HashMap.HashMap!(char[],int).HashMap
-		if(name.length > 29  && name[29..37] == "HashMap!") {
-			Cout(name[38..44]).newline;
-			if(name[38..44] == "char[]") {
-				buf ~= "b";
-				auto h = new HashMap!(char[], Variant);
-				foreach (key, value; cast(HashMap!(char[],void*))val) {
-				}
-			}
-			else {}
-		}
-
-		throw new Exception("Cannot serialize " ~ var.toString);
-	}
-*/
-
 }

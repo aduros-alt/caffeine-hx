@@ -4,8 +4,15 @@ private {
 	import FloatUtil = tango.text.convert.Float;
 	import IntegerUtil = tango.text.convert.Integer;
 	import tango.math.Math;
+	import tango.util.container.HashMap;
 }
 
+public {
+	import haxe.IntHash;
+	import haxe.Hash;
+	import haxe.Array;
+	import haxe.List;
+}
 
 public enum HaxeType
 {
