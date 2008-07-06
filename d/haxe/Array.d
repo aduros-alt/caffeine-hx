@@ -11,40 +11,9 @@ class Array : HaxeClass {
 
 	this() { isNull = false; }
 
-	Dynamic opIndex(size_t i) {
-		if(i >= data.length || data[i] == null)
-			return new Dynamic(new Null);
-		return data[i];
-	}
-
-	Dynamic opIndexAssign(HaxeValue value, size_t i) {
-		Dynamic v = null;
-		if(value !is null) {
-			if(value.type != HaxeType.TDynamic)
-				v = new Dynamic(value);
-			else
-				v = cast (Dynamic) value;
-		}
-		if(i >= data.length) {
-			data.length = i + 1;
-		}
-		data[i] = v;
-
-		// trim the size down
-		size_t l = data.length;
-		size_t x = l;
-		do {
-			x--;
-			if(data[x] !is null)
-				break;
-			l--;
-		}
-		while(x > 0);
-		data.length = l;
-		return v;
-	}
-
 	public size_t length() { return data.length; }
+
+	mixin DynamicArrayType!(typeof(this), data);
 
 	public char[] __serialize() {
 		auto s = new Serializer();

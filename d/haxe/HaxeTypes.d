@@ -2,7 +2,7 @@ module haxe.HaxeTypes;
 
 private {
 	import FloatUtil = tango.text.convert.Float;
-	import IntegerUtil = tango.text.convert.Integer;
+	import IntUtil = tango.text.convert.Integer;
 	import tango.math.Math;
 	import tango.util.container.HashMap;
 }
@@ -12,6 +12,8 @@ public {
 	import haxe.Hash;
 	import haxe.Array;
 	import haxe.List;
+	import haxe.HaxeObject;
+	import haxe.HaxeDate;
 }
 
 public enum HaxeType
@@ -46,7 +48,14 @@ abstract class HaxeValue
 /**
 	Base class for all haxe class types
 **/
-abstract class HaxeClass : HaxeValue
+public interface HaxeSerializable
+{
+	char[] __classname();
+	char[] __serialize();
+	bool __unserialize();
+}
+
+abstract class HaxeClass : HaxeValue, HaxeSerializable
 {
 	abstract public char[] __classname();
 	abstract public char[] __serialize();
@@ -166,6 +175,12 @@ class String : HaxeValue
 		if(isNull) return "(null)";
 		return value;
 	}
+	static String opCall() { return new String(); }
+	static String opCall(char[] v) { return new String(v); }
+	static String opCall(char v) { char[] d; d~=v; return new String(d); }
+	static String opCall(real v) { return new String(FloatUtil.toString(v)); }
+	static String opCall(long v) { return new String(IntUtil.toString(v)); }
+
 	String opAssign(char[] v) {
 		this.isNull = false;
 		this.value = v;
@@ -442,7 +457,7 @@ class Int : HaxeNumeric
 	public char[] toString()
 	{
 		if(isNull) return "(null)";
-		return IntegerUtil.toString(value);
+		return IntUtil.toString(value);
 	}
 	Int opAssign(real v) {
 		this.isNull = false;
@@ -492,5 +507,68 @@ class Float : HaxeNumeric
 	mixin NumericMath!(typeof(this));
 }
 
+/**
+	Types that can be accessed as integer arrays of Dynamic
+**/
+package template DynamicArrayType(T, alias F) {
+	Dynamic opIndex(size_t i) {
+		if(i >= F.length || F[i] == null)
+			return new Dynamic(new Null);
+		return F[i];
+	}
 
+	Dynamic opIndexAssign(HaxeValue value, size_t i) {
+		Dynamic v = null;
+		if(value !is null) {
+			if(value.type != HaxeType.TDynamic)
+				v = new Dynamic(value);
+			else
+				v = cast (Dynamic) value;
+		}
+		if(i >= F.length) {
+			F.length = i + 1;
+		}
+		F[i] = v;
 
+		// trim the size down
+		size_t l = F.length;
+		size_t x = l;
+		do {
+			x--;
+			if(F[x] !is null)
+				break;
+			l--;
+		}
+		while(x > 0);
+		F.length = l;
+		return v;
+	}
+}
+
+/**
+	Types that can be accessed as hashes of Dynamic
+**/
+package template DynamicHashType(T, alias F) {
+	Dynamic opIndex(char[] field) {
+		try
+			return F[field];
+		catch(Exception e)
+			return null;
+	}
+
+	Dynamic opIndexAssign(HaxeValue value, char[] field) {
+		Dynamic v = null;
+		if(value is null) {
+			try
+				F.remove(field);
+			catch(Exception e) {}
+			return null;
+		}
+		if(value.type != HaxeType.TDynamic)
+			v = new Dynamic(value);
+		else
+			v = cast (Dynamic) value;
+		F[field] = v;
+		return v;
+	}
+}

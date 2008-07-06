@@ -1,7 +1,6 @@
 module haxe.Serializer;
 
 import tango.util.container.HashMap;
-import tango.core.Variant;
 import tango.net.Uri;
 import Integer = tango.text.convert.Integer;
 
@@ -12,13 +11,12 @@ import haxe.Hash;
 import haxe.IntHash;
 
 private alias HashMap!(char[], int) HashOfInts;
-private alias HashMap!(char[], char[]) HashOfStrings;
 
 class Serializer {
 	public static bool 	USE_CACHE;
 	public static bool	USE_ENUM_INDEX;
 	package char[]		buf;
-	private Variant[]	cache;
+	private HaxeValue[]	cache;
 	private HashOfInts	shash;
 	private int			scount;
 	private bool		useCache;
@@ -87,24 +85,28 @@ class Serializer {
 			buf ~= res;
 	}
 
-/*
-	void serializeRef(Variant v) {
-			for( i in 0...cache.length ) {
-					#if js
-					var ci = cache[i];
-					if( untyped __js__("typeof")(ci) == vt && ci == v ) {
-					#else true
-					if( cache[i] == v ) {
-					#end
-							buf.add("r");
-							buf.add(i);
-							return true;
-					}
+	bool serializeRef(HaxeValue v) {
+		for( size_t i = 0; i < cache.length; i++ ) {
+			if( cache[i] == v ) {
+				buf ~= "r";
+				buf ~= IntUtil.toString(i);
+				return true;
 			}
-			cache.push(v);
-			return false;
+		}
+		cache ~= v;
+		return false;
 	}
-*/
+
+	/**
+		Serialize a hash of Dynamics
+	**/
+	public void serializeFields(Dynamic[char[]] v) {
+		foreach(field, value; v) {
+			serializeString(field);
+			serialize(value);
+		}
+		buf ~= "g";
+	}
 
 	public void serializeInt(int v) {
 		if(v == 0) {
@@ -147,6 +149,18 @@ class Serializer {
 		buf ~= (v ? "t" : "f");
 	}
 
+	/**
+		Classes must only serialize their member variables in
+		the __serialize() callback.
+	**/
+	public void serializeClass(HaxeSerializable c) {
+		buf ~= "c";
+		serializeString(c.__classname);
+		if(cast(HaxeValue) c)
+			cache ~= cast(HaxeValue)c;
+		buf ~= c.__serialize();
+	}
+
 	public void serialize(HaxeValue val) {
 		if(val is null)
 			val = new Null();
@@ -179,6 +193,8 @@ class Serializer {
 			buf ~= (cast(List)val).__serialize();
 			break;
 		case HaxeType.TDate:
+			buf ~= "v";
+			buf ~= (cast(HaxeDate)val).toString();
 			break;
 		case HaxeType.THash:
 			buf ~= (cast(Hash)val).__serialize();
@@ -189,10 +205,13 @@ class Serializer {
 		case HaxeType.TEnum:
 			break;
 		case HaxeType.TObject:
-			//buf ~= (cast(Object)val).__serialize();
+			if( useCache && serializeRef(val) )
+				return;
+			buf ~= "o";
+			buf ~= (cast(HaxeObject)val).__serialize();
 			break;
 		case HaxeType.TClass:
-			//buf ~= (cast(Class)val).__serialize();
+			serializeClass(cast(HaxeClass) val);
 			break;
 		case HaxeType.TFunction:
 			throw new Exception("Unable to serialize functions");
