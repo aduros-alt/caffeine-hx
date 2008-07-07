@@ -4,11 +4,9 @@ import tango.util.container.HashMap;
 import tango.net.Uri;
 import Integer = tango.text.convert.Integer;
 
-import tango.io.Console;
+//import tango.io.Console;
 
 import haxe.HaxeTypes;
-import haxe.Hash;
-import haxe.IntHash;
 
 private alias HashMap!(char[], int) HashOfInts;
 
@@ -161,7 +159,7 @@ class Serializer {
 		buf ~= c.__serialize();
 	}
 
-	public void serialize(HaxeValue val) {
+	public Serializer serialize(HaxeValue val) {
 		if(val is null)
 			val = new Null();
 		switch(val.type) {
@@ -203,10 +201,11 @@ class Serializer {
 			buf ~= (cast(IntHash)val).__serialize();
 			break;
 		case HaxeType.TEnum:
+			throw new Exception("TODO: Unable to serialize enums yet");
 			break;
 		case HaxeType.TObject:
 			if( useCache && serializeRef(val) )
-				return;
+				return this;
 			buf ~= "o";
 			buf ~= (cast(HaxeObject)val).__serialize();
 			break;
@@ -217,5 +216,12 @@ class Serializer {
 			throw new Exception("Unable to serialize functions");
 			break;
 		}
+		return this;
+	}
+
+	static public char[] run(HaxeValue v) {
+		auto s = new Serializer();
+		s.serialize(v);
+		return s.toString();
 	}
 }
