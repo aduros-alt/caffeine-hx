@@ -43,17 +43,11 @@ class Hash : HaxeClass {
 		return true;
 	}
 
-	public void set(char[] k, HaxeValue v) {
+	public void set(char[] k, Dynamic v) {
 		if(v is null)
-			data[k] = new Dynamic(new Null());
-		else {
-			Dynamic d;
-			if(v.type != HaxeType.TDynamic)
-				d = new Dynamic(v);
-			else
-				d = cast (Dynamic) v;
-			data[k] = d;
-		}
+			data[k] = new Null();
+		else
+			data[k] = v;
 	}
 
 	public char[] __serialize() {

@@ -28,7 +28,7 @@ class List : HaxeClass {
 	/**
 		Add to the end of the list.
 	**/
-	public void add(HaxeValue v) {
+	public void add(Dynamic v) {
 		data.append(toDynamic(v));
 	}
 
@@ -67,31 +67,29 @@ class List : HaxeClass {
 	/**
 		Add to beginning of list
 	**/
-	public void push(HaxeValue v) {
+	public void push(Dynamic v) {
 		data.prepend(toDynamic(v));
 	}
 
 	/**
 		Remove first element that equals v. True if something removed
 	**/
-	public bool remove(HaxeValue v) {
+	public bool remove(Dynamic v) {
 		auto c = data.remove(toDynamic(v));
 		return c == 0 ? false : true;
 	}
 
-	Dynamic toDynamic(HaxeValue v) {
+	Dynamic toDynamic(Dynamic v) {
 		if(v is null)
-			return new Dynamic(new Null);
-		if(v.type == HaxeType.TDynamic)
-			return cast(Dynamic) v;
-		return new Dynamic(v);
+			return new Null;
+		return v;
 	}
 
 	public char[] __serialize() {
 		auto s = new Serializer();
 		s.buf ~= "l";
 		foreach(v; data) {
-			s.serialize(v.value);
+			s.serialize(v);
 		}
 		s.buf ~= "h";
 		return s.buf;

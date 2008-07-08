@@ -14,7 +14,7 @@ class Serializer {
 	public static bool 	USE_CACHE;
 	public static bool	USE_ENUM_INDEX;
 	package char[]		buf;
-	private HaxeValue[]	cache;
+	private Dynamic[]	cache;
 	private HashOfInts	shash;
 	private int			scount;
 	private bool		useCache;
@@ -83,7 +83,7 @@ class Serializer {
 			buf ~= res;
 	}
 
-	bool serializeRef(HaxeValue v) {
+	bool serializeRef(Dynamic v) {
 		for( size_t i = 0; i < cache.length; i++ ) {
 			if( cache[i] == v ) {
 				buf ~= "r";
@@ -154,21 +154,21 @@ class Serializer {
 	public void serializeClass(HaxeSerializable c) {
 		buf ~= "c";
 		serializeString(c.__classname);
-		if(cast(HaxeValue) c)
-			cache ~= cast(HaxeValue)c;
+		if(cast(Dynamic) c)
+			cache ~= cast(Dynamic)c;
 		buf ~= c.__serialize();
 	}
 
-	public Serializer serialize(HaxeValue val) {
+	public Serializer serialize(Dynamic val) {
 		if(val is null)
 			val = new Null();
 		switch(val.type) {
 		case HaxeType.TNull:
 			buf ~= "n";
 			break;
-		case HaxeType.TDynamic:
-			serialize((cast(Dynamic) val).value);
-			break;
+//		case HaxeType.TDynamic:
+//			serialize((cast(Dynamic) val).value);
+///			break;
 		case HaxeType.TString:
 			serializeString((cast(String) val).value);
 			break;
@@ -185,10 +185,20 @@ class Serializer {
 			serializeBool(v);
 			break;
 		case HaxeType.TArray:
-			buf ~= (cast(Array)val).__serialize();
+			if( cast(Array)val ) {
+				buf ~= (cast(Array)val).__serialize();
+			}
+			else {
+				throw new Exception("Unable to cast "~ typeof(val).stringof ~" to Array!(Dynamic) " );
+			}
 			break;
 		case HaxeType.TList:
-			buf ~= (cast(List)val).__serialize();
+			if( cast(List)val ) {
+				buf ~= (cast(List)val).__serialize();
+			}
+			else {
+				throw new Exception("Unable to cast "~ typeof(val).stringof ~" to List!(Dynamic) " );
+			}
 			break;
 		case HaxeType.TDate:
 			buf ~= "v";
@@ -219,7 +229,7 @@ class Serializer {
 		return this;
 	}
 
-	static public char[] run(HaxeValue v) {
+	static public char[] run(Dynamic v) {
 		auto s = new Serializer();
 		s.serialize(v);
 		return s.toString();

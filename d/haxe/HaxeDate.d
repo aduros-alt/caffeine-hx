@@ -9,7 +9,7 @@ private import tango.time.Clock;
 private import tango.time.WallClock;
 private import Util = tango.text.Util;
 private import IntUtil = tango.text.convert.Integer;
-
+import tango.io.Console;
 
 class HaxeDate : HaxeClass {
 	public HaxeType type() { return HaxeType.TDate; }
@@ -118,7 +118,8 @@ class HaxeDate : HaxeClass {
 	}
 
 	/**
-		Parse a date or date/time format
+		Parse a date or date/time format.
+		TODO: This needs work as tango time() function is broken
 	**/
 	public static HaxeDate fromString(T)(T[] s) {
 		Time t;
@@ -127,14 +128,27 @@ class HaxeDate : HaxeClass {
 		int pos = 0;
 
 		if(s.length == 19) { // YYYY-MM-DD HH:MM:SS
-			pos = iso8601(s, t);
+			//tango is broken
+			//auto v = s.dup ~ ",000";
+			//pos = iso8601(v, t);
+			T* p = s.ptr;
+			if(parseDate(date, p)) {
+				if(*p++ == ' ') {
+					if(parseTime(tod, p)) {
+						t = Gregorian.generic.toTime (date, tod);
+						pos = p - s.ptr;
+					}
+				}
+
+			}
+
 		}
-		if(s.length == 23) { // YYYY-MM-DD HH:MM:SS,ms
+		else if(s.length == 23) { // YYYY-MM-DD HH:MM:SS,ms
 			pos = iso8601(s, t);
 			if(pos == 0) // Sun Nov 6 08:49:37 1994 (23 or 24 long)
 				pos = asctime(s, t);
 		}
-		if(s.length == 24) { // Sun Nov 6 08:49:37 1994 (23 or 24 long)
+		else if(s.length == 24) { // Sun Nov 6 08:49:37 1994 (23 or 24 long)
 			pos = asctime(s, t);
 		}
 		else if(s.length == 8) { // HH:MM:SS
@@ -170,7 +184,7 @@ class HaxeDate : HaxeClass {
 			pos = rfc850(s, t);
 		}
 		if(pos == 0)
-			throw new Exception("Unable to parse date " ~ s);
+			throw new Exception("Unable to parse date " ~ s ~ " length: "~ IntUtil.toString(s.length));
 
 		auto hd = new HaxeDate();
 		hd.value = t;
@@ -212,11 +226,11 @@ class HaxeDate : HaxeClass {
 
 	private static bool parseTime(T)(ref TimeOfDay tod, inout T* p) {
 		return(
-			(tod.hours = parseInt(p)) > 0 &&
+			(tod.hours = parseInt(p)) >= 0 &&
 			*p++ == ':' &&
-			(tod.minutes = parseInt(p)) > 0 &&
+			(tod.minutes = parseInt(p)) >= 0 &&
 			*p++ == ':' &&
-			(tod.seconds = parseInt(p)) > 0
+			(tod.seconds = parseInt(p)) >= 0
 		);
 	}
 }

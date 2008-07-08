@@ -19,7 +19,6 @@ public {
 public enum HaxeType
 {
 	TNull,
-	TDynamic,
 	TString,
 	TInt,
 	TFloat,
@@ -38,11 +37,12 @@ public enum HaxeType
 /**
 	The base class for all Haxe types
 **/
-abstract class HaxeValue
+class Dynamic
 {
 	public bool isNull;
-	abstract public HaxeType type();
-	abstract public char[] toString();
+	this() { isNull = true; }
+	public HaxeType type() { return HaxeType.TNull; }
+	public char[] toString() { return "Dynamic"; }
 }
 
 /**
@@ -55,7 +55,7 @@ public interface HaxeSerializable
 	bool __unserialize();
 }
 
-abstract class HaxeClass : HaxeValue, HaxeSerializable
+abstract class HaxeClass : Dynamic, HaxeSerializable
 {
 	abstract public char[] __classname();
 	abstract public char[] __serialize();
@@ -65,7 +65,7 @@ abstract class HaxeClass : HaxeValue, HaxeSerializable
 	public char[] toString() { return __classname(); }
 }
 
-private template Comparator(T:HaxeValue) {
+private template Comparator(T:Dynamic) {
 	int opCmp(Object val) {
 		if( val is this ) return 0;
 		if( cast(T) val ) {
@@ -77,7 +77,7 @@ private template Comparator(T:HaxeValue) {
 	}
 }
 
-private template NullComparator(T:HaxeValue) {
+private template NullComparator(T:Dynamic) {
 	int opCmp(Object val) {
 		if( val is this ) return 0;
 		if( cast(T) val ) {
@@ -95,7 +95,7 @@ private template NullComparator(T:HaxeValue) {
 	}
 }
 
-private template Equality(T:HaxeValue) {
+private template Equality(T:Dynamic) {
 	int opEquals(Object o) {
 		if( o is this || o !is null && cast(T)o )
 			return (cast(T)o).value == this.value;
@@ -110,7 +110,7 @@ private template Castable(B) {
 /**
 	opEquals that includes comparison of null values.
 **/
-private template NullEquality(T:HaxeValue) {
+private template NullEquality(T:Dynamic) {
 	int opEquals(Object o) {
 		if( o is this )
 			return 0;
@@ -130,36 +130,11 @@ private template NullEquality(T:HaxeValue) {
 	}
 }
 
-//////////////////////////////////////////////////////////
-//                DYNAMIC TYPE                          //
-//////////////////////////////////////////////////////////
-/**
-	Type that can contain types or objects
-**/
-class Dynamic : HaxeValue {
-	public HaxeType type() { return HaxeType.TDynamic; }
-	public HaxeValue value;
-
-	this() { isNull = true; }
-	this(HaxeValue val) { isNull = false; this.value = val; }
-
-	public char[] toString()
-	{
-		if(isNull) return "(null)";
-		return value.toString();
-	}
-
-	mixin Castable!(HaxeValue);
-	mixin NullComparator!(typeof(this));
-	mixin NullEquality!(typeof(this));
-}
-
-
 
 //////////////////////////////////////////////////////////
 //                 STRING TYPE                          //
 //////////////////////////////////////////////////////////
-class String : HaxeValue
+class String : Dynamic
 {
 	public HaxeType type() { return HaxeType.TString; }
 	public char[] value;
@@ -190,7 +165,7 @@ class String : HaxeValue
 		this.isNull = false;
 		return new String(this.value ~ v);
 	}
-	String opCat(HaxeValue v) {
+	String opCat(Dynamic v) {
 		this.isNull = false;
 		return new String(this.value ~ v.toString);
 	}
@@ -202,7 +177,7 @@ class String : HaxeValue
 		this.isNull = false;
 		this.value ~= v; return this;
 	}
-	String opCatAssign(HaxeValue v) {
+	String opCatAssign(Dynamic v) {
 		this.isNull = false;
 		this.value ~= v.toString; return this;
 	}
@@ -219,22 +194,22 @@ class String : HaxeValue
 //////////////////////////////////////////////////////////
 //                BASIC TYPES                           //
 //////////////////////////////////////////////////////////
-class Null : HaxeValue
+class Null : Dynamic
 {
 	public HaxeType type() { return HaxeType.TNull; }
 	this() { isNull = true; }
 	static Null opCall() { return new Null(); }
  	int opEquals(Object o) {
 		if(o is this || o is null) return true;
-		if(! cast(HaxeValue) o)
+		if(! cast(Dynamic) o)
 			return false;
-		if( (cast(HaxeValue)o).isNull)
+		if( (cast(Dynamic)o).isNull)
 			return true;
 		return false;
 	}
 	int opCmp(Object o) {
 		if(o is this || o is null) return 0;
-		if( (cast(HaxeValue)o).isNull)
+		if( (cast(Dynamic)o).isNull)
 			return 0;
 		return 1;
 	}
@@ -244,7 +219,7 @@ class Null : HaxeValue
 	}
 }
 
-class Bool : HaxeValue
+class Bool : Dynamic
 {
 	public HaxeType type() { return HaxeType.TBool; }
 	public bool value;
@@ -274,14 +249,14 @@ class Bool : HaxeValue
 //////////////////////////////////////////////////////////
 //              NUMERIC VALUES                          //
 //////////////////////////////////////////////////////////
-abstract class HaxeNumeric : HaxeValue
+abstract class HaxeNumeric : Dynamic
 {
 }
 
 /**
 	Only applicable to integer type
 **/
-private template Bitwise(T:HaxeValue) {
+private template Bitwise(T:Dynamic) {
 	T opAnd(T v) {
 		if(this.isNull || v.isNull)
 			throw new Exception("null value");
@@ -314,7 +289,7 @@ private template Bitwise(T:HaxeValue) {
 	}
 }
 
-private template NumericMath(T:HaxeValue) {
+private template NumericMath(T:Dynamic) {
 	static T opCall() { return new T(); }
 	static T opCall(real v) { return new T(v); }
 	T opNeg() {
@@ -486,7 +461,7 @@ class Float : HaxeNumeric
 	public HaxeType type() { return HaxeType.TFloat; }
 	public real value;
 
-	this() { isNull = true; this.value = 0; }
+	this() { isNull = true; this.value = real.nan; }
 	this(real val) { isNull = false; this.value = val; }
 	this(long val) { isNull = false; this.value = val; }
 
@@ -505,6 +480,18 @@ class Float : HaxeNumeric
 	mixin NullComparator!(typeof(this));
 	mixin NullEquality!(typeof(this));
 	mixin NumericMath!(typeof(this));
+
+	public static Float negativeInfinity() {
+		return new Float(-real.infinity);
+	}
+
+	public static Float positiveInfinity() {
+		return new Float(real.infinity);
+	}
+
+	public static Float nan() {
+		return new Float(real.nan);
+	}
 }
 
 /**
@@ -513,20 +500,19 @@ class Float : HaxeNumeric
 package template DynamicArrayType(T, alias F) {
 	Dynamic opIndex(size_t i) {
 		if(i >= F.length || F[i] == null)
-			return new Dynamic(new Null);
+			return new Null();
 		return F[i];
 	}
 
-	Dynamic opIndexAssign(HaxeValue value, size_t i) {
-		Dynamic v = null;
-		if(value !is null) {
-			if(value.type != HaxeType.TDynamic)
-				v = new Dynamic(value);
-			else
-				v = cast (Dynamic) value;
-		}
+	Dynamic opIndexAssign(Dynamic v, size_t i) {
+		if(v is null)
+			v = new Null();
 		if(i >= F.length) {
+			auto olen = F.length;
 			F.length = i + 1;
+			while(olen < F.length) {
+				F[olen++] = new Null();
+			}
 		}
 		F[i] = v;
 
@@ -556,19 +542,15 @@ package template DynamicHashType(T, alias F) {
 			return null;
 	}
 
-	Dynamic opIndexAssign(HaxeValue value, char[] field) {
-		Dynamic v = null;
-		if(value is null) {
+	Dynamic opIndexAssign(Dynamic v, char[] field) {
+		if(v is null) {
 			try
 				F.remove(field);
 			catch(Exception e) {}
 			return null;
 		}
-		if(value.type != HaxeType.TDynamic)
-			v = new Dynamic(value);
-		else
-			v = cast (Dynamic) value;
 		F[field] = v;
 		return v;
 	}
 }
+
