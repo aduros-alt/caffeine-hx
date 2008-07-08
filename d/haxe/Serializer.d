@@ -4,7 +4,7 @@ import tango.util.container.HashMap;
 import tango.net.Uri;
 import Integer = tango.text.convert.Integer;
 
-//import tango.io.Console;
+import tango.io.Console;
 
 import haxe.HaxeTypes;
 
@@ -166,9 +166,6 @@ class Serializer {
 		case HaxeType.TNull:
 			buf ~= "n";
 			break;
-//		case HaxeType.TDynamic:
-//			serialize((cast(Dynamic) val).value);
-///			break;
 		case HaxeType.TString:
 			serializeString((cast(String) val).value);
 			break;

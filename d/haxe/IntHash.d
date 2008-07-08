@@ -63,7 +63,7 @@ class IntHash : HaxeClass {
 		return s.buf;
 	}
 
-	public bool __unserialize() {
+	public bool __unserialize(HaxeObject* o) {
 		return false;
 	}
 }

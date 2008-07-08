@@ -36,7 +36,7 @@ class HaxeObject : HaxeClass {
 		return s.toString();
 	}
 
-	public bool __unserialize() {
+	public bool __unserialize(HaxeObject* o) {
 		return false;
 	}
 

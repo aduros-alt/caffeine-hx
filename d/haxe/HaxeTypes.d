@@ -8,11 +8,11 @@ private {
 }
 
 public {
+	import haxe.HaxeObject;
 	import haxe.IntHash;
 	import haxe.Hash;
 	import haxe.Array;
 	import haxe.List;
-	import haxe.HaxeObject;
 	import haxe.HaxeDate;
 }
 
@@ -52,14 +52,17 @@ public interface HaxeSerializable
 {
 	char[] __classname();
 	char[] __serialize();
-	bool __unserialize();
+	bool __unserialize(HaxeObject* o);
 }
 
 abstract class HaxeClass : Dynamic, HaxeSerializable
 {
-	abstract public char[] __classname();
+	public char[] __classname() {
+		ClassInfo fci = this.classinfo;
+		return fci.name;
+	}
 	abstract public char[] __serialize();
-	abstract public bool __unserialize();
+	abstract public bool __unserialize(HaxeObject* o);
 
 	public HaxeType type() { return HaxeType.TClass; }
 	public char[] toString() { return __classname(); }

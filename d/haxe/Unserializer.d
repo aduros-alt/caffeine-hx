@@ -43,7 +43,7 @@ class Unserializer {
 		return k;
 	}
 
-	void unserializeObject(HaxeObject o) {
+	void unserializeObject(ref HaxeObject o) {
 		while(true) {
 			if(pos >= length)
 				throw new Exception("Invalid object");
@@ -145,14 +145,20 @@ class Unserializer {
 			if(!cast(String) nd)
 				throw new Exception("Class name invalid");
 			char[] name = (cast(String) nd).value;
-			throw new Exception("Class unserializing not complete");
-// 			auto cl = createClass(name);
-// 			if(cl is null)
-// 				throw new Exception("Class not found " ~ name);
-// 			auto o = new HaxeObject();
-// 			unserializeObject(o);
-// 			cl.__unserialize(o);
-// 			return cl;
+			ClassInfo ci = ClassInfo.find(name);
+			if(ci is null)
+				throw new Exception("Class not found " ~ name);
+			Object o = ci.create();
+			if(!o)
+				throw new Exception("Could not create class " ~ name);
+			auto hso = cast(HaxeClass) o;
+			if(!hso)
+				throw new Exception("Class not serializable " ~ name);
+			auto ho = new HaxeObject();
+			unserializeObject(ho);
+			if(!hso.__unserialize(&ho))
+				throw new Exception("Class unserialize failed " ~ name);
+			return hso;
 			break;
 		case 'w':
 			throw new Exception("Enum unserializing not complete");
@@ -195,6 +201,7 @@ class Unserializer {
 			pos += 19;
 			return d;
 			break;
+		default:
 		}
 		//pos--;
 		throw new Exception("Invalid char " ~buf[pos] ~ " at position " ~ IntUtil.toString(pos) );
