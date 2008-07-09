@@ -4,6 +4,7 @@ import IntUtil = tango.text.convert.Integer;
 import FloatUtil = tango.text.convert.Float;
 import tango.net.Uri;
 import haxe.HaxeTypes;
+//import tango.io.Console;
 
 
 class Unserializer {
@@ -92,13 +93,13 @@ class Unserializer {
 			return new String(s);
 			break;
 		case 'k':
-			return Float.nan();
+			return Float.NaN();
 			break;
 		case 'm':
-			return Float.negativeInfinity();
+			return Float.NEGATIVE_INFINITY();
 			break;
 		case 'p':
-			return Float.positiveInfinity();
+			return Float.POSITIVE_INFINITY();
 			break;
 		case 'a':
 			Array a = new Array();
@@ -145,6 +146,13 @@ class Unserializer {
 			if(!cast(String) nd)
 				throw new Exception("Class name invalid");
 			char[] name = (cast(String) nd).value;
+			// lok in HaxeClass registry
+			foreach(h,d; HaxeClass.haxe2dmd) {
+				if(h == name) {
+					name = d;
+					break;
+				}
+			}
 			ClassInfo ci = ClassInfo.find(name);
 			if(ci is null)
 				throw new Exception("Class not found " ~ name);
@@ -156,7 +164,7 @@ class Unserializer {
 				throw new Exception("Class not serializable " ~ name);
 			auto ho = new HaxeObject();
 			unserializeObject(ho);
-			if(!hso.__unserialize(&ho))
+			if(!hso.__unserialize(ho))
 				throw new Exception("Class unserialize failed " ~ name);
 			return hso;
 			break;
@@ -211,5 +219,93 @@ class Unserializer {
 	static public Dynamic run( char[] v) {
 		auto u = new Unserializer(v);
 		return u.unserialize();
+	}
+}
+
+
+/**
+	Unserialize a field from the haxe object to either
+	a haxe Int type or D int type field
+**/
+bool getInt(T)(ref HaxeObject o, char[] name, out T field)
+{
+	static if(is(T == Int)) {
+		if(o[name] is null)
+			field = new Int(null);
+		else if(!cast(T) o[name])
+			return false;
+		else
+			field = cast(T) o[name];
+		return true;
+	}
+	else static if( is(T == int) ) {
+		if(o[name] is null)
+			field = 0;
+		else if(!cast(Int) o[name])
+			return false;
+		else
+			field = (cast(Int) o[name]).value;
+		return true;
+	}
+	else {
+		static assert(0);
+	}
+}
+
+/**
+	Unserialize a field from the haxe object to either
+	a haxe Float type or D float type field
+**/
+bool getFloat(T)(ref HaxeObject o, char[] name, out T field)
+{
+	static if(is(T == Float)) {
+		if(o[name] is null)
+			field = new Float();
+		else if(!cast(T) o[name])
+			return false;
+		else
+			field = cast(T) o[name];
+		return true;
+	}
+	else static if( is(T == float) ) {
+		if(o[name] is null)
+			field = T.nan;
+		else if(!cast(Float) o[name])
+			return false;
+		else
+			field = (cast(Float) o[name]).value;
+		return true;
+	}
+	else {
+		static assert(0);
+	}
+}
+
+/**
+	Unserialize a field from the haxe object to either
+	a haxe String type or D char[] type field
+**/
+bool getString(T)(ref HaxeObject o, char[] name, out T field)
+{
+	static if(is(T == String)) {
+		if(o[name] is null)
+			field = new String();
+		else if(!cast(T) o[name])
+			return false;
+		else
+			field = cast(T) o[name];
+		return true;
+	}
+	else static if( is(T == char[]) ) {
+		if(o[name] is null)
+			field.length = 0;
+		else if(!cast(String) o[name])
+			return false;
+		else
+			field = (cast(String) o[name]).value;
+		return true;
+	}
+	else {
+		static assert(0);
 	}
 }

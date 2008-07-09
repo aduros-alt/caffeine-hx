@@ -153,7 +153,17 @@ class Serializer {
 	**/
 	public void serializeClass(HaxeSerializable c) {
 		buf ~= "c";
-		serializeString(c.__classname);
+		char[] name;
+		bool found;
+		foreach(h,d; HaxeClass.haxe2dmd) {
+			if(d == c.__classname) {
+				name = h;
+				found = true;
+				break;
+			}
+		}
+		if(!found) name = c.__classname;
+		serializeString(name);
 		if(cast(Dynamic) c)
 			cache ~= cast(Dynamic)c;
 		buf ~= c.__serialize();
@@ -170,12 +180,22 @@ class Serializer {
 			serializeString((cast(String) val).value);
 			break;
 		case HaxeType.TInt:
-			int v = (cast(Int) val).value;
-			serializeInt(v);
+			auto v = cast(Int) val;
+			if(v.isNull)
+				serialize(new Null());
+			else
+				serializeInt(v.value);
 			break;
 		case HaxeType.TFloat:
-			double v = cast(double)((cast(Float) val).value);
-			serializeDouble(v);
+			auto v = cast(Float) val;
+			if(v == Float.NaN)
+				buf ~= "k";
+			else if(v == Float.POSITIVE_INFINITY)
+				buf ~= "p";
+			else if(v == Float.NEGATIVE_INFINITY)
+				buf ~= "m";
+			else
+				serializeDouble(cast(double)v.value);
 			break;
 		case HaxeType.TBool:
 			bool v = (cast(Bool) val).value;

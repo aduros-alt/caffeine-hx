@@ -63,7 +63,7 @@ class Hash : HaxeClass {
 		return "b" ~ s.toString() ~ "h";
 	}
 
-	public bool __unserialize(HaxeObject* o) {
+	public bool __unserialize(ref HaxeObject o) {
 		return false;
 	}
 }

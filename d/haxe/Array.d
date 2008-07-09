@@ -74,7 +74,7 @@ class Array : HaxeClass {
 		return "a" ~ s.toString() ~ "h";
 	}
 
-	public bool __unserialize(HaxeObject* o) {
+	public bool __unserialize(ref HaxeObject o) {
 		return false;
 	}
 

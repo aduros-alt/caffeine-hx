@@ -195,7 +195,7 @@ class HaxeDate : HaxeClass {
 		return toString();
 	}
 
-	public bool __unserialize(HaxeObject* o) {
+	public bool __unserialize(ref HaxeObject o) {
 		return false;
 	}
 

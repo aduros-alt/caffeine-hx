@@ -5,6 +5,7 @@ private {
 	import IntUtil = tango.text.convert.Integer;
 	import tango.math.Math;
 	import tango.util.container.HashMap;
+	import tango.io.Console;
 }
 
 public {
@@ -52,17 +53,19 @@ public interface HaxeSerializable
 {
 	char[] __classname();
 	char[] __serialize();
-	bool __unserialize(HaxeObject* o);
+	bool __unserialize(ref HaxeObject o);
 }
 
 abstract class HaxeClass : Dynamic, HaxeSerializable
 {
+	public static char[][char[]] haxe2dmd;
+
 	public char[] __classname() {
 		ClassInfo fci = this.classinfo;
 		return fci.name;
 	}
 	abstract public char[] __serialize();
-	abstract public bool __unserialize(HaxeObject* o);
+	abstract public bool __unserialize(ref HaxeObject o);
 
 	public HaxeType type() { return HaxeType.TClass; }
 	public char[] toString() { return __classname(); }
@@ -100,14 +103,10 @@ private template NullComparator(T:Dynamic) {
 
 private template Equality(T:Dynamic) {
 	int opEquals(Object o) {
-		if( o is this || o !is null && cast(T)o )
+		if( o is this || (o !is null && cast(T)o) )
 			return (cast(T)o).value == this.value;
 		return false;
 	}
-}
-
-private template Castable(B) {
-	B opCast() { return value; }
 }
 
 /**
@@ -133,6 +132,9 @@ private template NullEquality(T:Dynamic) {
 	}
 }
 
+private template Castable(B) {
+	B opCast() { return value; }
+}
 
 //////////////////////////////////////////////////////////
 //                 STRING TYPE                          //
@@ -429,8 +431,19 @@ class Int : HaxeNumeric
 	public int value;
 
 	this() { isNull = true; this.value = 0; }
-	//this(int val) { isNull = false; this.value = val; }
 	this(real val) { isNull = false; this.value = cast (int)val; }
+	this(Object o) {
+		if(o is null) {
+			isNull = true;
+			return;
+		}
+		if(cast(Int) o) {
+			this.value = (cast(Int) o).value;
+			this.isNull = (cast(Int) o).isNull;
+		}
+		else
+			throw new Exception("Incompatible object assigned to Int");
+	}
 
 	public char[] toString()
 	{
@@ -464,13 +477,13 @@ class Float : HaxeNumeric
 	public HaxeType type() { return HaxeType.TFloat; }
 	public real value;
 
-	this() { isNull = true; this.value = real.nan; }
+	this() { isNull = false; this.value = real.nan; }
 	this(real val) { isNull = false; this.value = val; }
 	this(long val) { isNull = false; this.value = val; }
 
 	public char[] toString()
 	{
-		if(isNull) return "(null)";
+		//if(isNull) return "(null)";
 		return FloatUtil.toString(value);
 	}
 
@@ -480,20 +493,42 @@ class Float : HaxeNumeric
 		return this;
 	}
 	mixin Castable!(real);
-	mixin NullComparator!(typeof(this));
-	mixin NullEquality!(typeof(this));
+	mixin Comparator!(typeof(this));
+	int opEquals(Object o) {
+		if(o is this) return true;
+		if(o is null) return false;
+		auto ov = (cast(Float) o).value;
+		if(ov !<>= ov) { // unordered (NaN)
+			if(value !<>= value)
+				return true;
+			return false;
+		}
+		if(ov is ov.infinity) {
+			if(value is value.infinity) {
+				// let tango handle the signed values of infinity
+				if(FloatUtil.toString(ov) == FloatUtil.toString(value))
+					return true;
+			}
+			return false;
+		}
+
+		return ov == value;
+	}
 	mixin NumericMath!(typeof(this));
 
-	public static Float negativeInfinity() {
+	public static Float NEGATIVE_INFINITY() {
 		return new Float(-real.infinity);
 	}
 
-	public static Float positiveInfinity() {
+	public static Float POSITIVE_INFINITY() {
 		return new Float(real.infinity);
 	}
 
-	public static Float nan() {
-		return new Float(real.nan);
+	public static Float NaN() {
+		//return new Float(real.nan);
+		auto f = new Float;
+		f.value = real.nan;
+		return f;
 	}
 }
 
