@@ -3,8 +3,39 @@ module Test;
 import haxe.HaxeTypes;
 import haxe.Serializer;
 import haxe.Unserializer;
-import haxe.Templates;
 import tango.io.Console;
+
+class MyEnum : Enum {
+	static this() {
+		Enum.haxe2dmd["MyEnum"] = "Test.MyEnum";
+	}
+
+	public char[][] tags() {
+		return ["Nada", "Zero", "One", "Two", "Three"];
+	}
+
+	public int[] argCounts() {
+		return [0, 0, 1, 2, 1];
+	}
+
+	public static MyEnum Nada() {
+		auto e = new MyEnum();
+		e.initialize("Nada", new Array());
+		return e;
+	}
+	public static MyEnum Zero() {
+		auto e = new MyEnum();
+		e.initialize("Zero", null);
+		return e;
+	}
+	public static MyEnum One(int a) {
+		auto e = new MyEnum();
+		Array ar = new Array();
+		ar[0] = Int(a);
+		e.initialize("One", ar);
+		return e;
+	}
+}
 
 class MyClass : HaxeClass {
 	Int a;
@@ -67,6 +98,20 @@ class MyClass : HaxeClass {
 
 
 void main() {
+	Cout("---- D -----").newline;
 	auto c = new MyClass();
 	Cout(Serializer.run(c)).newline;
+
+	auto e = MyEnum.Nada;
+	Cout(Serializer.run(e)).newline;
+
+	e = MyEnum.One(456);
+	Cout(Serializer.run(e)).newline;
+
+	Serializer.USE_ENUM_INDEX = true;
+	Cout(Serializer.run(e)).newline;
+
+	Enum r = cast(Enum)Unserializer.run(Serializer.run(e));
+	Cout(r).newline;
+	Cout(r[0]).newline;
 }

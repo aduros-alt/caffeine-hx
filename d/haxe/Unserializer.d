@@ -59,6 +59,18 @@ class Unserializer {
 		}
 	}
 
+	private Enum unserializeEnum(String name, Dynamic v) {
+		if( buf[pos++] != ':' )
+			throw new Exception("Invalid enum format");
+		auto nargs = readDigits();
+		auto args = new Array();
+		while( nargs > 0 ) {
+			args.push(unserialize());
+			nargs-=1;
+		}
+		return Enum.create(name, v, args);
+	}
+
 	public Dynamic unserialize() {
 		switch( buf[pos++] ) {
 		case 'n':
@@ -168,11 +180,18 @@ class Unserializer {
 				throw new Exception("Class unserialize failed " ~ name);
 			return hso;
 			break;
+//wy6:MyEnumy3:One:1i456
+//jy6:MyEnum:2:1i456
 		case 'w':
-			throw new Exception("Enum unserializing not complete");
+			String name = cast(String) unserialize();
+			return unserializeEnum(name, unserialize());
 			break;
 		case 'j':
-			throw new Exception("Enum unserializing not complete");
+			String name = cast(String) unserialize();
+			if( buf[pos++] != ':' )
+				throw new Exception("Invalid character");
+			auto i = readDigits();
+			return unserializeEnum(name, Int(i));
 			break;
 		case 'l':
 			auto l = new List();

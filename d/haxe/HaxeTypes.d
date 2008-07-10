@@ -15,6 +15,7 @@ public {
 	import haxe.Array;
 	import haxe.List;
 	import haxe.HaxeDate;
+	import haxe.Enum;
 }
 
 public enum HaxeType
@@ -567,6 +568,15 @@ package template DynamicArrayType(T, alias F) {
 		F.length = l;
 		return v;
 	}
+
+	int opApply(int delegate(ref Dynamic) dg) {
+		int res = 0;
+		for (int i = 0; i < F.length; i++) {
+			res = dg(F[i]);
+			if(res) break;
+		}
+		return res;
+	}
 }
 
 /**
@@ -592,3 +602,22 @@ package template DynamicHashType(T, alias F) {
 	}
 }
 
+import tango.text.Util;
+/**
+	Converts a D class Module name to a haxe package name
+**/
+char[] moduleToPackage(char[] modName) {
+	auto parts = split(modName, ".");
+	if(parts.length < 2)
+		return "";
+	int skip = parts.length - 2;
+	char[] name;
+	for(int x=0; x < parts.length; x++) {
+		if(x == skip)
+			continue;
+		name ~= parts[x];
+		if(x != parts.length - 1)
+			name ~= ".";
+	}
+	return name;
+}

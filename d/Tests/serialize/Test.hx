@@ -8,6 +8,7 @@ enum MyEnum {
 }
 
 class MyClass {
+	var e : MyEnum;
 	var a : Int;
 	var b : Null<Int>;
 	var c : Array<String>;
@@ -29,9 +30,21 @@ class MyClass {
 }
 
 class Test {
-	static var println : Dynamic = #if neko neko.Lib.println #else true trace #end;
 	public static function main() {
 		var c = new MyClass();
-		println(haxe.Serializer.run(c));
+		neko.Lib.println(haxe.Serializer.run(c));
+
+		var e = Nada;
+		neko.Lib.println(haxe.Serializer.run(e));
+
+		e = One(456);
+		neko.Lib.println(haxe.Serializer.run(e));
+
+		haxe.Serializer.USE_ENUM_INDEX = true;
+		neko.Lib.println(haxe.Serializer.run(e));
+
+		//trace(haxe.Unserializer.run(haxe.Serializer.run(e)));
+		//trace(haxe.Unserializer.run("jy6:MyEnum:2:1i456"));
+		//trace(untyped e.index);
 	}
 }

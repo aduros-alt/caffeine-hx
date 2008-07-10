@@ -7,6 +7,7 @@ import Integer = tango.text.convert.Integer;
 import tango.io.Console;
 
 import haxe.HaxeTypes;
+import haxe.Enum;
 
 private alias HashMap!(char[], int) HashOfInts;
 
@@ -169,6 +170,37 @@ class Serializer {
 		buf ~= c.__serialize();
 	}
 
+	public void serializeEnum(Enum c) {
+		if( useCache && serializeRef(c) )
+			return;
+		if(cache.length > 0)
+			cache.length = cache.length - 1;
+		buf ~= (useEnumIndex ? "j" : "w");
+		char[] name;
+		bool found;
+		foreach(h,d; Enum.haxe2dmd) {
+			if(d == c.__enumname) {
+				name = h;
+				found = true;
+				break;
+			}
+		}
+		if(!found) name = c.__enumname;
+		serializeString(name);
+		if(useEnumIndex) {
+			buf ~= ":";
+			buf ~= IntUtil.toString(c.value);
+		}
+		else
+			serialize(c.tag);
+		buf ~= ":";
+		buf ~= IntUtil.toString(c.argc);
+		foreach(arg; c) {
+			serialize(arg);
+		}
+		cache ~= c;
+	}
+
 	public Serializer serialize(Dynamic val) {
 		if(val is null)
 			val = new Null();
@@ -228,7 +260,7 @@ class Serializer {
 			buf ~= (cast(IntHash)val).__serialize();
 			break;
 		case HaxeType.TEnum:
-			throw new Exception("TODO: Unable to serialize enums yet");
+			serializeEnum(cast(Enum)val);
 			break;
 		case HaxeType.TObject:
 			if( useCache && serializeRef(val) )
