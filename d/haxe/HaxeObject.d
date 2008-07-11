@@ -4,14 +4,14 @@ import haxe.HaxeTypes;
 import haxe.Serializer;
 import IntUtil = tango.text.convert.Integer;
 
-class HaxeObject : HaxeClass {
+class HaxeObject : Dynamic, HaxeSerializable {
 	public HaxeType type() { return HaxeType.TObject; }
 	public Dynamic[char[]] __fields;
 	public char[] __classname() { return "Object"; }
 
 	this() { isNull = false; }
 
-	mixin DynamicHashType!(typeof(this), __fields);
+	mixin DynamicHashType!(Dynamic, __fields);
 
 	public char[] toString() {
 		char[] b = "{";

@@ -159,7 +159,7 @@ template ArraySerialize(T, alias F) {
 
 class Array : HaxeClass {
 	public Dynamic[] data;
-	public char[] __classname() { return "Array<Dynamic>"; }
+	public char[] __classname() { return "Array"; }
 	mixin DynamicArrayType!(Dynamic, data);
 	mixin ArraySerialize!(Dynamic, data);
 }
@@ -169,6 +169,7 @@ class Array : HaxeClass {
 **/
 class StringArray : HaxeClass {
 	String[] data;
+	public char[] __classname() { return "Array"; }
 	mixin DynamicArrayType!(String, data);
 	mixin ArraySerialize!(String, data);
 }
@@ -177,12 +178,14 @@ class StringArray : HaxeClass {
 **/
 class IntArray : HaxeClass {
 	Int[] data;
+	public char[] __classname() { return "Array"; }
 	mixin DynamicArrayType!(Int, data);
 	mixin ArraySerialize!(Int, data);
 }
 
 class ArrayCast(T) : HaxeClass {
 	T[] data;
+	public char[] __classname() { return "Array"; }
 	mixin DynamicArrayType!(T, data);
 	mixin ArraySerialize!(T, data);
 }

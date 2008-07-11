@@ -104,7 +104,6 @@ class Serializer {
 			serializeString(field);
 			serialize(value);
 		}
-		buf ~= "g";
 	}
 
 	public void serializeInt(int v) {
@@ -168,6 +167,7 @@ class Serializer {
 		if(cast(Dynamic) c)
 			cache ~= cast(Dynamic)c;
 		buf ~= c.__serialize();
+		buf ~= "g";
 	}
 
 	public void serializeEnum(Enum c) {
@@ -267,6 +267,7 @@ class Serializer {
 				return this;
 			buf ~= "o";
 			buf ~= (cast(HaxeObject)val).__serialize();
+			buf ~= "g";
 			break;
 		case HaxeType.TClass:
 			serializeClass(cast(HaxeClass) val);

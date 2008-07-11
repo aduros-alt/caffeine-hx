@@ -10,6 +10,7 @@ private {
 
 public {
 	import haxe.HaxeObject;
+	import haxe.HaxeClass;
 	import haxe.IntHash;
 	import haxe.Hash;
 	import haxe.Array;
@@ -38,14 +39,42 @@ public enum HaxeType
 }
 
 /**
+	A function takes a Class c to be used as "this", an array of
+	parameters, and an object that contains context information, which
+	can have fields set as a sort of closure.
+**/
+alias Dynamic function(HaxeClass c, Dynamic[] params, HaxeObject context) Function;
+/**
 	The base class for all Haxe types
 **/
+
 class Dynamic
 {
-	public bool isNull;
-	this() { isNull = true; }
+	public bool isNull = true;
+	this() { }
 	public HaxeType type() { return HaxeType.TNull; }
 	public char[] toString() { return "Dynamic"; }
+
+	HaxeClass __objPtr;
+	HaxeObject __context;
+	union {
+		Function __func;
+	}
+
+	Dynamic opCall(Dynamic[] params) {
+		if(this.type != HaxeType.TFunction)
+			throw new Exception("Not a function");
+		return __func(__objPtr, params, __context);
+	}
+}
+
+class DynamicFunction : Dynamic {
+	public HaxeType type() { return HaxeType.TFunction; }
+	this(HaxeClass obj, Function f, HaxeObject context) {
+		this.__objPtr = obj;
+		this.__func = f;
+		this.__context = context;
+	}
 }
 
 /**
@@ -56,21 +85,6 @@ public interface HaxeSerializable
 	char[] __classname();
 	char[] __serialize();
 	bool __unserialize(ref HaxeObject o);
-}
-
-abstract class HaxeClass : Dynamic, HaxeSerializable
-{
-	public static char[][char[]] haxe2dmd;
-
-	public char[] __classname() {
-		ClassInfo fci = this.classinfo;
-		return fci.name;
-	}
-	abstract public char[] __serialize();
-	abstract public bool __unserialize(ref HaxeObject o);
-
-	public HaxeType type() { return HaxeType.TClass; }
-	public char[] toString() { return __classname(); }
 }
 
 private template Comparator(T:Dynamic) {
@@ -481,19 +495,22 @@ class Float : HaxeNumeric
 **/
 package template DynamicHashType(T, alias F) {
 	Dynamic opIndex(char[] field) {
-		try
-			return F[field];
-		catch(Exception e)
-			return null;
+		auto v = (field in F);
+		if(v) return *v;
+		return null;
 	}
 
 	Dynamic opIndexAssign(Dynamic v, char[] field) {
-		if(v is null) {
+		if(v is null)
+			v = new Dynamic();
+		/+
+		{
 			try
 				F.remove(field);
 			catch(Exception e) {}
 			return null;
 		}
+		+/
 		F[field] = v;
 		return v;
 	}

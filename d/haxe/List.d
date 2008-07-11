@@ -8,7 +8,7 @@ private alias LinkedList!(Dynamic) HList;
 class List : HaxeClass {
 	public HaxeType type() { return HaxeType.TList; }
 	public HList data;
-	public char[] __classname() { return "List<Dynamic>"; }
+	public char[] __classname() { return "List"; }
 
 	this() { data = new HList(); }
 

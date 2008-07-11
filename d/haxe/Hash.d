@@ -8,7 +8,7 @@ private alias Dynamic[char[]] HaxeStringHash;
 class Hash : HaxeClass {
 	public HaxeType type() { return HaxeType.THash; }
 	public HaxeStringHash	data;
-	public char[] __classname() { return "Hash<Dynamic>"; }
+	public char[] __classname() { return "Hash"; }
 
 	this() { isNull = false; }
 

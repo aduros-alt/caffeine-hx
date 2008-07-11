@@ -46,5 +46,8 @@ class Test {
 		//trace(haxe.Unserializer.run(haxe.Serializer.run(e)));
 		//trace(haxe.Unserializer.run("jy6:MyEnum:2:1i456"));
 		//trace(untyped e.index);
+
+		Reflect.setField(c,"dfield", "Dynamic text test");
+		neko.Lib.println(haxe.Serializer.run(c));
 	}
 }

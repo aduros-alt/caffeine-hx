@@ -9,7 +9,7 @@ private alias Dynamic[int] HaxeIntHash;
 class IntHash : HaxeClass {
 	public HaxeType type() { return HaxeType.TIntHash; }
 	public HaxeIntHash	data;
-	public char[] __classname() { return "IntHash<Dynamic>"; }
+	public char[] __classname() { return "IntHash"; }
 
 	this() { isNull = false; }
 

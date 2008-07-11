@@ -3,6 +3,7 @@ module Test;
 import haxe.HaxeTypes;
 import haxe.Serializer;
 import haxe.Unserializer;
+import haxe.Reflect;
 import tango.io.Console;
 
 class MyEnum : Enum {
@@ -72,7 +73,7 @@ class MyClass : HaxeClass {
 		fields["nn"]= nn;
 		auto s = new Serializer();
 		s.serializeFields(fields);
-		return s.toString();
+		return super.__serialize() ~ s.toString();
 	}
 
 	bool __unserialize(ref HaxeObject o) {
@@ -96,6 +97,16 @@ class MyClass : HaxeClass {
 
 }
 
+class TestDynamicFunctions : HaxeClass {
+	this() {
+		__fields["foo"] = new DynamicFunction(this, &_foo, new HaxeObject());
+	}
+	static Dynamic _foo(HaxeClass o, Dynamic[] p, HaxeObject context) {
+		Cout("_foo called from foo").newline;
+		Cout(p[0]).newline;
+		return Null();
+	}
+}
 
 void main() {
 	Cout("---- D -----").newline;
@@ -114,4 +125,11 @@ void main() {
 	Enum r = cast(Enum)Unserializer.run(Serializer.run(e));
 	Cout(r).newline;
 	Cout(r[0]).newline;
+
+	Reflect.setField(c, "dfield", String("Dynamic text test"));
+	Cout(Serializer.run(c)).newline;
+
+	auto t = new TestDynamicFunctions();
+	Dynamic[] p;
+	t["foo"]([String("Hello from foo")]);
 }
