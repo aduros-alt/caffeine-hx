@@ -33,6 +33,10 @@ class Hash : HaxeClass {
 		return p;
 	}
 
+	public size_t length() {
+		return data.length;
+	}
+
 	public bool remove(char[] k) {
 		try {
 			data.remove(k);

@@ -4,6 +4,7 @@ import IntUtil = tango.text.convert.Integer;
 import FloatUtil = tango.text.convert.Float;
 import tango.net.Uri;
 import haxe.HaxeTypes;
+import haxe.Type;
 //import tango.io.Console;
 
 
@@ -155,21 +156,14 @@ class Unserializer {
 			break;
 		case 'c':
 			Dynamic nd = unserialize();
-			if(!cast(String) nd)
-				throw new Exception("Class name invalid");
-			char[] name = (cast(String) nd).value;
-			// lok in HaxeClass registry
-			foreach(h,d; HaxeClass.haxe2dmd) {
-				if(h == name) {
-					name = d;
-					break;
-				}
-			}
-			ClassInfo ci = ClassInfo.find(name);
+ 			if(!cast(String) nd)
+ 				throw new Exception("Class name invalid");
+ 			char[] name = (cast(String) nd).value;
+			ClassInfo ci = Type.resolveClass(name);
 			if(ci is null)
 				throw new Exception("Class not found " ~ name);
-			Object o = ci.create();
-			if(!o)
+			Object o = Type.createInstance(ci);
+			if(o is null)
 				throw new Exception("Could not create class " ~ name);
 			auto hso = cast(HaxeClass) o;
 			if(!hso)
@@ -180,8 +174,6 @@ class Unserializer {
 				throw new Exception("Class unserialize failed " ~ name);
 			return hso;
 			break;
-//wy6:MyEnumy3:One:1i456
-//jy6:MyEnum:2:1i456
 		case 'w':
 			String name = cast(String) unserialize();
 			return unserializeEnum(name, unserialize());
@@ -237,6 +229,11 @@ class Unserializer {
 
 	static public Dynamic run( char[] v) {
 		auto u = new Unserializer(v);
+		return u.unserialize();
+	}
+
+	static public Dynamic run( String v) {
+		auto u = new Unserializer(v.value);
 		return u.unserialize();
 	}
 }

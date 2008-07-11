@@ -16,6 +16,7 @@ public {
 	import haxe.List;
 	import haxe.HaxeDate;
 	import haxe.Enum;
+	import haxe.String;
 }
 
 public enum HaxeType
@@ -135,66 +136,6 @@ private template NullEquality(T:Dynamic) {
 
 private template Castable(B) {
 	B opCast() { return value; }
-}
-
-//////////////////////////////////////////////////////////
-//                 STRING TYPE                          //
-//////////////////////////////////////////////////////////
-class String : Dynamic
-{
-	public HaxeType type() { return HaxeType.TString; }
-	public char[] value;
-
-	this() { isNull = true; this.value = ""; }
-	this(char[] v) {
-		isNull = false;
-		this.value = v;
-	}
-
-	public char[] toString()
-	{
-		if(isNull) return "(null)";
-		return value;
-	}
-	static String opCall() { return new String(); }
-	static String opCall(char[] v) { return new String(v); }
-	static String opCall(char v) { char[] d; d~=v; return new String(d); }
-	static String opCall(real v) { return new String(FloatUtil.toString(v)); }
-	static String opCall(long v) { return new String(IntUtil.toString(v)); }
-
-	String opAssign(char[] v) {
-		this.isNull = false;
-		this.value = v;
-		return this;
-	}
-	String opCat(char[] v) {
-		this.isNull = false;
-		return new String(this.value ~ v);
-	}
-	String opCat(Dynamic v) {
-		this.isNull = false;
-		return new String(this.value ~ v.toString);
-	}
-	String opCat(real v) {
-		this.isNull = false;
-		return new String(this.value ~ FloatUtil.toString(v));
-	}
-	String opCatAssign(char[] v) {
-		this.isNull = false;
-		this.value ~= v; return this;
-	}
-	String opCatAssign(Dynamic v) {
-		this.isNull = false;
-		this.value ~= v.toString; return this;
-	}
-	String opCatAssign(real v) {
-		this.isNull = false;
-		this.value ~= FloatUtil.toString(v); return this;
-	}
-
-	mixin Castable!(char[]);
-	mixin NullComparator!(typeof(this));
-	mixin NullEquality!(typeof(this));
 }
 
 //////////////////////////////////////////////////////////
@@ -533,51 +474,7 @@ class Float : HaxeNumeric
 	}
 }
 
-/**
-	Types that can be accessed as integer arrays of Dynamic
-**/
-package template DynamicArrayType(T, alias F) {
-	Dynamic opIndex(size_t i) {
-		if(i >= F.length || F[i] == null)
-			return new Null();
-		return F[i];
-	}
 
-	Dynamic opIndexAssign(Dynamic v, size_t i) {
-		if(v is null)
-			v = new Null();
-		if(i >= F.length) {
-			auto olen = F.length;
-			F.length = i + 1;
-			while(olen < F.length) {
-				F[olen++] = new Null();
-			}
-		}
-		F[i] = v;
-
-		// trim the size down
-		size_t l = F.length;
-		size_t x = l;
-		do {
-			x--;
-			if(F[x] !is null)
-				break;
-			l--;
-		}
-		while(x > 0);
-		F.length = l;
-		return v;
-	}
-
-	int opApply(int delegate(ref Dynamic) dg) {
-		int res = 0;
-		for (int i = 0; i < F.length; i++) {
-			res = dg(F[i]);
-			if(res) break;
-		}
-		return res;
-	}
-}
 
 /**
 	Types that can be accessed as hashes of Dynamic
