@@ -100,9 +100,16 @@ class MyClass : HaxeClass {
 class TestDynamicFunctions : HaxeClass {
 	this() {
 		__fields["foo"] = new DynamicFunction(this, &_foo, new HaxeObject());
+		mixin(Method!("bar", "_bar", "new HaxeObject()"));
 	}
 	static Dynamic _foo(HaxeClass o, Dynamic[] p, HaxeObject context) {
 		Cout("_foo called from foo").newline;
+		Cout(p[0]).newline;
+		return Null();
+	}
+
+	static Dynamic _bar(HaxeClass o, Dynamic[] p, HaxeObject context) {
+		Cout("_bar called from bar").newline;
 		Cout(p[0]).newline;
 		return Null();
 	}
@@ -132,4 +139,5 @@ void main() {
 	auto t = new TestDynamicFunctions();
 	Dynamic[] p;
 	t["foo"]([String("Hello from foo")]);
+	t["bar"]([String("Hello from bar")]);
 }

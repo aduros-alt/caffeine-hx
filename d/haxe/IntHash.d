@@ -34,6 +34,10 @@ class IntHash : HaxeClass {
 		return p;
 	}
 
+	public size_t length() {
+		return data.length;
+	}
+
 	public bool remove(int k) {
 		try {
 			data.remove(k);
@@ -49,21 +53,5 @@ class IntHash : HaxeClass {
 			data[k] = new Null();
 		else
 			data[k] = v;
-	}
-
-	public char[] __serialize() {
-		auto s = new Serializer();
-		s.buf ~= "q";
-		foreach(k, v; data) {
-			s.buf ~= ":";
-			s.buf ~= IntUtil.toString(k);
-			s.serialize(v);
-		}
-		s.buf ~= "h";
-		return s.buf;
-	}
-
-	public bool __unserialize(ref HaxeObject o) {
-		return false;
 	}
 }

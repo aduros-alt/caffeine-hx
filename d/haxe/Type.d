@@ -43,6 +43,8 @@ class Type {
 				break;
 			}
 		}
+		if(name.length == 0)
+			return null;
 		ClassInfo ci = ClassInfo.find(name);
 		return ci;
 	}

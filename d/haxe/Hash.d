@@ -5,7 +5,15 @@ import haxe.Serializer;
 
 private alias Dynamic[char[]] HaxeStringHash;
 
-class Hash : HaxeClass {
+interface IHash {
+	bool exists(char[] k);
+	Dynamic get(char[] k);
+	size_t length();
+	bool remove(char[] k);
+	void set(char[] k, Dynamic v);
+}
+
+class Hash : HaxeClass, IHash {
 	public HaxeType type() { return HaxeType.THash; }
 	public HaxeStringHash	data;
 	public char[] __classname() { return "Hash"; }
@@ -13,24 +21,13 @@ class Hash : HaxeClass {
 	this() { isNull = false; }
 
 	public bool exists(char[] k) {
-		try {
-			Dynamic p = data[k];
-		}
-		catch(Exception e) {
-			return false;
-		}
-		return true;
+		return (k in data) == null ? false : true;
 	}
 
 	public Dynamic get(char[] k) {
-		Dynamic p;
-		try {
-			p = data[k];
-		}
-		catch(Exception e) {
-			return null;
-		}
-		return p;
+		auto v = (k in data);
+		if(v) return *v;
+		return null;
 	}
 
 	public size_t length() {
@@ -38,12 +35,10 @@ class Hash : HaxeClass {
 	}
 
 	public bool remove(char[] k) {
-		try {
+		try
 			data.remove(k);
-		}
-		catch(Exception e) {
+		catch(Exception e)
 			return false;
-		}
 		return true;
 	}
 
@@ -54,20 +49,4 @@ class Hash : HaxeClass {
 			data[k] = v;
 	}
 
-	public char[] __serialize() {
-		auto s = new Serializer();
-		if(data.length > 0) {
-			foreach(k, v; data) {
-				if(v !is null) {
-					s.serializeString(k);
-					s.serialize(v);
-				}
-			}
-		}
-		return "b" ~ s.toString() ~ "h";
-	}
-
-	public bool __unserialize(ref HaxeObject o) {
-		return false;
-	}
 }

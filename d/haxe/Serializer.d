@@ -2,9 +2,9 @@ module haxe.Serializer;
 
 import tango.util.container.HashMap;
 import tango.net.Uri;
-import Integer = tango.text.convert.Integer;
+import IntUtil = tango.text.convert.Integer;
 
-import tango.io.Console;
+// import tango.io.Console;
 
 import haxe.HaxeTypes;
 import haxe.Enum;
@@ -32,6 +32,11 @@ class Serializer {
 		scount = 0;
 		this.shash = new HashOfInts();
 		buf = "";
+	}
+
+	this(bool useCache) {
+		this();
+		this.useCache = useCache;
 	}
 
 	public override char[] toString() {
@@ -72,14 +77,14 @@ class Serializer {
 			int x;
 			if( shash.containsKey(s) ) {
 				x = shash[s];
-				buf = buf ~ "R" ~ Integer.toString(x);
+				buf = buf ~ "R" ~ IntUtil.toString(x);
 				return;
 			}
 			shash.add(s,scount++);
 			buf ~= "y";
 			auto u = new Uri();
 			char[] res = u.encode(s, Uri.IncGeneric); ///Uri.IncGeneric
-			buf ~= Integer.toString(res.length);
+			buf ~= IntUtil.toString(res.length);
 			buf ~= ":";
 			buf ~= res;
 	}
@@ -106,13 +111,18 @@ class Serializer {
 		}
 	}
 
+	public void serializeField(char[] k, Dynamic v) {
+		serializeString(k);
+		serialize(v);
+	}
+
 	public void serializeInt(int v) {
 		if(v == 0) {
 			buf ~= "z";
 			return;
 		}
 		buf ~= "i";
-		buf ~= Integer.toString(v);
+		buf ~= IntUtil.toString(v);
 	}
 
 	public void serializeIntArray(int[] v) {
@@ -164,9 +174,15 @@ class Serializer {
 		}
 		if(!found) name = c.__classname;
 		serializeString(name);
+		// TODO: there should be a dynamic type that wraps non-HaxeClass
+		// type classes that can be added to the cache to prevent circular
+		// references
 		if(cast(Dynamic) c)
 			cache ~= cast(Dynamic)c;
-		buf ~= c.__serialize();
+		//if(cast(HaxeClass) c) {
+		//	serializeFields((cast(HaxeClass) c).__fields);
+		//}
+		c.__serialize(this);
 		buf ~= "g";
 	}
 
@@ -209,10 +225,16 @@ class Serializer {
 			buf ~= "n";
 			break;
 		case HaxeType.TString:
-			serializeString((cast(String) val).value);
+			auto s = cast(String) val;
+			if(!s) goto casterror;
+			if(s.isNull)
+				serialize(new Null());
+			else
+				serializeString(s.value);
 			break;
 		case HaxeType.TInt:
 			auto v = cast(Int) val;
+			if(!v) goto casterror;
 			if(v.isNull)
 				serialize(new Null());
 			else
@@ -220,6 +242,7 @@ class Serializer {
 			break;
 		case HaxeType.TFloat:
 			auto v = cast(Float) val;
+			if(!v) goto casterror;
 			if(v == Float.NaN)
 				buf ~= "k";
 			else if(v == Float.POSITIVE_INFINITY)
@@ -230,57 +253,84 @@ class Serializer {
 				serializeDouble(cast(double)v.value);
 			break;
 		case HaxeType.TBool:
-			bool v = (cast(Bool) val).value;
-			serializeBool(v);
+			auto b = cast(Bool) val;
+			if(!b) goto casterror;
+			serializeBool(b.value);
 			break;
 		case HaxeType.TArray:
-			if( cast(Array)val ) {
-				buf ~= (cast(Array)val).__serialize();
-			}
-			else {
-				throw new Exception("Unable to cast "~ typeof(val).stringof ~" to Array!(Dynamic) " );
-			}
+			auto a = cast(Array) val;
+			if(!a) goto casterror;
+			a.__serialize(this);
 			break;
 		case HaxeType.TList:
-			if( cast(List)val ) {
-				buf ~= (cast(List)val).__serialize();
-			}
-			else {
-				throw new Exception("Unable to cast "~ typeof(val).stringof ~" to List!(Dynamic) " );
-			}
+			auto l = cast(List)val;
+			if(!l) goto casterror;
+			buf ~= "l";
+			foreach(v; l.data)
+				serialize(v);
+			buf ~= "h";
 			break;
 		case HaxeType.TDate:
+			auto d = cast(HaxeDate)val;
+			if(!d) goto casterror;
 			buf ~= "v";
-			buf ~= (cast(HaxeDate)val).toString();
+			buf ~= d.toString();
 			break;
 		case HaxeType.THash:
-			buf ~= (cast(Hash)val).__serialize();
+			auto h = cast(Hash)val;
+			if(!h) goto casterror;
+			buf ~= "b";
+			foreach(k, v; h.data) {
+				if(v !is null) {
+					serializeString(k);
+					serialize(v);
+				}
+			}
+			buf ~= "h";
 			break;
 		case HaxeType.TIntHash:
-			buf ~= (cast(IntHash)val).__serialize();
+			auto h = cast(IntHash)val;
+			if(!h) goto casterror;
+			buf ~= "q";
+			foreach(k, v; h.data) {
+				buf ~= ":";
+				buf ~= IntUtil.toString(k);
+				serialize(v);
+			}
+			buf ~= "h";
 			break;
 		case HaxeType.TEnum:
 			serializeEnum(cast(Enum)val);
 			break;
 		case HaxeType.TObject:
+			auto o = cast(HaxeObject)val;
+			if(!o) goto casterror;
 			if( useCache && serializeRef(val) )
 				return this;
 			buf ~= "o";
-			buf ~= (cast(HaxeObject)val).__serialize();
+			o.__serialize(this);
 			buf ~= "g";
 			break;
 		case HaxeType.TClass:
-			serializeClass(cast(HaxeClass) val);
+			auto c = cast(HaxeClass) val;
+			if(!c) goto casterror;
+			if( useCache && serializeRef(val) )
+				return this;
+			cache.length = cache.length - 1;
+			serializeClass(c);
 			break;
 		case HaxeType.TFunction:
 			throw new Exception("Unable to serialize functions");
 			break;
 		}
 		return this;
+casterror:
+		throw new Exception("Unable to cast "~ typeof(val).stringof);
+		return null;
 	}
 
-	static public char[] run(Dynamic v) {
-		auto s = new Serializer();
+	static public char[] run(Dynamic v, bool useCache = true) {
+		auto s = new Serializer(useCache);
 		s.serialize(v);
 		return s.toString();
 	}

@@ -69,7 +69,9 @@ class Unserializer {
 			args.push(unserialize());
 			nargs-=1;
 		}
-		return Enum.create(name, v, args);
+		auto e = Enum.create(name, v, args);
+		cache ~= e;
+		return e;
 	}
 
 	public Dynamic unserialize() {
@@ -168,6 +170,7 @@ class Unserializer {
 			auto hso = cast(HaxeClass) o;
 			if(!hso)
 				throw new Exception("Class not serializable " ~ name);
+			cache ~= hso;
 			auto ho = new HaxeObject();
 			unserializeObject(ho);
 			if(!hso.__unserialize(ho))

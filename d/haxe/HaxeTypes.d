@@ -66,6 +66,10 @@ class Dynamic
 			throw new Exception("Not a function");
 		return __func(__objPtr, params, __context);
 	}
+
+	Dynamic clone() {
+		return new Dynamic();
+	}
 }
 
 class DynamicFunction : Dynamic {
@@ -78,12 +82,28 @@ class DynamicFunction : Dynamic {
 }
 
 /**
+	Template for creating Dynamic methods from static functions.
+	mixin(Method!("alias", "realfunction", context));
+**/
+template Method(char[] name, char[] func, char[] context) {
+	const char[] Method =
+			"__fields[\""
+			~ name ~
+			"\"] = new DynamicFunction(this, &"
+			~func~
+			", "
+			~context~
+			");";
+}
+
+/**
 	Base class for all haxe class types
 **/
+import haxe.Serializer;
 public interface HaxeSerializable
 {
 	char[] __classname();
-	char[] __serialize();
+	void __serialize(ref Serializer s);
 	bool __unserialize(ref HaxeObject o);
 }
 
@@ -178,6 +198,7 @@ class Null : Dynamic
 	{
 		return "(null)";
 	}
+
 }
 
 class Bool : Dynamic
@@ -486,35 +507,9 @@ class Float : HaxeNumeric
 		f.value = real.nan;
 		return f;
 	}
+
 }
 
-
-
-/**
-	Types that can be accessed as hashes of Dynamic
-**/
-package template DynamicHashType(T, alias F) {
-	Dynamic opIndex(char[] field) {
-		auto v = (field in F);
-		if(v) return *v;
-		return null;
-	}
-
-	Dynamic opIndexAssign(Dynamic v, char[] field) {
-		if(v is null)
-			v = new Dynamic();
-		/+
-		{
-			try
-				F.remove(field);
-			catch(Exception e) {}
-			return null;
-		}
-		+/
-		F[field] = v;
-		return v;
-	}
-}
 
 import tango.text.Util;
 /**
@@ -534,4 +529,22 @@ char[] moduleToPackage(char[] modName) {
 			name ~= ".";
 	}
 	return name;
+}
+
+import tango.core.Traits;
+Dynamic toDynamic(T)(T val) {
+	static if(is(T : Dynamic))
+		return val;
+	else static if(is(T == bool))
+		return new Bool(val);
+    else static if(isIntegerType!(T))
+		return new Int(val);
+	else static if(isFloatingPointType!(T))
+		return new Float(val);
+    else static if(is(T:char[]))
+		return new String(val);
+//     else static if(is(T : Time))
+// 		return new HaxeDate();
+    else
+        static assert(false, "Can not translate variable of type " ~ T.stringof);
 }

@@ -191,14 +191,6 @@ class HaxeDate : HaxeClass {
 		return hd;
 	}
 
-	public char[] __serialize() {
-		return toString();
-	}
-
-	public bool __unserialize(ref HaxeObject o) {
-		return false;
-	}
-
 // 	public static HaxeDate fromTime( double t ) {
 // 	}
 

@@ -120,11 +120,11 @@ package template DynamicArrayType(T, alias F) {
 }
 
 template ArraySerialize(T, alias F) {
-	public char[] __serialize() {
-		auto s = new Serializer();
+	public void __serialize(ref Serializer s) {
 		auto l = F.length;
 		int ucount = 0;
 
+		s.buf ~= "a";
 		for(int x = 0; x < l; x++) {
 			if(F[x] is null || F[x].isNull) {
 				ucount++;
@@ -150,7 +150,7 @@ template ArraySerialize(T, alias F) {
 				s.buf ~= IntUtil.toString(ucount);
 			}
 		}
-		return "a" ~ s.toString() ~ "h";
+		s.buf ~= "h";
 	}
 	public bool __unserialize(ref HaxeObject o) {
 		return false;

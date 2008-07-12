@@ -29,7 +29,7 @@ class List : HaxeClass {
 		Add to the end of the list.
 	**/
 	public void add(Dynamic v) {
-		data.append(toDynamic(v));
+		data.append(checkNull(v));
 	}
 
 	public void clear() {
@@ -68,34 +68,26 @@ class List : HaxeClass {
 		Add to beginning of list
 	**/
 	public void push(Dynamic v) {
-		data.prepend(toDynamic(v));
+		data.prepend(checkNull(v));
 	}
 
 	/**
 		Remove first element that equals v. True if something removed
 	**/
 	public bool remove(Dynamic v) {
-		auto c = data.remove(toDynamic(v));
+		auto c = data.remove(checkNull(v));
 		return c == 0 ? false : true;
 	}
 
-	Dynamic toDynamic(Dynamic v) {
+	Dynamic checkNull(Dynamic v) {
 		if(v is null)
 			return new Null;
 		return v;
 	}
 
-	public char[] __serialize() {
-		auto s = new Serializer();
-		s.buf ~= "l";
-		foreach(v; data) {
-			s.serialize(v);
-		}
-		s.buf ~= "h";
-		return s.buf;
+	int opApply (int delegate(ref Dynamic value) dg)
+	{
+		return data.opApply (dg);
 	}
 
-	public bool __unserialize(ref HaxeObject o) {
-		return false;
-	}
 }
