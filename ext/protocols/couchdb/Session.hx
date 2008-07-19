@@ -56,7 +56,7 @@ class Session {
 		var n = reformatName(name);
 		var t = put(n);
 		if(t.isOk())
-			return getDatabase(n);
+			return getDatabase(name);
 		return null;
 	}
 

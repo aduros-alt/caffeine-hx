@@ -63,7 +63,7 @@ class Document extends JsonObject {
 	/**
 		Get the Document id, if it has been set.
 	**/
-	public function getId() : String { return optString("_id"); }
+	public function getId() : String { return optString("_id", null); }
 
 	/**
 		This revision of the Document

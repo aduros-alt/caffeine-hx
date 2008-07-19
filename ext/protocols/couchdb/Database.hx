@@ -196,6 +196,7 @@ class Database {
 	public function saveWithId( d: Document, id:String) : Bool {
 		var t : Transaction;
 		d.setDatabase(this);
+		d.setId(id);
 		if (id == null || id == "")
 			t = session.post(uri, null, d.toString());
 		else
