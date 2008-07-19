@@ -507,16 +507,20 @@ class Connection {
 			var ht = MsgParser.split( parsed.msgParts[3]);
 			onNoOpPrivileges(ht.head, MsgParser.asText(ht.tail));
 		default:
-			return null;
+			return;
 		}
 		if(handled)
-			return null;
+			return;
 
 		switch(parsed.getCommand()) {
 		case "PRIVMSG":
 			var nh = parsed.getNickAndHost();
 			var soh = Std.chr(1);
 			var text = parsed.msgParts[3];
+			if(text == null) {
+				trace("PRIVMSG null text from: "+ msg);
+				return;
+			}
 			if(text.indexOf(soh + "ACTION") >= 0) {
 				var ht = MsgParser.split(parsed.msgParts[3]);
 				onAction(parsed.getChannel(), nh.nick, nh.host, ht.tail);
