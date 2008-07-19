@@ -229,7 +229,7 @@ class JsonObject {
 		}
 	}
 
-	public function optInt(key:String, ?defaultValue : Int) : Int {
+	public function optInt(key:String, ?defaultValue : Int) : Null<Int> {
 		return try {
 			getInt(key);
 		} catch (e : JsonException) {

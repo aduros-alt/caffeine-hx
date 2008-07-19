@@ -55,7 +55,7 @@ class JSON {
 		Decode a string to an Object
 	**/
 	public static inline function decode(v:String) : Dynamic {
-		return new Decode(v).getObject();
+		return new JsonDecoder().parse(v);
 	}
 }
 
@@ -69,7 +69,7 @@ private class Encode {
 		else if (Std.is(value,Array))		return arrayToString(value);
 		else if (Std.is(value,List))		return listToString(value);
 		else if (Reflect.isObject(value))	return objectToString( value );
-		
+
 		throw new JsonException("JSON.encode() failed");
 	}
 
@@ -77,9 +77,9 @@ private class Encode {
 		var ch:Int;
 		var s = new StringBuf();
 		var addChar = s.addChar;
-		
+
 		for (i in 0 ... str.length){
-			#if neko 
+			#if neko
 				ch = neko.Utf8.charCodeAt(str, i);
 			#else true
 				ch = str.charCodeAt(i);
@@ -108,10 +108,10 @@ private class Encode {
 						|| (ch >= 65520 && ch <= 65535)	/* \ufff0-\uffff */
 						)
 					) s.add("\\u" + StringTools.hex(ch, 4));
-					
+
 					addChar(ch);
 			}
-			
+
 		}
 
 		return "\"" + s.toString() + "\"";
@@ -139,10 +139,10 @@ private class Encode {
 			sortedFields.sort(function(k1, k2) { return (k1 == k2) ? 0 : (k1 < k2) ? -1 : 1; });
 			for (key in sortedFields) {
 				value = Reflect.field(o,key);
-				
+
 				if (Reflect.isFunction(value))
 					continue;
-				
+
 				s.add(escapeString( key ) + ":" + convertToString( value ));
 				s.add(",");
 			}
@@ -154,7 +154,7 @@ private class Encode {
 			}
 			var sortedFields = Reflect.fields(o);
 			sortedFields.sort(function(k1, k2) { if (k1 == k2) return 0; if (k1 < k2) return -1; return 1;});
-			
+
 			for(v in sortedFields) {
 				s.add(escapeString(v) + ":" + convertToString( Reflect.field(o,v)));
 				s.add(",");
@@ -166,287 +166,13 @@ private class Encode {
 	private static function listToString( l: List<Dynamic>) :  String {
 		var s:StringBuf = new StringBuf();
 		var i:Int= 0;
-		
+
 		for(v in l) {
 		s.add(convertToString( v ));
 		s.add(",");
 		}
-		
+
 		return "[" + s.toString().substr(0,-1) + "]";
 	}
 }
 
-private class Decode {
-
-	var at:Int;
-	var ch:String;
-	var text:String ;
-
-	var parsedObj:Dynamic;
-
-	public function new(t:String) {
-		parsedObj = parse(t);
-	}
-
-	public function getObject():Dynamic {
-		return parsedObj;
-	}
-
-	public function parse(text:String):Dynamic {
-		if(text == null || text == "")
-			return {};
-		try {
-			at = 0 ;
-			ch = '';
-			this.text = text ;
-			return value();
-		}
-		catch(e : JsonException) {
-			throw(e);
-		}
-	/*	catch (e : Dynamic) {
-			throw(new JsonException("unhandled error "+Std.string(e)));
-		}
-	*/	return {};
-	}
-
-	function error(m):Void {
-		throw new JsonException(m, at-1, text);
-	}
-
-	function next() {
-		ch = text.charAt(at);
-		at += 1;
-		if (ch == '') return ch = null;
-		return ch;
-	}
-
-	function white() {
-		while (ch != null) {
-			if (ch <= ' ') {
-				next();
-			} else if (ch == '/') {
-				switch (next()) {
-					case '/':
-						while (next() != null && ch != '\n' && ch != '\r') {}
-						break;
-					case '*':
-						next();
-						while (true) {
-							if (ch == null)
-								error("Unterminated comment");
-							
-							if (ch == '*' && next() == '/') {
-								next();
-								break;
-							} else {
-								next();
-							}
-						}
-						break;
-					default:
-						error("Syntax error");
-				}
-			} else {
-				break;
-			}
-		}
-	}
-
-	function str():String {
-		var s = new StringBuf(), t:Int, u:Int;
-		var outer:Bool = false;
-
-		if (ch != '"') {
-			error("This should be a quote");
-			return '';
-		}
-		
-		while (next() != null) {
-			if (ch == '"') {
-				next();
-				return s.toString();
-			} else if (ch == '\\') {
-				switch (next()) {
-				case 'n': s.addChar(10);	// += '\n';
-				case 'r': s.addChar(13);	// += '\r';
-				case 't': s.addChar(9);		// += '\t';
-				case 'u': // unicode
-					u = 0;
-					for (i in 0...4) {
-						t = Std.parseInt(next());
-						if (!Math.isFinite(t)) {
-							outer = true;
-							break;
-						}
-						u = u * 16 + t;
-					}
-					if(outer) {
-						outer = false;
-						break;
-					}
-					#if neko 
-						var utf = new neko.Utf8(4); utf.addChar(u);
-						s.add(utf.toString());
-					#else true
-						s.addChar(u);
-					#end
-				default:
-					s.add(ch);
-				}
-			} else {
-				s.add(ch);
-			}
-		}
-		error("Bad string");
-		return s.toString();
-	}
-
-	function arr():Array<Dynamic> {
-		var a = [];
-
-		if (ch == '[') {
-			next();
-			white();
-			if (ch == ']') {
-				next();
-				return a;
-			}
-			while (ch != null) {
-				var v:Dynamic;
-				v = value();
-				a.push(v);
-				white();
-				if (ch == ']') {
-					next();
-					return a;
-				} else if (ch != ',') {
-					break;
-				}
-				next();
-				white();
-			}
-		}
-		error("Bad array");
-		return []; // never get here
-	}
-
-	function obj():Dynamic {
-		var k;
-		var o = Reflect.empty();
-		
-		if (ch == '{') {
-			next();
-			white();
-			if (ch == '}') {
-				next();
-				return o;
-			}
-			while (ch != null) {
-				k = str();
-				white();
-				if (ch != ':') {
-					break;
-				}
-				next();
-				var v:Dynamic;
-				v = value();
-				Reflect.setField(o,k,v);
-				
-				white();
-				if (ch == '}') {
-					next();
-					return o;
-				} else if (ch != ',') {
-					break;
-				}
-				next();
-				white();
-			}
-		}
-		error("Bad object");
-		return o;
-	}
-
-	function num():Float {
-		var n = '';
-		var v:Float;
-		
-		if (ch == '-') {
-			n = '-';
-			next();
-		}
-		while (ch >= '0' && ch <= '9') {
-			n += ch;
-			next();
-		}
-		if (ch == '.') {
-			n += '.';
-			next();
-			while (ch >= '0' && ch <= '9') {
-				n += ch;
-				next();
-			}
-		}
-		if (ch == 'e' || ch == 'E') {
-			n += ch;
-			next();
-			if (ch == '-' || ch == '+') {
-				n += ch;
-				next();
-			}
-			while (ch >= '0' && ch <= '9') {
-				n += ch;
-				next();
-			}
-		}
-		v = Std.parseFloat(n);
-		if (!Math.isFinite(v)) {
-			error("Bad number");
-		}
-		return v;
-	}
-
-	function word():Null<Bool> {
-		switch (ch) {
-			case 't':
-				if (next() == 'r' && next() == 'u' &&
-						next() == 'e') {
-					next();
-					return true;
-				}
-			case 'f':
-				if (next() == 'a' && next() == 'l' &&
-						next() == 's' && next() == 'e') {
-					next();
-					return false;
-				}
-			case 'n':
-				if (next() == 'u' && next() == 'l' &&
-						next() == 'l') {
-					next();
-					return null;
-				}
-		}
-		error("Syntax error");
-		return false; // never get here
-	}
-
-	function value():Dynamic {
-		white();
-		var v:Dynamic;
-		switch (ch) {
-			case '{':	v = obj();
-			case '[':	v = arr();
-			case '"':	v = str();
-			case '-':	v = num();
-			default:
-				if (ch >= '0' && ch <= '9')
-					v = num();
-				else
-					v = word();
-		}
-		return v;
-	}
-
-}
