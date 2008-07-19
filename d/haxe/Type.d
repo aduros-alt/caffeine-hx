@@ -1,6 +1,7 @@
 module haxe.Type;
 
 import haxe.HaxeTypes;
+debug import tango.io.Stdout;
 
 class Type {
 	/**

@@ -3,8 +3,6 @@ module haxe.Hash;
 import haxe.HaxeTypes;
 import haxe.Serializer;
 
-private alias Dynamic[char[]] HaxeStringHash;
-
 interface IHash {
 	bool exists(char[] k);
 	Dynamic get(char[] k);
@@ -15,10 +13,14 @@ interface IHash {
 
 class Hash : HaxeClass, IHash {
 	public HaxeType type() { return HaxeType.THash; }
-	public HaxeStringHash	data;
+	public Dynamic[char[]]	data;
 	public char[] __classname() { return "Hash"; }
 
 	this() { isNull = false; }
+	this(Dynamic[char[]] v) {
+		this();
+		data = v;
+	}
 
 	public bool exists(char[] k) {
 		return (k in data) == null ? false : true;
@@ -49,4 +51,19 @@ class Hash : HaxeClass, IHash {
 			data[k] = v;
 	}
 
+	public char[] toString() {
+		char[] b = "{ ";
+		bool first = true;
+		if(data.length > 0)
+		foreach(char[] k, Dynamic v; data) {
+			if(first) first = false;
+			else b ~= ", ";
+			b ~= k;
+			b ~= ": ";
+			b ~= v.toString();
+		}
+		b ~= " }";
+		return b;
+	}
+	mixin(CanCast!("Hash"));
 }

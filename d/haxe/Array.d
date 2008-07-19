@@ -69,9 +69,18 @@ package template DynamicArrayType(T, alias F) {
 	}
 
 	int opApply(int delegate(ref T) dg) {
-		int res = 0;
-		for (int i = 0; i < F.length; i++) {
+		size_t res = 0;
+		for (size_t i = 0; i < F.length; i++) {
 			res = dg(F[i]);
+			if(res) break;
+		}
+		return res;
+	}
+
+	int opApply(int delegate(ref size_t, ref T) dg) {
+		size_t res = 0;
+		for (size_t i = 0; i < F.length; i++) {
+			res = dg(i, F[i]);
 			if(res) break;
 		}
 		return res;
@@ -157,11 +166,13 @@ template ArraySerialize(T, alias F) {
 	}
 }
 
+
 class Array : HaxeClass {
 	public Dynamic[] data;
 	public char[] __classname() { return "Array"; }
 	mixin DynamicArrayType!(Dynamic, data);
 	mixin ArraySerialize!(Dynamic, data);
+	mixin(CanCast!("Array"));
 }
 
 /**
@@ -172,6 +183,7 @@ class StringArray : HaxeClass {
 	public char[] __classname() { return "Array"; }
 	mixin DynamicArrayType!(String, data);
 	mixin ArraySerialize!(String, data);
+	mixin(CanCast!("StringArray"));
 }
 /**
 	Common enough to have as a subclass
@@ -181,6 +193,17 @@ class IntArray : HaxeClass {
 	public char[] __classname() { return "Array"; }
 	mixin DynamicArrayType!(Int, data);
 	mixin ArraySerialize!(Int, data);
+	mixin(CanCast!("IntArray"));
+}
+/**
+	Common enough to have as a subclass
+**/
+class FloatArray : HaxeClass {
+	Float[] data;
+	public char[] __classname() { return "Array"; }
+	mixin DynamicArrayType!(Float, data);
+	mixin ArraySerialize!(Float, data);
+	mixin(CanCast!("FloatArray"));
 }
 
 class ArrayCast(T) : HaxeClass {
@@ -188,4 +211,5 @@ class ArrayCast(T) : HaxeClass {
 	public char[] __classname() { return "Array"; }
 	mixin DynamicArrayType!(T, data);
 	mixin ArraySerialize!(T, data);
+	mixin(CanCast!(T.stringof));
 }

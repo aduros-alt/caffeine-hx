@@ -20,6 +20,7 @@ class Serializer {
 	private int			scount;
 	private bool		useCache;
 	private bool		useEnumIndex;
+	private bool		ignoreFunctions;
 
 	static this() {
 		USE_CACHE = false;
@@ -29,6 +30,7 @@ class Serializer {
 	this() {
 		useCache = USE_CACHE;
 		useEnumIndex = USE_ENUM_INDEX;
+		ignoreFunctions = true;
 		scount = 0;
 		this.shash = new HashOfInts();
 		buf = "";
@@ -320,7 +322,8 @@ class Serializer {
 			serializeClass(c);
 			break;
 		case HaxeType.TFunction:
-			throw new Exception("Unable to serialize functions");
+			if(!ignoreFunctions)
+				throw new Exception("Unable to serialize functions");
 			break;
 		}
 		return this;

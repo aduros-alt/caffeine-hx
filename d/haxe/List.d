@@ -16,11 +16,12 @@ class List : HaxeClass {
 	public char[] toString() {
 		char[] b = "{";
 		bool first = true;
-		foreach(v; data) {
-			if(first) first = false;
-			else b ~= ", ";
-			b ~= v.toString();
-		}
+		if(data.size)
+			foreach(v; data) {
+				if(first) first = false;
+				else b ~= ", ";
+				b ~= v.toString();
+			}
 		b ~= "}";
 		return b;
 	}

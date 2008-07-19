@@ -48,12 +48,41 @@ alias Dynamic function(HaxeClass c, Dynamic[] params, HaxeObject context) Functi
 	The base class for all Haxe types
 **/
 
+private {
+	alias HaxeType.TNull TNull;
+	alias HaxeType.TString TString;
+	alias HaxeType.TInt TInt;
+	alias HaxeType.TFloat TFloat;
+	alias HaxeType.TBool TBool;
+	alias HaxeType.TArray TArray;
+	alias HaxeType.TList TList;
+	alias HaxeType.TDate TDate;
+	alias HaxeType.THash THash;
+	alias HaxeType.TIntHash TIntHash;
+    alias HaxeType.TEnum TEnum;
+	alias HaxeType.TObject TObject;
+	alias HaxeType.TClass TClass;
+	alias HaxeType.TFunction TFunction;
+}
+
+package template CantCast(char[] name) {
+	const char[] CantCast =
+		name ~" cast_"~name~
+		"(ref bool ok = *new bool()) { ok = false; return null; }";
+}
+
+package template CanCast(char[] name) {
+	const char[] CanCast =
+		name ~" cast_"~name~
+		"(ref bool ok = *new bool()) { ok = true; return this; }";
+}
+
 class Dynamic
 {
 	public bool isNull = true;
 	this() { }
 	public HaxeType type() { return HaxeType.TNull; }
-	public char[] toString() { return "Dynamic"; }
+	public char[] toString() { return isNull ? "(null)" : "Dynamic"; }
 
 	HaxeClass __objPtr;
 	HaxeObject __context;
@@ -68,8 +97,42 @@ class Dynamic
 	}
 
 	Dynamic clone() {
-		return new Dynamic();
+		try {
+			return Unserializer.run(Serializer.run(this, true));
+		}
+		catch(Exception e) {
+			return null;
+		}
 	}
+
+	bool cast_bool(ref bool ok = *new bool()) {
+		ok = false;
+		return false;
+	}
+	int cast_int(ref bool ok = *new bool()) {
+		ok = false;
+		return 0;
+	}
+	real cast_real(ref bool ok = *new bool()) {
+		ok = false;
+		return 0;
+	}
+	char[] cast_string(ref bool ok = *new bool()) {
+		ok = true;
+		return toString();
+	}
+	mixin(CantCast!("Array"));
+	mixin(CantCast!("StringArray"));
+	mixin(CantCast!("IntArray"));
+	mixin(CantCast!("FloatArray"));
+	mixin(CantCast!("List"));
+	mixin(CantCast!("HaxeDate"));
+	mixin(CantCast!("Hash"));
+	mixin(CantCast!("IntHash"));
+	mixin(CantCast!("Enum"));
+	mixin(CantCast!("HaxeObject"));
+	mixin(CantCast!("HaxeClass"));
+	mixin(CantCast!("Function"));
 }
 
 class DynamicFunction : Dynamic {
@@ -437,7 +500,13 @@ class Int : HaxeNumeric
 	mixin NullEquality!(typeof(this));
 	mixin NumericMath!(typeof(this));
 	mixin Bitwise!(typeof(this));
-
+	bool cast_bool(ref bool ok = *new bool()) {
+		ok = true;
+		if(isNull) return false;
+		return this.value == 0 ? false : true;
+	}
+	int cast_int(ref bool ok = *new bool()) { ok = true; return this.value; }
+	real cast_real(ref bool ok = *new bool()) { ok = true; return this.value; }
 	unittest
 	{
 		HInt v = new HInt();
@@ -518,7 +587,7 @@ import tango.text.Util;
 char[] moduleToPackage(char[] modName) {
 	auto parts = split(modName, ".");
 	if(parts.length < 2)
-		return "";
+		return modName;
 	int skip = parts.length - 2;
 	char[] name;
 	for(int x=0; x < parts.length; x++) {
@@ -547,4 +616,23 @@ Dynamic toDynamic(T)(T val) {
 // 		return new HaxeDate();
     else
         static assert(false, "Can not translate variable of type " ~ T.stringof);
+}
+
+import haxe.Unserializer;
+Dynamic clone(Dynamic v) {
+	try {
+		return Unserializer.run(Serializer.run(v, true));
+	}
+	catch(Exception e) {
+		return null;
+	}
+}
+
+/**
+	Use in static this() constructors to register the class
+	for resolving to haxe packages.
+	D paths are the module.classname
+**/
+void registerHaxeClass(char[] haxeName, char[] dName) {
+	HaxeClass.haxe2dmd[haxeName] = dName;
 }
