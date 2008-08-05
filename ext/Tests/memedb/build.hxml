@@ -1,0 +1,11 @@
+-main MemeTest
+--override
+-cp ../../
+-debug
+-neko test.n
+
+--next
+-main Web
+--override
+-cp ../../
+-neko web.n
