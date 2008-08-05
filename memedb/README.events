@@ -1,0 +1,26 @@
+To specify an event listener, set the property
+sys.eventhandler=/path/to/bin
+
+Where /path/to/bin is an executable process.
+The event notification process is passed JSONObject events on stdin. There is no
+reply expected from the event processor.
+
+{
+	type: String (see below)
+	transaction: String or null
+	_seq: long
+	db: String
+	_id: String
+	_rev: String
+}
+
+
+TYPES:
+drop
+create
+update
+delete
+shutdown
+transaction_start
+transaction_end
+

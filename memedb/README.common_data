@@ -1,0 +1,31 @@
+Common data fields are indicated by the first character being _, and are common to every
+revision of a given document. Some ids are reserved, and are not actually necessarily common
+to every revision, but rather tagged with a preceding underscore to locate and remove
+them quickly from incoming JSON documents.
+
+Reserved common data fields
+name              Stored in  ConstSymbol
+===========================
+_db               COMMON         DB
+_content_type     COMMON         CONTENT_TYPE
+_created_date     COMMON         CREATED_DATE
+_current_revision COMMON         CURRENT_REVISION
+_id               COMMON         ID
+_rev              META           REV
+_rev_by           META           REV_USER
+_rev_date         META           REV_DATE
+_seq              META           SEQ
+
+
+EXAMPLE
+=======
+COMMON DATA
+{"_created_date":1217827576922,"_id":"barney","_current_revision":"cfd3427f3373a856","_db":"mytestdb2","_content_type":"application/json"}
+
+META DATA
+{"_rev":"cfd3427f3373a856","_rev_date":1217827576922,"age":25,"name":"Barney","_seq":4,"_rev_by":"anonymous"}
+
+REVISION DATA
+none for JSONDocuments, revision data is in meta data, types like image/png would have
+the binary data in this file
+

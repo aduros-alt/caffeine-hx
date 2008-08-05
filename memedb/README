@@ -1,0 +1,72 @@
+http://fourspaces.com/blog/2008/4/11/MemeDB_Java_JSON_Document_database
+http://svn.fourspaces.com/public/memedb/trunk/src/java/memedb/
+
+
+New URLs
+========
+/_useradd   Adding users
+	{
+		"username": "",
+		"password": "",
+		"dbs": { "name": "rw", "other": "r" },
+		"is_sa": false
+	}
+
+Changes
+=======
+MemeDbHandler:
+	All errors now in JSON format for easier interface with client connection libraries. Avoid the use of (HttpServletRespose)response.sendError(), as this bypasses the JSON responses.
+
+Authentication:
+	A few abstract methods added, just as future placeholders for document level permissions. isAuthorizedUpdateDocument(String db, String id) etc
+
+FileSystemBackend:
+	Multiple directories now created based on the backend.fs.depth property. Anything other than ReiserFS will choke on too many entries in the monolithic directory structure
+	Document id's now properly encoded to avoid the id ../otherdb/storeMeHere exploit
+
+Content-type:
+	All JSON documents are now application/json. When sent to the client (/httpd/*), they are reported as text/plain;charset=utf-8. This avoids browsers trying to download the application/json. The application/javascript, text/javascript are reserved for use in document/TextDocument.java, since this makes it possible to serve raw javascript just like binary documents are. JSON is not javascript, such as it can not be executed by the browser.
+
+VIEWS
+=====
+AdHoc Views:
+	{
+		"language": "javascript",  // no text/javascript anymore. Doesn't keep with other languages... there's no text/D or text/C++
+		"map": "function(doc) {}",
+		"reduce": "function(keyValue[]) {}"
+	}
+
+Regular Views
+	{
+		"language": "javascript",
+		"views": {
+			"name": {
+				"map": "function(doc)..."
+			}
+			"ireducestuff": {
+				"map": "function(doc)...",
+				"reduce": "function(keyValue[])"
+			}
+		}
+	}
+
+Thoughts:
+	Design documents like Couch, however they should not be in the general document population and thus subject to map/reduce.
+
+DOCUMENTS
+=========
+	A rev needs to be supplied to update a document, either in the _rev field of a JSON document, or as a ?rev= query param. Currently (due to the nature of the handler), if neither is supplied, the document will overwrite regardless.  Whether this is left in as a feature is a question.
+	There still needs to be some conflict resolution done for updating a revision that is out of date.
+
+OTHER
+=====
+
+
+MOVED/RENAMED
+/auth/DocumentCredentials -> /auth/UserCredentials
+	Reason: Original name suggested credentials that apply to documents. The auth will be reworked based on user/group/other + record credentials
+
+
+TODO
+====
+	Standardize error response codes. Message field should be a set of known error codes, like CONFLICT or AUTH_ERROR whatever. The reason field can provide a text description. The status field?

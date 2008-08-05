@@ -1,0 +1,4 @@
+This directory contains a copy of the CouchDB management console directly from CouchDB.
+It will not be staying, it is only for testing purposes. Only database adding and
+document editing works
+

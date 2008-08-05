@@ -1,0 +1,4 @@
+-cp ../../../ext
+-main Streamer.hx
+-neko streamer.n
+-cmd nekotools boot streamer.n
