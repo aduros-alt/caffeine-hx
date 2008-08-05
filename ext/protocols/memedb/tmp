@@ -1,0 +1,18 @@
+{
+  "_id":"_design/company",
+  "_rev":"12345",
+  "language": "javascript",
+  "views":
+  {
+    "all": {
+      "map": "function(doc) { if (doc.Type == 'customer')  emit(null, doc) }"
+    },
+    "by_lastname": {
+      "map": "function(doc) { if (doc.Type == 'customer')  emit(doc.LastName, doc) }"
+    },
+    "total_purchases": {
+      "map": "function(doc) { if (doc.Type == 'purchase')  emit(doc.Customer, doc.Amount) }",
+      "reduce": "function(keys, values) { return sum(values) }"
+    }
+  }
+}
