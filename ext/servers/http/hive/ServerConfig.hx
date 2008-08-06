@@ -39,8 +39,16 @@ class ServerConfig extends XmlConfig {
 	public var accessLog : String;
 	public var errorLog : String;
 	public var threads : Int;
+#if HIVEDB
+	public var dbName : String;
+	public var dbPath : String;
+	public var nodeNumber : Int;
+	public var minimumNodes : Int;
+#end
+
+
 	var sec : XmlConfigSection;
-	var fast : haxe.xml.Fast;
+	public var fast(default, null) : haxe.xml.Fast;
 
 	override public function loadFile( path : String ) {
 		super.loadFile(path);
@@ -84,6 +92,16 @@ class ServerConfig extends XmlConfig {
 		if(threads == null) {
 			threads = try Std.parseInt(fast.node.threads.innerData) catch(e:Dynamic) 10;
 		}
+#if HIVEDB
+		if(dbName == null)
+			dbName = fast.node.dbName.innerData;
+		if(dbPath == null)
+			dbPath = fast.node.dbPath.innerData;
+		if(nodeNumber == null)
+			nodeNumber = Std.parseInt(fast.node.nodeNumber.innerData);
+		if(minimumNodes == null)
+			minimumNodes = Std.parseInt(fast.node.minimumNodes.innerData);
+#end
 	}
 
 	function validate() : haxe.xml.Rule {
@@ -97,6 +115,22 @@ class ServerConfig extends XmlConfig {
 				RNode("logFormat",[],RData()),
 				RNode("accessLog",[],RData()),
 				RNode("errorLog",[],RData()),
+#if HIVEDB
+				RNode("dbName", [], RData()),
+				RNode("dbPath", [], RData()),
+				RNode("nodeNumber",[],RData(FInt)),
+				RNode("minimumNodes",[],RData(FInt)),
+				RNode("backbone",[Attrib.Att("type")],
+					RMulti(
+						RNode("server",[
+							Attrib.Att("host"),
+							Attrib.Att("port"),
+							Attrib.Att("username"),
+							Attrib.Att("password")
+						])
+					, true)
+				),
+#end
 				ROptional(
 					RNode('schedRealtime',[],
 						RNode('threads',[],RData(FInt))

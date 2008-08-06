@@ -129,7 +129,7 @@ class Handler {
 		catch(e:Dynamic) {
 			trace("Handler error "+e);
 			//trace(e);
-			//trace(haxe.Stack.exceptionStack());
+			trace(haxe.Stack.exceptionStack());
 			err(e, null, haxe.Stack.exceptionStack());
 			if(Response.status == 0)
 				Response.status = 500;

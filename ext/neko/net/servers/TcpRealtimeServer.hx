@@ -84,7 +84,7 @@ class TcpRealtimeServer<Client> extends RealtimeServer<neko.net.Socket,Client> {
 		return true;
 	}
 
-	public function doRun() {
+	public function run() {
 		while( !shutdown ) {
 			var s = sock.accept();
 			s.setBlocking(false);

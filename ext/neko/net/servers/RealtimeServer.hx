@@ -36,6 +36,10 @@ typedef SocketInfos<SockType,Client> = {
 	var rbytes : Int;
 }
 
+/**
+	This is an abstract base server. To create a server, use classes like
+	TcpRealtimeServer
+**/
 class RealtimeServer<SockType : neko.net.Socket, Client> {
 
 	public var config : {
@@ -73,21 +77,11 @@ class RealtimeServer<SockType : neko.net.Socket, Client> {
 		return null;
 	}
 
-	public function doBind( host : neko.net.Host, port : Int ) {
-		//var h = new neko.net.Host(host);
+	public function bind( host : neko.net.Host, port : Int ) {
 		sock = createSock();
 		sock.bind(host,port);
 		sock.listen(config.listenValue);
 	}
-
-	//public function doRun() {
-		//while( !shutdown ) {
-			//var s = sock.accept();
-			//s.setBlocking(false);
-			//addClient(s);
-		//}
-		//sock.close();
-	//}
 
 	function logError( e : Dynamic ) {
 		var stack = haxe.Stack.exceptionStack();

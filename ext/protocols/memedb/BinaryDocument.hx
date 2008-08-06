@@ -53,8 +53,25 @@ class BinaryDocument implements Document {
 	public function getRevision() : String { return revision; }
 	public function getMimeType() : String { return mimetype; }
 	public function isMimeType(mt:String) : Bool { return mimetype == mt; }
-	public function refresh() : Void;
-	public function reload() : Void;
+	/**
+		Refresh for binary documents will simply reload.
+	**/
+	public function refresh() {
+		reload();
+	}
+
+	/**
+		Reloads this document entirely, overwriting all changes.
+	**/
+	public function reload() {
+		if(database != null) {
+			var d : BinaryDocument = cast database.open(
+				getId(),
+				new DocumentOptions().byRevision(getRevision()));
+			this.data = d.data;
+			this.mimetype = d.mimetype;
+		}
+	}
 	public function setDatabase(db: Database) : Void { this.database = db; }
 	public function setId(id : String) : String { return this.id = id; }
 	public function setMimeType(mt:String) : String { return mimetype = mt; }

@@ -29,6 +29,7 @@ package servers.http.hive;
 
 #if SCHED_REALTIME
 import neko.net.servers.RealtimeServer;
+import neko.net.servers.TcpRealtimeServer;
 #else true
 import servers.http.hive.ThreadPollServer;
 #end
@@ -39,7 +40,8 @@ import dates.GmtDate;
 import servers.http.hive.Logger;
 
 #if SCHED_REALTIME
-class Server extends RealtimeServer<Client> {
+//class Server extends RealtimeServer<Client> {
+class Server extends TcpRealtimeServer<Client> {
 #else true
 class Server extends ThreadPollServer<Client> {
 #end
@@ -52,10 +54,10 @@ class Server extends ThreadPollServer<Client> {
 	public static var log_format		: String 	= "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\"";
 	public static var debug_level		: Int		= 0;
 
+	public var settings(default, null)	: ServerConfig;
 	public var server_root				: String;
 	public var document_root			: String;
 	public var log_root					: String;
-//	public var state_root				: String;
 	public var template_root			: String;
 	public var scratch_root				: String;
 
@@ -74,7 +76,12 @@ class Server extends ThreadPollServer<Client> {
 
 	var pathsStatic						: Hash<Bool>;
 
-//	public var db(default,null)			: hive.state.Database;
+#if HIVEDB
+	//public var db(default,null)			: servers.hivedb.Database;
+	public var db(default,null)			: hive.state.Database;
+	public var dbNodesTbl(default,null)	: hive.state.Table<hive.state.ClusterNodes>;
+	public var dbAdminTbl(default,null) : hive.state.Table<hive.state.ClusterAdmins>;
+#end
 	public var handlers(default,null)	: List<ReqHandler>;
 
 	var xmlConf							: ServerConfig;
@@ -134,7 +141,14 @@ class Server extends ThreadPollServer<Client> {
 
 		document_root = server_root + "/public";
 		log_root = server_root + "/_log";
-//		state_root = server_root + "/_state";
+#if HIVEDB
+		if(settings.dbPath.charAt(0) != "/")
+			settings.dbPath = server_root + "/" + settings.dbPath;
+		if(!testDirectory(settings.dbPath,true)) {
+			neko.Lib.println("Warning: Database directory "+settings.dbPath+"' does not exist");
+			usage();
+		}
+#end
 		template_root = server_root + "/_templates";
 		scratch_root = server_root + "/_tmp";
 		if(!testDirectory(document_root,false)) {
@@ -145,11 +159,8 @@ class Server extends ThreadPollServer<Client> {
 			neko.Lib.println("Error: '_log' directory does not exist, or can not be written to");
 			usage();
 		}
-/*		if(!testDirectory(state_root,true)) {
-			neko.Lib.println("Warning: '_state' directory does not exist");
-			usage();
-		}
-*/		if(!testDirectory(template_root,false)) {
+
+		if(!testDirectory(template_root,false)) {
 			neko.Lib.println("Error: '_templates' directory does not exist");
 			usage();
 		}
@@ -160,7 +171,11 @@ class Server extends ThreadPollServer<Client> {
 
 		var h = new Logger("*", log_root + "/accesslog", log_format);
 		access_loggers.add(h);
-//		db = new hive.state.Database(state_root);
+#if HIVEDB
+		db = new hive.state.Database(this);
+		dbNodesTbl = cast db.createTable("cluster_nodes", new hive.state.ClusterNodes());
+		dbAdminTbl = cast db.createTable("cluster_admins", new hive.state.ClusterAdmins());
+#end
 		mtwin.templo.Loader.BASE_DIR = template_root + "/";
 		mtwin.templo.Loader.TMP_DIR = scratch_root + "/";
 		mtwin.templo.Loader.MACROS = null;
@@ -208,7 +223,12 @@ class Server extends ThreadPollServer<Client> {
 		neko.Lib.println("");
 
 		try {
+#if SCHED_REALTIME
+			super.bind(host, port);
+			super.run();
+#else SCHED_THREAD_POLL
 			super.run(host.toString(), port);
+#end
 		}
 		catch( e : String ) {
 			if( e == "std@socket_bind" )
@@ -223,7 +243,8 @@ class Server extends ThreadPollServer<Client> {
 	//
 	private function parseArgs() : Array<String> {
 		var p = new Array<String>();
-		var sc = new ServerConfig();
+		settings = new ServerConfig();
+		var overrides = {};
 		for(i in neko.Sys.args()) {
 			var parts = i.split("=");
 			switch(parts[0]) {
@@ -232,13 +253,13 @@ class Server extends ThreadPollServer<Client> {
 					neko.Lib.println("Server root "+parts[1]+" does not exist");
 					usage();
 				}
-				sc.serverRoot = parts[1];
+				untyped overrides.serverRoot = parts[1];
 			case "--host":
 				if(parts[1] == null) {
 					neko.Lib.println("Host argument expected.");
 					usage();
 				}
-				sc.host = Std.string(parts[1]);
+				untyped overrides.host = Std.string(parts[1]);
 			case "--config":
 				if(parts[1] == null) {
 					neko.Lib.println("No file specified for --config");
@@ -246,7 +267,7 @@ class Server extends ThreadPollServer<Client> {
 				}
 				var f = parts[1];
 				try {
-					sc.loadFile( f );
+					settings.loadFile( f );
 				}
 				catch(e:XmlConfigError) {
 					var msg = "Error loading "+f+" : ";
@@ -266,7 +287,7 @@ class Server extends ThreadPollServer<Client> {
 					neko.Sys.exit(1);
 				}
 			case "--port":
-				sc.port = Std.parseInt(parts[1]);
+				untyped overrides.port = Std.parseInt(parts[1]);
 			case "--debug":
 				var lvl = Std.parseInt(parts[1]);
 				if(lvl>=0 && lvl<=5) {
@@ -281,15 +302,19 @@ class Server extends ThreadPollServer<Client> {
 			}
 		}
 
-		server_root = sc.serverRoot;
+		for(f in Reflect.fields(overrides)) {
+			Reflect.setField(settings, f, Reflect.field(overrides,f));
+		}
+
+		server_root = settings.serverRoot;
 		try {
-			host = new neko.net.Host(sc.host);
+			host = new neko.net.Host(settings.host);
 		}
 		catch(e : Dynamic) {
 			neko.Lib.println("Host not specified or invalid.");
 			usage();
 		}
-		port = sc.port;
+		port = settings.port;
 		if(port == null || port < 1 || port > 65535) {
 			neko.Lib.print("Port out of range\n");
 			usage();

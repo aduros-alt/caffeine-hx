@@ -657,6 +657,9 @@ import protocols.http.Cookie;
 import protocols.http.Request;
 
 #if neko
+import clients.irc.Connection;
+import clients.irc.MsgParser;
+
 import protocols.couchdb.Database;
 import protocols.couchdb.DesignDocument;
 import protocols.couchdb.DesignView;
@@ -683,8 +686,11 @@ import servers.http.hive.ThreadPollServer;
 import servers.http.hive.TypesHttp;
 #end
 
-#if (neko || hllua)
+import system.log.EventLog;
+#if neko
 import system.log.File;
+import system.log.TextFile;
+import system.log.Syslog;
 #end
 #if neko
 import xdiff.Tools;
