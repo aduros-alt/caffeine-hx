@@ -15,6 +15,11 @@
 
 package memedb.state;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -40,6 +45,9 @@ public class FileSystemState extends DBState {
 
 	private static final int SIZEOF_LONG=8;
 	private static final int SIZEOF_INDEX_ENTRY=16;
+
+	private static final int INITIAL_CAPACITY= 65536;
+	private static final double GROWTH_FACTOR=0.5;
 
 	private MemeDB memeDB;
 	private File stateDir;
@@ -84,83 +92,46 @@ public class FileSystemState extends DBState {
 		this.fIndexFile = new File(stateDir, INDEX_FILENAME);
 		this.fDataFile = new File(stateDir, DATA_FILENAME);
 
-		boolean createDummyEntry = false;
-		boolean createDummyIndex = false;
 		try {
 			if(!fIndexFile.exists()) {
 				log.info("Creating state index file ");
-				createDummyIndex = true;
 			}
 			indexFile = new RandomAccessFile(fIndexFile, "rws");
 			if(!fDataFile.exists()) {
 				log.info("Creating state data file ");
-				createDummyEntry = true;
 			}
 			dataFile = new RandomAccessFile(fDataFile, "rws");
+
+
 		} catch(Exception e) {
 			throw new RuntimeException("Error opening state indexes: " + e.getMessage());
 		}
 
 		try {
-			long iPos = indexFile.length();
-			long dPos = 0;
-			long seq = 0;
-
-			if(iPos != 0) {
-				if(indexFile.length() % SIZEOF_INDEX_ENTRY != 0) {
-					throw new RuntimeException("Index file broken");
-				}
-				log.debug("index seeking to {}", iPos - SIZEOF_INDEX_ENTRY);
-				indexFile.seek(iPos - SIZEOF_INDEX_ENTRY);
-				seq = indexFile.readLong();
-				dPos = indexFile.readLong();
-				log.debug("index got seq {} dPos {}", seq, dPos);
-			}
-			else {
-				indexFile.seek(0);
-				seq = -1;
-			}
-			nextSequenceNumber = seq + 1;
-
-			dataFile.seek(dPos);
-			if(dPos != 0) {
-				// read the entry make sure it's ok etc etc
-				dataFile.seek(dataFile.length());
-			}
-		} catch(Exception e) {
-			throw new RuntimeException(e.getMessage(), e);
+			checkCapacities();
+			log.debug("Data file pos {} len {}", dataFile.getFilePointer(), dataFile.length());
+			log.debug("Index file pos {} len {}", indexFile.getFilePointer(), indexFile.length());
+		} catch(IOException e) {
+			throw new RuntimeException(e);
 		}
 
-		// If it's a new datafile, we need to write an empty
-		// entry for id 0... otherwise we'd be subtracting 1 from
-		// the seqNo before every operation.
-		if(createDummyEntry) {
-			try {
-				log.info("Initializing data file");
-				writeDocUpdateEntry("","", 0, "");
-				dataFile.seek(0);
-			} catch(IOException e) {
-				throw new RuntimeException("Unable to initialize data file");
-			}
-		}
-		if(createDummyIndex) {
-			try {
-				log.info("Initializing index file");
-				writeIndexEntry(0,0);
-			} catch(IOException e) {
-				throw new RuntimeException("Unable to initialize index file");
-			}
+		try {
+			nextSequenceNumber = seekIndexEnd() + 1;
+		} catch(IOException e) {
+			throw new RuntimeException(e);
 		}
 
 		log.info("State started at sequence {}", nextSequenceNumber);
+		//try {Thread.sleep(5000);} catch(Exception e) {}
 		try {
 			log.debug("Data file position {}", dataFile.getFilePointer());
+			log.debug("Index file position {}", indexFile.getFilePointer());
 			try {
-				log.debug("Last entry {}", readEventEntry(nextSequenceNumber - 1).toString());
+				if(nextSequenceNumber > 0)
+					log.debug("Last entry {}", readEventEntry(nextSequenceNumber - 1).toString());
 			} catch(NullPointerException e) {}
 			log.debug("Data file position {}", dataFile.getFilePointer());
-
-			log.warn("{}", eventsFromSequence(0,-1));
+			log.debug("Index file position {}", indexFile.getFilePointer());
 		} catch(IOException e) {
 			log.error("{}", e.getMessage());
 			throw new RuntimeException(e);
@@ -171,8 +142,11 @@ public class FileSystemState extends DBState {
 		synchronized(this) {
 			try {
 				dataFile.close();
+			} catch( Exception e ) {
+			}
+			try {
 				indexFile.close();
-			} catch(Exception e) {
+			} catch( Exception e ) {
 			}
 		}
 	}
@@ -268,10 +242,13 @@ public class FileSystemState extends DBState {
 			long seq = nextSequenceNumber;
 			try {
 				long i = dataFile.getFilePointer();
-				dataFile.writeByte(StateEvent.EVENT_DOC_DELETE_ID);
-				dataFile.writeLong(nextSequenceNumber);
-				dataFile.writeUTF(db);
-				dataFile.writeUTF(id);
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				DataOutputStream dos = new DataOutputStream(baos);
+				dos.writeByte(StateEvent.EVENT_DOC_DELETE_ID);
+				dos.writeLong(nextSequenceNumber);
+				dos.writeUTF(db);
+				dos.writeUTF(id);
+				dataFile.write(baos.toByteArray());
 				writeIndexEntry(nextSequenceNumber++, i);
 			} catch(Exception e) {
 				throw new RuntimeException("FileSystemState.deleteDocument");
@@ -285,9 +262,12 @@ public class FileSystemState extends DBState {
 			try {
 				long i = dataFile.getFilePointer();
 				long seq = nextSequenceNumber;
-				dataFile.writeByte(StateEvent.EVENT_DB_CREATE_ID);
-				dataFile.writeLong(nextSequenceNumber);
-				dataFile.writeUTF(name);
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				DataOutputStream dos = new DataOutputStream(baos);
+				dos.writeByte(StateEvent.EVENT_DB_CREATE_ID);
+				dos.writeLong(nextSequenceNumber);
+				dos.writeUTF(name);
+				dataFile.write(baos.toByteArray());
 				writeIndexEntry(seq, i);
 				nextSequenceNumber++;
 				return seq;
@@ -302,9 +282,12 @@ public class FileSystemState extends DBState {
 			try {
 				long i = dataFile.getFilePointer();
 				long seq = nextSequenceNumber;
-				dataFile.writeByte(StateEvent.EVENT_DB_DELETE_ID);
-				dataFile.writeLong(nextSequenceNumber);
-				dataFile.writeUTF(name);
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				DataOutputStream dos = new DataOutputStream(baos);
+				dos.writeByte(StateEvent.EVENT_DB_DELETE_ID);
+				dos.writeLong(nextSequenceNumber);
+				dos.writeUTF(name);
+				dataFile.write(baos.toByteArray());
 				writeIndexEntry(seq, i);
 				nextSequenceNumber++;
 				return seq;
@@ -374,12 +357,15 @@ public class FileSystemState extends DBState {
 	{
 		long i = dataFile.getFilePointer();
 // 		log.debug("Writing data entry seq: {} id: {} rev: {} at position {}",seq,id,rev,i);
-		dataFile.writeByte(StateEvent.EVENT_DOC_UPDATE_ID);
-		dataFile.writeLong(seq);
-		dataFile.writeUTF(db);
-		dataFile.writeUTF(id);
-		dataFile.writeUTF(rev);
-		dataFile.writeBoolean(false);
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		DataOutputStream dos = new DataOutputStream(baos);
+		dos.writeByte(StateEvent.EVENT_DOC_UPDATE_ID);
+		dos.writeLong(seq);
+		dos.writeUTF(db);
+		dos.writeUTF(id);
+		dos.writeUTF(rev);
+		dos.writeBoolean(false);
+		dataFile.write(baos.toByteArray());
 		return i;
 	}
 
@@ -394,12 +380,15 @@ public class FileSystemState extends DBState {
 		throws IOException
 	{
 		long i = dataFile.getFilePointer();
-		dataFile.writeByte(StateEvent.EVENT_DOC_UPDATE_ID);
-		dataFile.writeLong(doc.getSequence());
-		dataFile.writeUTF(doc.getDatabase());
-		dataFile.writeUTF(doc.getId());
-		dataFile.writeUTF(doc.getRevision());
-		dataFile.writeBoolean(fullRecord);
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		DataOutputStream dos = new DataOutputStream(baos);
+		dos.writeByte(StateEvent.EVENT_DOC_UPDATE_ID);
+		dos.writeLong(doc.getSequence());
+		dos.writeUTF(doc.getDatabase());
+		dos.writeUTF(doc.getId());
+		dos.writeUTF(doc.getRevision());
+		dos.writeBoolean(fullRecord);
+		dataFile.write(baos.toByteArray());
 		if(fullRecord)
 			dataFile.writeUTF(doc.toString());
 		return i;
@@ -416,10 +405,13 @@ public class FileSystemState extends DBState {
 	private final void writeIndexEntry(long seqNo, long dataFilePosition)
 		throws IOException
 	{
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		DataOutputStream dos = new DataOutputStream(baos);
+		dos.writeLong(seqNo);
+		dos.writeLong(dataFilePosition);
 		synchronized(this) {
 			indexFile.seek(seqNo * SIZEOF_INDEX_ENTRY);
-			indexFile.writeLong(seqNo);
-			indexFile.writeLong(dataFilePosition);
+			indexFile.write(baos.toByteArray());
 		}
 	}
 
@@ -433,13 +425,16 @@ public class FileSystemState extends DBState {
 		throws IOException
 	{
 		long p = seqNo * SIZEOF_INDEX_ENTRY;
+		byte[] ba = new byte[SIZEOF_INDEX_ENTRY];
 		synchronized(this) {
 			indexFile.seek(p);
-			long seq = indexFile.readLong();
-			long pos = indexFile.readLong();
-//	 		log.debug("readIndexEntry: for seq#{} shows seq:{} pos:{}", seqNo,seq,pos);
-			return pos;
+			indexFile.readFully(ba, 0, SIZEOF_INDEX_ENTRY);
 		}
+
+		DataInputStream dis = new DataInputStream(new ByteArrayInputStream(ba));
+		long seq = dis.readLong();
+		long pos = dis.readLong();
+		return pos;
 	}
 
 	/**
@@ -448,6 +443,82 @@ public class FileSystemState extends DBState {
 	private void rebuildIndex() {
 	}
 
+	/**
+	* Checks the size of the index and data files, growing them to at least
+	* initial capacity or GROWTH_FACTOR times larger
+	**/
+	private void checkCapacities() throws IOException {
+		long posI = indexFile.getFilePointer();
+		long lenI = indexFile.length();
+		if(posI >= (0.8 * lenI)) {
+			indexFile.seek(lenI);
+			long newSize = ((long)(lenI * GROWTH_FACTOR)) + lenI;
+			if(newSize == 0)
+				newSize = INITIAL_CAPACITY * SIZEOF_INDEX_ENTRY;
+			indexFile.setLength(newSize);
+			long count = (newSize - lenI) / SIZEOF_INDEX_ENTRY / 1024;
+
+			// 16k buffer, 1024 entries of 16 bytes
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			DataOutputStream dos = new DataOutputStream(baos);
+			for(int x = 0; x < 1024; x++) {
+				dos.writeLong(-1);
+				dos.writeLong(-1);
+			}
+			byte[] ba = baos.toByteArray();
+ 			while(count-- > 0) {
+				indexFile.write(ba);
+			}
+			indexFile.seek(posI);
+		}
+
+		long posD = dataFile.getFilePointer();
+		long lenD = dataFile.length();
+		if(posD >= (0.8 * lenD)) {
+			long newSize = ((long)(lenD * GROWTH_FACTOR)) + lenD;
+			if(newSize == 0)
+				newSize = INITIAL_CAPACITY * 1024; // 1k per record
+			dataFile.setLength(newSize);
+			dataFile.seek(posD);
+		}
+	}
+
+	/**
+	* Sets the indexFile and dataFile to their next writing position.
+	* @returns Last valid sequence number recorded, -1 if none
+	*/
+	private long seekIndexEnd() throws IOException {
+		indexFile.seek(0);
+		long lastIdx = 0;
+		long lastSeq = -1;
+		long lastPos = -1;
+		try {
+			while(true) {
+				long seq = indexFile.readLong();
+				long pos = indexFile.readLong();
+				//log.debug("****** read {} {}", seq, pos);
+				if(seq < 0) {
+					indexFile.seek(lastIdx);
+					break;
+				}
+				lastSeq = seq;
+				lastPos = pos;
+				lastIdx = indexFile.getFilePointer();
+			}
+		} catch( EOFException e ) {
+		}
+
+		if(lastPos == -1) {
+			dataFile.seek(0);
+			return lastSeq;
+		}
+		if(lastPos > dataFile.length())
+			throw new RuntimeException("dataFile truncated?");
+
+		dataFile.seek(lastPos);
+		readEventEntry(lastSeq, dataFile);
+		return lastSeq;
+	}
 
 /*
 	public Iterable<Document> documentsBySequence(String db, long startSeq) {

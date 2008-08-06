@@ -409,14 +409,17 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 	}
 
 	public void init(MemeDB memedb) {
+		log = Logger.get(InMemoryViewResults.class);
+		log.debug("InMemoryViewResults.init");
 		this.memeDB = memedb;
+		if(memedb == null)
+			throw new RuntimeException("memedb null instance");
 		baseDir = getInstancePath(memedb, db, docName, functionName);
 		if (!baseDir.exists()) {
 			baseDir.mkdirs();
 		}
 		shutdown = false;
 		destroy = false;
-		log = Logger.get(InMemoryViewResults.class);
 		log.info("{} Initialized at seq {} {}", id, currentSequenceNumber, view.getMapSrc());
 	}
 
@@ -493,7 +496,24 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 	public void start() {
 		synchronized(this) {
 			isAlive = true;
-			updater = new ResultsUpdater(db, docName, functionName, view, this, memeDB.getState().getCurrentSequenceNumber(), lock);
+/*
+			log.debug("{}", db);
+			log.debug("{}", docName);
+			log.debug("{}", functionName);
+			log.debug("view null {}", view == null);
+			log.debug("memedb null {}", memeDB == null);
+			log.debug("state null {}", memeDB.getState() == null);
+			log.debug("{}", memeDB.getState().getCurrentSequenceNumber());
+			log.debug("{}", lock == null);
+*/
+			updater = new ResultsUpdater(
+				db,
+				docName,
+				functionName,
+				view,
+				this,
+				memeDB.getState().getCurrentSequenceNumber(),
+				lock);
 			updater.start();
 		}
 	}

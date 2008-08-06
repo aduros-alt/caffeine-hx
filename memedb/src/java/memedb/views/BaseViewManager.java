@@ -415,7 +415,7 @@ abstract public class BaseViewManager extends ViewManager {
 				}
 			}
 		}
-
+		vr.init(memeDB);
 		ViewResults old = putResultEntryIfAbsent(db, docName, functionName, vr);
 		return vr;
 	}

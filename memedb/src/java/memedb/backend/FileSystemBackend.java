@@ -416,7 +416,7 @@ public class FileSystemBackend implements Backend {
 			log.info("updating common file : {}",doc.getId());
 			try {
 				File commonFile = new File(docDir, "_common");
-				System.err.println("Writing common: "+commonJSON.toString(2));
+				//System.err.println("Writing common: "+commonJSON.toString(2));
 				Writer writer = new FileWriter(commonFile);
 				commonJSON.write(writer);
 				writer.close();
