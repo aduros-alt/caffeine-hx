@@ -53,7 +53,7 @@ class Session {
 		authenticate();
 		if(token == null)
 			throw "Unable to connect";
-		trace("Connected with token " + this.token);
+// 		trace("Connected with token " + this.token);
 	}
 
 	public function authenticate(?user : String, ?pass : String) : Bool {

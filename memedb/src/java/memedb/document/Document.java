@@ -148,10 +148,9 @@ abstract public class Document {
 
 	protected static final String generateRevision(Backend backend,String database, String id) {
 		String rev = null;
-		while (rev==null || backend.doesDocumentRevisionExist(database, id,rev)) {
+		while (rev==null || !backend.touchRevision(database,id,rev)) {
 			rev = Long.toHexString(new Random().nextLong());
 		}
-		//backend.touchRevision(database,id,revision);
 		return rev;
 	}
 

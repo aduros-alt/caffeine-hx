@@ -103,7 +103,10 @@ public interface Backend {
 	public Document saveDocument(Document doc) throws BackendException;
 	public Document saveDocument(Document doc, Lock lock) throws BackendException;
 
-
-	public void touchRevision(String database, String id, String rev);
+	/**
+	 * This makes a place-holder file to avoid revision name duplicates.
+	 * @return true if the revision does not exist and was successfully created; false if the revision already exists
+	 */
+	public boolean touchRevision(String database, String id, String rev);
 
 }

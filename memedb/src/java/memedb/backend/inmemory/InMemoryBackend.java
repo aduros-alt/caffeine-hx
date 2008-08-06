@@ -337,7 +337,7 @@ public class InMemoryBackend implements Backend {
 		throw new BackendException("Not implemented");
 	}
 
-	public void touchRevision(String db, String id, String rev) {
-		dbs.get(db).get(id).touchRevision(rev);
+	public boolean touchRevision(String db, String id, String rev) {
+		return dbs.get(db).get(id).touchRevision(rev);
 	}
 }

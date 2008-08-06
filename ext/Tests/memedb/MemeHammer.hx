@@ -19,6 +19,9 @@ class MemeHammer {
 	var db : Database;
 
 	public static function main() {
+		var args = neko.Sys.args();
+		if(args.length > 0)
+			host = args[0];
 		var c = new MemeHammer();
 		c.createDataFast();
 	}

@@ -456,13 +456,7 @@ public class FileSystemBackend implements Backend {
 	public Map<String, Object> getDatabaseStats(String name) {
 		Map<String, Object> m = new HashMap<String, Object>();
 		m.put("db_name", name);
-		int count = 0;
-		for (File f : dbDir(name).listFiles()) {
-			if (f.isDirectory()) {
-				count++;
-			}
-		}
-		m.put("doc_count", count);
+		m.put("doc_count", countFiles(dbDir(name), null));
 		return m;
 	}
 
@@ -498,13 +492,33 @@ public class FileSystemBackend implements Backend {
 
 	/**
 	 * This makes a place-holder file to avoid revision name duplicates.
+	 * @return true if the revision does not exist and was successfully created; false if the named revision already exists
 	 */
-	public void touchRevision(String db, String id, String rev) {
+	public boolean touchRevision(String db, String id, String rev) {
 		try {
 			docDir(db, id).mkdirs();
-			new File(docDir(db, id), rev).createNewFile();
+			return new File(docDir(db, id), rev).createNewFile();
 		} catch (IOException e) {
 			e.printStackTrace();
+			return false;
 		}
+	}
+
+	private long countFiles(File baseDir, String baseName) {
+		long count = 0;
+		for (File f: baseDir.listFiles()) {
+			if (f.isDirectory()) {
+				if (new File(f,"_common").exists()) {
+					count++;
+				} else {
+					if (baseName!=null) {
+						count += countFiles(f,baseName+"/"+f.getName());
+					} else {
+						count += countFiles(f,f.getName());
+					}
+				}
+			}
+		}
+		return count;
 	}
 }

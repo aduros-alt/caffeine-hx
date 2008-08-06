@@ -29,16 +29,17 @@ import memedb.backend.Backend;
 import memedb.document.Document;
 import memedb.document.DocumentCreationException;
 
+/**
+*
+*/
 public class InMemoryDocument implements Serializable{
-	/**
-	 *
-	 */
+
 	private static final long serialVersionUID = -8164429846100317197L;
 	final private String id;
 	private String currentRevision;
 	private JSONObject common = new JSONObject();
 
-	private Map<String,byte[]> revisions = new ConcurrentHashMap<String,byte[]>();
+	private ConcurrentHashMap<String,byte[]> revisions = new ConcurrentHashMap<String,byte[]>();
 	private Map<String,JSONObject> metaData = new ConcurrentHashMap<String,JSONObject>();
 
 	transient protected Backend backend;
@@ -103,7 +104,7 @@ public class InMemoryDocument implements Serializable{
 	public Set<String> getRevisions() {
 		return revisions.keySet();
 	}
-	public void touchRevision(String rev) {
-		revisions.put(rev, null);
+	public boolean touchRevision(String rev) {
+		return null == revisions.putIfAbsent(rev, null);
 	}
 }

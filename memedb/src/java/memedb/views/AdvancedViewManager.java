@@ -92,9 +92,6 @@ public class AdvancedViewManager extends BaseViewManager {
 
 		ViewResults vr = getResultEntry(db,docId,functionName);
 		if(vr != null) {
-// 			List<JSONObject> d = vr.all();
-// 			rows =	//new JSONArray(d);
-// 					new JSONArray(MapResultSorter.filter(d, options));
 			List<JSONObject> d = vr.subList(options);
 			count = d.size();
 			rows = new JSONArray(d);
@@ -155,11 +152,13 @@ public class AdvancedViewManager extends BaseViewManager {
 		recursivelyDeleteFiles(viewDbDir(db));
 	}
 
+/*
 	protected void postEvent(BaseEvent be) {
 		log.info("Event with seqNo {} does not match {}", be.getSequence(), nextSequenceNumber);
 		super.postEvent(be);
 		throw new RuntimeException("Arg");
 	}
+*/
 
 	synchronized public void recalculateDocument(Document doc) {
 		log.info("recalculateDocument {} seqNo: {}", doc.getId(), doc.getSequence());
