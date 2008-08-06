@@ -212,8 +212,8 @@ public class LRUCachingBackend implements Backend {
 		return saved;
 	}
 
-	public void touchRevision(String database, String id, String rev) {
-		backend.touchRevision(database, id, rev);
+	public boolean touchRevision(String database, String id, String rev) {
+		return backend.touchRevision(database, id, rev);
 	}
 
 

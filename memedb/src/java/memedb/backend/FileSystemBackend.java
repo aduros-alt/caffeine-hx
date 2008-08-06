@@ -382,7 +382,7 @@ public class FileSystemBackend implements Backend {
 				File revisionMetaFile = new File(docDir, doc.getRevision()+".meta");
 
 				// add the current revision to the _revisions file (if needed)
-				if (!revisionMetaFile.exists()) {
+				if (!revisionMetaFile.exists() || revisionMetaFile.length() == 0) {
 					File revListFile = new File(docDir, "_revisions");
 					FileUtils.writeToFile(revListFile, doc.getRevision() + "\n", true);
 
@@ -497,7 +497,7 @@ public class FileSystemBackend implements Backend {
 	public boolean touchRevision(String db, String id, String rev) {
 		try {
 			docDir(db, id).mkdirs();
-			return new File(docDir(db, id), rev).createNewFile();
+			return new File(docDir(db, id), rev + ".meta").createNewFile();
 		} catch (IOException e) {
 			e.printStackTrace();
 			return false;

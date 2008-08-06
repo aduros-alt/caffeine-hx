@@ -57,6 +57,8 @@ abstract public class Document {
 			docTypes.put(type.toLowerCase(), clazz);
 		}
 	}
+	
+	private static Random random = new Random();
 
 	// constants
 	public static final String DB = "_db";
@@ -149,7 +151,7 @@ abstract public class Document {
 	protected static final String generateRevision(Backend backend,String database, String id) {
 		String rev = null;
 		while (rev==null || !backend.touchRevision(database,id,rev)) {
-			rev = Long.toHexString(new Random().nextLong());
+			rev = Long.toHexString(random.nextLong());
 		}
 		return rev;
 	}
