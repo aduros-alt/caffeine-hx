@@ -1,0 +1,23 @@
+
+Views are documents that are stored with an underscore prefix.
+
+To run a view, GET /dbname/_view/_docname
+
+There are some reserved views, which may not be modified or deleted.
+ * _all_docs - Returns all current documents 
+ * _by_seq - Returns documents ordered by sequence number (planned)
+
+
+The view options on the GET request are, in order of how they are applied:
+ * key - single key filter. If specified, no startkey or endkey matters
+ * startkey - starting key
+ * startkey_inclusive - starting key included in results (default true)
+ * endkey - ending key
+ * endkey_inclusive - ending key included in result (default true)
+ * descending - descending results (default false)
+ * skip - number of results to ignore
+ * count - maximum number of rows to return
+
+Additional options
+ * skip_reduce - do not perform the reduce of the result set, the map
+	portion of the view will be returned.

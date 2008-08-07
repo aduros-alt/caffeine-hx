@@ -80,7 +80,7 @@ public class AdvancedViewManager extends BaseViewManager {
 		return getViewEntry(db, view, function) != null;
 	}
 
-	public JSONObject getViewResults(String db, String docId, String functionName, Map<String,String> options) {
+	public JSONObject getViewResults(String db, String docId, String functionName, Map<String,String> options) throws ViewException {
 		log.debug("getViewResults {}/{}", docId, functionName);
 		if(docId.equals("_all_docs")) {
 			log.debug("Running adHocView");
@@ -90,15 +90,37 @@ public class AdvancedViewManager extends BaseViewManager {
 		JSONArray rows = new JSONArray();
 		long count = 0;
 
+		View v = getViewEntry(db, docId, functionName);
+		if(v == null)
+			throw new ViewException("View object does not exist");
+		
 		ViewResults vr = getResultEntry(db,docId,functionName);
-		if(vr != null) {
-			List<JSONObject> d = vr.subList(options);
-			count = d.size();
-			rows = new JSONArray(d);
-		}
+		if(vr == null)
+			throw new ViewException("ViewResults object does not exist");
+		
+		List<JSONObject> d = vr.subList(options);
+		count = d.size();
+		rows = new JSONArray(d);
+
+		if(v.hasReduce() && !"true".equals(options.get("skip_reduce"))) {
+			Object vo = v.reduce(rows);
+			if(vo != null) {
+				count = 1;
+				o.put("ok", true);
+				o.put("result", vo);
+			} else {
+				o.put("ok", false);
+				o.put("result", JSONObject.NULL);
+			}
+			o.put("rows", new JSONArray());
+			o.put("reduced_rows", d.size());
+		} else
+			o.put("rows", rows);
+		
 		o.put("total_rows", count);
-		o.put("offset", 0);
-		o.put("rows", rows);
+//		o.put("offset", 0);
+
+
 		log.debug("AdvancedViewManager::getViewResults : {}", o.toString(2));
 		return o;
 	}

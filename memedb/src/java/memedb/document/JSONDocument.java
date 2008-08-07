@@ -21,6 +21,8 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.Map;
 import java.util.Set;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpServletRequest;
 
 import org.json.JSONObject;
 
@@ -83,7 +85,8 @@ public class JSONDocument extends Document {
 	}
 
 	@Override
-	public void sendDocument(OutputStream dataOutput,Map<String,String[]> params) throws IOException {
+	public void sendBody(OutputStream dataOutput, HttpServletRequest request, HttpServletResponse response) throws IOException {
+		Map<String,String[]> params = request.getParameterMap();
 		boolean pretty=false;
 		if (params.containsKey("pretty")) {
 			String[] values = params.get("pretty");

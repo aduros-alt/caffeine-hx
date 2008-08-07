@@ -97,10 +97,15 @@ abstract public class ViewManager {
 	abstract public boolean doesViewExist(String db, String view, String function);
 
 	/**
-	* Returns the current results the view
-	*/
-	abstract public JSONObject getViewResults(String db, String view, String function, Map<String,String> options);
-// 	abstract public JSONObject getViewResults(String db, String view, String function);
+	 * Returns the current results the view.
+	 * @param db Database name
+	 * @param view View document name (_exampleview)
+	 * @param function Function name within view doc
+	 * @param options View filtering options
+	 * @return JSONObject populated with results of map or map/reduce
+	 * @throws memedb.views.ViewException If the view does not exist, or there is an error processing
+	 */
+	abstract public JSONObject getViewResults(String db, String view, String function, Map<String,String> options) throws ViewException;
 
 	/**
 	* System startup initialization phase.

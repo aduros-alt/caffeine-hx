@@ -172,6 +172,7 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 	* Now why would it be that ArrayList.removeRange is protected?
 	*/
 	private class ArrayListExp<T> extends ArrayList<T> {
+		private static final long serialVersionUID = -5912244629083505854L;
 		public void rangeRemove(int fromIndex, int toIndex) {
 			int l = size();
 			if (l != 0) {
@@ -208,7 +209,6 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 	private View view;
 	private String map_src;
 	private String reduce_src;
-	private Object reduceResult;
 
 
 	transient protected MemeDB memeDB;
@@ -489,7 +489,6 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 		if((reduce_src == null && rs != null) ||
 			rs == null || !reduce_src.equals(rs)) {
 			reduce_src = rs;
-			invalidateReduce();
 		}
 	}
 
@@ -694,21 +693,6 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 						set = newSet;
 					set.add(j);
 
-					if(view.hasReduce()) {
-						if(o != null) {
-							invalidateReduce();
-						}
-						else {
-							JSONObject no = new JSONObject();
-							no.put("key", JSONObject.NULL);
-							no.put("value", o);
-							JSONArray a = new JSONArray();
-							a.put(no);
-							a.put(j);
-							reduceResult = view.reduce(a);
-						}
-					}
-
 					if(doc.getSequence() > currentSequenceNumber)
 						currentSequenceNumber = doc.getSequence();
 				}
@@ -734,10 +718,6 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 		d = new File(d, FileUtils.fsEncode(docName));
 		d = new File(d, FileUtils.fsEncode(functionName));
 		return d;
-	}
-
-	protected void invalidateReduce() {
-		reduceResult = null;
 	}
 
 	protected void recursivelyDeleteFiles(File file) {

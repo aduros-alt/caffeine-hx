@@ -23,6 +23,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.Map;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpServletRequest;
 
 @ContentTypes({
 	"text/plain",
@@ -65,7 +67,7 @@ public class TextDocument extends Document {
 	}
 
 	@Override
-	public void sendDocument(OutputStream dataOutput,Map<String,String[]> params) throws IOException {
+	public void sendBody(OutputStream dataOutput, HttpServletRequest request, HttpServletResponse response) throws IOException {
 		writeRevisionData(dataOutput);
 	}
 

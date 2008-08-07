@@ -19,6 +19,7 @@ package memedb.document;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServletRequest;
 
 import memedb.MemeDB;
@@ -40,7 +41,7 @@ public class CGINekoDocument extends CGIScriptDocument {
 // 	protected File baseDir;
 
 	@Override
-	public void sendDocument(OutputStream dataOutput,HttpServletRequest request) throws IOException {
+	public void sendBody(OutputStream dataOutput, HttpServletRequest request, HttpServletResponse response) throws IOException {
 		MemeDB memeDb = backend.getMeme();
 		String sh = memeDb.getProperty("handler.sh.bin");
 		String sw = memeDb.getProperty("handler.sh.switch");

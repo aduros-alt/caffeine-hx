@@ -1,7 +1,3 @@
-http://fourspaces.com/blog/2008/4/11/MemeDB_Java_JSON_Document_database
-http://svn.fourspaces.com/public/memedb/trunk/src/java/memedb/
-
-
 New URLs
 ========
 /_useradd   Adding users
@@ -50,8 +46,6 @@ Regular Views
 		}
 	}
 
-Thoughts:
-	Design documents like Couch, however they should not be in the general document population and thus subject to map/reduce.
 
 DOCUMENTS
 =========

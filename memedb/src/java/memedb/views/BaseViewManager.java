@@ -425,7 +425,7 @@ abstract public class BaseViewManager extends ViewManager {
 	// still abstract
 	abstract protected void addView(String db, String docId, String functionName, View instance) throws ViewException;
 	abstract public boolean doesViewExist(String db, String view, String function);
-	abstract public JSONObject getViewResults(String db, String view, String function, Map<String,String> options);
+	abstract public JSONObject getViewResults(String db, String view, String function, Map<String,String> options) throws ViewException;
 	abstract public void init(MemeDB memeDB) throws ViewException;
 	abstract public void onDatabaseCreated(String db, long seq) throws ViewException;
 	abstract public void onDatabaseDeleted(String db, long seq);

@@ -97,7 +97,7 @@ public class AdHocViewRunner {
 		if (viewName!=null) {
 			out.put("view", viewName+"/"+functionName);
 		}
-		if(view.hasReduce()) {
+		if(view.hasReduce() && !"true".equals(options.get("skip_reduce"))) {
 			Object rv = view.reduce(results);
 			out.put("ok", true);
 			out.put("result", rv);

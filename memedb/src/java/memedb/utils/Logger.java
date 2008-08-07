@@ -26,7 +26,6 @@ public class Logger {
 
 	public static void setDefaultLevel(String lvl) {
 		String level = lvl;
-		System.out.println("****** " + level);
 		if(level.equalsIgnoreCase("debug"))
 			defaultLevel = Level.FINE;
 		else if(level.equalsIgnoreCase("info"))

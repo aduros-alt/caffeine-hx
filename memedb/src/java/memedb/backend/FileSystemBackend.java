@@ -223,6 +223,9 @@ public class FileSystemBackend implements Backend {
 
 			JSONObject commonJSON = JSONObject.read(new FileInputStream(commonFile));
 
+			if(commonJSON.length() == 0)
+				return null;
+			
 			if (rev == null) {
 				rev = commonJSON.getString(Document.CURRENT_REVISION);
 			}

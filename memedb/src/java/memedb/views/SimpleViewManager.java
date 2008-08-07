@@ -175,9 +175,12 @@ public class SimpleViewManager extends ViewManager {
 		return views.get(db+"/"+view+"/"+function);
 	}
 
-	public JSONObject getViewResults(String db, String viewName, String function, Map<String,String> options)
+	public JSONObject getViewResults(String db, String viewName, String function, Map<String,String> options) throws ViewException
 	{
-		return AdHocViewRunner.runView(memeDB,db,viewName,function,getView(db,viewName,function),options);
+		View v = getView(db,viewName,function);
+		if(v == null)
+			throw new ViewException("View object does not exist");
+		return AdHocViewRunner.runView(memeDB,db,viewName,function,v,options);
 	}
 
 	public void recalculateDocument(Document doc) {

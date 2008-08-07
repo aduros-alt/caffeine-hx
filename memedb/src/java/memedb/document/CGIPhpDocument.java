@@ -25,8 +25,8 @@ import java.io.OutputStreamWriter;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
-
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 @ContentTypes({
 	"application/php"
@@ -39,7 +39,7 @@ public class CGIPhpDocument extends CGIScriptDocument {
 	protected ProcessBuilder pb;
 
 	@Override
-	public void sendDocument(OutputStream dataOutput,HttpServletRequest request) throws IOException {
+	public void sendBody(OutputStream dataOutput, HttpServletRequest request, HttpServletResponse response) throws IOException {
 		try {
 			pb = new ProcessBuilder(new String[]{"/bin/sh", "-c",
 				"/bin/echo \""+content.replace("\"","\\\"")+"\" | /usr/bin/php"});

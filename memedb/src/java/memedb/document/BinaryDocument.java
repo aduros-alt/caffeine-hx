@@ -23,6 +23,8 @@ import java.io.OutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpServletRequest;
 
 @ContentTypes({
 	"application/octet-stream",
@@ -95,7 +97,7 @@ public class BinaryDocument extends Document {
 
 
 	@Override
-	public void sendDocument(OutputStream dataOutput,Map<String,String[]> params) throws IOException {
+	public void sendBody(OutputStream dataOutput, HttpServletRequest request, HttpServletResponse response) throws IOException {
 		writeRevisionData(dataOutput);
 	}
 

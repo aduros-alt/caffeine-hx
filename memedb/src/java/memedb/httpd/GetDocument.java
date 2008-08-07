@@ -68,9 +68,9 @@ public class GetDocument extends BaseRequestHandler {
 
 			if (showMeta && d.writesRevisionData()) { // only show meta data if the document doesn't write it by default
 				log.debug("sending meta data for {}",id);
-				sendMetaData(response,d,request.getParameterMap());
+				sendMetaData(d, response,request.getParameterMap());
 			} else {
-				sendDocument(response,d,request);
+				sendDocument(d, request, response);
 			}
 		} else {
 			JSONObject status = new JSONObject();

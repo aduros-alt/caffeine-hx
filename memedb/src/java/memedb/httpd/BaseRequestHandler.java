@@ -206,11 +206,9 @@ public abstract class BaseRequestHandler {
 		}
 	}
 
-	protected void sendDocument(HttpServletResponse response, Document doc, Map<String,String[]> params) {
+	protected void sendDocument(Document doc, HttpServletRequest request, HttpServletResponse response) {
 		try {
-			response.setStatus(HttpServletResponse.SC_OK);
-			response.setContentType(doc.getBrowserContentType());
-			doc.sendDocument(response.getOutputStream(),params);
+			doc.sendDocument(request, response);
 		} catch (JSONException e) {
 			log.error(e);
 		} catch (IOException e) {
@@ -218,19 +216,7 @@ public abstract class BaseRequestHandler {
 		}
 	}
 
-	protected void sendDocument(HttpServletResponse response, Document doc, HttpServletRequest request) {
-		try {
-			response.setStatus(HttpServletResponse.SC_OK);
-			response.setContentType(doc.getBrowserContentType());
-			doc.sendDocument(response.getOutputStream(),request);
-		} catch (JSONException e) {
-			log.error(e);
-		} catch (IOException e) {
-			log.error(e);
-		}
-	}
-
-	protected void sendMetaData(HttpServletResponse response, Document doc, Map<String,String[]> params) {
+	protected void sendMetaData(Document doc, HttpServletResponse response, Map<String,String[]> params) {
 		try {
 			response.setStatus(HttpServletResponse.SC_OK);
 			response.setContentType(TEXT_PLAIN_MIMETYPE);

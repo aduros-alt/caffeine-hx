@@ -23,6 +23,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.json.JSONObject;
 
 import memedb.auth.Credentials;
+import memedb.views.ViewException;
 import memedb.views.ViewManager;
 
 /**
@@ -54,19 +55,19 @@ public class GetView extends BaseRequestHandler {
 			}
  		}
 
-		if (memeDB.getViewManager().doesViewExist(db, viewName, functionName)) {
+		try {
 			boolean pretty="true".equals(request.getParameter("pretty"));
 			if (pretty) {
 				sendJSONString(response, memeDB.getViewManager().getViewResults(db, viewName, functionName,makeViewOptions(request.getParameterMap())));
 			} else {
 				sendJSONString(response, memeDB.getViewManager().getViewResults(db, viewName, functionName,makeViewOptions(request.getParameterMap())).toString());
 			}
-		} else {
+		} catch(ViewException e) {
 			JSONObject status = new JSONObject();
 			status.put("db",db);
 			status.put("view",viewName);
 			status.put("function",functionName);
-			sendError(response, "View not found",status,HttpServletResponse.SC_NOT_FOUND);
+			sendError(response, "View error", e.getMessage(), status, HttpServletResponse.SC_NOT_FOUND);
 		}
 	}
 

@@ -15,6 +15,7 @@
 
 package memedb.document;
 
+//import com.sun.org.apache.xalan.internal.xsltc.cmdline.getopt.GetOpt;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -26,6 +27,7 @@ import java.util.Random;
 import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -120,7 +122,6 @@ abstract public class Document {
 				d.commonData.put(DB,database);
 				d.commonData.put(CREATED_DATE,new Date().getTime());
 				d.commonData.put(CONTENT_TYPE, contentType.toLowerCase());
-// 				d.commonData.put(SEQ, -1L);
 				d.commonDirty = true;
 			} else {
 				d.commonData= new JSONObject(commonData);
@@ -181,94 +182,33 @@ abstract public class Document {
 	// end statics
 
 	protected Backend backend;
-
-	abstract public void setRevisionData(InputStream dataInput) throws DocumentCreationException;
-	abstract public void sendDocument(OutputStream dataOutput, Map<String,String[]> params) throws IOException;
-	public void sendDocument(OutputStream dataOutput, HttpServletRequest request) throws IOException {
-		sendDocument(dataOutput, request.getParameterMap());
-	}
-
-	/**
-	* Return true if there is data that does not go into the _common or .meta
-	* file. This is used in Binary and Text Document types.
-	**/
-	abstract public boolean writesRevisionData();
-	abstract public void writeRevisionData(OutputStream dataOutput) throws IOException;
-	/**
-	* If the document requires a specific file extension for the revision data
-	* file, this must return true. This is necessary for at least CGINekoDocument
-	* @see getRevisionExtension
-	*/
-	public boolean requiresRevisionExtension() {
-		return false;
-	}
-	/**
-	* Returns the required file extension (without the .) for the revision data
-	* @see requiresRevisionExtension
-	**/
-	public String getRevisionExtension() {
-		return "";
-	}
-
-	protected JSONObject commonData=null;
-	protected JSONObject metaData=null;
+	protected JSONObject commonData  =null;
+	protected JSONObject metaData = null;
 	protected boolean commonDirty = false;
 	protected boolean dataDirty = false;
 	protected Logger log = Logger.get(getClass());
-
-	protected void setRevision(String rev) {
-		metaData.put(REV,rev);
+	
+	/**
+	 * Override if content type to send to browser is different than the document content type.
+	 * @return Mime type for HTTP response
+	 */
+	public String getBrowserContentType() {
+		return getContentType();
 	}
-	protected void setRevisionDate(Date date) {
-		metaData.put(REV_DATE,date.getTime());
+	
+	/**
+	 * Returns the data that is common to all revisions of this document
+	 * @return JSON object with common data information
+	 */
+	public JSONObject getCommonData() {
+		return commonData;
 	}
-	protected void setRevisionDate(long timestamp) {
-		metaData.put(REV_DATE,timestamp);
-	}
-	protected void setRevisionUser(String revUser) {
-		metaData.put(REV_USER, revUser);
-	}
-	public void setSequence(long seq) {
-// 		commonData.put(SEQ, seq);
-// 		commonDirty = true;
-		metaData.put(SEQ, seq);
-		dataDirty = true;
-	}
-	final public long getSequence() {
-		return metaData.getLong(SEQ);
-	}
-	public Date getRevisionDate() {
-		return new Date(metaData.getLong(REV_DATE));
-	}
-	public String getRevision() {
-		return metaData.getString(REV);
-	}
-	public String getRevisionUser() {
-		return metaData.getString(REV_USER);
-	}
-	public Date getCreated() {
-		Long l = commonData.optLong(CREATED_DATE);
-		if (l!=null) {
-			return new Date(l);
-		}
-		return null;
-	}
-	public String getDatabase() {
-		try {
-			return commonData.getString(DB);
-		} catch (JSONException e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
-	public String getId() {
-		try {
-			return commonData.getString(ID);
-		} catch (JSONException e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
+	
+	/**
+	 * Gets the MemeDB content type for this document. This is the content type
+	 * that must be used by clients to create or update documents of this type.
+	 * @return mime type
+	 */
 	public String getContentType() {
 		try {
 			return commonData.getString(CONTENT_TYPE);
@@ -277,65 +217,185 @@ abstract public class Document {
 		}
 		return null;
 	}
-
+	
 	/**
-	* Override if content type to send to browser is different than the
-	* record type.
-	**/
-	public String getBrowserContentType() {
-		return getContentType();
+	 * Retrieves the date that the document was originally created.
+	 * @return date of first document instance
+	 * @see GetRevisionDate
+	 */
+	public Date getCreated() {
+		Long l = commonData.optLong(CREATED_DATE);
+		if (l!=null) {
+			return new Date(l);
+		}
+		return null;
 	}
-
-	public JSONObject getCommonData() {
-		return commonData;
+	
+	/**
+	 * Gets the database this document belongs to.
+	 * @return Plain text database name
+	 */
+	public String getDatabase() {
+		try {
+			return commonData.getString(DB);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
+	
+	/**
+	 * Returns the plain text id of the document.
+	 * @return Then unencoded id
+	 */
+	public String getId() {
+		try {
+			return commonData.getString(ID);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * Returns the meta data, which is all the revision specific information
+	 * @return JSONObject of meta data revision information
+	 */
 	public JSONObject getMetaData() {
 		return metaData;
 	}
-	public void writeCommonData(Writer writer) throws IOException{
-		commonData.write(writer);
+	
+	/**
+	 * The sequence number of the document revision
+	 * @return long sequence number 
+	 */
+	final public long getSequence() {
+		return metaData.getLong(SEQ);
 	}
-	public void setRevisions(JSONArray revs) {
-		commonData.put("_revisions",revs);
+	
+	/**
+	 * Returns the revision id for the document.
+	 * @return string revision id
+	 */
+	public String getRevision() {
+		return metaData.getString(REV);
 	}
+	
+	/**
+	 * Date of revision creation
+	 * @return date revision was created
+	 */
+	public Date getRevisionDate() {
+		return new Date(metaData.getLong(REV_DATE));
+	}
+	
+	/**
+	* Returns the required file extension (without the .) for the revision data
+	* @see requiresRevisionExtension
+	**/
+	public String getRevisionExtension() {
+		return "";
+	}
+	
+	/**
+	 * Returns the username that created this revision of the document. The
+	 * user is that which is logged in through the _auth mechanism.
+	 * @return string username
+	 */
+	public String getRevisionUser() {
+		return metaData.getString(REV_USER);
+	}
+	
+	/**
+	 * Checks if the document common data has changed.
+	 * @return true if the common data has been changed
+	 */
 	public boolean isCommonDirty() {
 		return commonDirty;
 	}
-	public void setCommonDirty(boolean commonDirty) {
-		this.commonDirty = commonDirty;
-	}
+
+	/**
+	 * Checks if the document meta data has changed.
+	 * @return true if the meta data has been changed
+	 */
 	public boolean isDataDirty() {
 		return dataDirty;
 	}
+	/**
+	 * If the document requires a specific file extension for the revision data
+	 * file, this must return true. This is necessary for at least CGINekoDocument
+	 * @return True if the database must store a file with the given extension on disk
+	 * @see getRevisionExtension
+	 */
+	public boolean requiresRevisionExtension() {
+		return false;
+	}
+	
+	/**
+	 * Handler for sending document over HTTP. The default implementation sets the response code to SC_OK, 
+	 * the output Content-Type to getBrowserContentType, then calls sendBody.
+	 * @param request Client HTTP request
+	 * @param response Client HTTP response
+	 * @throws java.io.IOException
+	 */
+	public void sendDocument(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		response.setStatus(HttpServletResponse.SC_OK);
+		response.setContentType(getBrowserContentType());
+		sendBody(response.getOutputStream(),request,response);
+	}
+	
+	/**
+	 * Abstract method that must be used if not overriding the sendDocument method. This is the method that should write to the dataOutput
+	 * OutputStream.
+	 * @param dataOutput Data stream to http client
+	 * @param request Client request
+	 * @param response Client response which already has headers set by sendDocument
+	 * @throws java.io.IOException
+	 * @see sendDocument
+	 */
+	abstract public void sendBody(OutputStream dataOutput, HttpServletRequest request, HttpServletResponse response) throws IOException;
+	/*
+	abstract public void sendDocument(OutputStream dataOutput, Map<String,String[]> params) throws IOException;
+	*/
+
+	/**
+	 * Sets a flag to indicate that the meta data has been changed.
+	 * @param dataDirty true if document meta data has changed
+	 */
 	public void setDataDirty(boolean dataDirty) {
 		this.dataDirty = dataDirty;
 	}
-
+	
 	/**
-	 * Write out the document to the specified writer.
-	 * @param params Options. "pretty" => ["true"] will format with 2 space indent
+	 * Sets a flag to indicate that the common data has been changed.
+	 * @param commonDirty true if document common data has changed
 	 */
-	public void writeMetaData(Writer writer, Map<String, String[]> params) throws IOException{
-		boolean pretty=false;
-		if (params.containsKey("pretty")) {
-			String[] values = params.get("pretty");
-			for (String value:values) {
-				if (value.equals("true")) {
-					pretty=true;
-				}
-			}
-		}
-		if (pretty) {
-			writer.write(toString(2));
-		} else {
-			writer.write(toString());
-		}
+	public void setCommonDirty(boolean commonDirty) {
+		this.commonDirty = commonDirty;
 	}
-
+	
+	/**
+	 * Set the revision history information. Internal use.
+	 * @param revs
+	 */
+	public void setRevisions(JSONArray revs) {
+		commonData.put("_revisions",revs);
+	}
+	
+	/**
+	 * Called from the DBState implementation to set the document sequence number.
+	 * @param seq Database sequence number
+	 */
+	public void setSequence(long seq) {
+		metaData.put(SEQ, seq);
+		dataDirty = true;
+	}
+	
 	/**
 	 * Non-indented version of toString which returns the common and meta JSON data
 	 * @return unformatted json string of document
 	 */
+	@Override
 	public String toString() {
 		String jsonString = commonData.toString();
 		jsonString = jsonString.substring(0,jsonString.length()-1);
@@ -368,5 +428,78 @@ abstract public class Document {
 		}
 		return jsonString;
 	}
+	
+	/**
+	 * If the document requires revision data, on loading and creating this method will be called.
+	 * @param dataInput Source for revision data stream
+	 * @throws memedb.document.DocumentCreationException
+	 */
+	abstract public void setRevisionData(InputStream dataInput) throws DocumentCreationException;
+
+	/**
+	 * Writes the JSON common data to the specified writer.
+	 * @param writer The writer that recieves commond data
+	 * @throws java.io.IOException
+	 */
+	public void writeCommonData(Writer writer) throws IOException {
+		commonData.write(writer);
+	}
+		
+	/**
+	 * Write out the document to the specified writer.
+	 * @param params Options. "pretty" => ["true"] will format with 2 space indent
+	 */
+	public void writeMetaData(Writer writer, Map<String, String[]> params) throws IOException {
+		boolean pretty=false;
+		if (params.containsKey("pretty")) {
+			String[] values = params.get("pretty");
+			for (String value:values) {
+				if (value.equals("true")) {
+					pretty=true;
+				}
+			}
+		}
+		if (pretty) {
+			writer.write(toString(2));
+		} else {
+			writer.write(toString());
+		}
+	}
+	
+	/**
+	 * Return true if there is data that does not go into the _common or .meta file. Used for example in Binary and Text Document types.
+	 * @return true if revision data must be appended to document
+	 */
+	abstract public boolean writesRevisionData();
+	
+	/**
+	 * Must return true if the document requires an additional file to store revision data in. Revision
+	 * data is that which is not common or meta information, for example image data for image/png
+	 * @param dataOutput Sink to write revision data to
+	 * @throws java.io.IOException
+	 */
+	abstract public void writeRevisionData(OutputStream dataOutput) throws IOException;
+	
+
+	////////////////////////////////////////
+	//         Protected methods          //
+	////////////////////////////////////////
+	
+	protected void setRevision(String rev) {
+		metaData.put(REV,rev);
+	}
+	
+	protected void setRevisionDate(Date date) {
+		metaData.put(REV_DATE,date.getTime());
+	}
+	
+	protected void setRevisionDate(long timestamp) {
+		metaData.put(REV_DATE,timestamp);
+	}
+	
+	protected void setRevisionUser(String revUser) {
+		metaData.put(REV_USER, revUser);
+	}
 
 }
+
