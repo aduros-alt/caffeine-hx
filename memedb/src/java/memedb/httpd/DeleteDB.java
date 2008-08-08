@@ -31,7 +31,12 @@ import memedb.views.ViewException;
  */
 public class DeleteDB extends BaseRequestHandler {
 
-	public void handleInner(Credentials credentials, HttpServletRequest request, HttpServletResponse response, String db, String id, String rev) throws IOException, BackendException, ViewException{
+	public void handleInner(Credentials credentials, HttpServletRequest request, HttpServletResponse response, String db, String id, String rev) throws IOException, BackendException, ViewException
+	{
+		if(!credentials.canDropDatabase(db)) {
+			this.sendNotAuth(response);
+			return;
+		}
 		if( memeDB.isSystemDb(db) ) {
 			sendError(response, "not_allowed", "system db", 405);
 			return;
@@ -45,7 +50,10 @@ public class DeleteDB extends BaseRequestHandler {
 	}
 
 	public boolean match(Credentials credentials, HttpServletRequest request, String db, String id) {
-		return (db!=null && id==null && request.getMethod().equals("DELETE") && credentials.isSA());
+		return (
+				db!=null && 
+				id==null && 
+				request.getMethod().equals("DELETE"));
 	}
 
 }

@@ -33,8 +33,8 @@ public class HTTPDServer extends Server {
 
 	final protected MemeDB memeDB;
 
-	public HTTPDServer(MemeDB coffeeDB) {
-		this.memeDB=coffeeDB;
+	public HTTPDServer(MemeDB memeDB) {
+		this.memeDB=memeDB;
 	}
 
 	public void init() throws Exception {
@@ -53,7 +53,7 @@ public class HTTPDServer extends Server {
 
 		HandlerCollection handlers=new HandlerCollection();
 		ResourceHandler resourceHandler=new ResourceHandler();
-		resourceHandler.setResourceBase(".");
+		resourceHandler.setResourceBase(memeDB.getProperty("server.www.path"));
 		handlers.setHandlers(new Handler[] {
 			new MemeDBHandler(memeDB),
 			resourceHandler,

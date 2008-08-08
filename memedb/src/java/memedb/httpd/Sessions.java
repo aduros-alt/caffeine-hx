@@ -32,9 +32,14 @@ import memedb.auth.Credentials;
  */
 public class Sessions extends BaseRequestHandler {
 
-	public void handleInner(Credentials credentials, HttpServletRequest request, HttpServletResponse response, String db, String id, String rev) throws IOException{
+	public void handleInner(Credentials credentials, HttpServletRequest request, HttpServletResponse response, String db, String id, String rev) throws IOException
+	{
+		if(!credentials.isSA()) {
+			this.sendNotAuth(response);
+			return;
+		}
 		response.setStatus(HttpServletResponse.SC_OK);
-		response.setContentType(JSON_MIMETYPE);
+		response.setContentType(TEXT_PLAIN_MIMETYPE);
 		try {
 			JSONWriter w = new JSONWriter(response.getWriter());
 			w.array();
@@ -54,7 +59,7 @@ public class Sessions extends BaseRequestHandler {
 	}
 
 	public boolean match(Credentials credentials, HttpServletRequest request, String db, String id) {
-		return (db.equals("_sessions") && credentials.isSA());
+		return ("_sessions".equals(db));
 	}
 
 }

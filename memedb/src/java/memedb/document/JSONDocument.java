@@ -103,7 +103,7 @@ public class JSONDocument extends Document {
 				log.debug("[{}] => ", i++,value);
 			}
 		}
-		log.info("pretty? = {}", pretty);
+		//log.info("pretty? = {}", pretty);
 		Writer writer = new OutputStreamWriter(dataOutput);
 		if (pretty) {
 			writer.write(toString(2));

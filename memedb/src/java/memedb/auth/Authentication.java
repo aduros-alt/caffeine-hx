@@ -16,10 +16,12 @@
 package memedb.auth;
 
 import java.util.List;
-import java.util.HashMap;
+//import java.util.HashMap;
 
 import memedb.MemeDB;
 
+import org.json.JSONObject;
+import org.json.JSONException;
 
 /**
  * Authentication backend interface
@@ -42,21 +44,24 @@ public interface Authentication {
 	 */
 	public void shutdown();
 
-	/**
+	/*
 	 * Add a user to this backend
 	 * @param cred - credentials of the user asking for the new user to be created (needs to be sa)
 	 * @param username
 	 * @param password
 	 * @param sa
 	 */
-	public void addUser(Credentials cred, String username, String password, HashMap<String, String> dbPerms, boolean sa) throws NotAuthorizedException;
+	//public void addUser(Credentials cred, String username, String password, HashMap<String, String> dbPerms, boolean sa) throws NotAuthorizedException;
+	
 	/**
-	 * Remove a user from this backend
-	 * @param cred - credentials of the user requesting the removal (needs to be sa)
-	 * @param username
+	 * Adds a user to MemeDB
+	 * @param cred Credentials of SA creating new user
+	 * @param definition JSONDocument with definition of user rights.
+	 * @throws memedb.auth.NotAuthorizedException if the user does not have the rights to add a new user
+	 * @throws org.json.JSONException if the definition is malformed
 	 */
-	public void removeUser(Credentials cred, String username) throws NotAuthorizedException;
-
+	public void addUser(Credentials cred, JSONObject definition) throws NotAuthorizedException, JSONException;
+	
 	/**
 	 * Authenticate a user by username/password
 	 * @param username
@@ -64,6 +69,13 @@ public interface Authentication {
 	 * @return null if not valid
 	 */
 	public Credentials authenticate(String username, String password);
+	
+	/**
+	 * Gets the current list of credentials
+	 * @return credentials list
+	 */
+	public List<Credentials> getCredentials();
+
 	/**
 	 * Based upon a token, retrieve the cached credentials.  This allows the username/password authentication
 	 * to occur only once and let the engine figure out who the user is based upon the token (passed in via header, cookie, or param)
@@ -75,11 +87,26 @@ public interface Authentication {
 	 * @return
 	 */
 	public Credentials getCredentialsFromToken(String token);
+	
 	/**
 	 * Invalidates this set of credentials from the cache (equivalent to invalidating an http session or logging out)
 	 * @param credentials
 	 */
 	public void invalidate(Credentials credentials);
-	public List<Credentials> getCredentials();
+	
+	/**
+	 * Remove a user from this backend
+	 * @param cred - credentials of the user requesting the removal (needs to be sa)
+	 * @param username
+	 */
+	public void removeUser(Credentials cred, String username) throws NotAuthorizedException;
 
+	/**
+	 * Update an existing user
+	 * @param cred credentials of the user requesting the update (needs to be sa)
+	 * @param definition JSONDocument with definition of user rights.
+	 * @throws memedb.auth.NotAuthorizedException if the user does not have the rights to add a new user
+	 * @throws org.json.JSONException if the definition is malformed
+	 */
+	public void updateUser(Credentials cred, JSONObject definition) throws NotAuthorizedException, JSONException;
 }

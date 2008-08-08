@@ -35,6 +35,7 @@ import org.mortbay.jetty.handler.AbstractHandler;
 import memedb.MemeDB;
 import memedb.auth.Credentials;
 import memedb.auth.SACredentials;
+import memedb.auth.AnonCredentials;
 import memedb.utils.Logger;
 
 /**
@@ -49,7 +50,9 @@ public class MemeDBHandler extends AbstractHandler {
 	public static final String COOKIE_ID = "MEMEDB_ID";
 	final protected MemeDB memeDB;
 	final protected boolean allowAnonymous;
+	final protected boolean allowAnonymousAsSa;
 	final protected String realm;
+	final protected boolean allowHtml;
 	protected int timeout;
 
 	protected List<BaseRequestHandler> baseRequestHandlers = new ArrayList<BaseRequestHandler>();
@@ -76,8 +79,10 @@ public class MemeDBHandler extends AbstractHandler {
 			handler.setMemeDB(memeDB);
 		}
 		this.allowAnonymous = memeDB.getProperty("auth.anonymous","false").toLowerCase().equals("true");
+		this.allowAnonymousAsSa = memeDB.getProperty("auth.anonymous.sa","false").toLowerCase().equals("true");
 		this.realm = memeDB.getProperty("auth.realm","MemeDB");
 		this.timeout=Integer.parseInt(memeDB.getProperty("auth.timeout.seconds","300"));
+		this.allowHtml = memeDB.getProperty("server.www.allow","true").toLowerCase().equalsIgnoreCase("true");
 
 	}
 
@@ -119,6 +124,8 @@ public class MemeDBHandler extends AbstractHandler {
 		} else {
 			db=path;
 		}
+		if(db.length() == 0)
+			db = null;
 
 		boolean handled = false;
 		for (BaseRequestHandler handler:baseRequestHandlers) {
@@ -127,15 +134,17 @@ public class MemeDBHandler extends AbstractHandler {
 					Admin a = (Admin) handler;
 					a.setDispatch(dispatch);
 				}
-
 				handler.handle(cred, request, response, db, id, rev);
 				handled = true;
 				break;
 			}
 		}
-		if (!handled)
+		if (!handled && !allowHtml) {
 			sendError(response,"Could not process request");
-		base_request.setHandled(true);
+			handled = true;
+		}
+		if(handled)
+			base_request.setHandled(true);
 		return;
 	}
 
@@ -175,20 +184,22 @@ public class MemeDBHandler extends AbstractHandler {
 
 	protected Credentials getCredentials(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		Credentials cred=null;
-		if (allowAnonymous) {
-			return new SACredentials("anonymous", "", timeout);
-		}
 
 		if (request.getRequestURI().equals("/_auth")) {
 			String username = request.getParameter("username");
 			String password = request.getParameter("password");
+			log.warn("login attempt for {}", username);
+			if (!allowAnonymous && "anonymous".equals(username)) {
+				sendNoAuthError(response, "Bad username / password combination");
+				return null;
+			}
 			if (username!=null) {
 				if (password == null) {
 					password = "";
 				}
 				cred = memeDB.getAuthentication().authenticate(username, password);
 				if (cred!=null) {
-					if (request.getParameter("setcookie")!=null && request.getParameter("setcookie").equals("1")) {
+					if (request.getParameter("setcookie") ==null || request.getParameter("setcookie").toLowerCase().equals("false")) {
 						Cookie cookie = new Cookie(COOKIE_ID, cred.getToken());
 						cookie.setMaxAge(timeout);
 						response.addCookie(cookie);
@@ -250,17 +261,30 @@ public class MemeDBHandler extends AbstractHandler {
 						if (ar.length>1) {
 							p = ar[1];
 						}
-						cred = memeDB.getAuthentication().authenticate(u,p);
+						if (!allowAnonymous && "anonymous".equals(u)) {
+						} else {
+							cred = memeDB.getAuthentication().authenticate(u,p);
 
-						if (cred!=null) {
-							log.debug("Authenticated as {} => {} via HTTP-AUTH",cred.getUsername(), cred.getToken());
-							addCredentialedCookie(response,cred);
+							if (cred!=null) {
+								log.debug("Authenticated as {} => {} via HTTP-AUTH",cred.getUsername(), cred.getToken());
+								addCredentialedCookie(response,cred);
+							}
+							return cred;
 						}
-						return cred;
 					}
 				}
 			}
+			response.addHeader("WWW-Authenticate"," Basic realm=\"" + realm + "\"");
+			sendNoAuthError(response,"You need a username and password");
+			return null;
 		}
+		
+		if(allowAnonymous) {
+			if(allowAnonymousAsSa)
+				return new SACredentials("anonymous","",timeout);
+			return new AnonCredentials("", timeout);
+		}
+		
 		log.warn("Error authenticating");
 		response.addHeader("WWW-Authenticate"," Basic realm=\"" + realm + "\"");
 		sendNoAuthError(response,"You need a username and password");

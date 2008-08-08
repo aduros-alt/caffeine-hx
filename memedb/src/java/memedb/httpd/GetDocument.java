@@ -47,6 +47,10 @@ public class GetDocument extends BaseRequestHandler {
 
 	@SuppressWarnings("unchecked")
 	public void handleInner(Credentials credentials, HttpServletRequest request, HttpServletResponse response, String db, String id, String rev/*, String[] fields*/) throws IOException, BackendException {
+		if(!credentials.canReadDocuments(db)) {
+			this.sendNotAuth(response);
+			return;
+		}
 		/*
 		 *  display the document, optionally revision (or _current), and optionaly
 		 *  traverse the JSONObject by field names
@@ -82,7 +86,13 @@ public class GetDocument extends BaseRequestHandler {
 	}
 
 	public boolean match(Credentials credentials, HttpServletRequest request, String db, String id) {
-		return (db!=null  && !db.startsWith("_") && id!=null && !id.startsWith("_") && request.getMethod().equals("GET") && credentials.isAuthorizedRead(db));
+		return (
+				db!=null  && 
+				!db.startsWith("_") && 
+				id!=null && 
+				!id.startsWith("_") &&
+				request.getMethod().equals("GET") &&
+				(!allowHtml || memeDB.getBackend().doesDatabaseExist(db)));
 	}
 
 }

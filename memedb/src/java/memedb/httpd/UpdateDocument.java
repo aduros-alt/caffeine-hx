@@ -42,7 +42,10 @@ import org.json.JSONObject;
 public class UpdateDocument extends BaseRequestHandler {
 
 	public void handleInner(Credentials credentials, HttpServletRequest request, HttpServletResponse response, String db, String id, String rev) throws IOException, BackendException, DocumentCreationException{
-
+		if(!credentials.canUpdateDocuments(db)) {
+			this.sendNotAuth(response);
+			return;
+		}
 		if (!memeDB.getBackend().doesDatabaseExist(db)) {
 			sendError(response, "Database does not exist: "+db,HttpServletResponse.SC_NOT_FOUND);
 			return;
@@ -134,7 +137,13 @@ public class UpdateDocument extends BaseRequestHandler {
 	}
 
 	public boolean match(Credentials credentials, HttpServletRequest request, String db, String id) {
-		return (db!=null && !db.startsWith("_") && ((id!=null && request.getMethod().equals("PUT")) || (/*id==null &&*/ request.getMethod().equals("POST"))) && credentials.isAuthorizedWrite(db));
+		return (
+				db!=null && 
+				!db.startsWith("_") && 
+				((id!=null && request.getMethod().equals("PUT")) || 
+					(/*id==null &&*/ request.getMethod().equals("POST"))) &&
+				(!allowHtml || memeDB.getBackend().doesDatabaseExist(db))
+				);
 	}
 
 }

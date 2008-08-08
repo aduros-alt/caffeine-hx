@@ -19,35 +19,17 @@ import java.util.Date;
 
 public abstract class Credentials {
 
-	/**
-	* User may read from database
-	*/
-	public abstract boolean isAuthorizedRead(String db);
-	/**
-	* User may write to database
-	*/
-	public abstract boolean isAuthorizedWrite(String db);
-	/**
-	* User may read document
-	*/
-	public abstract boolean isAuthorizedReadDocument(String db, String id);
-	/**
-	* User may update document
-	*/
-	public abstract boolean isAuthorizedUpdateDocument(String db, String id);
-	/**
-	* User may delete document
-	*/
-	public abstract boolean isAuthorizedDeleteDocument(String db, String id);
-	/**
-	* User may run the named view
-	*/
-	public abstract boolean isAuthorizedSeeView(String db, String viewPath);
-	/*
-	* User may create a view
-	*/
-// 	public abstract boolean isAuthorizedCreateView(String db, String viewPath);
-
+	public abstract boolean canDropDatabase(String db);
+	public abstract boolean canCreateDatabase(String db);
+	public abstract boolean canReadDocuments(String db);
+	public abstract boolean canCreateDocuments(String db);
+	public abstract boolean canUpdateDocuments(String db);
+	public abstract boolean canDeleteDocuments(String db);
+	public abstract boolean canRunView(String db, String id);
+	public abstract boolean canCreateView(String db, String id);
+	public abstract boolean canRunAdhoc(String db);
+	public abstract boolean canSeeDbStats(String db);
+	public abstract boolean canSeeDbNames();
 
 	// main class
 

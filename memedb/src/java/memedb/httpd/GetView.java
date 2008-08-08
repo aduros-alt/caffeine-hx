@@ -35,9 +35,12 @@ public class GetView extends BaseRequestHandler {
 
 	@SuppressWarnings("unchecked")
 	public void handleInner(Credentials credentials, HttpServletRequest request, HttpServletResponse response, String db, String id, String rev/*, String[] fields*/) throws IOException{
-
 		String viewName = id.substring(6);
 		String functionName = null;
+		if(!credentials.canRunView(db,viewName)) {
+			this.sendNotAuth(response);
+			return;
+		}
 
 		if (memeDB.getViewManager().doesViewExist(db, viewName,ViewManager.DEFAULT_FUNCTION_NAME)) {
 			functionName=ViewManager.DEFAULT_FUNCTION_NAME;
@@ -72,7 +75,14 @@ public class GetView extends BaseRequestHandler {
 	}
 
 	public boolean match(Credentials credentials, HttpServletRequest request, String db, String id) {
-		return (db!=null  && !db.startsWith("_") && id!=null && id.startsWith("_view/") && request.getMethod().equals("GET") && credentials.isAuthorizedRead(db));
+		return (
+				db!=null && 
+				!db.startsWith("_") && 
+				id!=null && 
+				id.startsWith("_view/") && 
+				request.getMethod().equals("GET") &&
+				(!allowHtml || memeDB.getBackend().doesDatabaseExist(db))
+				);
 	}
 
 }

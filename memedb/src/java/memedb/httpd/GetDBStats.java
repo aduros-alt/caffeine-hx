@@ -36,7 +36,12 @@ import memedb.auth.Credentials;
  */
 public class GetDBStats extends BaseRequestHandler {
 
-	public void handleInner(Credentials credentials, HttpServletRequest request, HttpServletResponse response, String db, String id, String rev) throws IOException{
+	public void handleInner(Credentials credentials, HttpServletRequest request, HttpServletResponse response, String db, String id, String rev) throws IOException 
+	{
+		if(!credentials.canSeeDbStats(db)) {
+			this.sendNotAuth(response);
+			return;
+		}
 		if( memeDB.getBackend().doesDatabaseExist(db) ) {
 			Map<String,Object> m = memeDB.getBackend().getDatabaseStats(db);
 			sendJSONString(response, new JSONObject(m));
@@ -53,7 +58,7 @@ public class GetDBStats extends BaseRequestHandler {
 				!db.startsWith("_") &&
 				id==null &&
 				request.getMethod().equals("GET") &&
-				credentials.isAuthorizedRead(db);
+				(!allowHtml || memeDB.getBackend().doesDatabaseExist(db));
 	}
 
 }

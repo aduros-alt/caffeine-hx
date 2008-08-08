@@ -16,37 +16,62 @@
 package memedb.auth;
 
 public class SACredentials extends Credentials {
-	public SACredentials(String username,String token, int timeout) {
+	public SACredentials(String username, String token, int timeout) {
 		super(username,token,true,timeout);
 	}
 
 	@Override
-	public boolean isAuthorizedRead(String db) {
+	public boolean canDropDatabase(String db) {
 		return true;
 	}
-
+	
 	@Override
-	public boolean isAuthorizedWrite(String db) {
+	public boolean canCreateDatabase(String db) {
 		return true;
 	}
-
+	
 	@Override
-	public boolean isAuthorizedReadDocument(String db, String id) {
+	public boolean canReadDocuments(String db) {
 		return true;
 	}
-
+	
 	@Override
-	public boolean isAuthorizedUpdateDocument(String db, String id) {
+	public boolean canCreateDocuments(String db) {
 		return true;
 	}
-
+	
 	@Override
-	public boolean isAuthorizedDeleteDocument(String db, String id) {
+	public boolean canDeleteDocuments(String db) {
 		return true;
 	}
-
+	
 	@Override
-	public boolean isAuthorizedSeeView(String db, String viewPath) {
+	public boolean canUpdateDocuments(String db) {
+		return true;
+	}
+	
+	@Override
+	public boolean canCreateView(String db, String id) {
+		return true;
+	}
+	
+	@Override
+	public boolean canRunView(String db, String id) {
+		return true;
+	}
+	
+	@Override
+	public boolean canRunAdhoc(String db) {
+		return true;
+	}
+	
+	@Override
+	public boolean canSeeDbStats(String db) {
+		return true;
+	}
+	
+	@Override
+	public boolean canSeeDbNames() {
 		return true;
 	}
 }

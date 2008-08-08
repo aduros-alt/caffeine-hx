@@ -44,6 +44,7 @@ public abstract class BaseRequestHandler {
 	protected static final String JSON_MIMETYPE = "application/json";
 	protected static final String TEXT_PLAIN_MIMETYPE = "text/plain;charset=utf-8";
 	protected MemeDB memeDB;
+	protected boolean allowHtml;
 
 	abstract public boolean match(Credentials credentials, HttpServletRequest request, String db, String id);
 	abstract protected void handleInner(Credentials credentials, HttpServletRequest request, HttpServletResponse response, String db, String id, String rev) throws BackendException, IOException, DocumentCreationException, ViewException, ServletException;
@@ -82,6 +83,7 @@ public abstract class BaseRequestHandler {
 
 	public void setMemeDB(MemeDB memeDB) {
 		this.memeDB=memeDB;
+		allowHtml = memeDB.getProperty("server.www.allow","true").toLowerCase().equalsIgnoreCase("true");
 	}
 
  	protected Map<String, String> makeViewOptions(Map<String,String[]> params) {

@@ -29,7 +29,7 @@ import org.json.JSONObject;
 import org.json.JSONException;
 
 /**
- * Add a user to the authentication database. The
+ * Add a user to the authentication database.
  *
  * Handles POST with database name _adduser
  * @author Russell Weir
@@ -37,9 +37,12 @@ import org.json.JSONException;
 public class UserAdd extends BaseRequestHandler {
 
 	public void handleInner(Credentials credentials, HttpServletRequest request, HttpServletResponse response, String db, String id, String rev) throws IOException {
-		HashMap<String, String> dbPerms = new HashMap<String, String>();
-		JSONObject data;
+		if(!credentials.isSA()) {
+			this.sendNotAuth(response);
+			return;
+		}
 
+		JSONObject data;
 		try {
 			request.setCharacterEncoding("UTF-8");
 			data = JSONObject.read(request.getInputStream());
@@ -50,21 +53,9 @@ public class UserAdd extends BaseRequestHandler {
 		}
 
 		try {
-			JSONObject perms = data.getJSONObject("db_access");
-			for(String v : perms.keySet()) {
-				dbPerms.put(v, perms.getString(v));
-			}
-		} catch(Exception e) {
-			sendError(response, "No database permissions (db_access)");
-		}
-
-		try {
 			memeDB.getAuthentication().addUser(
 				credentials,
-				data.getString("username"),
-				data.getString("password"),
-				dbPerms,
-				data.optBoolean("is_sa", false));
+				data);
 		}
 		catch(NotAuthorizedException e) {
 			sendNotAuth(response);
@@ -79,7 +70,7 @@ public class UserAdd extends BaseRequestHandler {
 	}
 
 	public boolean match(Credentials credentials, HttpServletRequest request, String db, String id) {
-		return (db!=null && db.startsWith("_useradd") && id==null && request.getMethod().equals("POST") && credentials.isSA());
+		return ("_useradd".equals(db) && id==null && request.getMethod().equals("POST"));
 	}
 
 }

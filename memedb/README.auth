@@ -1,0 +1,94 @@
+
+To login, access /_admin with username and password set either through
+GET or POST variables. By default, there will be a cookie sent back with
+the response, but this can be disabled with 
+setcookie=false
+
+The response will be a JSON object like
+{"ok":true,"token":"c6ff4db02406c2be917f26abb651db28","valid_seconds":299}
+And if setcookie is not false, the token is also set as a cookie "MEMEDB_ID"
+
+The token field is the token that must be passed back for each subsequent
+request to MemeDB. In order, the database checks for this token in:
+MEMEDB_ID cookie
+GET or POST 'token' field
+MemeDB-Token: HTTP header
+
+To logout, visit the /_invalidate URL, passing the token in any of the
+same manners.
+
+If anonymous logins are disabled, there will be a HTTP authentication
+dialog come up for any request that does not yet have a cookie.
+
+USERS
+==========================
+To create users, you must be logged in as the System Administrator. To
+set the SA username and password, check the memedb.properties file. Other
+system administrators can be created by setting the "is_sa" flag.
+
+To add users, you must create a JSONDocument with the following format
+with the default values shown (ignoring the db_access for "foo").
+{
+	"username": "foouser",	// (required)
+	"password": "password",	// (required) must be > 4 chars other 
+							// than the special 'anonymous' user.
+	"is_sa": false,			// (required) is System Administrator
+	"defaults": {			// defaults for all dbs
+		"drop_db": false,	// can drop databases
+		"create_db": false	// can create databases
+		"read": true,		// can read a document
+		"create": true,		// can create new documents
+		"update": true,		// can update existing documents
+		"delete": true,		// can delete existing documents
+		"run_views": true,  // can run stored views
+		"create_views":true,// can create stored views
+		"adhoc": true,		// can run adhoc views
+		"view_db_stats":true// can see db stats
+		"view_db_names":true// can see all database names
+	},
+	"db_access": {
+		"foo": {
+			"drop_db": true,
+			"create_db": true,
+			"read": true,
+			"create": true,
+			"update": true,
+			"delete": true,
+			"run_views": true,
+			"create_views":true,
+			"adhoc": false,
+			"view_access": {
+				"_privateView" : false,
+				"_publicView" : true
+			}
+		}
+	}
+}
+db_access overrides the default settings, so in the previous example
+the user is allowed to drop and create database "foo"
+
+The default anonymous user is defined as:
+{
+	"username": "anonymous",
+	"password": "",
+	"is_sa": false,
+	"defaults": {
+		"drop_db": false,
+		"create_db": false,
+		"read": false,
+		"create": false,
+		"update": false,
+		"delete": false,
+		"run_views": true,
+		"create_views":false,
+		"adhoc": false,
+		"view_db_stats":false,
+		"view_db_names":false,
+		"view_access": {
+			"_all_docs" : false
+		}
+	},
+	"db_access": {
+	}
+}
+Which basically only allows the anonymous user to run views by default

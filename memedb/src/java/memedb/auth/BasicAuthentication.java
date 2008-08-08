@@ -27,8 +27,10 @@ import memedb.document.Document;
 import memedb.document.DocumentCreationException;
 import memedb.document.JSONDocument;
 import memedb.utils.BCrypt;
-import memedb.utils.Lock;
+//import memedb.utils.Lock;
 import memedb.utils.Logger;
+
+import org.json.JSONObject;
 
 /**
  * <p>
@@ -77,6 +79,18 @@ public class BasicAuthentication implements Authentication {
 		this.allowAnonymous = memeDB.getProperty("auth.anonymous","false").toLowerCase().equals("true");
 		this.timeout=Integer.parseInt(memeDB.getProperty("auth.timeout.seconds","300"));
 
+		JSONDocument userdoc = (JSONDocument) memeDB.getBackend().getDocument(MemeDB.USERS_DB, "anonymous");
+		if (userdoc==null) {
+			log.warn("Creating default anonymous user");
+			try {
+				JSONObject o = new JSONObject(AnonCredentials.defaultJSON());
+				this.addUser(new SACredentials("system","system",0), o);
+			} catch(NotAuthorizedException e) {
+				throw new RuntimeException("Unable to create user 'anonymous'", e);
+			}
+		} else {
+			AnonCredentials.setDefaultAnonDocument(userdoc);
+		}
 		monitor = new Thread() {
 			boolean stop = false;
 			@Override
@@ -120,7 +134,92 @@ public class BasicAuthentication implements Authentication {
 		credentials.add(cred);
 		return cred;
 	}
+	
+	/*
+	public void addUser(Credentials cred, String username, String password, HashMap<String, String> dbPerms, boolean sa) throws NotAuthorizedException {
+		if (cred.isSA()) {
+			try {
+				JSONDocument userdoc = (JSONDocument) Document.newDocument(memeDB.getBackend(),MemeDB.USERS_DB, username, MemeDB.CONTENT_JSON, cred.getUsername());
+				userdoc.put("username", username);
+				userdoc.put("is_sa", sa);
+				userdoc.put("password", BCrypt.hashpw(password, BCrypt.gensalt()));
+				userdoc.put("db_access", dbPerms);
+				memeDB.getBackend().saveDocument(userdoc);
+			} catch (BackendException e) {
+				log.error("Backend exception adding user: {}",e,username);
+			} catch (DocumentCreationException e) {
+				log.error("Backend exception adding user: {}",e,username);
+			}
+		} else {
+			throw new NotAuthorizedException("Only sa users can add new users");
+		}
+	}
+	*/
+			
+	public void addUser(Credentials cred, JSONObject definition) throws NotAuthorizedException
+	{
+		if(cred.isSA()) {
+			try {
+				JSONDocument userdoc = makeDoc(cred, definition, false);
+				removeUser(cred, (String)userdoc.get("username"));
+				memeDB.getBackend().saveDocument(userdoc);
+				if("anonymous".equals((String)userdoc.get("username"))) {
+					AnonCredentials.setDefaultAnonDocument(userdoc);
+				}
+			} catch(BackendException e) {
+				log.error("Backend exception adding user : {}", e);
+			} catch (DocumentCreationException e) {
+				log.error("Backend exception adding user : {}", e);
+			}
+		} else {
+			throw new NotAuthorizedException("Only sa users can add new users");
+		}
+	}
+	
+	public Credentials authenticate(String username, String password) {
+		if (password==null) {
+			password="";
+		}
+		log.debug("Attempting authentication: {}", username);
 
+		if (username.equals(saUsername) && BCrypt.checkpw(password,saPasswordHash)) {
+			return addCredentials(new SACredentials(username,generateToken(),timeout));
+		} else {
+			if (!allowAnonymous && "anonymous".equals(username)) {
+				return null;
+			}
+			JSONDocument userdoc = (JSONDocument) memeDB.getBackend().getDocument(MemeDB.USERS_DB,username);
+			if (userdoc!=null) {
+				String hashedPassword = (String) userdoc.get("password");
+				if (hashedPassword == null) {
+					hashedPassword = BCrypt.hashpw("", BCrypt.gensalt());
+				}
+				if (BCrypt.checkpw(password,hashedPassword)) {
+					if("anonymous".equals(username))
+						return addCredentials(new AnonCredentials(userdoc,generateToken(),timeout));
+					return addCredentials(new UserCredentials(userdoc,generateToken(),timeout));
+				} else {
+					log.debug("Invalid password for user {}",username);
+				}
+			} else {
+				log.debug("No document for user {} found",username);
+			}
+		}
+		return null;
+	}
+
+	public synchronized String generateToken() {
+		String token = null;
+		while (token==null || getCredentialsFromToken(token)!=null) {
+			token = Long.toHexString(random.nextLong())+Long.toHexString(random.nextLong());
+		}
+		return token;
+	}
+
+	public List<Credentials> getCredentials() {
+		return credentials;
+	}
+		
 	public Credentials getCredentialsFromToken(String token) {
 		for (Credentials cred:credentials) {
 			if (cred.getToken().equals(token)) {
@@ -141,76 +240,62 @@ public class BasicAuthentication implements Authentication {
 		}
 	}
 
-	public Credentials authenticate(String username, String password) {
-		if (password==null) {
-			password="";
-		}
-		log.debug("Attempting authentication: {}", username);
-
-		if (allowAnonymous) {
-			return addCredentials(new SACredentials(username,generateToken(),timeout));
-		} else if (username.equals(saUsername) && BCrypt.checkpw(password,saPasswordHash)) {
-			return addCredentials(new SACredentials(username,generateToken(),timeout));
-		} else {
-			JSONDocument userdoc = (JSONDocument) memeDB.getBackend().getDocument(MemeDB.USERS_DB,username);
-			if (userdoc!=null) {
-				String hashedPassword = (String) userdoc.get("password");
-				if (hashedPassword == null) {
-					hashedPassword = BCrypt.hashpw("", BCrypt.gensalt());
-				}
-				if (BCrypt.checkpw(password,hashedPassword)) {
-					return addCredentials(new UserCredentials(userdoc,generateToken(),timeout));
-				} else {
-					log.debug("Invalid password for user {}",username);
-				}
-			} else {
-				log.debug("No document for user {} found",username);
-			}
-		}
-		return null;
-	}
-
-	public synchronized String generateToken() {
-		String token = null;
-		while (token==null || getCredentialsFromToken(token)!=null) {
-			token = Long.toHexString(random.nextLong())+Long.toHexString(random.nextLong());
-		}
-		return token;
-	}
-
-	public void addUser(Credentials cred, String username, String password, HashMap<String, String> dbPerms, boolean sa) throws NotAuthorizedException {
-		if (cred.isSA()) {
-			try {
-				JSONDocument userdoc = (JSONDocument) Document.newDocument(memeDB.getBackend(),MemeDB.USERS_DB,username, MemeDB.CONTENT_JSON, cred.getUsername());
-				userdoc.put("username", username);
-				userdoc.put("is_sa", sa);
-				userdoc.put("password", BCrypt.hashpw(password, BCrypt.gensalt()));
-				userdoc.put("db_access", dbPerms);
-				memeDB.getBackend().saveDocument(userdoc);
-			} catch (BackendException e) {
-				log.error("Backend exception adding user: {}",e,username);
-			} catch (DocumentCreationException e) {
-				log.error("Backend exception adding user: {}",e,username);
-			}
-		} else {
-			throw new NotAuthorizedException("Only sa users can add new users");
-		}
-	}
-
 	public void removeUser(Credentials cred, String username) throws NotAuthorizedException {
 		if (cred.isSA()) {
 			try {
 				memeDB.getBackend().deleteDocument(MemeDB.USERS_DB,username);
 			} catch (BackendException e) {
-				log.error("Backend exception removing user: {}",e,username);
+				//log.error("Backend exception removing user: {}",e,username);
 			}
 		} else {
 			throw new NotAuthorizedException("Only sa users can remove users");
 		}
 	}
-
-	public List<Credentials> getCredentials() {
-		return credentials;
+	
+	public void updateUser(Credentials cred, JSONObject definition) throws NotAuthorizedException
+	{
+		if(cred.isSA()) {
+			try {
+				JSONDocument userdoc = makeDoc(cred, definition, true);
+				removeUser(cred, (String)userdoc.get("username"));
+				memeDB.getBackend().saveDocument(userdoc);
+				if("anonymous".equals((String)userdoc.get("username"))) {
+					AnonCredentials.setDefaultAnonDocument(userdoc);
+				}
+			} catch(BackendException e) {
+				log.error("Backend exception adding user : {}", e);
+			} catch (DocumentCreationException e) {
+				log.error("Backend exception adding user : {}", e);
+			}
+		} else {
+			throw new NotAuthorizedException("Only sa users can add new users");
+		}
 	}
+	
+	/**
+	 * Creates a JSONDocument from the user rights definition.
+	 * @param definition JSONObject with user rights
+	 * @param forUpdate Set to true to not rehash the user's password
+	 * @return New JSONDocument ready to be saved to the backend
+	 */
+	private JSONDocument makeDoc(Credentials cred, JSONObject definition, boolean forUpdate) throws DocumentCreationException {
+		String username = definition.getString("username");
+		String password = definition.getString("password");
+		boolean sa = definition.optBoolean("is_sa", false);
+		if(username.equals("anonymous"))
+			sa = false;
+		JSONDocument userdoc = 
+				(JSONDocument) Document.newDocument(
+					memeDB.getBackend(), 
+					MemeDB.USERS_DB, 
+					username, 
+					MemeDB.CONTENT_JSON, 
+					cred.getUsername());
 
+		userdoc.setRevisionData(definition);
+		if(!forUpdate)
+			userdoc.put("password", BCrypt.hashpw(password, BCrypt.gensalt()));
+		userdoc.put("is_sa", sa);
+		return userdoc;
+	}
 }

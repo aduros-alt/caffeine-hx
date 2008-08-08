@@ -44,7 +44,7 @@ public class InvalidateAuth extends BaseRequestHandler {
 	}
 
 	public boolean match(Credentials credentials, HttpServletRequest request, String db, String id) {
-		return (db.equals("_invalidate"));
+		return ("_invalidate".equals(db));
 	}
 
 }

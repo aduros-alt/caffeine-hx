@@ -38,6 +38,11 @@ public class AdHocView extends BaseRequestHandler {
 
 	@SuppressWarnings("unchecked")
 	public void handleInner(Credentials credentials, HttpServletRequest request, HttpServletResponse response, String db, String id, String rev/*, String[] fields*/) throws IOException{
+		if(!credentials.canRunAdhoc(db)) {
+			this.sendNotAuth(response);
+			return;
+		}
+		
 		String line;
 		/*
 		StringBuilder sb = new StringBuilder();
@@ -100,7 +105,6 @@ public class AdHocView extends BaseRequestHandler {
 	}
 
 	public boolean match(Credentials credentials, HttpServletRequest request, String db, String id) {
-		return (db!=null  && !db.startsWith("_") && id!=null && id.equals("_temp_view") && request.getMethod().equals("POST") && credentials.isAuthorizedRead(db));
+		return (db!=null  && !db.startsWith("_") && id!=null && id.equals("_temp_view") && request.getMethod().equals("POST"));
 	}
-
 }

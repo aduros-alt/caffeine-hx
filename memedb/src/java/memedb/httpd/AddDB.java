@@ -33,7 +33,12 @@ import org.json.JSONObject;
  */
 public class AddDB extends BaseRequestHandler {
 
-	public void handleInner(Credentials credentials, HttpServletRequest request, HttpServletResponse response, String db, String id, String rev) throws IOException, BackendException, ViewException{
+	public void handleInner(Credentials credentials, HttpServletRequest request, HttpServletResponse response, String db, String id, String rev) throws IOException, BackendException, ViewException
+	{
+		if(!credentials.canCreateDatabase(db)) {
+			this.sendNotAuth(response);
+			return;
+		}
 		try {
 			memeDB.addDatabase(db);
 		}
@@ -49,7 +54,7 @@ public class AddDB extends BaseRequestHandler {
 	}
 
 	public boolean match(Credentials credentials, HttpServletRequest request, String db, String id) {
-		return (db!=null && !db.startsWith("_") && id==null && request.getMethod().equals("PUT") && credentials.isSA());
+		return (db!=null && !db.startsWith("_") && id==null && request.getMethod().equals("PUT"));
 	}
 
 }

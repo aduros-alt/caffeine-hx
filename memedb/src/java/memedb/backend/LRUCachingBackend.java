@@ -45,7 +45,7 @@ import memedb.utils.Lock;
  * Cached items are stored as weak references, allowing them to be garbage collected if needed.  This will let
  * the JVM adjust the size of the cache if more memory is needed.
  * <p>
- * Configuration settings in coffeedb.properties:<br>
+ * Configuration settings in memedb.properties:<br>
  * backend.cache.class - the fully qualified class name of the backing class<br>
  * backend.cache.size - the number of documents to cache (default: 5000)<br>
  * sa.username - the username for ROOT access (req'd if not default)<br>

@@ -21,3 +21,13 @@ The view options on the GET request are, in order of how they are applied:
 Additional options
  * skip_reduce - do not perform the reduce of the result set, the map
 	portion of the view will be returned.
+
+Adhoc views
+===========
+To run an Adhoc view, a JSON document must be posted to
+/dbname/_temp_view
+
+{
+	"map": "function(doc) {}",
+	"reduce": "function(results) {}" // optiional
+}

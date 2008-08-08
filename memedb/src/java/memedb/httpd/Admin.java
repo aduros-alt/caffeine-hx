@@ -23,6 +23,7 @@ import javax.servlet.ServletException;
 
 import org.mortbay.jetty.handler.ResourceHandler;
 
+import memedb.MemeDB;
 import memedb.auth.Credentials;
 import memedb.backend.BackendException;
 import memedb.views.ViewException;
@@ -34,17 +35,33 @@ import memedb.views.ViewException;
  */
 public class Admin extends BaseRequestHandler {
 	protected int dispatch;
+	protected boolean allowAdmin;
+	protected ResourceHandler resourceHandler;
+	
 
+	@Override
+	public void setMemeDB(MemeDB memeDB) {
+		super.setMemeDB(memeDB);
+		allowAdmin = memeDB.getProperty("server.www.admin","true").toLowerCase().equalsIgnoreCase("true");
+		resourceHandler=new ResourceHandler();
+		resourceHandler.setResourceBase(memeDB.getProperty("server.www.path"));
+	}
+	
+	
 	public void handleInner(Credentials credentials, HttpServletRequest request, HttpServletResponse response, String db, String id, String rev) throws IOException, ServletException {
-
-		ResourceHandler resourceHandler=new ResourceHandler();
-		resourceHandler.setResourceBase("www");
+		if(!credentials.isSA()) {
+			this.sendNotAuth(response);
+			return;
+		}
+		if(!allowAdmin) {
+			this.sendError(response, "unavailable", "Server configuration");
+			return;
+		}
 		resourceHandler.handle(request.getRequestURI(), request, response, dispatch);
-
 	}
 
 	public boolean match(Credentials credentials, HttpServletRequest request, String db, String id) {
-		return (db.equals("_admin") && credentials.isSA());
+		return ("_admin".equals(db));
 	}
 
 	public void setDispatch(int v) {

@@ -32,6 +32,10 @@ import memedb.auth.Credentials;
 public class GetDatabaseNames extends BaseRequestHandler {
 
 	public void handleInner(Credentials credentials, HttpServletRequest request, HttpServletResponse response, String db, String id, String rev) {
+		if(!credentials.canSeeDbNames()) {
+			this.sendNotAuth(response);
+			return;
+		}
 		Set<String> dbs = memeDB.getBackend().getDatabaseNames();
 		JSONArray ar = new JSONArray();
 		for (String d:dbs) {
@@ -43,7 +47,7 @@ public class GetDatabaseNames extends BaseRequestHandler {
 	}
 
 	public boolean match(Credentials credentials, HttpServletRequest request, String db, String id) {
-		return (db.equals("_all_dbs") && request.getMethod().equals("GET") && credentials!=null);
+		return ("_all_dbs".equals(db) && request.getMethod().equals("GET"));
 	}
 
 }
