@@ -25,9 +25,12 @@ import memedb.document.Document;
 
 public interface View extends Serializable {
 	/**
-	* Perform the 'map' portion of the view
-	*/
-	public void map(MapResultConsumer listener, Document doc);
+	 * Perform the 'map' portion of the view
+	 * @param doc The document to be mapped
+	 * @param listener The consumer of any key to value mappings
+	 * @param fulltextListener The consumer of any full text documents created by the view
+	 */
+	public void map(Document doc, MapResultConsumer listener, FulltextResultConsumer fulltextListener);
 
 	/**
 	* Returns true if the View has a 'reduce' member function

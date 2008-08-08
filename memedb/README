@@ -14,7 +14,7 @@ MemeDbHandler:
 	All errors now in JSON format for easier interface with client connection libraries. Avoid the use of (HttpServletRespose)response.sendError(), as this bypasses the JSON responses.
 
 Authentication:
-	A few abstract methods added, just as future placeholders for document level permissions. isAuthorizedUpdateDocument(String db, String id) etc
+	Completely rewritten to provide finer level of control over the user rights
 
 FileSystemBackend:
 	Multiple directories now created based on the backend.fs.depth property. Anything other than ReiserFS will choke on too many entries in the monolithic directory structure

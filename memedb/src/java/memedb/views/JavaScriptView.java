@@ -29,6 +29,7 @@ import org.json.JSONArray;
 import memedb.backend.Backend;
 import memedb.document.Document;
 import memedb.document.JSONDocument;
+import memedb.fulltext.FulltextException;
 import memedb.utils.Logger;
 
 
@@ -46,8 +47,7 @@ import memedb.utils.Logger;
  * @author Russell Weir
  */
 
-@ViewType("text/javascript")
-
+@ViewType("javascript")
 public class JavaScriptView implements View {
     /**
 	 *
@@ -80,7 +80,7 @@ public class JavaScriptView implements View {
 	public JavaScriptView(String db, String map, String reduce, boolean isLazy) throws ViewException {
 		this.db=db;
 		this.map_src = map;
-		if(reduce != null && reduce != "")
+		if(reduce != null && !reduce.equals(""))
 			this.reduce_src = reduce;
 		else
 			this.reduce_src = null;
@@ -96,7 +96,7 @@ public class JavaScriptView implements View {
 			try {
 				engine.eval(new InputStreamReader(getClass().getResourceAsStream("json.js")));
 				engine.eval(new InputStreamReader(getClass().getResourceAsStream("jsrun.js")));
-				engine.eval("_MemeDB_filter="+map_src);
+				engine.eval("_MemeDB_map="+map_src);
 				if(reduce_src != null)
 					engine.eval("_MemeDB_reduce="+reduce_src);
 				engine.put("_MemeDB_JSVIEW",this);
@@ -116,8 +116,7 @@ public class JavaScriptView implements View {
 		this.backend=backend;
 	}
 
-/*
-	public JSONObject get(String id, String rev, String mydb) {
+	public JSONObject get(String mydb, String id, String rev) {
 		if (mydb==null) {
 			mydb = this.db;
 		}
@@ -131,13 +130,14 @@ public class JavaScriptView implements View {
 		}
 		return null;
 	}
-*/
 
 	public boolean isLazy() {
 		return lazy;
 	}
 
-	public void map(MapResultConsumer listener, Document doc) {
+	public void map(Document doc, MapResultConsumer listener, FulltextResultConsumer fulltextListener) {
+		FulltextResult ft = new FulltextResult(doc.getId(), doc.getRevision());
+		engine.put("_MemeDB_FULLTEXT", ft);
 		if(doc == null) {
 			listener.onMapResult(doc, null);
 			return;
@@ -148,18 +148,31 @@ public class JavaScriptView implements View {
 			Object docJSObject = engine.eval("_MemeDB_doc = eval('('+'"+ doc.toString()+"'+')');");
 
 			Invocable invocable = (Invocable) engine;
-			Object retval = invocable.invokeFunction("_MemeDB_filter",docJSObject);
+			Object retval = invocable.invokeFunction("_MemeDB_map",docJSObject);
 			String json=null;
 			if (retval != null) {
 				json = (String) invocable.invokeFunction("toJSON",new Object[]{retval});
 			} else {
 				json = (String) engine.eval("_MemeDB_retval.toJSONString();");
 			}
-			if (json!=null && !json.equals("") && !json.equals("\"\"")) {
-				listener.onMapResult(doc, new JSONObject(json));
-				return;
+			if(listener != null) {
+				if (json!=null && !json.equals("") && !json.equals("\"\"")) {
+					listener.onMapResult(doc, new JSONObject(json));
+				} else {
+					listener.onMapResult(doc, null);
+				}
 			}
-
+			if(fulltextListener != null) {
+				try {
+					if(ft.hasResult()) {
+						fulltextListener.onFulltextResult(doc, ft.getDocument());
+					} else {
+						fulltextListener.onFulltextResult(doc, null);
+					}
+				} catch(FulltextException e) {
+					log.warn("Error running fulltext engine for doc {} : {}", doc.getId(), e);
+				}
+			}
 		} catch (ScriptException e) {
 			e.printStackTrace();
 		} catch (NoSuchMethodException e) {
@@ -167,7 +180,7 @@ public class JavaScriptView implements View {
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
-		listener.onMapResult(doc, null);
+		
 	}
 
 	public boolean hasReduce() {

@@ -23,7 +23,7 @@ import memedb.backend.Backend;
 import memedb.backend.BackendException;
 import memedb.document.Document;
 import memedb.events.ExternalEventConsumer;
-
+import memedb.fulltext.FulltextEngine;
 import memedb.httpd.HTTPDServer;
 import memedb.state.DBState;
 import memedb.utils.Logger;
@@ -53,7 +53,8 @@ public class MemeDB {
 	protected final HTTPDServer httpd;
 	protected final Authentication auth;
 	protected final ViewManager viewManager;
-
+	protected final FulltextEngine fulltextManager;
+	
 	protected final Properties properties;
 
 	public MemeDB () {
@@ -63,6 +64,7 @@ public class MemeDB {
 		this.backend = buildBackend();
 		this.auth = buildAuthentication();
 		this.eventConsumer = buildEventConsumer();
+		this.fulltextManager = buildFulltextManager();
 		this.httpd = buildHTTPD();
 		this.viewManager = buildViewManager();
 	}
@@ -73,6 +75,7 @@ public class MemeDB {
 		this.backend=backend;
 		this.auth = buildAuthentication();
 		this.eventConsumer = buildEventConsumer();
+		this.fulltextManager = buildFulltextManager();
 		this.httpd = buildHTTPD();
 		this.viewManager = buildViewManager();
 	}
@@ -84,6 +87,7 @@ public class MemeDB {
 		this.backend = buildBackend();
 		this.auth = buildAuthentication();
 		this.eventConsumer = buildEventConsumer();
+		this.fulltextManager = buildFulltextManager();
 		this.httpd = buildHTTPD();
 		this.viewManager = buildViewManager();
 	}
@@ -95,6 +99,7 @@ public class MemeDB {
 		this.backend=backend;
 		this.auth = buildAuthentication();
 		this.eventConsumer = buildEventConsumer();
+		this.fulltextManager = buildFulltextManager();
 		this.httpd = buildHTTPD();
 		this.viewManager = buildViewManager();
 	}
@@ -185,6 +190,22 @@ public class MemeDB {
 		}
 	}
 
+	protected FulltextEngine buildFulltextManager() {
+		String fulltextClassStr = getProperty("fulltext.class");
+		try {
+			return (FulltextEngine) getClass().getClassLoader().loadClass(fulltextClassStr).newInstance();
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		}
+	}
+		
 	protected HTTPDServer buildHTTPD() {
 		if (getProperty("server.start").equals("true")) {
 			return new HTTPDServer(this);
@@ -198,6 +219,7 @@ public class MemeDB {
 		try {
 			state.init(this);
 			backend.init(this);
+			fulltextManager.init(this);
 			viewManager.init(this);
 			if (auth != null)
 				auth.init(this);
@@ -226,6 +248,7 @@ public class MemeDB {
 			auth.shutdown();
 		}
 		viewManager.shutdown();
+		fulltextManager.shutdown();
 		backend.shutdown();
 		state.shutdown();
 		log.info("Shutdown complete");
@@ -275,18 +298,21 @@ public class MemeDB {
 	public void onDocumentDeleting(String db, String id, long seq) {
 		viewManager.deletingDocument(db, id, seq);
 		eventConsumer.onDocumentDeleted(db, id, seq);
+		fulltextManager.onDocumentDeleted(db, id, seq);
 	}
 
 	public void addDatabase(String db) throws BackendException, ViewException {
 		long seq = backend.addDatabase(db);
 		viewManager.onDatabaseCreated(db, seq);
 		eventConsumer.onDatabaseCreated(db, seq);
+		fulltextManager.onDatabaseCreated(db, seq);
 	}
 
 	public void deleteDatabase(String db) throws BackendException, ViewException {
 		long seq = backend.deleteDatabase(db);
 		viewManager.onDatabaseDeleted(db, seq);
 		eventConsumer.onDatabaseDeleted(db, seq);
+		fulltextManager.onDatabaseDeleted(db, seq);
 	}
 
 	public ViewManager getViewManager() {
@@ -301,8 +327,8 @@ public class MemeDB {
 		return backend;
 	}
 
-	public DBState getState() {
-		return state;
+	public FulltextEngine getFulltextEngine() {
+		return fulltextManager;
 	}
 
 	public String getProperty(String key, String def) {
@@ -311,6 +337,10 @@ public class MemeDB {
 
 	public String getProperty(String key) {
 		return properties.getProperty(key);
+	}
+	
+	public DBState getState() {
+		return state;
 	}
 
 	/**

@@ -266,7 +266,7 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 		String id = doc.getId();
 		if(id == null) return;
 		expectedResults.put(new Long(doc.getSequence()), new MapResultEntry(doc));
-		view.map(this, doc);
+		view.map(doc, this, memeDB.getFulltextEngine());
 	}
 
 	///////////////////////////////////////

@@ -122,4 +122,21 @@ public class FileUtils {
 		}
 	}
 
+	/**
+	 * Delete a filesystem directory and all it's subdirectories
+	 * @param dir The root path to remove
+	 */
+	public static void deleteRecursive(File dir) {
+		if (dir.isDirectory()) {
+			for (File child : dir.listFiles()) {
+				if (child.isDirectory()) {
+					deleteRecursive(child);
+				}
+				child.delete();
+			}
+		}
+		if (dir.exists()) {
+			dir.delete();
+		}
+	}
 }

@@ -80,7 +80,7 @@ public class AdHocViewRunner {
 		AdHocViewRunnerCollector c = new AdHocViewRunnerCollector();
 
 		for (Document doc: memeDB.getBackend().allDocuments(db)) {
-			view.map(c, doc);
+			view.map(doc, c, null);
 		}
 
 		if(options == null)

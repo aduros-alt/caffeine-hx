@@ -36,7 +36,7 @@ public class AllDocuments implements View {
 	}
 
 	public boolean isLazy() { return true; }
-	public void map(MapResultConsumer listener, Document doc) {
+	public void map(Document doc, MapResultConsumer listener, FulltextResultConsumer fulltextListener) {
 		JSONObject json = new JSONObject();
 		try {
 			json.put("key",doc.getId());
