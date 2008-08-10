@@ -136,25 +136,33 @@ public class JavaScriptView implements View {
 	}
 
 	public void map(Document doc, MapResultConsumer listener, FulltextResultConsumer fulltextListener) {
-		FulltextResult ft = new FulltextResult(doc.getId(), doc.getRevision());
-		engine.put("_MemeDB_FULLTEXT", ft);
 		if(doc == null) {
 			listener.onMapResult(doc, null);
 			return;
 		}
+		FulltextResult ft = null;
+		String json = null;
 		try {
+			ft = new FulltextResult(doc.getId(), doc.getRevision());
+			engine.put("_MemeDB_FULLTEXT", ft);
 			engine.eval("_MemeDB_retval = '' ");
 
 			Object docJSObject = engine.eval("_MemeDB_doc = eval('('+'"+ doc.toString()+"'+')');");
 
 			Invocable invocable = (Invocable) engine;
 			Object retval = invocable.invokeFunction("_MemeDB_map",docJSObject);
-			String json=null;
 			if (retval != null) {
 				json = (String) invocable.invokeFunction("toJSON",new Object[]{retval});
 			} else {
 				json = (String) engine.eval("_MemeDB_retval.toJSONString();");
 			}
+		} catch (ScriptException e) {
+			//e.printStackTrace();
+		} catch (NoSuchMethodException e) {
+			e.printStackTrace();
+		} catch (JSONException e) {
+			e.printStackTrace();
+		} finally {
 			if(listener != null) {
 				if (json!=null && !json.equals("") && !json.equals("\"\"")) {
 					listener.onMapResult(doc, new JSONObject(json));
@@ -173,14 +181,7 @@ public class JavaScriptView implements View {
 					log.warn("Error running fulltext engine for doc {} : {}", doc.getId(), e);
 				}
 			}
-		} catch (ScriptException e) {
-			e.printStackTrace();
-		} catch (NoSuchMethodException e) {
-			e.printStackTrace();
-		} catch (JSONException e) {
-			e.printStackTrace();
 		}
-		
 	}
 
 	public boolean hasReduce() {

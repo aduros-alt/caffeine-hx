@@ -1,5 +1,5 @@
 function log(v) {
-	return eval('('+_MemeDB_JSVIEW.scriptLog(v)+')');
+  return eval('('+_MemeDB_JSVIEW.scriptLog(v)+')');
 }
 
 function sum(results) {
@@ -11,11 +11,11 @@ function sum(results) {
 }
 
 function emit(key,val) {
-	_MemeDB_retval = { 'key':key,'value':val };
+  _MemeDB_retval = { 'key':key,'value':val };
 }
 
 function get(id,revision,db) {
-	return eval('('+_MemeDB_JSVIEW.get(id,revision,db)+')');
+  return eval('('+_MemeDB_JSVIEW.get(id,revision,db)+')');
 }
 
 /**
@@ -23,11 +23,11 @@ function get(id,revision,db) {
  * _id and _rev will not be allowed as field names
  */
 function tokenize(field, str) {
-    return eval('('+ _MemeDB_FULLTEXT.tokenize(str)+')');
+  return eval('('+_MemeDB_FULLTEXT.tokenize(field, str)+')');
 }
 
 function toJSON(obj) {
-	if (obj!=null && typeof obj != 'undefined') {
-		return obj.toJSONString();
-	}
+  if (obj!=null && typeof obj != 'undefined') {
+    return obj.toJSONString();
+  }
 }

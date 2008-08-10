@@ -19,7 +19,9 @@ import memedb.MemeDB;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -32,11 +34,15 @@ import org.apache.lucene.search.Hits;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Searcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.LockObtainFailedException;
 import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.queryParser.ParseException;
 
-
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import memedb.utils.Logger;
 
@@ -49,7 +55,6 @@ public class Lucene extends FulltextEngine {
 
 	final private Logger log = Logger.get(Lucene.class);
 	private HashMap<String, IndexWriter> writers = new HashMap<String, IndexWriter>();
-	private HashMap<String, IndexReader> readers = new HashMap<String, IndexReader>();
 	private File stateDir;
 	
 	@Override
@@ -85,8 +90,8 @@ public class Lucene extends FulltextEngine {
 			path.mkdirs();
 		}
 		try {
-			writers.put(db, new IndexWriter(path, new StandardAnalyzer(), true));
-			readers.put(db, IndexReader.open(path));
+			Directory directory = FSDirectory.getDirectory(path.getPath());
+			writers.put(db, new IndexWriter(directory,true,new StandardAnalyzer(), true));
 		} catch(CorruptIndexException e) {
 		} catch(LockObtainFailedException e) {
 		} catch(IOException e) {
@@ -116,6 +121,7 @@ public class Lucene extends FulltextEngine {
 	{
 		if(luceneDoc == null)
 			return;
+		log.debug("onFulltextResult : {} luceneDoc {}", doc.getDatabase(), luceneDoc.toString());
 		String db = doc.getDatabase();
 		IndexWriter writer = writers.get(db);
 		if(writer == null) {
@@ -124,6 +130,7 @@ public class Lucene extends FulltextEngine {
 		}
 		try {
 			writer.addDocument(luceneDoc);
+			writer.flush();
 		} catch( CorruptIndexException e ) {
 			throw new IndexCorruptException(db);
 		} catch( IOException e ) {
@@ -131,15 +138,132 @@ public class Lucene extends FulltextEngine {
 		} 
 	}
 	
-	public synchronized void runQuery(String db, String defaultField, String queryString) {
-		IndexReader reader = readers.get(db);
+	protected Hits query(String db, String defaultField, String queryString) throws IOException, CorruptIndexException, ParseException {
+		Directory directory = FSDirectory.getDirectory(indexPath(db));
+		IndexReader reader = IndexReader.open(directory);
+
 		Searcher searcher = new IndexSearcher(reader);
 		Analyzer analyzer = new StandardAnalyzer();
-
 		QueryParser qp = new QueryParser(defaultField, analyzer);
+		Query query = qp.parse(queryString);
+		return searcher.search(query);
+	}
+	
+	protected ArrayList<JSONObject> queryFilter(Hits hits, Map<String,String> options) throws CorruptIndexException, IOException {
+		Long key = findLongValue("key", options);
+		Long startkey = findLongValue("startkey", options);
+		Long endkey = findLongValue("endkey", options);
+		boolean startInclusive = "false".equals(options.get("startkey_inclusive")) ? false : true;
+		boolean endInclusive = "false".equals(options.get("endkey_inclusive")) ? false : true;
+		boolean descending = "true".equals(options.get("descending"));
+		Long skip = findLongValue("skip",options);
+		Long count = findLongValue("count", options);
+		
+		ArrayList<JSONObject> rv = new ArrayList<JSONObject>();
+		if(hits.length() == 0)
+			return rv;
+		int start = 0;
+		int end = hits.length();
+		
+		if(key != null) {
+			int v = key.intValue();
+			startkey = key;
+			endkey = key;
+			startInclusive = true;
+			endInclusive = true;
+			skip = new Long(0);
+			count = new Long(0);
+		}
+		if(startkey != null)
+			start = startkey.intValue();
+		if(endkey != null)
+			end = endkey.intValue();
+		if(!descending) {
+			if(!startInclusive)
+				start++;
+			if(!endInclusive)
+				end--;
+			if(skip != null)
+				start += skip.intValue();
+			if(count != null) {
+				int c = count.intValue();
+				if(c >= 0) {
+					if(start + c < end)
+						end = start + c;
+				} else {
+					start = end + c;
+				}
+			}
+			if(start < 0) start = 0;
+			if(start >= hits.length())
+				return rv;
+			if(end < 0) end = 0;
+			if(end > hits.length())
+				end = hits.length();
+			for(int c=start; c<end; c++) {
+				Document doc = hits.doc(c);
+				JSONObject o = new JSONObject();
+				try {
+					o.put("key", c);
+					o.put("id", doc.get("_id"));
+					o.put("rev", doc.get("_rev"));
+					rv.add(o);
+				} catch(JSONException e) {}	
+			}	
+		}
+		else {
+			int c = start;
+			start = end;
+			end = c;
+			if(!startInclusive)
+				start--;
+			if(!endInclusive)
+				end++;
+			if(skip != null)
+				start -= skip.intValue();
+			if(count != null) {
+				c = count.intValue();
+				if(c >= 0) {
+					if(start - c > end)
+						end = start - c;
+				} else {
+					start = end - c;
+				}
+			}
+			if(start >= hits.length())
+				start = hits.length() -1;
+			if(start < 0 || end >= start)
+				return rv;
+
+			if(end < -1) end = -1;
+			if(end >= hits.length())
+				end = hits.length() - 1;
+			for(c=start; c>end; c--) {
+				Document doc = hits.doc(c);
+				JSONObject o = new JSONObject();
+				try {
+					o.put("key", c);
+					o.put("id", doc.get("_id"));
+					o.put("rev", doc.get("_rev"));
+					rv.add(o);
+				} catch(JSONException e) {}				
+			}
+		}
+		return rv;
+	}
+	
+	public synchronized JSONObject runQuery(String db, String defaultField, String queryString, Map<String,String> options) {
+		log.debug("runQuery {} {} {}", db, defaultField, queryString);
+		JSONObject o = new JSONObject();
+		o.put("ok", false);
+		JSONArray rows = new JSONArray();
+		long count = 0;
 		try {
-			Query query = qp.parse(queryString);
-			Hits hits = searcher.search(query);
+			Hits hits = query(db, defaultField, queryString);
+			log.debug("Query returned {} results", hits.length());
+			ArrayList<JSONObject> d = queryFilter(hits, options);
+			
+			
 			for (int i = 0; i < hits.length(); i ++) {
 				Document doc = hits.doc(i);
 				String id = doc.get("_id");
@@ -150,10 +274,24 @@ public class Lucene extends FulltextEngine {
 					log.warn("No id field for Lucene document");
 				}
 			}
+			/*
+//			for(Object o : reader.getFieldNames(IndexReader.FieldOption.ALL)) {
+//				log.warn("FIELD: {}", o);
+//			}
+			*/
+			count = d.size();
+			rows = new JSONArray(d);
+			o.put("ok", true);
 		} catch(ParseException pe) {
 			log.warn("Query parse exception {}", pe);
+			o.put("error", "Query parse error");
 		} catch(IOException e) {
 			log.warn("Query IO error {}", e);
+			o.put("error", "Internal error");
+		} finally {
+			o.put("rows", rows);
+			o.put("total_rows", count);
+			return o;
 		}
 	}
 	
@@ -182,12 +320,7 @@ public class Lucene extends FulltextEngine {
 		IndexWriter writer = writers.get(db);
 		try {
 			if(writer != null)
-				writer.abort();
-		} catch(IOException e) {}
-		IndexReader reader = readers.get(db);
-		try {
-			if(reader != null)
-				reader.close();
+				writer.close();
 		} catch(IOException e) {}
 		memedb.utils.FileUtils.deleteRecursive(path);
 	}
@@ -202,10 +335,15 @@ public class Lucene extends FulltextEngine {
 			if(writer != null)
 				writer.close();
 		} catch(IOException e) {}
-		IndexReader reader = readers.get(db);
+	}
+	
+	static private Long findLongValue(String opt, Map<String,String> options) {
+		if(!options.containsKey(opt))
+			return null;
 		try {
-			if(reader != null)
-				reader.close();
-		} catch(IOException e) {}
+			return new Long(options.get(opt));
+		} catch (Exception e) {
+		}
+		return null;
 	}
 }

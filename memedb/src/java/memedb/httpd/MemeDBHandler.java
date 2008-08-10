@@ -62,6 +62,7 @@ public class MemeDBHandler extends AbstractHandler {
 		this.memeDB = memeDB;
 		baseRequestHandlers.add(new Admin());
 		baseRequestHandlers.add(new GetDocument());
+		baseRequestHandlers.add(new FulltextQuery());
 		baseRequestHandlers.add(new AdHocView());
 		baseRequestHandlers.add(new GetView());
 		baseRequestHandlers.add(new Auth());
@@ -99,7 +100,8 @@ public class MemeDBHandler extends AbstractHandler {
 			return;
 		}
 
-		String path = request.getRequestURI().substring(1);
+//		String path = request.getRequestURI().substring(1);
+		String path = target.substring(1);
 		if (path.startsWith(MemeDB.SYS_DB) || path.startsWith(MemeDB.USERS_DB)) {
 			log.warn("Attempted access to {}", path);
 			sendError(response, "not_allowed", "system db", 405);
@@ -196,6 +198,9 @@ public class MemeDBHandler extends AbstractHandler {
 			if (username!=null) {
 				if (password == null) {
 					password = "";
+				}
+				if(allowAnonymous && allowAnonymousAsSa && "anonymous".equals(username)) {
+						return new SACredentials("anonymous","",timeout);
 				}
 				cred = memeDB.getAuthentication().authenticate(username, password);
 				if (cred!=null) {

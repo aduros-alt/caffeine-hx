@@ -21,7 +21,7 @@ import org.apache.lucene.document.Field.Index;
 import org.apache.lucene.document.Field.Store;
 
 /**
- *
+ * A light wrapper for Lucene documents for Javascript Views
  * @author Russell Weir
  */
 public class FulltextResult {
@@ -39,10 +39,10 @@ public class FulltextResult {
 		doc.add(new Field("_rev", rev, Field.Store.YES, Field.Index.NO));
 	}
 	
-	public void tokenize(String key, String str) {
-		if(key == null || "_id".equals(key) || "_rev".equals(key) || str == null || "".equals(str))
+	public void tokenize(String key, String contents) {
+		if(key == null || "_id".equals(key) || "_rev".equals(key) || contents == null || "".equals(contents))
 			return;
-		doc.add(new Field(key, str, Store.NO, Index.TOKENIZED));
+		doc.add(new Field(key, contents, Store.NO, Index.TOKENIZED));
 		hasResult = true;
 	}
 	

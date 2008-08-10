@@ -15,6 +15,10 @@
 
 package memedb.fulltext;
 
+import java.util.Map;
+
+import org.json.JSONObject;
+
 import memedb.MemeDB;
 import memedb.views.FulltextResultConsumer;
 
@@ -36,5 +40,5 @@ abstract public class FulltextEngine implements FulltextResultConsumer {
 	abstract public void onDocumentDeleted(String db, String id, long seq);
 	abstract public void removeResult(String db, String id);
 	
-	abstract public void runQuery(String db, String defaultField, String queryString);
+	abstract public JSONObject runQuery(String db, String defaultField, String queryString,Map<String,String> options) throws FulltextException;
 }

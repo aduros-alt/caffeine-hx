@@ -653,6 +653,7 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 	//  MapResultConsumer Interface      //
 	///////////////////////////////////////
 	public synchronized void onMapResult(Document doc, JSONObject j) {
+		log.debug("onMapResult docId:{} docSeq:{} json:{} expecting:{}", doc.getId(), doc.getSequence(), j, expectedResults.keySet());
 		MapResultEntry mre = expectedResults.get(new Long(doc.getSequence()));
 		if(mre == null)
 			return;
@@ -663,6 +664,7 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 	private synchronized void processMapResults() {
 		for(MapResultEntry mre: expectedResults.values()) {
 			if(!mre.hasResult) {
+				log.debug("mre {} has no result", mre.seqNo);
 				// todo timeout value of 5 seconds, tunable?
 				if(new java.util.Date().getTime() > mre.timestamp + 5000) {
 					doMap(mre.doc);

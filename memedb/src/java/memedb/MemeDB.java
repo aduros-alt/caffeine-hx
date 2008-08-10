@@ -288,17 +288,50 @@ public class MemeDB {
 	* This should only be called from a DBState implementation.
 	*/
 	public void onDocumentUpdate(Document doc) {
-		viewManager.recalculateDocument(doc);
-		eventConsumer.onDocumentUpdated(doc.getDatabase(), doc.getId(), doc.getRevision(), doc.getSequence());
+		try {
+			viewManager.recalculateDocument(doc);
+		}
+		catch(Exception e) {
+			if(e instanceof javax.script.ScriptException) { }
+			else {
+				log.warn("Uncaught exception in viewManager.recalculateDocument : {}", e);
+				e.printStackTrace();
+			}
+		}
+		try {
+			eventConsumer.onDocumentUpdated(doc.getDatabase(), doc.getId(), doc.getRevision(), doc.getSequence());
+		}
+		catch(Exception e) {
+			log.warn("Uncaught exception in viewManager.recalculateDocument : {}", e);
+			e.printStackTrace();
+		}
 	}
 
 	/**
 	* This should only be called from a DBState implementation.
 	*/
 	public void onDocumentDeleting(String db, String id, long seq) {
-		viewManager.deletingDocument(db, id, seq);
-		eventConsumer.onDocumentDeleted(db, id, seq);
-		fulltextManager.onDocumentDeleted(db, id, seq);
+		try {
+			viewManager.deletingDocument(db, id, seq);
+		}
+		catch(Exception e) {
+			log.warn("Uncaught exception in viewManager.deletingDocument : {}", e);
+			e.printStackTrace();
+		}
+		try {
+			eventConsumer.onDocumentDeleted(db, id, seq);
+		}
+		catch(Exception e) {
+			log.warn("Uncaught exception in eventConsumer.onDocumentDeleted : {}", e);
+			e.printStackTrace();
+		}
+		try {
+			fulltextManager.onDocumentDeleted(db, id, seq);
+		}
+		catch(Exception e) {
+			log.warn("Uncaught exception in fulltextManager.onDocumentDeleted : {}", e);
+			e.printStackTrace();
+		}
 	}
 
 	public void addDatabase(String db) throws BackendException, ViewException {
