@@ -72,14 +72,12 @@ public class FulltextQuery extends BaseRequestHandler {
 
 		try {
 			log.debug("Running fulltext query on default field {} : {}", defaultField, queryStr);
-//			memeDB.getFulltextEngine().runQuery(db, defaultField, queryStr, makeViewOptions(request.getParameterMap()));
 			boolean pretty="true".equals(request.getParameter("pretty"));
 			if (pretty) {
 				sendJSONString(response, memeDB.getFulltextEngine().runQuery(db, defaultField, queryStr, makeViewOptions(request.getParameterMap())));
 			} else {
 				sendJSONString(response, memeDB.getFulltextEngine().runQuery(db, defaultField, queryStr, makeViewOptions(request.getParameterMap())).toString());
 			}
-//			this.sendJSONString;
 		} catch (FulltextException e) {
 			sendError(response, "Query error", e.getMessage());
 			log.error("Error processing Query code: {} {}", queryStr, e);

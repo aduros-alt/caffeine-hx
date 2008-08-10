@@ -74,6 +74,14 @@ public class Lucene extends FulltextEngine {
 			log.error("Path: {} not valid!", path);
 			throw new RuntimeException("Path: " + path + " not valid!");
 		}
+		for (String db : memeDB.getBackend().getDatabaseNames()) {
+			log.debug("Loading views for: {}", db);
+			try {
+				openWriterForDatabase(db);
+			} catch(Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
 	}
 	
 	public void onDatabaseDeleted(String db, long seq) {
@@ -85,6 +93,7 @@ public class Lucene extends FulltextEngine {
 	public void onDatabaseCreated(String db, long seq) {
 		this.abort(db);
 		File path = indexPath(db);
+		onDatabaseDeleted(db, -1);
 		if(!path.exists()) {
 			log.info("Creating lucene directory {} for db {}", path.getPath(), db);
 			path.mkdirs();
@@ -136,6 +145,16 @@ public class Lucene extends FulltextEngine {
 		} catch( IOException e ) {
 			throw new FulltextException(db);
 		} 
+	}
+	
+	protected void openWriterForDatabase(String db) throws IOException, CorruptIndexException {
+		File indexDir = indexPath(db);
+		if (!indexDir.exists()) {
+			onDatabaseCreated(db, -1);
+		} else {
+			Directory directory = FSDirectory.getDirectory(indexDir.getPath());
+			writers.put(db, new IndexWriter(directory,true,new StandardAnalyzer(), false));
+		}
 	}
 	
 	protected Hits query(String db, String defaultField, String queryString) throws IOException, CorruptIndexException, ParseException {
