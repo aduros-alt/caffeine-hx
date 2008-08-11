@@ -36,17 +36,20 @@ public class AllDocuments implements View {
 	}
 
 	public boolean isLazy() { return true; }
+	
 	public void map(Document doc, MapResultConsumer listener, FulltextResultConsumer fulltextListener) {
-		JSONObject json = new JSONObject();
+		JSONArray ja = new JSONArray();
+		JSONArray res = new JSONArray();
 		try {
-			json.put("key",doc.getId());
+			res.put(doc.getId());
 			JSONObject v = new JSONObject();
 			v.put("rev", doc.getRevision());
-			json.put("value", v);
+			res.put(v);
+			ja.put(res);
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
-		listener.onMapResult(doc, json);
+		listener.onMapResult(doc, ja);
 	}
 
 	public void setBackend(Backend backend) {

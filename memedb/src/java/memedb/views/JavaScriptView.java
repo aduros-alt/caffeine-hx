@@ -145,7 +145,8 @@ public class JavaScriptView implements View {
 		try {
 			ft = new FulltextResult(doc.getId(), doc.getRevision());
 			engine.put("_MemeDB_FULLTEXT", ft);
-			engine.eval("_MemeDB_retval = '' ");
+//			engine.eval("_MemeDB_retval = '' ");
+			engine.eval("_MemeDB_retval = new Array() ");
 
 			Object docJSObject = engine.eval("_MemeDB_doc = eval('('+'"+ doc.toString()+"'+')');");
 
@@ -157,17 +158,31 @@ public class JavaScriptView implements View {
 				json = (String) engine.eval("_MemeDB_retval.toJSONString();");
 			}
 		} catch (ScriptException e) {
-			//e.printStackTrace();
+			e.printStackTrace();
 		} catch (NoSuchMethodException e) {
 			e.printStackTrace();
 		} catch (JSONException e) {
 			e.printStackTrace();
 		} finally {
+			/*
 			if(listener != null) {
 				if (json!=null && !json.equals("") && !json.equals("\"\"")) {
 					listener.onMapResult(doc, new JSONObject(json));
 				} else {
 					listener.onMapResult(doc, null);
+				}
+			}
+			*/
+			if(listener != null) {
+				try {
+					log.warn("Map results: {}", json);
+					JSONArray ja = new JSONArray(json);
+//					if(ja.length() == 0) {
+//						listener.onMapResult(doc, null);
+//					}
+					listener.onMapResult(doc, ja);
+				} catch (JSONException e) {
+					log.warn("Javascript view returned object that is not an array {}", json);
 				}
 			}
 			if(fulltextListener != null) {

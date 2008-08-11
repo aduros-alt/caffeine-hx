@@ -11,7 +11,8 @@ function sum(results) {
 }
 
 function emit(key,val) {
-  _MemeDB_retval = { 'key':key,'value':val };
+  //_MemeDB_retval = { 'key':key,'value':val };
+  _MemeDB_retval.push([key,val]);
 }
 
 function get(id,revision,db) {
@@ -30,4 +31,5 @@ function toJSON(obj) {
   if (obj!=null && typeof obj != 'undefined') {
     return obj.toJSONString();
   }
+  return null;
 }

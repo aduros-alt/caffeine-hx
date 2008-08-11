@@ -17,13 +17,14 @@ package memedb.views;
 
 import memedb.document.Document;
 
-import org.json.JSONObject;
+import org.json.JSONArray;
 
 /**
-* A MapResultConsumer is a handler for the callback that occurs once a document
-* has been mapped by a View.
-* @author Russell Weir
+ * A MapResultConsumer is a handler for the callback that occurs once a document
+ * has been mapped by a View. The result JSONArray is a series of arrays
+ * of [key, value] pairs
+ * @author Russell Weir
 */
 public interface MapResultConsumer {
-	public void onMapResult(Document doc, JSONObject result);
+	public void onMapResult(Document doc, JSONArray result);
 }

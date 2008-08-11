@@ -29,15 +29,22 @@ import memedb.utils.Logger;
 class AdHocViewRunnerCollector implements MapResultConsumer {
 	public TreeSet<JSONObject> results = new TreeSet<JSONObject>(new MapResultSorter());
 	public int total = 0;
-	public void onMapResult(Document doc, JSONObject result) {
-		if(result == null || result == JSONObject.NULL)
+	public void onMapResult(Document doc, JSONArray ja) {
+		if(ja == null || ja == JSONObject.NULL)
 			return;
 
-		try {
-			result.put("id", doc.getId());
-			results.add(result);
-			total++;
-		} catch ( JSONException e ) {
+		for(int i = 0; i < ja.length(); i++) {
+			try {
+				JSONObject o = new JSONObject();
+				o.put("id", doc.getId());
+				JSONArray kv = ja.getJSONArray(i);
+				o.put("key", kv.get(0));
+				o.put("value", kv.get(1));
+				results.add(o);
+				total++;
+			} catch( JSONException e ) {
+				Logger.get("AdHocViewRunner.MapResultConsumer").debug("{}", e);
+			}
 		}
 	}
 }

@@ -17,13 +17,11 @@ package memedb.views;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 
 import memedb.MemeDB;
 import memedb.document.Document;
-import memedb.document.JSONDocument;
 
 import org.json.JSONObject;
 
@@ -123,10 +121,8 @@ public interface ViewResults {
 	public void shutdown();
 
 	/**
-	* Get a subset of the results.
+	* Get a sublist of the results.
 	*/
-	public Deque<JSONObject> subSet(Object startKey, boolean startInclusive, Object endKey, boolean endInclusive);
-
 	public ArrayList<JSONObject> subList(Map<String,String> options);
 
 }

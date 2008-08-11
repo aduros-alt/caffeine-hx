@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.List;
 import java.util.Iterator;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -146,23 +147,23 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 		public final long seqNo;
 		public final long timestamp;
 
-		private JSONObject result;
+		private JSONArray results;
 		private boolean hasResult = false;
 		public MapResultEntry(Document doc) {
 			this.doc = doc;
 			this.seqNo = doc.getSequence();
-			result = null;
+			results = null;
 			hasResult = false;
 			this.timestamp = new java.util.Date().getTime();
 		}
-		final public JSONObject getResult() {
-			return result;
+		final public JSONArray getResults() {
+			return results;
 		}
-		final public boolean hasResult() {
+		final public boolean hasResults() {
 			return hasResult;
 		}
-		final public void setResult(JSONObject r) {
-			result = r;
+		final public void setResults(JSONArray r) {
+			results = r;
 			hasResult = true;
 		}
 
@@ -189,11 +190,12 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 	protected final static String VIEW_RESULTS_NAME = "view.res";
 
 	// id -> JSON data
-	protected ConcurrentHashMap<String,JSONObject> idMap = new ConcurrentHashMap<String,JSONObject>();
+	protected ConcurrentHashMap<String,ArrayList<JSONObject>> idMap = 
+			new ConcurrentHashMap<String,ArrayList<JSONObject>>();
 
 	// key -> ListSet[ JSON Data]
-	private ConcurrentSkipListMap<Object, ConcurrentSkipListSet<JSONObject>> keyMap
-		= new ConcurrentSkipListMap<Object, ConcurrentSkipListSet<JSONObject>>(new Collate());
+	private ConcurrentSkipListMap<Object, CopyOnWriteArrayList<JSONObject>> keyMap
+		= new ConcurrentSkipListMap<Object, CopyOnWriteArrayList<JSONObject>>(new Collate());
 
 	// the highest sequence number yet indexed
 	private long currentSequenceNumber;
@@ -217,7 +219,7 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 	transient private boolean destroy;
 	transient private ResultsUpdater updater;
 	transient private boolean isAlive;
-	transient private ReentrantLock lock;
+	transient private ReentrantLock lock; // results lock for updater thread
 	transient private ConcurrentSkipListMap<Long, MapResultEntry> expectedResults;
 
 	///////////////////////////////////////
@@ -272,7 +274,7 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 	///////////////////////////////////////
 	//      ViewResults Interface        //
 	///////////////////////////////////////
-	public synchronized void addResult(Document doc) {
+	public void addResult(Document doc) {
 		log.debug("\t{} addResult {} {}", id, doc.getSequence(),currentSequenceNumber);
 		if(doc == null)
 			throw new NullPointerException();
@@ -283,9 +285,11 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 				haveLock = true;
 				doMap(doc);
 			} else {
-				if(!updater.isAlive()) {
-					updater = new ResultsUpdater(db, docName, functionName, view, this, doc.getSequence(), lock);
-					updater.start();
+				synchronized(this) {
+					if(!updater.isAlive()) {
+						updater = new ResultsUpdater(db, docName, functionName, view, this, doc.getSequence(), lock);
+						updater.start();
+					}
 				}
 			}
 		} finally {
@@ -294,32 +298,8 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 		}
 	}
 
-/*
-	public Deque all() {
-		LinkedList<JSONObject> rv = new LinkedList<JSONObject>();
-
-		for(Object key: keyMap.keySet()) {
-			ConcurrentSkipListSet<JSONObject> clq = keyMap.get(key);
-			Iterator<JSONObject> it = clq.iterator();
-			while(it.hasNext()) {
-				JSONObject j = it.next();
-				if(j == null)
-					continue;
-				JSONObject o = new JSONObject();
-				try {
-					o.put("id", j.get("id"));
-					o.put("key", j.get("key"));
-					o.put("value", j.get("value"));
-					rv.add(o);
-				} catch(JSONException e) {}
-			}
-		}
-		return rv;
-	}
-*/
 	public List<JSONObject> all() {
 		ArrayList<JSONObject> rv = new ArrayList<JSONObject>();
-
 /*
 #ifdef COPY_BEFORE_GIVING_TO_CONSUMER
 		for(Object key: keyMap.keySet()) {
@@ -340,7 +320,6 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 		}
 #endif ;)
 */
-
 		for(Object key: keyMap.keySet()) {
 			rv.addAll(keyMap.get(key));
 		}
@@ -379,10 +358,8 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 	}
 
 	public void clearFromUpdater() {
-		synchronized(this) {
-			idMap.clear();
-			keyMap.clear();
-		}
+		idMap.clear();
+		keyMap.clear();
 	}
 
 	public long getCurrentSequenceNumber() {
@@ -431,23 +408,30 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 		return isAlive;
 	}
 
+	protected void removeResult(String id) {
+		ArrayList<JSONObject> ar = idMap.remove(id);
+		if(ar == null)
+			return;
+		for(int i=0; i<ar.size(); i++) {
+			JSONObject o = ar.get(i);
+			if(o == null)
+				continue;
+			Object key = o.opt("key");
+			if(key == null)
+				continue;
+			CopyOnWriteArrayList<JSONObject> set = keyMap.get(key);
+			if(set == null)
+				continue;
+			set.remove(o);
+		}
+	}
+	
 	public void removeResult(String id, long seqNo) {
 		boolean haveLock = false;
 		try {
 			if(lock.tryLock()) {
 				haveLock = true;
-				synchronized(this) {
-					JSONObject o = idMap.remove(id);
-					if(o == null)
-						throw new Exception("no_instance");
-					Object key = o.opt("key");
-					if(key == null)
-						throw new Exception("key missing");
-					ConcurrentSkipListSet<JSONObject> set = keyMap.get(key);
-					if(set == null)
-						throw new Exception("no_instance");
-					set.remove(o);
-				}
+				removeResult(id);
 			} else {
 				synchronized(this) {
 					if(!updater.isAlive()) {
@@ -529,29 +513,6 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 		}
 	}
 
-	public Deque<JSONObject> subSet(Object startKey, boolean startInclusive, Object endKey, boolean endInclusive) {
-		LinkedList<JSONObject> rv = new LinkedList<JSONObject>();
-		ConcurrentNavigableMap<Object,ConcurrentSkipListSet<JSONObject>>
-			sm = keyMap.subMap(startKey, startInclusive, endKey, endInclusive);
-
-		for(Object key: sm.keySet()) {
-			ConcurrentSkipListSet<JSONObject> clq = keyMap.get(key);
-			Iterator<JSONObject> it = clq.iterator();
-			while(it.hasNext()) {
-				JSONObject j = it.next();
-				if(j == null)
-					continue;
-				JSONObject o = new JSONObject();
-				try {
-					o.put("key", j.get("key"));
-					o.put("value", j.get("value"));
-					rv.add(o);
-				} catch(JSONException e) {}
-			}
-		}
-		return rv;
-	}
-
 	/**
 	* In order of how they are applied
 	* <ul>
@@ -585,7 +546,7 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 		ArrayListExp<JSONObject> rv = new ArrayListExp<JSONObject>();
 		if(count != null && count.longValue() == 0)
 			return rv;
-		ConcurrentNavigableMap<Object,ConcurrentSkipListSet<JSONObject>>
+		ConcurrentNavigableMap<Object,CopyOnWriteArrayList<JSONObject>>
 			sm = keyMap;
 
 		if(key != null) {
@@ -612,23 +573,34 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 			sm = sm.descendingMap();
 
 		for(Object smkey: sm.keySet()) {
-			ConcurrentSkipListSet<JSONObject> clq = keyMap.get(smkey);
-			Iterator<JSONObject> it = null;
-			if(descending)
-				it = clq.descendingIterator();
-			else
-				it = clq.iterator();
-			while(it.hasNext()) {
-				JSONObject j = it.next();
-				if(j == null)
-					continue;
-				JSONObject o = new JSONObject();
-				try {
-					o.put("key", j.get("key"));
-					o.put("value", j.get("value"));
-					o.put("id", j.get("id"));
-					rv.add(o);
-				} catch(JSONException e) {}
+			CopyOnWriteArrayList<JSONObject> ar = keyMap.get(smkey);
+			if(descending) {
+				for(int i=ar.size() - 1; i >= 0; i--) {
+					JSONObject j = ar.get(i);
+					if(j == null)
+						continue;
+					JSONObject o = new JSONObject();
+					try {
+						o.put("key", j.get("key"));
+						o.put("value", j.get("value"));
+						o.put("id", j.get("id"));
+						rv.add(o);
+					} catch(JSONException e) {}
+				}
+			}
+			else {
+				for(int i=0; i < ar.size(); i++) {
+					JSONObject j = ar.get(i);
+					if(j == null)
+						continue;
+					JSONObject o = new JSONObject();
+					try {
+						o.put("key", j.get("key"));
+						o.put("value", j.get("value"));
+						o.put("id", j.get("id"));
+						rv.add(o);
+					} catch(JSONException e) {}
+				}
 			}
 		}
 
@@ -643,21 +615,18 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 				rv.rangeRemove(end, rv.size());
 			} catch( Exception e ) {}
 		}
-// log.debug("####### {}", idMap);
-// log.debug("####### {}", keyMap);
-// log.debug("####### {} {}", key, key.getClass());
 		return rv;
 	}
 
 	///////////////////////////////////////
 	//  MapResultConsumer Interface      //
 	///////////////////////////////////////
-	public synchronized void onMapResult(Document doc, JSONObject j) {
-		log.debug("onMapResult docId:{} docSeq:{} json:{} expecting:{}", doc.getId(), doc.getSequence(), j, expectedResults.keySet());
+	public void onMapResult(Document doc, JSONArray ja) {
+		log.debug("onMapResult docId:{} docSeq:{} expecting:{} json:{}", doc.getId(), doc.getSequence(), expectedResults.keySet(), ja);
 		MapResultEntry mre = expectedResults.get(new Long(doc.getSequence()));
 		if(mre == null)
 			return;
-		mre.setResult(j);
+		mre.setResults(ja);
 		processMapResults();
 	}
 
@@ -669,41 +638,60 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 				if(new java.util.Date().getTime() > mre.timestamp + 5000) {
 					doMap(mre.doc);
 				}
-				return;
+				break;
 			}
+			/*
+			 * 	protected ConcurrentHashMap<String,ArrayList<JSONObject>> idMap = 
+			new ConcurrentHashMap<String,ArrayList<JSONObject>>();
+			 */
 			Document doc = mre.doc;
-			JSONObject j = mre.getResult();
-			JSONObject o = idMap.get(doc.getId());
-			try {
-				if(j == null) {
-					log.debug("\tNo result for view {} {}", id, view.getMapSrc());
-				}
-				else {
-					log.debug("\tResult for view {} {} : {}", id, view.getMapSrc(), j.toString());
-					j.put("id", doc.getId());
+			String docId = doc.getId();
+			this.removeResult(docId);
+			
+			JSONArray ja = mre.getResults();
+			JSONObject o = null;
+			ArrayList<JSONObject> newIdMapList = new ArrayList<JSONObject>();
 
-					Object key = j.get("key");
-					Object value = j.get("value");
-
-					ConcurrentSkipListSet<JSONObject> newSet =
-						new ConcurrentSkipListSet<JSONObject>(new Collate());
-
-					idMap.put(doc.getId(), j);
-					ConcurrentSkipListSet<JSONObject> set =
-						keyMap.putIfAbsent(key, newSet);
+			if(ja.length() == 0)
+				log.debug("\tNo result for view {} {}", id, view.getMapSrc());
+			else
+				log.debug("\tResult for view {} {}", id, view.getMapSrc());
+			for(int i=0; i<ja.length(); i++) {
+				try {
+					JSONArray kv = ja.getJSONArray(i);
+					Object key = null;
+					try {
+						key = kv.get(0);
+						o = new JSONObject();
+						o.put("id", docId);
+						o.put("key", key);
+						o.put("value", kv.get(1));
+					} catch( JSONException e ) {
+						log.debug("JSON error {}", e);
+						continue;
+					}
+					
+					CopyOnWriteArrayList<JSONObject> newArray =
+						new CopyOnWriteArrayList<JSONObject>();
+					CopyOnWriteArrayList<JSONObject> set =
+						keyMap.putIfAbsent(key, newArray);
 					if(set == null)
-						set = newSet;
-					set.add(j);
+						set = newArray;
+					set.add(o);
+					newIdMapList.add(o);
 
 					if(doc.getSequence() > currentSequenceNumber)
 						currentSequenceNumber = doc.getSequence();
 				}
+				catch(JSONException e) {
+					log.warn("{} JSONException {} adding {}", id, e.getMessage(),ja.toString());
+				}
 			}
-			catch(JSONException e) {
-				log.warn("{} JSONException {} adding {}", id, e.getMessage(),j.toString());
-			}
+			idMap.put(docId, newIdMapList);
 			expectedResults.remove(new Long(mre.seqNo));
 		}
+		log.debug("VIEWRESULTS idMap: {}", idMap);
+		log.debug("VIEWRESULTS keyMap: {}", keyMap);
 	}
 
 
