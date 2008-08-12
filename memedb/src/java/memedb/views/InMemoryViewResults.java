@@ -78,7 +78,7 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 
 		@Override
 		public void run() {
-			log.debug("////////////// Started view results updater thread " + id);
+			log.debug("////////////// Started view results updater thread {} {}/{}", id, vr.getCurrentSequenceNumber(), maxSequence);
 			if(view == null || vr == null) return;
 			lock.lock();
 			try {

@@ -397,15 +397,17 @@ abstract public class BaseViewManager extends ViewManager {
 		ViewResults vrTmp = createViewResultsInstance(db, docName, functionName, view);
 
 		File objSer = vrTmp.getInstanceFile();
-		log.debug("updateOrCreateViewResults : creating new instance {}/{}/{} for path {}",db,docName,functionName, vrTmp.getInstanceFile());
+		//log.debug("updateOrCreateViewResults : creating new instance {}/{}/{} for path {}",db,docName,functionName, vrTmp.getInstanceFile());
 		ObjectInputStream ois = null;
 		try {
 			ois = new ObjectInputStream(new FileInputStream(objSer));
 			vr = (ViewResults) ois.readObject();
-			log.debug("INSTANCE LOADED");
+			vr.init(memeDB);
+			log.debug("{} INSTANCE LOADED {}", objSer.getPath(), vr.getCurrentSequenceNumber());
 		} catch (ClassNotFoundException e) {
 			throw new ViewException(e);
 		} catch (Exception e) {
+			log.warn("Instance load exception for {} : {}", objSer.getPath(), e);
 			vr = vrTmp;
 		} finally {
 			if (ois!=null) {
@@ -415,8 +417,9 @@ abstract public class BaseViewManager extends ViewManager {
 				}
 			}
 		}
-		vr.init(memeDB);
 		ViewResults old = putResultEntryIfAbsent(db, docName, functionName, vr);
+		if(old != null)
+			return old;
 		return vr;
 	}
 

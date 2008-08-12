@@ -177,7 +177,7 @@ public class AdvancedViewManager extends BaseViewManager {
 	 */
 	public void init(MemeDB fdb) throws ViewException {
 		log = Logger.get(AdvancedViewManager.class);
-		log.debug("************************* InMemoryViewResults initialize");
+		log.debug("************************* AdvancedViewManager initialize");
 		memeDB=fdb;
 		baseDir = new File(memeDB.getProperty(PATH_PROPERTY));
 		if (baseDir==null) {
@@ -186,7 +186,6 @@ public class AdvancedViewManager extends BaseViewManager {
 		if (!baseDir.exists()) {
 			baseDir.mkdirs();
 		}
-		startMonitor();
 
 		for (String db : memeDB.getBackend().getDatabaseNames()) {
 			log.debug("Loading views for: {}", db);
@@ -194,8 +193,8 @@ public class AdvancedViewManager extends BaseViewManager {
 		}
 
 		nextSequenceNumber.set(memeDB.getState().getCurrentSequenceNumber() + 1);
-
-		log.debug("************************* InMemoryViewResults initialize complete");
+		startMonitor();
+		log.debug("************************* AdvancedViewManager initialize complete");
 	}
 
 	/*
@@ -339,7 +338,6 @@ public class AdvancedViewManager extends BaseViewManager {
 							v.setBackend(memeDB.getBackend());
 
 							ViewResults vr = updateOrCreateViewResults(db, docName, functionName, v);
-							vr.init(memeDB);
 							putResultEntry(db, docName, functionName, vr);
 							putViewEntry(db, docName, functionName, v);
 							vr.start();

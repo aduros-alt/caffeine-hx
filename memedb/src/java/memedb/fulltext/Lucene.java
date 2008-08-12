@@ -75,7 +75,7 @@ public class Lucene extends FulltextEngine {
 			throw new RuntimeException("Path: " + path + " not valid!");
 		}
 		for (String db : memeDB.getBackend().getDatabaseNames()) {
-			log.debug("Loading views for: {}", db);
+			log.debug("Opening fulltext results for: {}", db);
 			try {
 				openWriterForDatabase(db);
 			} catch(Exception e) {

@@ -240,17 +240,45 @@ public class MemeDB {
 
 	private void internalShutdown() {
 		log.info("Shutting down engine");
-		if (httpd!=null) {
-			httpd.shutdown();
+		try {
+			if (httpd!=null) {
+				httpd.shutdown();
+			}
+		} catch(Exception e) {
+			e.printStackTrace();
 		}
-		eventConsumer.shutdown();
-		if (auth!=null) {
-			auth.shutdown();
+		try {
+			eventConsumer.shutdown();
+		} catch(Exception e) {
+			e.printStackTrace();
 		}
-		viewManager.shutdown();
-		fulltextManager.shutdown();
-		backend.shutdown();
-		state.shutdown();
+		try {
+			if (auth!=null) {
+				auth.shutdown();
+			}
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+		try {
+			viewManager.shutdown();
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+		try {
+			fulltextManager.shutdown();
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+		try {
+			backend.shutdown();
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+		try {
+			state.shutdown();
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
 		log.info("Shutdown complete");
 	}
 
