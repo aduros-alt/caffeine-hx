@@ -316,7 +316,11 @@ public class Lucene extends FulltextEngine {
 	
 	public void shutdown() {
 		for(String db: writers.keySet()) {
-			close(db);
+			IndexWriter writer = writers.get(db);
+			try {
+				if(writer != null)
+					writer.close();
+			} catch(IOException e) {}
 		}
 	}
 	

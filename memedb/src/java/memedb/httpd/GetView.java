@@ -42,21 +42,22 @@ public class GetView extends BaseRequestHandler {
 			return;
 		}
 
-		if (memeDB.getViewManager().doesViewExist(db, viewName,ViewManager.DEFAULT_FUNCTION_NAME)) {
+		int idx = viewName.lastIndexOf("/");
+		if (idx>-1) {
+			functionName = viewName.substring(idx+1);
+			viewName = viewName.substring(0,idx);
+		}
+		if(functionName == null && memeDB.getViewManager().doesViewExist(db, viewName,ViewManager.DEFAULT_FUNCTION_NAME)) {
 			functionName=ViewManager.DEFAULT_FUNCTION_NAME;
-		} else {
-			int idx = viewName.lastIndexOf("/");
-			if (idx>-1) {
-				functionName = viewName.substring(idx+1);
-				viewName = viewName.substring(0,idx);
-			} else {
-				JSONObject status = new JSONObject();
-				status.put("db",db);
-				status.put("view",viewName);
-				status.put("function",functionName);
-				sendError(response, "View not found",status,HttpServletResponse.SC_NOT_FOUND);
-			}
- 		}
+		}
+		else {
+			JSONObject status = new JSONObject();
+			status.put("db",db);
+			status.put("view",viewName);
+			status.put("function",functionName);
+			sendError(response, "View not found",status,HttpServletResponse.SC_NOT_FOUND);
+			return;
+		}
 
 		try {
 //			boolean pretty="true".equals(request.getParameter("pretty"));
