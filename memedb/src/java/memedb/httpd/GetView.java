@@ -59,12 +59,13 @@ public class GetView extends BaseRequestHandler {
  		}
 
 		try {
-			boolean pretty="true".equals(request.getParameter("pretty"));
-			if (pretty) {
-				sendJSONString(response, memeDB.getViewManager().getViewResults(db, viewName, functionName,makeViewOptions(request.getParameterMap())));
-			} else {
-				sendJSONString(response, memeDB.getViewManager().getViewResults(db, viewName, functionName,makeViewOptions(request.getParameterMap())).toString());
-			}
+//			boolean pretty="true".equals(request.getParameter("pretty"));
+//			if (pretty) {
+//				sendJSONString(response, memeDB.getViewManager().getViewResults(db, viewName, functionName,makeViewOptions(request.getParameterMap())));
+//			} else {
+//				sendJSONString(response, memeDB.getViewManager().getViewResults(db, viewName, functionName,makeViewOptions(request.getParameterMap())).toString());
+//			}
+			memeDB.getViewManager().getViewResults(response, db, viewName, functionName, makeViewOptions(request.getParameterMap()));
 		} catch(ViewException e) {
 			JSONObject status = new JSONObject();
 			status.put("db",db);

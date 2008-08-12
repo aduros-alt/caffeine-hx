@@ -137,19 +137,21 @@ public class JavaScriptView implements View {
 
 	public void map(Document doc, MapResultConsumer listener, FulltextResultConsumer fulltextListener) {
 		if(doc == null) {
-			listener.onMapResult(doc, null);
 			return;
 		}
 		FulltextResult ft = null;
 		String json = null;
+		String jsource = null;
 		try {
 			ft = new FulltextResult(doc.getId(), doc.getRevision());
 			engine.put("_MemeDB_FULLTEXT", ft);
 //			engine.eval("_MemeDB_retval = '' ");
 			engine.eval("_MemeDB_retval = new Array() ");
 
-			Object docJSObject = engine.eval("_MemeDB_doc = eval('('+'"+ doc.toString()+"'+')');");
-
+			jsource = doc.toString();
+			jsource = jsource.replace("\"", "\\\"");
+			jsource = jsource.replace("\\\\\"", "\\\\\\\"");
+			Object docJSObject = engine.eval("_MemeDB_doc = eval('('+\""+ jsource + "\"+')');");
 			Invocable invocable = (Invocable) engine;
 			Object retval = invocable.invokeFunction("_MemeDB_map",docJSObject);
 			if (retval != null) {
@@ -163,26 +165,22 @@ public class JavaScriptView implements View {
 			e.printStackTrace();
 		} catch (JSONException e) {
 			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			/*
 			if(listener != null) {
-				if (json!=null && !json.equals("") && !json.equals("\"\"")) {
-					listener.onMapResult(doc, new JSONObject(json));
-				} else {
-					listener.onMapResult(doc, null);
-				}
-			}
-			*/
-			if(listener != null) {
+				JSONArray ja = null;
 				try {
-					log.warn("Map results: {}", json);
-					JSONArray ja = new JSONArray(json);
-//					if(ja.length() == 0) {
-//						listener.onMapResult(doc, null);
-//					}
-					listener.onMapResult(doc, ja);
+					//log.warn("Map results: {}", json);
+					if(json == null)
+						ja = new JSONArray();
+					else
+						ja = new JSONArray(json);
 				} catch (JSONException e) {
-					log.warn("Javascript view returned object that is not an array {}", json);
+					ja = new JSONArray();
+					log.warn("Javascript view {} returned object that is not an array {}", this.map_src, json);
+				} finally {
+					listener.onMapResult(doc, ja);
 				}
 			}
 			if(fulltextListener != null) {
@@ -207,7 +205,10 @@ public class JavaScriptView implements View {
 		if(engine == null || results == null)
 			return null;
 		try {
-			Object resultsJSObject = engine.eval("_MemeDB_results = eval('('+'"+ results.toString()+"'+')');");
+			String jsource = results.toString();
+			jsource = jsource.replace("\"", "\\\"");
+			jsource = jsource.replace("\\\\\"", "\\\\\\\"");
+			Object resultsJSObject = engine.eval("_MemeDB_results = eval('('+\""+ jsource +"\"+')');");
 
 			Invocable invocable = (Invocable) engine;
 			Object retval = invocable.invokeFunction("_MemeDB_reduce",resultsJSObject);

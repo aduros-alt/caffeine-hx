@@ -428,7 +428,7 @@ abstract public class Document {
 		}
 		return jsonString;
 	}
-	
+		
 	/**
 	 * If the document requires revision data, on loading and creating this method will be called.
 	 * @param dataInput Source for revision data stream

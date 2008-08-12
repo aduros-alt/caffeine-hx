@@ -16,6 +16,7 @@
 package memedb.views;
 
 import java.io.File;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -94,6 +95,16 @@ public interface ViewResults {
 	public boolean isAlive();
 
 	/**
+	 * Returns a reduced set from the provided view options. Options
+	 * like count and skip are not honoured, refer to the view options
+	 * documentation.
+	 * @param options View options map
+	 * @return Object value of reduction
+	 * @throws memedb.views.ViewException
+	 */
+	public Object reduce(Map<String,String> options) throws ViewException;
+	
+	/**
 	* Remove a Document id from the result set
 	*/
 	public void removeResult(String id, long seqNo);
@@ -125,4 +136,11 @@ public interface ViewResults {
 	*/
 	public ArrayList<JSONObject> subList(Map<String,String> options);
 
+	/**
+	 * Writer JSON rows for subList options
+	 * @param writer Output stream
+	 * @param options Map of view options
+	 * @return Number of rows written
+	 */
+	public int writeRows(Writer writer, Map<String,String> options);
 }

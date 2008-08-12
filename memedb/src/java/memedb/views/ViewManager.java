@@ -17,13 +17,14 @@ package memedb.views;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import org.json.JSONObject;
+import javax.servlet.http.HttpServletResponse;
 
 import memedb.MemeDB;
 import memedb.document.Document;
 import memedb.document.JSONDocument;
 import memedb.utils.Logger;
+
+import org.json.JSONObject;
 
 /**
  *
@@ -104,9 +105,22 @@ abstract public class ViewManager {
 	 * @param options View filtering options
 	 * @return JSONObject populated with results of map or map/reduce
 	 * @throws memedb.views.ViewException If the view does not exist, or there is an error processing
+	 * @deprecated Out of memory error possible on huge sets
 	 */
+	@Deprecated
 	abstract public JSONObject getViewResults(String db, String view, String function, Map<String,String> options) throws ViewException;
-
+	
+	/**
+	 * Writes view results directly to HTTP client
+	 * @param response HTTP client response object
+	 * @param db Database name
+	 * @param view View document name (_exampleview)
+	 * @param function Function name within view doc
+	 * @param options View filtering options
+	 * @throws memedb.views.ViewException If the view does not exist, or there is an error processing
+	 */
+	abstract public void getViewResults(HttpServletResponse response, String db, String view, String function, Map<String,String> options) throws ViewException;
+	
 	/**
 	* System startup initialization phase.
 	*/

@@ -25,7 +25,9 @@ import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Iterator;
+import javax.servlet.http.HttpServletResponse;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import memedb.MemeDB;
@@ -40,6 +42,7 @@ import memedb.utils.Logger;
  * @author mbreese
  */
 public class SimpleViewManager extends ViewManager {
+	protected static final String TEXT_PLAIN_MIMETYPE = "text/plain;charset=utf-8";
 	protected MemeDB memeDB;
 	protected Logger log = Logger.get(SimpleViewManager.class);
 
@@ -181,6 +184,22 @@ public class SimpleViewManager extends ViewManager {
 		if(v == null)
 			throw new ViewException("View object does not exist");
 		return AdHocViewRunner.runView(memeDB,db,viewName,function,v,options);
+	}
+	
+	public void getViewResults(HttpServletResponse response, String db, 
+			String docId, String functionName, Map<String,String> options) 
+			throws ViewException
+	{
+		JSONObject j = getViewResults(db, docId, functionName, options);
+		try {
+			response.setStatus(HttpServletResponse.SC_OK);
+			response.setContentType(TEXT_PLAIN_MIMETYPE);
+			response.getWriter().write(j.toString(4));
+		} catch (JSONException e) {
+			log.error(e);
+		} catch (IOException e) {
+			log.error(e);
+		}
 	}
 
 	public void recalculateDocument(Document doc) {

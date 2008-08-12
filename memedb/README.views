@@ -22,6 +22,16 @@ Additional options
  * skip_reduce - do not perform the reduce of the result set, the map
 	portion of the view will be returned.
 
+OPTION				Map		Reduce
+key					Yes		Yes
+startkey_inclusive	Yes		Yes
+endkey				Yes		Yes
+endkey_inclusive	Yes		Yes
+descending			Yes		Yes
+skip				Yes		No
+count				Yes		No
+skip_reduce			Yes		Yes
+
 Adhoc views
 ===========
 To run an Adhoc view, a JSON document must be posted to

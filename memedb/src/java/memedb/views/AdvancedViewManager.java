@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 // import java.util.concurrent.atomic.AtomicLong;
+import javax.servlet.http.HttpServletResponse;
 
 import org.json.JSONObject;
 import org.json.JSONArray;
@@ -45,7 +46,7 @@ import memedb.utils.FileUtils;
 * @author Russell Weir
 */
 public class AdvancedViewManager extends BaseViewManager {
-
+	protected static final String TEXT_PLAIN_MIMETYPE = "text/plain;charset=utf-8";
 	protected final static String PATH_PROPERTY = "view.inmemory.path";
 	protected final static String VIEW_INSTANCE_NAME = "view.obj";
 
@@ -125,6 +126,52 @@ public class AdvancedViewManager extends BaseViewManager {
 		return o;
 	}
 
+	public void getViewResults(HttpServletResponse response, String db, 
+			String docId, String functionName, Map<String,String> options) 
+			throws ViewException
+	{
+		log.debug("getViewResults {}/{}", docId, functionName);
+		java.io.Writer writer = null;
+		try {
+			writer = response.getWriter();
+		} catch(IOException e) {
+			throw new ViewException("response writer invalid");
+		}
+		if(docId.equals("_all_docs")) {
+			log.debug("Running adHocView");
+			return;
+			//return AdHocViewRunner.runView(memeDB,db,view,functionName,getViewEntry(db,docId,functionName),options);
+		}
+
+		int count = 0;
+		View v = getViewEntry(db, docId, functionName);
+		if(v == null)
+			throw new ViewException("View object does not exist");
+		
+		ViewResults vr = getResultEntry(db,docId,functionName);
+		if(vr == null)
+			throw new ViewException("ViewResults object does not exist");
+		
+		try {
+			response.setStatus(200);
+			response.setContentType(TEXT_PLAIN_MIMETYPE);
+			if(!v.hasReduce() || "true".equals(options.get("skip_reduce"))) {
+				writer.write("{ \"ok\": true, \"rows\": [");
+				count = vr.writeRows(response.getWriter(), options);
+				writer.write("], \"total_rows\": " + count + "}");
+			}
+			else {
+				JSONObject o = new JSONObject();
+				o.put("ok", true);
+				o.put("result", vr.reduce(options));
+				o.put("rows", new JSONArray());
+				o.write(writer);
+			}
+		} catch (IOException e) {
+			log.error(e);
+		} 
+	}
+	
 	/* (non-Javadoc)
 	 * @see memedb.views.ViewManager#init()
 	 */
