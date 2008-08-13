@@ -85,7 +85,7 @@ class Result extends JSONDocument {
 			this.ok = true;
 
 			// a reduced set
-			if(has("ok")) {
+			if(has("result")) {
 				// I assume here that the result field will _not_ be JsonObject.
 				// therefore, the success of this try is a fatal error on my part.
 				try {
@@ -132,7 +132,7 @@ class Result extends JSONDocument {
 		for(i in 0...l) {
 			if(a.get(i) != null && a.getString(i) != "null") {
 				var dr = new Row(this.database, a.getJsonObject(i));
-trace(Std.string(dr));
+				//trace(Std.string(dr));
 				dr.setDatabase(database);
 				rv.add(dr);
 			}

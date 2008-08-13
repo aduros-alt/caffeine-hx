@@ -100,6 +100,7 @@ class DesignDocument extends JSONDocument {
 		// the language is not needed in the view records.
 		Reflect.deleteField(def, "language");
 		set(k, def);
+		return this;
 	}
 
 	/**
@@ -151,7 +152,7 @@ class DesignDocument extends JSONDocument {
 
 	public function setName(n : String ) : String {
 		if(n != name) {
-			this.id = "_design/" + n;
+			this.id = n;
 			this.name = n;
 		}
 		return n;

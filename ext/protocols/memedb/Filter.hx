@@ -40,7 +40,10 @@ class Filter {
 	public var descending : Bool;
 
 	/** the last key to include in the result set **/
-	public var endKey : Dynamic;
+	public var endkey : Dynamic;
+
+	/** Whether the starting key is included in results **/
+	public var endkey_inclusive : Bool;
 
 	/** get a specific key **/
 	public var key : Dynamic;
@@ -48,11 +51,17 @@ class Filter {
 	/** rows to skip **/
 	public var skip : Int;
 
+	/** return view rows, not reduced rows if true **/
+	public var skip_reduce : Bool;
+
 	/** the first key to start building a result set. See notes in setStartKey() **/
-	public var startKey : Dynamic;
+	public var startkey : Dynamic;
+
+	/** Whether the starting key is included in results **/
+	public var startkey_inclusive : Bool;
 
 	/** The starting document ID **/
-	public var startDocId : String;
+	//public var startDocId : String;
 
 	/** Setting to false improves performance, but Meme may not have updated the view */
 	public var update : Bool;
@@ -70,18 +79,24 @@ class Filter {
 			rv.set("count", Std.string(count));
 		if(descending != null && descending)
 			rv.set("descending", "true");
-		if(endKey != null)
-			rv.set("endkey", JSON.encode(endKey));
+		if(endkey != null)
+			rv.set("endkey", JSON.encode(endkey));
+		if(endkey_inclusive != null)
+			rv.set("startkey_inclusive", Std.string(endkey_inclusive));
 		if(key != null)
 			rv.set("key", JSON.encode(key));
 		if(skip != null)
 			rv.set("skip", Std.string(skip));
-		if(startKey != null)
-			rv.set("startkey", JSON.encode(startKey));
-		if(startDocId != null)
-			rv.set("startkeydoc_id", startDocId);
-		if(update != null && !update)
-			rv.set("update", "false");
+		if(skip_reduce != null)
+			rv.set("skip_reduce", Std.string(skip_reduce));
+		if(startkey != null)
+			rv.set("startkey", JSON.encode(startkey));
+		if(startkey_inclusive != null)
+			rv.set("startkey_inclusive", Std.string(startkey_inclusive));
+// 		if(startDocId != null)
+// 			rv.set("startkeydoc_id", startDocId);
+// 		if(update != null && !update)
+// 			rv.set("update", "false");
 		return rv;
 	}
 
@@ -104,8 +119,9 @@ class Filter {
 	/**
 		Key to stop listing at
 	**/
-	public function setEndKey(v : Dynamic) : Filter {
-		this.endKey = v;
+	public function setEndKey(v : Dynamic, ?inclusive : Bool) : Filter {
+		this.endkey = v;
+		this.endkey_inclusive = if(inclusive == null) true else inclusive;
 		return this;
 	}
 
@@ -126,23 +142,25 @@ class Filter {
 	}
 
 	/**
+		Any view that has a reduce function can be instructed to omit
+		the reduce function and return the actual view results by
+		setting this to true
+	**/
+	public function setSkipReduce(v : Bool) : Filter {
+		this.skip_reduce = v;
+		return this;
+	}
+
+	/**
 		Key to start after. This is not the key that will be first in the Result set, but rather
 		the key that marks when to start collecting rows. This makes paging very simple in that the
 		next page would be startKey'd by the last record in the current view. If you wish to include
 		the key in the set, follow the http://wiki.apache.org/memedb/ViewCollation order of keys, and
 		reduce your startkey by one level of precedence.
 	**/
-	public function setStartKey(v : Dynamic) : Filter {
-		this.startKey = v;
-		return this;
-	}
-
-	/**
-		To improve performance, the update flag can be set to false,
-		which means memedb may not do refreshing before processing the view.
-	**/
-	public function setUpdate(v : Bool) : Filter {
-		this.update = v;
+	public function setStartKey(v : Dynamic, ?inclusive:Bool) : Filter {
+		this.startkey = v;
+		this.startkey_inclusive = if(inclusive == null) false else inclusive;
 		return this;
 	}
 

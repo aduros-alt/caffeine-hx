@@ -256,6 +256,26 @@ COUCH:
 	}
 
 	/**
+		The default_field is the field that will be searched for
+		any element in the query string that does not have a field
+		specification. Refer to http://lucene.apache.org/java/2_3_2/queryparsersyntax.html
+	**/
+	public function fulltextQuery(default_field : String, query : String) : Result {
+		var t : Transaction;
+		var rv : Result;
+		var j = new JSONDocument();
+		j.set("default_field", default_field);
+		j.set("query", query);
+
+		t = session.post(
+			this.name + "/_text_query",
+			null,
+			j.toString());
+		rv = new Result(this, null, t);
+		return rv;
+	}
+
+	/**
 		Run the provided view. This is either a basic AdHoc View, a DesignView,
 		or one by name String (ie. "company/all"). If a filter is provided, it
 		will override any filter in the View.
