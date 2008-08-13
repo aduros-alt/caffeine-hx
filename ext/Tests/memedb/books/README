@@ -1,0 +1,13 @@
+To run this example, first unzip the textfiles.zip file, run haxe build.hxml and startup MemeDB.
+
+To create the database structure and the views, run
+neko create.n [host] [port]
+
+To add a textfile to the database run
+neko addbook.n [host] [port] [textfile]
+The textfiles are split up into 'Pages' of 100 lines of text, and the resulting record in
+the database is named "filename-Page[xx]" where filename has had it's extension removed.
+
+To run the demo
+neko query.n [host] [port] 
+

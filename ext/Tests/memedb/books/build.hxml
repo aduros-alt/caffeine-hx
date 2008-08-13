@@ -1,0 +1,17 @@
+-main CreateStructure
+--override
+-cp ../../../
+-debug
+-neko create.n
+
+--next
+-main AddBook
+--override
+-cp ../../../
+-neko addbook.n
+
+--next
+-main WordCountQuery
+--override
+-cp ../../../
+-neko query.n
