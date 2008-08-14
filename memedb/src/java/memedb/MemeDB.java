@@ -317,12 +317,12 @@ public class MemeDB {
 	*/
 	public void onDocumentUpdate(Document doc) {
 		try {
-			viewManager.recalculateDocument(doc);
+			viewManager.onDocumentUpdate(doc);
 		}
 		catch(Exception e) {
 			if(e instanceof javax.script.ScriptException) { }
 			else {
-				log.warn("Uncaught exception in viewManager.recalculateDocument : {}", e);
+				log.warn("Uncaught exception in viewManager.onDocumentUpdate : {}", e);
 				e.printStackTrace();
 			}
 		}
@@ -330,7 +330,7 @@ public class MemeDB {
 			eventConsumer.onDocumentUpdated(doc.getDatabase(), doc.getId(), doc.getRevision(), doc.getSequence());
 		}
 		catch(Exception e) {
-			log.warn("Uncaught exception in viewManager.recalculateDocument : {}", e);
+			log.warn("Uncaught exception in viewManager.onDocumentUpdate : {}", e);
 			e.printStackTrace();
 		}
 	}

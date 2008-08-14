@@ -22,10 +22,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.List;
+import java.io.Writer;
 import java.util.Map;
-// import java.util.concurrent.atomic.AtomicLong;
-import javax.servlet.http.HttpServletResponse;
 
 import org.json.JSONObject;
 import org.json.JSONArray;
@@ -77,6 +75,7 @@ public class AdvancedViewManager extends BaseViewManager {
 		return getViewEntry(db, view, function) != null;
 	}
 
+	/*
 	public JSONObject getViewResults(String db, String docId, String functionName, Map<String,String> options) throws ViewException {
 		log.debug("getViewResults {}/{}", docId, functionName);
 		if(docId.equals("_all_docs")) {
@@ -121,22 +120,20 @@ public class AdvancedViewManager extends BaseViewManager {
 		log.debug("AdvancedViewManager::getViewResults : {}", o.toString(2));
 		return o;
 	}
-
-	public void getViewResults(HttpServletResponse response, String db, 
+	*/
+	
+	public void getViewResults(Writer writer, String db, 
 			String docId, String functionName, Map<String,String> options) 
 			throws ViewException
 	{
 		log.debug("getViewResults {}/{}", docId, functionName);
-		java.io.Writer writer = null;
-		try {
-			writer = response.getWriter();
-		} catch(IOException e) {
-			throw new ViewException("response writer invalid");
-		}
 		if(docId.equals("_all_docs")) {
 			log.debug("Running adHocView");
+			JSONObject j = AdHocViewRunner.runView(memeDB,db,docId,functionName,getViewEntry(db,docId,functionName),options);
+			try{
+				j.write(writer);
+			} catch(IOException e) {}
 			return;
-			//return AdHocViewRunner.runView(memeDB,db,view,functionName,getViewEntry(db,docId,functionName),options);
 		}
 
 		int count = 0;
@@ -149,15 +146,13 @@ public class AdvancedViewManager extends BaseViewManager {
 			throw new ViewException("ViewResults object does not exist");
 		
 		try {
-			response.setStatus(200);
-			response.setContentType(TEXT_PLAIN_MIMETYPE);
 			if(!v.hasReduce() || "true".equals(options.get("skip_reduce"))) {
 				boolean ok = true;
 				String errmsg = null;
 				String errreason = null;
 				writer.write("{\"rows\": [");
 				try {
-					count = vr.writeRows(response.getWriter(), options);
+					count = vr.writeRows(writer, options);
 				} catch(java.lang.IllegalArgumentException e) {
 					ok = false;
 					errmsg = "bad_keys";
@@ -244,8 +239,11 @@ public class AdvancedViewManager extends BaseViewManager {
 		throw new RuntimeException("Arg");
 	}
 */
-
-	synchronized public void recalculateDocument(Document doc) {
+	public void onDocumentUpdate(Document doc) {
+		postEvent(new addDocEvent(this, doc));
+	}
+	
+	synchronized protected void recalculateDocument(Document doc) {
 		log.info("recalculateDocument {} seqNo: {}", doc.getId(), doc.getSequence());
 
 		if(!inOrder(doc.getSequence())) {

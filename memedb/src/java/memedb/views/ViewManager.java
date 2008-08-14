@@ -15,9 +15,9 @@
 
 package memedb.views;
 
+import java.io.Writer;
 import java.util.HashMap;
 import java.util.Map;
-import javax.servlet.http.HttpServletResponse;
 
 import memedb.MemeDB;
 import memedb.document.Document;
@@ -97,7 +97,7 @@ abstract public class ViewManager {
 	*/
 	abstract public boolean doesViewExist(String db, String view, String function);
 
-	/**
+	/*
 	 * Returns the current results the view.
 	 * @param db Database name
 	 * @param view View document name (_exampleview)
@@ -107,19 +107,18 @@ abstract public class ViewManager {
 	 * @throws memedb.views.ViewException If the view does not exist, or there is an error processing
 	 * @deprecated Out of memory error possible on huge sets
 	 */
-	@Deprecated
-	abstract public JSONObject getViewResults(String db, String view, String function, Map<String,String> options) throws ViewException;
+//	abstract public JSONObject getViewResults(String db, String view, String function, Map<String,String> options) throws ViewException;
 	
 	/**
-	 * Writes view results directly to HTTP client
-	 * @param response HTTP client response object
+	 * Writes view results as a JSON string directly to Writer target
+	 * @param writer Writer target
 	 * @param db Database name
 	 * @param view View document name (_exampleview)
 	 * @param function Function name within view doc
 	 * @param options View filtering options
 	 * @throws memedb.views.ViewException If the view does not exist, or there is an error processing
 	 */
-	abstract public void getViewResults(HttpServletResponse response, String db, String view, String function, Map<String,String> options) throws ViewException;
+	abstract public void getViewResults(Writer writer, String db, String view, String function, Map<String,String> options) throws ViewException;
 	
 	/**
 	* System startup initialization phase.
@@ -140,7 +139,7 @@ abstract public class ViewManager {
 	/**
 	*	Called after a document has been added to the database.
 	*/
-	abstract public void recalculateDocument(Document doc);
+	abstract public void onDocumentUpdate(Document doc);
 
 
 	/**

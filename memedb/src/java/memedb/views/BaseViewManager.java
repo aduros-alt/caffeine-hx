@@ -43,7 +43,7 @@ import org.json.JSONObject;
 abstract public class BaseViewManager extends ViewManager {
 
 	protected abstract class BaseEvent {
-		ViewManager vm;
+		BaseViewManager vm;
 		String db;
 		String id;
 		long seqNo;
@@ -57,7 +57,7 @@ abstract public class BaseViewManager extends ViewManager {
 
 	protected class addDocEvent extends BaseEvent {
 		Document doc;
-		public addDocEvent(ViewManager vm, Document doc) {
+		public addDocEvent(BaseViewManager vm, Document doc) {
 			this.timestamp = new Date().getTime();
 			this.vm = vm; this.doc = doc; this.seqNo = doc.getSequence();
 		}
@@ -66,7 +66,7 @@ abstract public class BaseViewManager extends ViewManager {
 		}
 	}
 	protected class deleteDocEvent extends BaseEvent {
-		public deleteDocEvent(ViewManager vm, String db, String id, long seqNo) {
+		public deleteDocEvent(BaseViewManager vm, String db, String id, long seqNo) {
 			this.timestamp = new Date().getTime();
 			this.vm = vm; this.db = db; this.id = id; this.seqNo = seqNo;
 		}
@@ -75,7 +75,7 @@ abstract public class BaseViewManager extends ViewManager {
 		}
 	}
 	protected class addDbEvent extends BaseEvent {
-		public addDbEvent(ViewManager vm, String db, long seqNo) {
+		public addDbEvent(BaseViewManager vm, String db, long seqNo) {
 			this.timestamp = new Date().getTime();
 			this.vm = vm; this.db = db; this.seqNo = seqNo;
 		}
@@ -84,7 +84,7 @@ abstract public class BaseViewManager extends ViewManager {
 		}
 	}
 	protected class deleteDbEvent extends BaseEvent {
-		public deleteDbEvent(ViewManager vm, String db, long seqNo) {
+		public deleteDbEvent(BaseViewManager vm, String db, long seqNo) {
 			this.timestamp = new Date().getTime();
 			this.vm = vm; this.db = db; this.seqNo = seqNo;
 		}
@@ -93,7 +93,7 @@ abstract public class BaseViewManager extends ViewManager {
 		}
 	}
 	protected class nullEvent extends BaseEvent {
-		public nullEvent(ViewManager vm, long seqNo) {
+		public nullEvent(BaseViewManager vm, long seqNo) {
 			this.timestamp = new Date().getTime();
 			this.vm = vm; this.db = db; this.seqNo = seqNo;
 		}
@@ -127,6 +127,8 @@ abstract public class BaseViewManager extends ViewManager {
 	protected void postEvent(BaseEvent be) {
 		eventCache.add(be);
 	}
+	
+	abstract protected void recalculateDocument(Document doc);
 
 	protected void startMonitor() {
 		final BaseViewManager me = this;
@@ -177,8 +179,8 @@ abstract public class BaseViewManager extends ViewManager {
 					try {
 						if(doSleep)
 							Thread.sleep(1000);
-						else
-							Thread.sleep(10);
+						//else
+						//	Thread.sleep(10);
 					} catch (InterruptedException e) {
 						stop = true;
 					}
@@ -422,18 +424,4 @@ abstract public class BaseViewManager extends ViewManager {
 			return old;
 		return vr;
 	}
-
-
-/*
-	// still abstract
-	abstract protected void addView(String db, String docId, String functionName, View instance) throws ViewException;
-	abstract public boolean doesViewExist(String db, String view, String function);
-	abstract public JSONObject getViewResults(String db, String view, String function, Map<String,String> options) throws ViewException;
-	abstract public void init(MemeDB memeDB) throws ViewException;
-	abstract public void onDatabaseCreated(String db, long seq) throws ViewException;
-	abstract public void onDatabaseDeleted(String db, long seq);
-	abstract public void recalculateDocument(Document doc);
-	abstract public void deletingDocument(String db, String id, long seqNo);
-	abstract public void shutdown();
-*/
 }

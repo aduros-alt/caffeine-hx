@@ -1,5 +1,6 @@
 package test;
 
+import java.io.StringWriter;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -20,8 +21,9 @@ public class AllDocsViewTest extends BaseTest{
 		java.util.Map<String,String> options = new java.util.HashMap<String,String>();
 		JSONArray ar = null;
 		try {
-			JSONObject json = db.getViewManager().getViewResults("foodb", "_all_docs", 
-ViewManager.DEFAULT_FUNCTION_NAME,options);
+			StringWriter sw = new StringWriter();
+			db.getViewManager().getViewResults(sw, "foodb", "_all_docs", ViewManager.DEFAULT_FUNCTION_NAME,options);
+			JSONObject json = new JSONObject(sw.toString());
 			System.out.println(json.toString(2));
 			ar = json.getJSONArray("rows");
 
@@ -44,8 +46,10 @@ ViewManager.DEFAULT_FUNCTION_NAME,options);
 		assertNotNull(newdoc);
 
 		try {
-			JSONObject json2 = db.getViewManager().getViewResults("foodb", "_all_docs", 
+			StringWriter sw = new StringWriter();
+			db.getViewManager().getViewResults(sw, "foodb", "_all_docs", 
 ViewManager.DEFAULT_FUNCTION_NAME,options);
+			JSONObject json2 = new JSONObject(sw.toString());
 			boolean found=false;
 			ar = json2.getJSONArray("rows");
 			for (int i=0; i< ar.length();i++) {

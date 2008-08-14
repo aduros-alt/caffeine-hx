@@ -71,7 +71,9 @@ public class GetView extends BaseRequestHandler {
 		try {
 			log.debug("Fetching {}/{} with options {}", viewName, functionName, makeViewOptions(request.getParameterMap()));
 //			boolean pretty="true".equals(request.getParameter("pretty"));
-			memeDB.getViewManager().getViewResults(response, db, viewName, functionName, makeViewOptions(request.getParameterMap()));
+			response.setStatus(200);
+			response.setContentType(TEXT_PLAIN_MIMETYPE);
+			memeDB.getViewManager().getViewResults(response.getWriter(), db, viewName, functionName, makeViewOptions(request.getParameterMap()));
 		} catch(ViewException e) {
 			JSONObject status = new JSONObject();
 			status.put("db",db);
