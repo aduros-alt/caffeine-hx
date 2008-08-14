@@ -40,6 +40,7 @@ import memedb.utils.Logger;
  */
 
 public final class Collate implements Comparator<Object>, Serializable {
+	private static final long serialVersionUID = -5425498419018925923L;
 	transient protected Logger log = Logger.get(Collate.class);
 	/**
 	* Performs the actual comparison of objects.

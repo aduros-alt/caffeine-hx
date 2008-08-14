@@ -15,12 +15,14 @@
 
 package memedb.backend;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.io.Writer;
 // import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -72,8 +74,12 @@ public class FileSystemBackend implements Backend {
 	public FileSystemBackend() {
 	}
 
-	private File dbDir(String db) {
+	private final File dbDir(String db) {
 		return new File(rootDir, db);
+	}
+	
+	private final File dataFile(String db) {
+		return new File(rootDir, db + ".dat");
 	}
 
 	private String subDir(String idEnc) {
@@ -194,6 +200,19 @@ public class FileSystemBackend implements Backend {
 		};
 	}
 
+	public Long getDatabaseCreationSequenceNumber(String db) {
+		File dataFile = dataFile(db);
+		if(!dataFile.exists())
+			return null;
+		try {
+			RandomAccessFile r = new RandomAccessFile(dataFile, "r");
+			long rv = r.readLong();
+			return new Long(rv);
+		} catch(IOException e) {
+		}
+		return null;
+	}
+	
 	public Set<String> getDatabaseNames() {
 		Set<String> dbs = new HashSet<String>();
 
@@ -276,15 +295,27 @@ public class FileSystemBackend implements Backend {
 	}
 
 	public long addDatabase(String name) throws BackendException {
-		File dir = new File(rootDir, name);
+		File dir = dbDir(name);
 		if (dir.exists()) {
 			log.error("Database dir '{}' already exists!",name);
 			throw new BackendException("The database " + name
 					+ " already exists");
 		}
 		log.debug("Adding database: {}",name);
-		long rv = memeDB.getState().addDatabase(name);
 		dir.mkdir();
+		File infoFile = dataFile(name);
+		RandomAccessFile dbInfo = null;
+		try {
+			dbInfo = new RandomAccessFile(infoFile, "rws");
+		} catch(Exception e) {
+			dir.delete();
+			throw new BackendException("Error creating database info file: " + e.getMessage());
+		}
+		long rv = memeDB.getState().addDatabase(name);
+		try {
+			dbInfo.writeLong(rv);
+			dbInfo.close();
+		} catch(IOException e) {}
 		return rv;
 	}
 

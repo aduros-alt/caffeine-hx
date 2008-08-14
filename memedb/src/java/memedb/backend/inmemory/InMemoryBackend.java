@@ -143,6 +143,7 @@ public class InMemoryBackend implements Backend {
 	public Iterable<Document> allDocuments(final  String db) {
 		return getDocuments(db,null);
 	}
+		
 	public Iterable<Document> getDocuments(final  String db, final String[] ids) {
 		if (!dbs.containsKey(db)) {
 			return null;
@@ -197,6 +198,13 @@ public class InMemoryBackend implements Backend {
 			}};
 	}
 
+	public Long getDatabaseCreationSequenceNumber(String db) {
+		InMemoryDB d = dbs.get(db);
+		if(d == null)
+			return null;
+		return d.getDatabaseCreationSequenceNumber();
+	}
+		
 	public Set<String> getDatabaseNames(Credentials credentials) {
 		return dbs.keySet();
 	}
@@ -231,7 +239,7 @@ public class InMemoryBackend implements Backend {
 	public long addDatabase(String name) throws BackendException{
 		if (!dbs.containsKey(name)) {
 			long rv = memeDB.getState().addDatabase(name);
-			dbs.put(name, new InMemoryDB(name, this));
+			dbs.put(name, new InMemoryDB(name, this, rv));
 			return rv;
 		} else {
 			throw new BackendException("The database '"+name+"' already exists");

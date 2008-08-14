@@ -190,7 +190,7 @@ public class MemeDBHandler extends AbstractHandler {
 		if (request.getRequestURI().equals("/_auth")) {
 			String username = request.getParameter("username");
 			String password = request.getParameter("password");
-			log.warn("login attempt for {}", username);
+			log.debug("login attempt for {}", username);
 			if (!allowAnonymous && "anonymous".equals(username)) {
 				sendNoAuthError(response, "Bad username / password combination");
 				return null;

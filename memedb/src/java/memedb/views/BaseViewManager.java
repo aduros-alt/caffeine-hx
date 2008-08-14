@@ -407,7 +407,7 @@ abstract public class BaseViewManager extends ViewManager {
 		} catch (ClassNotFoundException e) {
 			throw new ViewException(e);
 		} catch (Exception e) {
-			log.warn("Instance load exception for {} : {}", objSer.getPath(), e);
+			log.info("Creating new viewresults. Instance load exception for {} : {}", objSer.getPath(), e);
 			vr = vrTmp;
 		} finally {
 			if (ois!=null) {
@@ -424,7 +424,7 @@ abstract public class BaseViewManager extends ViewManager {
 	}
 
 
-
+/*
 	// still abstract
 	abstract protected void addView(String db, String docId, String functionName, View instance) throws ViewException;
 	abstract public boolean doesViewExist(String db, String view, String function);
@@ -435,5 +435,5 @@ abstract public class BaseViewManager extends ViewManager {
 	abstract public void recalculateDocument(Document doc);
 	abstract public void deletingDocument(String db, String id, long seqNo);
 	abstract public void shutdown();
-
+*/
 }

@@ -38,12 +38,11 @@ public class GetDBStats extends BaseRequestHandler {
 
 	public void handleInner(Credentials credentials, HttpServletRequest request, HttpServletResponse response, String db, String id, String rev) throws IOException 
 	{
-		if(!credentials.canSeeDbStats(db)) {
-			this.sendNotAuth(response);
-			return;
-		}
 		if( memeDB.getBackend().doesDatabaseExist(db) ) {
 			Map<String,Object> m = memeDB.getBackend().getDatabaseStats(db);
+			if(!credentials.canSeeDbStats(db)) {
+				m.remove("doc_count");
+			}
 			sendJSONString(response, new JSONObject(m));
 		}
 		else {

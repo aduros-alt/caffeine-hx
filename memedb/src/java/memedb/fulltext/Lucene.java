@@ -130,7 +130,8 @@ public class Lucene extends FulltextEngine {
 	{
 		if(luceneDoc == null)
 			return;
-		log.debug("onFulltextResult : {} luceneDoc {}", doc.getDatabase(), luceneDoc.toString());
+//		log.debug("onFulltextResult : {} luceneDoc {}", doc.getDatabase(), luceneDoc.toString());
+		log.debug("onFulltextResult : {}", doc.getDatabase());
 		String db = doc.getDatabase();
 		IndexWriter writer = writers.get(db);
 		if(writer == null) {

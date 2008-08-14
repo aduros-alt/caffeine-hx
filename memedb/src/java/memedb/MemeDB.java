@@ -239,7 +239,7 @@ public class MemeDB {
 	}
 
 	private void internalShutdown() {
-		log.info("Shutting down engine");
+		log.warn("Shutting down engine");
 		try {
 			if (httpd!=null) {
 				httpd.shutdown();
@@ -279,7 +279,7 @@ public class MemeDB {
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
-		log.info("Shutdown complete");
+		log.warn("Shutdown complete");
 	}
 
 	public static void main(String[] args) {

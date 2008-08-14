@@ -22,12 +22,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.Deque;
 import java.util.List;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Iterator;
-import java.util.concurrent.ConcurrentHashMap;
 // import java.util.concurrent.atomic.AtomicLong;
 import javax.servlet.http.HttpServletResponse;
 
@@ -156,9 +152,29 @@ public class AdvancedViewManager extends BaseViewManager {
 			response.setStatus(200);
 			response.setContentType(TEXT_PLAIN_MIMETYPE);
 			if(!v.hasReduce() || "true".equals(options.get("skip_reduce"))) {
-				writer.write("{ \"ok\": true, \"rows\": [");
-				count = vr.writeRows(response.getWriter(), options);
-				writer.write("], \"total_rows\": " + count + "}");
+				boolean ok = true;
+				String errmsg = null;
+				String errreason = null;
+				writer.write("{\"rows\": [");
+				try {
+					count = vr.writeRows(response.getWriter(), options);
+				} catch(java.lang.IllegalArgumentException e) {
+					ok = false;
+					errmsg = "bad_keys";
+					errreason = "Start and end keys may be reversed?";
+				} catch(Exception e) {
+					ok = false;
+					errmsg = "unknown";
+					errreason = e.getMessage();
+				}
+				writer.write("], \"total_rows\": " + count);
+				if(ok == false) {
+					writer.write(", \"ok\": false, \"error\": \""+errmsg+"\", \"reason\":\""+errreason+"\"");
+				}
+				else {
+					writer.write(", \"ok\": true");
+				}
+				writer.write("}");
 			}
 			else {
 				JSONObject o = new JSONObject();
@@ -169,7 +185,8 @@ public class AdvancedViewManager extends BaseViewManager {
 			}
 		} catch (IOException e) {
 			log.error(e);
-		} 
+		}
+		log.debug("{} rows returned in view result", count);
 	}
 	
 	/* (non-Javadoc)
@@ -276,6 +293,7 @@ public class AdvancedViewManager extends BaseViewManager {
 					ViewResults vr = getResultEntry(db, docName, functionName);
 					if(view == null) continue;
 					File viewDir = new File(viewDir(db,docName), functionName);
+					log.info("... saving state for view {}/{}/{}", db, docName, functionName);
 					vr.shutdown();
 					try {
 						writeViewObject(viewDir, view);

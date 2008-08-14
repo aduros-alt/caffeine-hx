@@ -39,7 +39,7 @@ public class GetDatabaseNames extends BaseRequestHandler {
 		Set<String> dbs = memeDB.getBackend().getDatabaseNames();
 		JSONArray ar = new JSONArray();
 		for (String d:dbs) {
-			if (!d.startsWith("_")) {
+			if (!d.startsWith("_") && credentials.canSeeDbStats(d)) {
 				ar.put(d);
 			}
 		}

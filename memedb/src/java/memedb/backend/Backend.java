@@ -29,6 +29,10 @@ public interface Backend {
 	public void init(MemeDB memeDB);
 	public void shutdown();
 
+	/**
+	 * Returns a set of the names of all databases
+	 * @return Set of database names
+	 */
 	public Set<String> getDatabaseNames();
 
 	/**
@@ -57,15 +61,50 @@ public interface Backend {
 	public long deleteDatabase(String name) throws BackendException;
 
 	/**
-	* Before actually deleting a database document, the backend must
-	* call DBState.deleteDocument().
-	*/
+	 * Before actually deleting a database document, the backend must call 
+	 * DBState.deleteDocument().
+	 * @param db Database name
+	 * @param id Document id
+	 * @throws memedb.backend.BackendException
+	 */
 	public void deleteDocument(String db,String id) throws BackendException;
 
+	/**
+	 * Returns true if the database exists
+	 * @param db Database name
+	 * @return true if database exists
+	 */
 	public boolean doesDatabaseExist(String db);
+	
+	/**
+	 * Returns true if the document exists in the specified database
+	 * @param db Database name
+	 * @param id Document id
+	 * @return true if document exists
+	 */
 	public boolean doesDocumentExist(String db, String id);
+	
+	/**
+	 * Returns true if the document exists and has the specified revision 
+	 * @param db Database name
+	 * @param id Document id
+	 * @param revision Revision id
+	 * @return true if db/document/revision exists
+	 */
 	public boolean doesDocumentRevisionExist(String db, String id, String revision);
 
+	/**
+	 * Returns the sequence number when the database was created
+	 * @param db Database name
+	 * @return sequence number or null if not available
+	 */
+	public Long getDatabaseCreationSequenceNumber(String db);
+	
+	/**
+	 * Returns information about the database
+	 * @param name Database name
+	 * @return Map of keys to values
+	 */
 	public Map<String,Object> getDatabaseStats(String name);
 
 	/**
@@ -73,8 +112,21 @@ public interface Backend {
 	*/
 	public Iterable<Document> getDocuments(String db, String[] ids);
 
+	/**
+	 * Retrieves the latest revision of the document by id
+	 * @param db Database name
+	 * @param id Document id
+	 * @return document from database or null
+	 */
 	public Document getDocument(String db,String id);
 	public Document getDocument(String db,String id, String rev);
+	
+	/**
+	 * Returns a JSONArray of all current revisions for a document
+	 * @param db Database name
+	 * @param id Document id
+	 * @return JSONArray of revision ids
+	 */
 	public JSONArray getDocumentRevisions(String db,String id);
 
 	/**

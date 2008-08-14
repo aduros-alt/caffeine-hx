@@ -15,13 +15,12 @@
 
 package memedb.views;
 
-import java.io.Serializable;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Map;
@@ -180,7 +179,7 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 			}
 		}
 	}
-
+	
 	protected final static String PATH_PROPERTY		= "viewresults.inmemory.path";
 	protected final static String VIEW_RESULTS_NAME = "view.res";
 
@@ -188,6 +187,7 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 	protected ConcurrentHashMap<String,ArrayList<JSONObject>>
 		idMap = new ConcurrentHashMap<String,ArrayList<JSONObject>>();
 
+	/*
 	// key -> ListSet[ JSON Data] results for each key
 	private ConcurrentSkipListMap<Object, CopyOnWriteArrayList<JSONObject>>
 		keyMap = new ConcurrentSkipListMap<Object, CopyOnWriteArrayList<JSONObject>>(new Collate());
@@ -195,6 +195,9 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 	// key -> Reduce result Object
 	private ConcurrentSkipListMap<Object, Object>
 		reduceMap = new ConcurrentSkipListMap<Object, Object>(new Collate());
+	*/
+	private ConcurrentSkipListMap<Object, KeyValueEntries>
+		veMap = new ConcurrentSkipListMap<Object, KeyValueEntries>(new Collate());
 
 	// the highest sequence number yet indexed
 	private long currentSequenceNumber;
@@ -297,8 +300,8 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 
 	public List<JSONObject> all() {
 		ArrayList<JSONObject> rv = new ArrayList<JSONObject>();
-		for(Object key: keyMap.keySet()) {
-			rv.addAll(keyMap.get(key));
+		for(KeyValueEntries kve: veMap.values()) {
+			rv.addAll(kve.getAll());
 		}
 		return rv;
 	}
@@ -326,8 +329,9 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 		try {
 			synchronized(this) {
 				idMap.clear();
-				keyMap.clear();
-				reduceMap.clear();
+				for(KeyValueEntries kve: veMap.values()) {
+					kve.clear();
+				}
 				currentSequenceNumber = -1;
 			}
 		} finally {
@@ -337,8 +341,9 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 
 	public void clearFromUpdater() {
 		idMap.clear();
-		keyMap.clear();
-		reduceMap.clear();
+		for(KeyValueEntries kve: veMap.values()) {
+			kve.clear();
+		}
 	}
 
 	public long getCurrentSequenceNumber() {
@@ -376,6 +381,18 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 		}
 		shutdown = false;
 		destroy = false;
+		for(Object key: veMap.keySet()) {
+			KeyValueEntries kve = veMap.get(key);
+			kve.init(view);
+		}
+		if(currentSequenceNumber == -1) {
+			Long v = memeDB.getBackend().getDatabaseCreationSequenceNumber(db);
+			if(v != null) {
+				currentSequenceNumber = v.longValue();
+				if(currentSequenceNumber < 0)
+					currentSequenceNumber = -1;
+			}
+		}
 		log.info("{} Initialized at seq {} {}", id, currentSequenceNumber, view.getMapSrc());
 	}
 
@@ -394,7 +411,7 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 	 * @param options View options like startkey, endkey etc.
 	 * @return
 	 */
-	protected ConcurrentNavigableMap<Object,CopyOnWriteArrayList<JSONObject>>
+	protected ConcurrentNavigableMap<Object, KeyValueEntries>
 			makeKeySet(Map<String,String> options)
 	{
 		Object key = makeKeyMapKey("key", options);
@@ -403,64 +420,57 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 		boolean startInclusive = "false".equals(options.get("startkey_inclusive")) ? false : true;
 		boolean endInclusive = "false".equals(options.get("endkey_inclusive")) ? false : true;
 
-		ConcurrentNavigableMap<Object,CopyOnWriteArrayList<JSONObject>>
-			sm = keyMap;
+		ConcurrentNavigableMap<Object, KeyValueEntries>
+			sm = veMap;
 
 		if(key != null) {
 			startkey = key;
 			endkey = key;
 			startInclusive = true;
 			endInclusive = true;
-			sm = keyMap.subMap(startkey, startInclusive, endkey, endInclusive);
+			sm = veMap.subMap(startkey, startInclusive, endkey, endInclusive);
 		}
 		else {
 			if(startkey != null) {
 				if(endkey != null) {
-					sm = keyMap.subMap(startkey, startInclusive, endkey, endInclusive);
+					sm = veMap.subMap(startkey, startInclusive, endkey, endInclusive);
 				} else {
-					sm = keyMap.tailMap(startkey, startInclusive);
+					sm = veMap.tailMap(startkey, startInclusive);
 				}
 			}
 			else if(endkey != null) {
-				sm = keyMap.headMap(endkey, endInclusive);
+				sm = veMap.headMap(endkey, endInclusive);
 			}
 		}
 		return sm;
 	}
 
 	public Object reduce(Map<String,String> options) throws ViewException {
-		ConcurrentNavigableMap<Object,CopyOnWriteArrayList<JSONObject>>
-			sm = makeKeySet(options);
 //		log.debug("reduce {} keySet: {}", options, sm.keySet());
 		if(this.reduce_src == null)
 			throw new ViewException("No reduce function");
+		ConcurrentNavigableMap<Object,KeyValueEntries>
+			sm = makeKeySet(options);
 		Object res = null;
 		JSONArray ja = new JSONArray();
 		synchronized(this) {
-			for(Object key: sm.keySet()) {
+			for(KeyValueEntries kve: sm.values()) {
+				Object rmv = kve.reduced();
 				try {
-					Object rmv = reduceMap.get(key);
-					if(rmv == null) {
-						log.debug("Rebuilding reduceMap for key {}", key);
-						CopyOnWriteArrayList<JSONObject> joa = keyMap.get(key);
-						if(joa == null)
-							continue;
-						rmv = view.reduce(new JSONArray(joa));
-						reduceMap.put(key, rmv);
-//						log.debug("REDUCE RESULT FOR KEY {} SET {} : {}", key, joa, reduceMap.get(key));
+					if(rmv != null) {
+						JSONObject o = new JSONObject();
+						o.put("key", JSONObject.NULL);
+						o.put("value", rmv);
+						ja.put(o);
 					}
-					JSONObject o = new JSONObject();
-					o.put("key", JSONObject.NULL);
-					o.put("value", reduceMap.get(key));
-					ja.put(o);
-				} catch(JSONException e) {
+				}
+				catch(JSONException e) {
 					log.warn("Error making reduce object {}", e);
 				}
 			}
 		}
 		res = view.reduce(ja);
-//		log.debug("FINAL RESULT: {}", res);
-//		log.debug("CURRENT reduceMap {}", reduceMap);
+		log.debug("FINAL RESULT: {}", res);
 		return res;
 	}
 		
@@ -481,20 +491,19 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 					continue;
 				}
 
-				reduceMap.remove(key);
-				CopyOnWriteArrayList<JSONObject> set = keyMap.get(key);
-				if(set == null) {
-					log.warn("keyMap had no entry for key {}", key);
+				KeyValueEntries kve = veMap.get(key);
+				if(kve == null) {
+					log.warn("veMap had no entry for key {}", key);
 					continue;
 				}
-				set.remove(o);
-				if(set.size() == 0)
-					keyMap.remove(key);
+				kve.remove(o);
+				if(kve.length() == 0) {
+					veMap.remove(key);
+				}
 			}
 		}
 //		log.debug("idMap {}", idMap);
-//		log.debug("keyMap {}", keyMap);
-//		log.debug("reduceMap {}", reduceMap);
+//		log.debug("veMap {}", veMap);
 	}
 
 	public void removeResult(String id, long seqNo) {
@@ -611,26 +620,22 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 		ArrayListExp<JSONObject> rv = new ArrayListExp<JSONObject>();
 		if(count != null && count.longValue() == 0)
 			return rv;
-		ConcurrentNavigableMap<Object,CopyOnWriteArrayList<JSONObject>>
+		ConcurrentNavigableMap<Object,KeyValueEntries>
 			sm = makeKeySet(options);
 
 		boolean descending = "true".equals(options.get("descending"));
 		if(descending)
 			sm = sm.descendingMap();
 
-		for(Object key: sm.keySet()) {
-			CopyOnWriteArrayList<JSONObject> ar = keyMap.get(key);
+		for(KeyValueEntries kve: sm.values()) {
+			ArrayList<JSONObject> ar = kve.getAll();
 			if(descending) {
 				for(int i=ar.size() - 1; i >= 0; i--) {
 					JSONObject j = ar.get(i);
 					if(j == null)
 						continue;
-					JSONObject o = new JSONObject();
 					try {
-						o.put("key", j.get("key"));
-						o.put("value", j.get("value"));
-						o.put("id", j.get("id"));
-						rv.add(o);
+						rv.add(j);
 					} catch(JSONException e) {}
 				}
 			}
@@ -639,12 +644,8 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 					JSONObject j = ar.get(i);
 					if(j == null)
 						continue;
-					JSONObject o = new JSONObject();
 					try {
-						o.put("key", j.get("key"));
-						o.put("value", j.get("value"));
-						o.put("id", j.get("id"));
-						rv.add(o);
+						rv.add(j);
 					} catch(JSONException e) {}
 				}
 			}
@@ -677,7 +678,7 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 		ArrayListExp<JSONObject> rv = new ArrayListExp<JSONObject>();
 		if(count != null && count.longValue() == 0)
 			return 0;
-		ConcurrentNavigableMap<Object,CopyOnWriteArrayList<JSONObject>>
+		ConcurrentNavigableMap<Object,KeyValueEntries>
 			sm = makeKeySet(options);
 
 		boolean descending = "true".equals(options.get("descending"));
@@ -696,8 +697,8 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 			start = 0;
 		if(start >= end)
 			return 0;
-		for(Object key: sm.keySet()) {
-			CopyOnWriteArrayList<JSONObject> ar = keyMap.get(key);
+		for(KeyValueEntries kve: sm.values()) {
+			ArrayList<JSONObject> ar = kve.getAll();
 			if(descending) {
 				for(int i=ar.size() - 1; i >= 0; i--) {
 					if(pos >= end)
@@ -764,10 +765,7 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 				}
 				break;
 			}
-			/*
-			 * 	protected ConcurrentHashMap<String,ArrayList<JSONObject>> idMap =
-			new ConcurrentHashMap<String,ArrayList<JSONObject>>();
-			 */
+
 			Document doc = mre.doc;
 			String docId = doc.getId();
 			this.removeResult(docId);
@@ -785,26 +783,28 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 				log.debug("\tResult for view {} {}", id, view.getMapSrc());
 			for(int i=0; i<ja.length(); i++) {
 				try {
-					JSONArray kv = ja.getJSONArray(i);
+					// results from mapper are
+					// [[key,value],[key,value],[key,value]...]
+					JSONArray kva = ja.getJSONArray(i);
 					Object key = null;
 					try {
-						key = kv.get(0);
+						key = kva.get(0);
 						o = new JSONObject();
-						o.put("id", docId);
 						o.put("key", key);
-						o.put("value", kv.get(1));
+						o.put("value", kva.get(1));
 					} catch( JSONException e ) {
 						log.debug("JSON error {}", e);
 						continue;
 					}
 					idList.add(o);
 
-					CopyOnWriteArrayList<JSONObject> newArray =
-						new CopyOnWriteArrayList<JSONObject>();
-					CopyOnWriteArrayList<JSONObject> set =
-						keyMap.putIfAbsent(key, newArray);
-					if(set == null)
-						set = newArray;
+					KeyValueEntries newKVE =
+						new KeyValueEntries(key, view);
+					KeyValueEntries set =
+						veMap.putIfAbsent(key, newKVE);
+					if(set == null) {
+						set = newKVE;
+					}
 					set.add(o);				
 					if(doc.getSequence() > currentSequenceNumber)
 						currentSequenceNumber = doc.getSequence();
@@ -814,11 +814,9 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 				}
 			}
 			expectedResults.remove(new Long(mre.seqNo));
-
 		}
 //		log.debug("VIEWRESULTS idMap {}", idMap);
-//		log.debug("VIEWRESULTS keyMap {}", keyMap);
-//		log.debug("VIEWRESULTS reduceMap {}", reduceMap);
+//		log.debug("VIEWRESULTS veMap {}", veMap);
 	}
 
 

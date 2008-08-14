@@ -160,7 +160,7 @@ public class JavaScriptView implements View {
 				json = (String) engine.eval("_MemeDB_retval.toJSONString();");
 			}
 		} catch (ScriptException e) {
-			e.printStackTrace();
+			log.info("JavaScriptView error while executing map {}", e);
 		} catch (NoSuchMethodException e) {
 			e.printStackTrace();
 		} catch (JSONException e) {
@@ -217,7 +217,7 @@ public class JavaScriptView implements View {
 			}
 
 		} catch (ScriptException e) {
-			e.printStackTrace();
+			log.info("JavaScriptView error while executing reduce {}", e);
 		} catch (NoSuchMethodException e) {
 			e.printStackTrace();
 		} catch (JSONException e) {

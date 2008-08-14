@@ -34,38 +34,43 @@ import memedb.views.ViewManager;
 public class GetView extends BaseRequestHandler {
 
 	@SuppressWarnings("unchecked")
-	public void handleInner(Credentials credentials, HttpServletRequest request, HttpServletResponse response, String db, String id, String rev/*, String[] fields*/) throws IOException{
-		String viewName = id.substring(6);
+	public void handleInner(Credentials credentials, HttpServletRequest request, HttpServletResponse response, String db, String id, String rev/*, String[] fields*/) throws IOException
+	{
+		// chop off _view/
+		String fullViewPath = id.substring(6);
+		String viewName = null;
 		String functionName = null;
+		
+		int idx = fullViewPath.lastIndexOf("/");
+		if (idx>-1) {
+			viewName = fullViewPath.substring(0,idx);
+			functionName = fullViewPath.substring(idx+1);
+		} else {
+			viewName = fullViewPath;
+		}
+		
 		if(!credentials.canRunView(db,viewName)) {
 			this.sendNotAuth(response);
 			return;
 		}
-
-		int idx = viewName.lastIndexOf("/");
-		if (idx>-1) {
-			functionName = viewName.substring(idx+1);
-			viewName = viewName.substring(0,idx);
-		}
-		if(functionName == null && memeDB.getViewManager().doesViewExist(db, viewName,ViewManager.DEFAULT_FUNCTION_NAME)) {
-			functionName=ViewManager.DEFAULT_FUNCTION_NAME;
-		}
-		else {
-			JSONObject status = new JSONObject();
-			status.put("db",db);
-			status.put("view",viewName);
-			status.put("function",functionName);
-			sendError(response, "View not found",status,HttpServletResponse.SC_NOT_FOUND);
-			return;
+		
+		if(functionName == null) {
+			if(memeDB.getViewManager().doesViewExist(db, viewName,ViewManager.DEFAULT_FUNCTION_NAME)) {
+				functionName=ViewManager.DEFAULT_FUNCTION_NAME;
+			}
+			else {
+				JSONObject status = new JSONObject();
+				status.put("db",db);
+				status.put("view",viewName);
+				status.put("function",functionName);
+				sendError(response, "View not found",status,HttpServletResponse.SC_NOT_FOUND);
+				return;
+			}
 		}
 
 		try {
+			log.debug("Fetching {}/{} with options {}", viewName, functionName, makeViewOptions(request.getParameterMap()));
 //			boolean pretty="true".equals(request.getParameter("pretty"));
-//			if (pretty) {
-//				sendJSONString(response, memeDB.getViewManager().getViewResults(db, viewName, functionName,makeViewOptions(request.getParameterMap())));
-//			} else {
-//				sendJSONString(response, memeDB.getViewManager().getViewResults(db, viewName, functionName,makeViewOptions(request.getParameterMap())).toString());
-//			}
 			memeDB.getViewManager().getViewResults(response, db, viewName, functionName, makeViewOptions(request.getParameterMap()));
 		} catch(ViewException e) {
 			JSONObject status = new JSONObject();

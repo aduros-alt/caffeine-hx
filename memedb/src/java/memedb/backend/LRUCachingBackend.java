@@ -163,6 +163,10 @@ public class LRUCachingBackend implements Backend {
 		return backend.doesDocumentRevisionExist(db, id,revision);
 	}
 
+	public Long getDatabaseCreationSequenceNumber(String db) {
+		return backend.getDatabaseCreationSequenceNumber(db);
+	}
+		
 	public Set<String> getDatabaseNames(){
 		return databaseNames;
 	}
