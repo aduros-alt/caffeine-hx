@@ -1,0 +1,4 @@
+-main MemeHammer
+-cp ../../
+-debug
+-neko test.n

@@ -1,0 +1,9 @@
+-main MemeTest
+-cp ../../
+-debug
+-neko test.n
+
+--next
+-main Web
+-cp ../../
+-neko web.n

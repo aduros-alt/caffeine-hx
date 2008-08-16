@@ -1,0 +1,14 @@
+-main CreateStructure
+-cp ../../../
+-debug
+-neko create.n
+
+--next
+-main AddBook
+-cp ../../../
+-neko addbook.n
+
+--next
+-main WordCountQuery
+-cp ../../../
+-neko query.n
