@@ -276,7 +276,7 @@ class JsonObject {
 		var kp = k.split(".");
 		var o = data;
 		var lastO = data;
-		var key : String;
+		var key : String = null;
 		for(i in kp) {
 			lastO = o;
 			if(!Reflect.hasField(o, i))
