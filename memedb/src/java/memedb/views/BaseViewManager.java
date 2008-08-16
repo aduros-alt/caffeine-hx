@@ -179,8 +179,8 @@ abstract public class BaseViewManager extends ViewManager {
 					try {
 						if(doSleep)
 							Thread.sleep(1000);
-						//else
-						//	Thread.sleep(10);
+						else
+							Thread.yield();
 					} catch (InterruptedException e) {
 						stop = true;
 					}
