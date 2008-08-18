@@ -134,7 +134,12 @@
 		<java
 			classname="memedb.MemeDB"
 			classpathref="run.classpath"
-			fork="true">
+			fork="true"
+			maxmemory="2g">
+				<jvmarg value="-server" />
+				<jvmarg value="-Xms128m" />
+				<jvmarg value="-Xmx1g" />
+				<jvmarg value="-XX:+UseConcMarkSweepGC" />
 		</java>
 	</target>
 	<target name="run" depends="build" description="Run the MemeDB Server">

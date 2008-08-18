@@ -80,6 +80,18 @@ public class Block {
 		setDirty(true);
 	}
 	
+	/**
+	 * Copy the data portion of the block to the outbuf provided. Does not
+	 * affect the internal position pointer.
+	 * @param outbuf Destination buffer
+	 * @param offset destination buffer offset
+	 * @return length of data copied
+	 */
+	protected final int copyData(byte[] outbuf, int offset) {
+		System.arraycopy(buf, OFFSET_DATA, outbuf, offset, this.dataLen);
+        return dataLen;
+	}
+		
 	protected int decRefCount() {
 		return refCount.decrementAndGet();
 	}
@@ -105,6 +117,10 @@ public class Block {
 		return rv;
 	}
 	
+	protected int getDataLength() {
+		return this.dataLen;
+	}
+
 	protected long getNextOffset() {
 		return this.nextBlock;
 	}
@@ -181,7 +197,7 @@ public class Block {
 		pos += len;
         return len;
 	}
-
+	
 	protected final int write(byte[] inbuf, int offset, int len) throws IOException {
 		if(len + pos > this.blocksize)
 			throw new IOException();

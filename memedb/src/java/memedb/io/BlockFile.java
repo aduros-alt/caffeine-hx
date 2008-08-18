@@ -25,18 +25,15 @@ import java.util.ArrayList;
 import org.mortbay.jetty.EofException;
 
 /**
- *
+ * A filesystem like random access file with configurable block sizes from 
+ * a minimum of 64 bytes. 
  * @author Russell Weir
  */
 public class BlockFile {
 
-	final private RandomAccessFile file;
+	private RandomAccessFile file;
 	final protected int dataBytesPerBlock;
-		
-
-	
-	private boolean readOnly;
-	private ObjectOutputStream oos;
+	final private boolean readOnly;
 	private Object lock = new Object();
 
 	// root block
@@ -45,7 +42,8 @@ public class BlockFile {
 	private int minor = 0;
 	private int blocksize;
 	private long lastBlock = 0;
-	private long freeBlockList;
+	private long freeBlockIndexOffset;
+	private long userPointer = 0;
 		
 	// root block entries
 	final private static int OFFSET_MAGIC = 0;
@@ -54,43 +52,73 @@ public class BlockFile {
 	final private static int OFFSET_BLOCKSIZE = 6;
 	final private static int OFFSET_LASTBLOCK = 10;
 	final private static int OFFSET_FREEBLOCKS = 18;
+	final private static int OFFSET_USERPTR = 24;
 	
 	private FreeBlockIndex freeBlockIndex;
 	
-	public BlockFile(File path, String mode, int blocksize, boolean createIfAbsent) 
+	/**
+	 * Opens an existing BlockFile with read or read/write mode
+	 * @param path Path to file
+	 * @param "r" for read-only, "rw" or "w" for read/write
+	 * @throws java.io.UnsupportedEncodingException
+	 * @throws java.io.StreamCorruptedException
+	 * @throws java.io.IOException
+	 */
+	public BlockFile(File path, String mode) 
 			throws UnsupportedEncodingException, StreamCorruptedException, IOException
 	{
-		this.blocksize = blocksize;
 		this.readOnly = mode.equalsIgnoreCase("r");
+		initialize(path);
 		this.dataBytesPerBlock = blocksize - Block.OFFSET_DATA;
+	}
+	
+	/**
+	 * Creates a new BlockFile. If an existing file exists, it will be 
+	 * opened in read/write mode and the blocksize checked.
+	 * @param path Path to file
+	 * @param blocksize Bytes per block
+	 * @throws java.io.UnsupportedEncodingException
+	 * @throws java.io.StreamCorruptedException
+	 * @throws java.io.IOException
+	 */
+	public BlockFile(File path, int blocksize) 
+			throws UnsupportedEncodingException, StreamCorruptedException, IOException
+	{
+		if(blocksize < 64) {
+			throw new UnsupportedEncodingException("Blocksize must be >= 64 bytes");
+		}
+		this.blocksize = blocksize;
+		this.readOnly = false;
 		if(!path.exists()) {
-			if(readOnly || !createIfAbsent)
-				throw new IOException();
 			file = new RandomAccessFile(path, "rws");
 			file.setLength(blocksize * 2);
 			// init free block index
 			freeBlockIndex = FreeBlockIndex.create(0, this, this.blocksize);
 			this.updateLastBlock(blocksize * 2);
 			this.writeRootBlock();
+			file.close();
 		}
-		else {
-			if(readOnly)
-				file = new RandomAccessFile(path, "r");
-			else
-				file = new RandomAccessFile(path, "rw");
+		initialize(path);
+		if(this.blocksize != blocksize) {
+			throw new StreamCorruptedException("Provided blocksize does not match existing file");
 		}
-		
+		this.dataBytesPerBlock = blocksize - Block.OFFSET_DATA;
+	}
+	
+	private void initialize(File path) throws IOException {
+		if(readOnly)
+			file = new RandomAccessFile(path, "r");
+		else
+			file = new RandomAccessFile(path, "rw");
 		readRootBlock();
 		if(magic != 0xC0FFEE)
-			throw new UnsupportedEncodingException();
+			throw new UnsupportedEncodingException("Bad magic number");
 
 		if(lastBlock + blocksize != file.length()) 
 			throw new StreamCorruptedException();
-
-		if(freeBlockIndex == null)
-			freeBlockIndex = new FreeBlockIndex(this, this.blocksize);
-		//this.oos = new ObjectOutputStream(s);
-		
+		freeBlockIndex = new FreeBlockIndex(this, freeBlockIndexOffset);
+		if(blocksize < 64)
+			throw new UnsupportedEncodingException("Blocksize must be >= 64 bytes");
 	}
 
 	protected Block allocBlock() throws IOException {
@@ -104,6 +132,11 @@ public class BlockFile {
 		}
 	}
 	
+	/**
+	 * Takes an array of ordered blocks and chains their pointers to the
+	 * next in line, leaving the last block with a pointer of 0
+	 * @param ba Array of aloocated or loaded blocks
+	 */
 	protected void chainBlocks(Block[] ba) {
 		for(int x = 0; x < ba.length - 1; x++) {
 			ba[x].setNextBlock(ba[x+1]);
@@ -168,6 +201,34 @@ public class BlockFile {
 		return blocksize;
 	}
 	
+	/**
+	 * Returns the user pointer data file offset. This is the file offset set
+	 * by setUserPointer()
+	 * @return long file offset
+	 * @throws java.io.IOException on any IO error or pointer not initialized
+	 * @see setUserPointer()
+	 */
+	public long getUserPointer() throws IOException {
+		if(this.userPointer < 2 * this.blocksize)
+			throw new IOException("Not initialized");
+		return this.userPointer;
+	}
+	
+	public byte[] read(long fileOffset) throws IOException {
+		Block[] ba = getBlocks(fileOffset);
+		int totalLen = 0;
+		for(Block b: ba) {
+			totalLen += b.getDataLength();
+		}
+		byte[] rv = new byte[totalLen];
+		int pos = 0;
+		for(Block b: ba) {
+			int written = b.copyData(rv, pos);
+			pos += written;
+		}
+		return rv;
+	}
+	
 	protected void readRaw(long fileOffset, byte[] dst) throws IOException {
 		if(dst.length != this.blocksize)
 			throw new IOException("Buffer size mismatch");
@@ -204,12 +265,36 @@ public class BlockFile {
 		chainBlocks(ba);
 		return ba;
 	}
+	
+	/**
+	 * Sets a root block entry in the file to an arbitrary long value. This
+	 * is usually used to set the first data offset in the file, and must
+	 * be >= 2 * blocksize to be valid.
+	 * @param fileOffset long value
+	 * @throws java.io.IOException
+	 */
+	public void setUserPointer(long fileOffset) throws IOException {
+		synchronized(lock) {
+			if(fileOffset != this.userPointer) {
+				this.userPointer = fileOffset;
+				file.seek(OFFSET_USERPTR);
+				file.writeLong(fileOffset);
+			}
+		}
+	}
 		
+	/**
+	 * Updates the last allocated block pointer
+	 * @param off File offset of last block
+	 * @throws java.io.IOException
+	 */
 	private void updateLastBlock(long off) throws IOException {
 		if(off > lastBlock) {
 			lastBlock = off;
-			file.seek(OFFSET_LASTBLOCK);
-			file.writeLong(off);
+			synchronized(lock) {
+				file.seek(OFFSET_LASTBLOCK);
+				file.writeLong(off);
+			}
 		}
 	}
 
@@ -229,7 +314,21 @@ public class BlockFile {
 		return ba[0].getOffset();
 	}
 	
+	/**
+	 * Write a byte buffer to a specific file offset. If data already exists
+	 * at the file offset, it is overwritten and blocks are either allocated
+	 * or freed to match the length of the data written
+	 * @param fileOffset multiple of blocksize
+	 * @param src Input buffer
+	 * @param srcPos Position in input buffer to start copy
+	 * @param len Number of bytes to copy to file
+	 * @return File offset
+	 * @throws java.io.IOException
+	 */
 	public long write(long fileOffset, byte[] src, int srcPos, int len) throws IOException {
+		if(fileOffset % this.blocksize != 0) {
+			throw new IOException("Invalid file offset");
+		}
 		int blockCount = (int)Math.ceil(((double)src.length) / ((double)dataBytesPerBlock));
 		Block[] ba = reallocBlocks(fileOffset, blockCount);
 		System.out.println("Bytes in buffer: "+ src.length + " blocks allocated : " + blockCount);
@@ -276,16 +375,20 @@ public class BlockFile {
 		minor = b.readByte();
 		blocksize = b.readInt();
 		lastBlock	= b.readLong();
-		freeBlockList = b.readLong();
+		freeBlockIndexOffset = b.readLong();
+		userPointer = b.readLong();
 	}
 
 	private void writeRootBlock() throws IOException {
-		file.seek(0);
-		file.writeInt(magic);
-		file.writeByte(major);
-		file.writeByte(minor);
-		file.writeInt(blocksize);
-		file.writeLong(lastBlock);
-		file.writeLong(freeBlockList);
+		synchronized(lock) {
+			file.seek(0);
+			file.writeInt(magic);
+			file.writeByte(major);
+			file.writeByte(minor);
+			file.writeInt(blocksize);
+			file.writeLong(lastBlock);
+			file.writeLong(freeBlockIndexOffset);
+			file.writeLong(userPointer);
+		}
 	}
 }
