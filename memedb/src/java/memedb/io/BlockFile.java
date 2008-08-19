@@ -144,6 +144,10 @@ public class BlockFile {
 		ba[ba.length - 1].setNextBlock(null);
 	}
 	
+	public void close() throws IOException {
+		file.close();
+	}
+	
 	protected void flushBlocks(Block[] ba) throws IOException {
 		synchronized(lock) {
 			for(Block b: ba) {
@@ -199,6 +203,14 @@ public class BlockFile {
 		
 	protected int getBlocksize() {
 		return blocksize;
+	}
+	
+	/**
+	 * Provides access to the file locking object for syncronization
+	 * @return lock Object
+	 */
+	public Object getLock() {
+		return this.lock;
 	}
 	
 	/**
