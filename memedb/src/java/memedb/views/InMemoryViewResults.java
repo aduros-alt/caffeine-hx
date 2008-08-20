@@ -311,7 +311,7 @@ public class InMemoryViewResults implements Serializable, ViewResults, MapResult
 		isAlive = false;
 		if(updater != null)
 			updater.interrupt();
-		lock.lock(); // never released. Deadlock, sure.
+		//lock.lock(); // never released. Deadlock, sure.
 		synchronized(this) {
 			try {
 				recursivelyDeleteFiles(baseDir);

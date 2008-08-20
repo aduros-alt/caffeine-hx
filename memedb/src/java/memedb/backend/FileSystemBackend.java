@@ -128,8 +128,9 @@ public class FileSystemBackend implements Backend {
 			if (f.isDirectory()) {
 				if (new File(f,"_common").exists()) {
 					log.debug("found _common file in {}",f.getAbsolutePath());
-					log.debug("adding id: {}",f.getName());
-					ids.add(f.getName());
+					String realId = FileUtils.fsDecode(f.getName());
+					log.debug("adding id: {}", realId);
+					ids.add(realId);
 				} else {
 					if (baseName!=null) {
 						findAllDocuments(ids,f,baseName+"/"+f.getName());
@@ -236,7 +237,7 @@ public class FileSystemBackend implements Backend {
 			File commonFile = new File(docDir, "_common");
 
 			if (!commonFile.exists()) {
-				//log.warn("Document _common file not found: {}/{}",db,id);
+				log.debug("Document _common file not found: {}/{} in {}",db,id,docDir.toString());
 				return null;
 			}
 
