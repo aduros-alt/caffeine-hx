@@ -173,7 +173,7 @@ public class Block {
 	 * then this block is the last in a chain.
 	 * @param b next Block
 	 */
-	protected void setNextBlock(Block b) throws IOException {
+	protected void setNextBlock(Block b) {
 		long orig = this.nextBlock;
 		if(b == null) {
 			this.nextBlock = 0;
@@ -255,7 +255,7 @@ public class Block {
 		pos += 1;
 	}
 	
-	private final void writeByteAt(int p, byte v) throws IOException {
+	private final void writeByteAt(int p, byte v) {
 		buf[p] = v;
 		setDirty(true);
 	}
@@ -283,7 +283,7 @@ public class Block {
 		pos += 4;
 	}
 	
-	private final void writeIntAt(int p, int v) throws IOException {
+	private final void writeIntAt(int p, int v) {
 		buf[p++] = (byte)(0xff & (v >> 24));
 		buf[p++] = (byte)(0xff & (v >> 16));
 		buf[p++] = (byte)(0xff & (v >>    8));
@@ -318,7 +318,7 @@ public class Block {
 		pos += 8;
 	}
 	
-	private final void writeLongAt(int p, long v) throws IOException {
+	private final void writeLongAt(int p, long v) {
 		buf[p++] = (byte)(0xff & (v >> 56));
 		buf[p++] = (byte)(0xff & (v >> 48));
 		buf[p++] = (byte)(0xff & (v >> 40));
