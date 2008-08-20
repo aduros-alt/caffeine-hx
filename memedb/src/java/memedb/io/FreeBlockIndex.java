@@ -134,6 +134,7 @@ public class FreeBlockIndex {
 			b.writeLong(lastOffset);
 			b.writeInt(0);
 			b.flush();
+			file.updateLastBlockIndex(fileOffset);
 			return new FreeBlockIndex(file, fileOffset);
 		}
 }

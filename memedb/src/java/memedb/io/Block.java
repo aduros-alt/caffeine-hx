@@ -99,7 +99,13 @@ public class Block {
 	protected void flush() throws IOException {
 		if(offset <= 0)
 			throw new RuntimeException("Offset not set.");
+		if(readIntAt(8) != dataLen) {
+			writeIntAt(8, dataLen);
+			dirty = true;
+		}
 		if(dirty) {
+			writeLongAt(0, this.nextBlock);
+			writeIntAt(8, this.dataLen);
 			file.writeRaw(offset, buf);
 			dirty = false;
 		}
@@ -144,8 +150,22 @@ public class Block {
 		return refCount.incrementAndGet();
 	}
 	
-	protected void setDirty(boolean v) {
+	protected final void setDirty(boolean v) {
 		dirty = v;
+	}
+	
+	/**
+	 * Commits the data length to the buffer
+	 * @throws java.io.IOException
+	 */
+	private void setDataLength(int v) throws IOException {
+		if(v >= this.blocksize - OFFSET_DATA)
+			throw new EOFException();
+		if(dataLen != v) {
+			this.dataLen = v;
+			this.writeIntAt(8, v);
+			this.setDirty(true);
+		}
 	}
 	
 	/**
@@ -153,14 +173,20 @@ public class Block {
 	 * then this block is the last in a chain.
 	 * @param b next Block
 	 */
-	protected void setNextBlock(Block b) {
+	protected void setNextBlock(Block b) throws IOException {
+		long orig = this.nextBlock;
 		if(b == null) {
 			this.nextBlock = 0;
 		}
 		else {
 			this.nextBlock = b.getOffset();
 		}
+		if(this.nextBlock != orig) {
+			this.writeLongAt(0, this.nextBlock);
+			this.setDirty(true);
+		}
 	}
+	
 	/**
 	 * Set the offset in the BlockFile for this block
 	 * @param off File offset
@@ -172,13 +198,18 @@ public class Block {
 		this.offset = off;
 	}
 	
-	private void updateDataLength(int p) throws EOFException {
-		if(p >= this.blocksize)
+	/**
+	 * Updates data length from the pos position pointer
+	 * @param pos Position pointer
+	 * @throws java.io.EOFException
+	 */
+	private void updateDataLength(int pos) throws IOException, EOFException {
+		if(pos >= this.blocksize)
 			throw new EOFException();
-		p -= OFFSET_DATA;
-		this.dataLen = Math.max(this.dataLen, p);
+		pos -= OFFSET_DATA;
+		this.setDataLength(Math.max(this.dataLen, pos));
 	}
-	
+
 	/////////// DATA ACCESS METHODS /////////////////////
 	protected void seek(int newPos) throws IOException {
 		if(newPos >= this.blocksize)
@@ -199,8 +230,6 @@ public class Block {
 	}
 	
 	protected final int write(byte[] inbuf, int offset, int len) throws IOException {
-		if(len + pos > this.blocksize)
-			throw new IOException();
 		updateDataLength(pos + len);
 		System.arraycopy(inbuf, offset, buf, pos, len);
 		pos += len;
@@ -208,55 +237,96 @@ public class Block {
 		return len;
 	}
 	
-	protected final byte readByte() {
+	protected final byte readByte() throws EOFException {
+		if(pos + 1 >= this.blocksize) {
+			pos = blocksize;
+			throw new EOFException();
+		}
 		return buf[pos++];
+	}
+	
+	protected final byte readByteAt(int p) {
+		return buf[p];
 	}
 
 	protected final void writeByte(byte v) throws IOException {
 		updateDataLength(pos + 1);
-		buf[pos++] = v;
+		this.writeByteAt(pos, v);
+		pos += 1;
+	}
+	
+	private final void writeByteAt(int p, byte v) throws IOException {
+		buf[p] = v;
 		setDirty(true);
 	}
 	
-	protected final int readInt() {
+	protected final int readInt() throws EOFException {
+		pos += 4;
+		if(pos >= this.blocksize) {
+			pos = this.blocksize;
+			throw new EOFException();
+		}
+		return readIntAt(pos - 4);
+	}
+	
+	private final int readIntAt(int p) {
 		return
-			((buf[pos++] & 0xff) << 24) +
-			((buf[pos++] & 0xff) << 16) +
-			((buf[pos++] & 0xff) << 8) +
-			(buf[pos++] & 0xff);
+			((buf[p++] & 0xff) << 24) +
+			((buf[p++] & 0xff) << 16) +
+			((buf[p++] & 0xff) << 8) +
+			(buf[p++] & 0xff);
 	}
 		
 	protected final void writeInt(int v) throws IOException {
 		updateDataLength(pos + 4);
-		buf[pos++] = (byte)(0xff & (v >> 24));
-		buf[pos++] = (byte)(0xff & (v >> 16));
-		buf[pos++] = (byte)(0xff & (v >>    8));
-		buf[pos++] = (byte)(0xff & v);
+		this.writeIntAt(pos, v);
+		pos += 4;
+	}
+	
+	private final void writeIntAt(int p, int v) throws IOException {
+		buf[p++] = (byte)(0xff & (v >> 24));
+		buf[p++] = (byte)(0xff & (v >> 16));
+		buf[p++] = (byte)(0xff & (v >>    8));
+		buf[p++] = (byte)(0xff & v);
 		setDirty(true);
 	}
 	
-	protected final long readLong() {
+	protected final long readLong() throws EOFException {
+		pos += 8;
+		if(pos >= this.blocksize) {
+			pos = this.blocksize;
+			throw new EOFException();
+		}
+		return readLongAt(pos - 8);
+	}
+	
+	protected final long readLongAt(int p) {
 		return
-			(((long)(buf[pos++] & 0xff) << 56) |
-			((long)(buf[pos++] & 0xff) << 48) |
-			((long)(buf[pos++] & 0xff) << 40) |
-			((long)(buf[pos++] & 0xff) << 32) |
-			((long)(buf[pos++] & 0xff) << 24) |
-			((long)(buf[pos++] & 0xff) << 16) |
-			((long)(buf[pos++] & 0xff) <<  8) |
-			((long)(buf[pos++] & 0xff)));
+			(((long)(buf[p++] & 0xff) << 56) |
+			((long)(buf[p++] & 0xff) << 48) |
+			((long)(buf[p++] & 0xff) << 40) |
+			((long)(buf[p++] & 0xff) << 32) |
+			((long)(buf[p++] & 0xff) << 24) |
+			((long)(buf[p++] & 0xff) << 16) |
+			((long)(buf[p++] & 0xff) <<  8) |
+			((long)(buf[p++] & 0xff)));
 	}
 	
 	protected final void writeLong(long v) throws IOException {
 		updateDataLength(pos + 8);
-		buf[pos++] = (byte)(0xff & (v >> 56));
-		buf[pos++] = (byte)(0xff & (v >> 48));
-		buf[pos++] = (byte)(0xff & (v >> 40));
-		buf[pos++] = (byte)(0xff & (v >> 32));
-		buf[pos++] = (byte)(0xff & (v >> 24));
-		buf[pos++] = (byte)(0xff & (v >> 16));
-		buf[pos++] = (byte)(0xff & (v >>  8));
-		buf[pos++] = (byte)(0xff & v);
+		this.writeLongAt(pos, v);
+		pos += 8;
+	}
+	
+	private final void writeLongAt(int p, long v) throws IOException {
+		buf[p++] = (byte)(0xff & (v >> 56));
+		buf[p++] = (byte)(0xff & (v >> 48));
+		buf[p++] = (byte)(0xff & (v >> 40));
+		buf[p++] = (byte)(0xff & (v >> 32));
+		buf[p++] = (byte)(0xff & (v >> 24));
+		buf[p++] = (byte)(0xff & (v >> 16));
+		buf[p++] = (byte)(0xff & (v >>  8));
+		buf[p++] = (byte)(0xff & v);
 		setDirty(true);
 	}
 }

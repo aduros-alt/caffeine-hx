@@ -94,7 +94,7 @@ public class BlockFile {
 			file.setLength(blocksize * 2);
 			// init free block index
 			freeBlockIndex = FreeBlockIndex.create(0, this, this.blocksize);
-			this.updateLastBlock(blocksize * 2);
+			this.lastBlock = blocksize;
 			this.writeRootBlock();
 			file.close();
 		}
@@ -115,7 +115,7 @@ public class BlockFile {
 			throw new UnsupportedEncodingException("Bad magic number");
 
 		if(lastBlock + blocksize != file.length()) 
-			throw new StreamCorruptedException();
+			throw new StreamCorruptedException("blocksize:"+this.blocksize + " lastBlock:" + lastBlock + " file len:" + file.length());
 		freeBlockIndex = new FreeBlockIndex(this, freeBlockIndexOffset);
 		if(blocksize < 64)
 			throw new UnsupportedEncodingException("Blocksize must be >= 64 bytes");
@@ -126,9 +126,10 @@ public class BlockFile {
 		for(int x = 0; x < 12; x++)
 			buf[x] = 0;
 		synchronized(lock) {
-			long thisBlock = lastBlock + this.blocksize;
-			this.writeRaw(thisBlock, buf);
-			return new Block(this, thisBlock);
+			long thisBlockOffset = lastBlock + this.blocksize;
+			this.writeRaw(thisBlockOffset, buf);
+			this.updateLastBlock(thisBlockOffset);
+			return new Block(this, thisBlockOffset);
 		}
 	}
 	
@@ -190,6 +191,8 @@ public class BlockFile {
 	}
 	
 	protected Block[] getBlocks(long offset) throws IOException {
+		if(offset == 0)
+			throw new IOException("Root block not fetchable");
 		long nextOffset = 0;
 		ArrayList<Block> ba = new ArrayList<Block>();
 		do {
@@ -305,6 +308,16 @@ public class BlockFile {
 			lastBlock = off;
 			synchronized(lock) {
 				file.seek(OFFSET_LASTBLOCK);
+				file.writeLong(off);
+			}
+		}
+	}
+	
+	protected void updateLastBlockIndex(long off) throws IOException {
+		if(off != this.freeBlockIndexOffset) {
+			this.freeBlockIndexOffset = off;
+			synchronized(lock) {
+				file.seek(OFFSET_FREEBLOCKS);
 				file.writeLong(off);
 			}
 		}
