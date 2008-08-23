@@ -183,6 +183,10 @@ public class LRUCachingBackend implements Backend {
 		return get(db,id,rev);
 	}
 
+	public Long getDocumentCount(String db) {
+		return backend.getDocumentCount(db);
+	}
+	
 	public JSONArray getDocumentRevisions(String db, String id){
 		return backend.getDocumentRevisions(db,id); // no way to cache them all :)
 	}

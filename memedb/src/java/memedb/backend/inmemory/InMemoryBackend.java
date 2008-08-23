@@ -204,6 +204,13 @@ public class InMemoryBackend implements Backend {
 			return null;
 		return d.getDatabaseCreationSequenceNumber();
 	}
+	
+	public Long getDocumentCount(String db) {
+		InMemoryDB d = dbs.get(db);
+		if(d == null)
+			return null;
+		return d.getDocumentCount();
+	}
 		
 	public Set<String> getDatabaseNames(Credentials credentials) {
 		return dbs.keySet();

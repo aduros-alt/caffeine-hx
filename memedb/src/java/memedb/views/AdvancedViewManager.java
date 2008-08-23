@@ -127,14 +127,18 @@ public class AdvancedViewManager extends BaseViewManager {
 			throws ViewException
 	{
 		log.debug("getViewResults {}/{}", docId, functionName);
+		/*
 		if(docId.equals("_all_docs")) {
 			log.debug("Running adHocView");
 			JSONObject j = AdHocViewRunner.runView(memeDB,db,docId,functionName,getViewEntry(db,docId,functionName),options);
 			try{
 				j.write(writer);
-			} catch(IOException e) {}
+			} catch(IOException e) {
+				log.error(e);
+			}
 			return;
 		}
+		*/
 
 		int count = 0;
 		View v = getViewEntry(db, docId, functionName);

@@ -35,7 +35,7 @@ public class AllDocuments implements View {
 		this.db=db;
 	}
 
-	public boolean isLazy() { return true; }
+	public boolean isLazy() { return false; }
 	
 	public void map(Document doc, MapResultConsumer listener, FulltextResultConsumer fulltextListener) {
 		JSONArray ja = new JSONArray();
@@ -43,7 +43,8 @@ public class AllDocuments implements View {
 		try {
 			res.put(doc.getId());
 			JSONObject v = new JSONObject();
-			v.put("rev", doc.getRevision());
+			v.put("_id", doc.getId());
+			v.put("_rev", doc.getRevision());
 			res.put(v);
 			ja.put(res);
 		} catch (JSONException e) {
@@ -58,7 +59,7 @@ public class AllDocuments implements View {
 
 	public boolean hasReduce() { return false; }
 	public Object reduce(JSONArray results) {
-		return null;
+		return new Long(results.length());
 	}
 
 	public String getMapSrc() {

@@ -58,7 +58,11 @@ public class InMemoryDB implements Serializable {
 	public Long getDatabaseCreationSequenceNumber() {
 		return creationSequenceNumber;
 	}
-		
+	
+	public Long getDocumentCount() {
+		return new Long(docs.size());
+	}
+	
 	public String getName() {
 		return name;
 	}

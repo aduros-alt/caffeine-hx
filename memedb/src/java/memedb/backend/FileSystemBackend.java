@@ -59,6 +59,89 @@ import memedb.utils.Logger;
  *
  */
 public class FileSystemBackend implements Backend {
+
+	private class DBStats {
+		private String name;
+		private File path;
+		private long createSequenceNumber = -1;
+		private long documentCount = -1;
+		private RandomAccessFile fp;
+		
+		public DBStats(String dbName, File path) {
+			this.name = dbName;
+			this.path = new File(path, dbName + ".dat");
+		}
+		
+		public void create(long seqNo) throws IOException {
+			if(path.exists()) {
+				path.delete();
+			}
+			this.createSequenceNumber = seqNo;
+			this.documentCount = 0;
+			fp = new RandomAccessFile(path, "rws");
+			save();
+		}
+		
+		public void destroy() {
+			try {
+				fp.close();
+			} catch(Exception e) {}
+			try {
+				path.delete();
+			} catch(Exception e) {}
+		}
+
+		public long getDocumentCount() {
+			return documentCount;
+		}
+		
+		public long getCreateSequenceNumber() {
+			return this.createSequenceNumber;
+		}
+		
+		public void init() throws IOException {
+			fp = new RandomAccessFile(path, "rws");
+			createSequenceNumber = fp.readLong();
+			documentCount = fp.readLong();			
+		}
+		
+		public void onDocumentCreated() throws IOException {
+			synchronized(fp) {
+				documentCount++;
+				fp.seek(8);
+				fp.writeLong(documentCount);
+			}		
+		}
+		
+		public void onDocumentDeleted() throws IOException {
+			synchronized(fp) {
+				documentCount--;
+				fp.seek(8);
+				fp.writeLong(documentCount);
+			}
+		}
+		
+		private void save() throws IOException {
+			fp.seek(0);
+			fp.writeLong(this.createSequenceNumber);
+			fp.writeLong(documentCount);
+		}
+				
+		public void setDocumentCount(long v) throws IOException {
+			synchronized(fp) {
+				documentCount = v;
+				fp.seek(8);
+				fp.writeLong(documentCount);
+			}			
+		}
+		
+		public void shutdown() {
+			try {
+				fp.close();
+			} catch(Exception e) {}
+		}
+	}
+	
 	public static final String BACKEND_SUBDIR_COUNT = "backend.fs.depth";
 	public static final String BACKEND_FS_PATH = "backend.fs.path";
 	public static final String BACKEND_STATE_PATH = "backend.fs.statedir";
@@ -67,6 +150,7 @@ public class FileSystemBackend implements Backend {
 	private MemeDB memeDB;
 	private File rootDir;
 	private int subDirCount;
+	private HashMap<String,DBStats> stats = new HashMap<String,DBStats>();
 
 	final private Logger log = Logger.get(FileSystemBackend.class);
 
@@ -76,10 +160,6 @@ public class FileSystemBackend implements Backend {
 
 	private final File dbDir(String db) {
 		return new File(rootDir, db);
-	}
-	
-	private final File dataFile(String db) {
-		return new File(rootDir, db + ".dat");
 	}
 
 	private String subDir(String idEnc) {
@@ -111,18 +191,23 @@ public class FileSystemBackend implements Backend {
 		log.debug("Deleting document {}/{}", db, id);
 		memeDB.getState().deleteDocument(db, id);
 		deleteRecursive(docDir);
-	}
-
-	public void init() {
+		try {
+			stats.get(db).onDocumentDeleted();
+		} catch(Exception e) {
+			throw new BackendException("Error updating db stats : " + e.getMessage(), e);
+		}
 	}
 
 	public void shutdown() {
+		for (DBStats s: stats.values()) {
+			s.shutdown();
+		}
 	}
 
 	public Iterable<Document> allDocuments(final String db) {
 		return getDocuments(db, null);
 	}
-
+	
 	protected void findAllDocuments(List<String> ids, File baseDir, String baseName) {
 		for (File f: baseDir.listFiles()) {
 			if (f.isDirectory()) {
@@ -202,14 +287,9 @@ public class FileSystemBackend implements Backend {
 	}
 
 	public Long getDatabaseCreationSequenceNumber(String db) {
-		File dataFile = dataFile(db);
-		if(!dataFile.exists())
-			return null;
 		try {
-			RandomAccessFile r = new RandomAccessFile(dataFile, "r");
-			long rv = r.readLong();
-			return new Long(rv);
-		} catch(IOException e) {
+			return stats.get(db).getCreateSequenceNumber();
+		} catch(Exception e) {
 		}
 		return null;
 	}
@@ -284,6 +364,14 @@ public class FileSystemBackend implements Backend {
 		return null;
 	}
 
+	public Long getDocumentCount(String db) {
+		try {
+			return stats.get(db).getDocumentCount();
+		} catch(Exception e) {
+		}
+		return null;
+	}
+	
 	public File getRevisionFilePath(Document d) throws BackendException {
 		if(!d.writesRevisionData())
 			throw new BackendException("Does not write revision data");
@@ -304,19 +392,18 @@ public class FileSystemBackend implements Backend {
 		}
 		log.debug("Adding database: {}",name);
 		dir.mkdir();
-		File infoFile = dataFile(name);
-		RandomAccessFile dbInfo = null;
+
+		long rv = 0;
 		try {
-			dbInfo = new RandomAccessFile(infoFile, "rws");
+			DBStats s = new DBStats(name, rootDir);
+			stats.put(name, s);
+			rv = memeDB.getState().addDatabase(name);
+			s.create(rv);
 		} catch(Exception e) {
 			dir.delete();
+			stats.remove(name);
 			throw new BackendException("Error creating database info file: " + e.getMessage());
 		}
-		long rv = memeDB.getState().addDatabase(name);
-		try {
-			dbInfo.writeLong(rv);
-			dbInfo.close();
-		} catch(IOException e) {}
 		return rv;
 	}
 
@@ -326,6 +413,11 @@ public class FileSystemBackend implements Backend {
 		if (dir.exists() && dir.isDirectory()) {
 			rv = memeDB.getState().deleteDatabase(name);
 			deleteRecursive(dir);
+			DBStats s = stats.get(name);
+			if(s != null) {
+				s.destroy();
+			}
+			stats.remove(name);
 		}
 		return rv;
 	}
@@ -376,6 +468,8 @@ public class FileSystemBackend implements Backend {
 				new File(docDir, "_revisions").createNewFile(); // for keeping
 																// revisions in
 																// order
+				DBStats s = stats.get(db);
+				s.onDocumentCreated();
 			} catch (IOException e) {
 				throw new BackendException(e);
 			}
@@ -490,8 +584,14 @@ public class FileSystemBackend implements Backend {
 
 	public Map<String, Object> getDatabaseStats(String name) {
 		Map<String, Object> m = new HashMap<String, Object>();
+		if(!this.doesDatabaseExist(name))
+			return m;
 		m.put("db_name", name);
-		m.put("doc_count", countFiles(dbDir(name), null));
+		DBStats s= stats.get(name);
+		if(s != null)
+			m.put("doc_count", s.getDocumentCount());
+		else
+			m.put("doc_count", 0);
 		return m;
 	}
 
@@ -521,6 +621,23 @@ public class FileSystemBackend implements Backend {
 			} catch (NumberFormatException e) {
 				throw new RuntimeException("Error in "+BACKEND_SUBDIR_COUNT+" setting",e);
 			}
+		}
+		
+		try {
+			for(File f: rootDir.listFiles()) {
+				if(f.isDirectory()) {
+					String name = FileUtils.fsDecode(f.getName());
+					DBStats s = new DBStats(name,rootDir);
+					s.init();
+					stats.put(name, s);
+					if(s.getDocumentCount() < 0) {
+						log.warn("Recreating document count for {}", name);
+						s.setDocumentCount(this.countFiles(dbDir(name), name));
+					}
+				}
+			}
+		} catch(Exception e) {
+			throw new RuntimeException(e);
 		}
 	}
 

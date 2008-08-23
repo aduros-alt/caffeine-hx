@@ -120,6 +120,14 @@ public interface Backend {
 	 */
 	public Document getDocument(String db,String id);
 	public Document getDocument(String db,String id, String rev);
+
+	
+	/**
+	 * Returns total number of documents in database
+	 * @param db Database name
+	 * @return document count, or null if db doesn't exist
+	 */
+	public Long getDocumentCount(String db);
 	
 	/**
 	 * Returns a JSONArray of all current revisions for a document
