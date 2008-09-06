@@ -1,0 +1,6 @@
+Hive.Master.Host=10.0.0.103
+Hive.Master.Port = 5656
+
+RecordServer.1.Host = 10.0.0.251
+RecordServer.1.Port = 5656
+RecordServer.1.Password = my secret passphrase
