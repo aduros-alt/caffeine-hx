@@ -1,0 +1,28 @@
+-cp ../../
+-neko test.n
+-main Test256
+
+--next
+
+-cp ../../
+-js test.js
+-main Test256
+
+--next
+
+-cp ../../
+-swf test9.swf
+-swf-version 9
+-main Test256
+#-debug
+
+--next
+
+-cp ../../
+-swf test8.swf
+-swf-version 8
+-main Test256
+#-debug
+
+
+
