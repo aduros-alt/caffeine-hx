@@ -1546,17 +1546,17 @@ class BigInteger {
 
 	#if as3gen public #end static function initBiRc() : Void {
 		BI_RC = new Array<Int>();
-		var rr : Int = Std.ord("0"); //.charCodeAt(0);
+		var rr : Int = "0".charCodeAt(0);
 		for(vv in 0...10) {
 			BI_RC[rr] = vv;
 			rr++;
 		}
-		rr = Std.ord("a");
+		rr = "a".charCodeAt(0);
 		for(vv in 10...37) {
 			BI_RC[rr] = vv;
 			rr++;
 		}
-		rr = Std.ord("A");
+		rr = "A".charCodeAt(0);
 		for(vv in 10...37) {
 			BI_RC[rr] = vv;
 			rr++;
