@@ -615,7 +615,26 @@ static value bi_from_int(value A, value I) {
 DEFINE_PRIM(bi_from_int, 2);
 
 /**
-	Return
+	BigInteger A = (int)I
+	If A is null, a new BigInteger will be returned.
+**/
+static value bi_from_int32(value A, value I) {
+	val_check_kind(A, k_biginteger);
+	if(val_is_null(A))
+		A = bi_new();
+	BIGNUM *bi = val_biginteger(A);
+
+	int i = val_int32(I);
+	BN_set_word(bi, (unsigned long) abs(i));
+	if(i < 0)
+		bi->neg = 1;
+	return A;
+}
+DEFINE_PRIM(bi_from_int32, 2);
+
+/**
+	Return a 31 bit integer representation. Created by masking the top bit,
+	this may be invalid.
 **/
 static value bi_to_int(value A) {
 	val_check_kind(A, k_biginteger);
@@ -635,6 +654,28 @@ static value bi_to_int(value A) {
 	return alloc_int(rv);
 }
 DEFINE_PRIM(bi_to_int, 1);
+
+/**
+	Returns the 32 bit value of the biginteger.
+**/
+static value bi_to_int32(value A) {
+	val_check_kind(A, k_biginteger);
+	BIGNUM *a = val_biginteger(A);
+	unsigned int n = 0;
+	int rv;
+
+	if(a->top == 0)
+		return alloc_int32(0);
+	n = (unsigned int)a->d[0];
+	if(a->neg != 0)
+		rv = (int)(0 - n);
+	else
+		rv = (int)n;
+	return alloc_int32(rv);
+}
+DEFINE_PRIM(bi_to_int32, 1);
+
+
 
 //////////////////////////////////////////////////////////////
 //                Bitwise methods                           //
