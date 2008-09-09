@@ -29,15 +29,20 @@
  * Derived from javascript implementation Copyright (c) 2005 Tom Wu
  * Some derivation from AS3 implementation Copyright (c) 2007 Henri Torgemane
  */
+
 package math;
 
 import haxe.io.Bytes;
+import haxe.io.BytesBuffer;
 import haxe.io.BytesData;
+import haxe.io.BytesUtil;
+
+import haxe.Int32;
+import haxe.Int32Util;
 
 #if neko
 enum HndBI {
 }
-import neko.Int32;
 #else
 import math.reduction.ModularReduction;
 import math.reduction.Barrett;
@@ -83,8 +88,6 @@ class BigInteger {
 		}
 #elseif !neko
 		am = am2;
-#else
-#error
 #end
 
 /*
@@ -119,11 +122,7 @@ class BigInteger {
 	//////////////////////////////////////////////////////////////
 	//                 Conversion methods                       //
 	//////////////////////////////////////////////////////////////
-	/**
-		Set from an integer value. If x is less than -DV, the integer will
-		be parsed through fromString.
-	**/
-	public function fromInt(x : Int) : Void {
+	private function fromInt(x : Int) : Void {
 #if neko
 		bi_from_int(_hnd, x);
 #else
@@ -141,11 +140,18 @@ class BigInteger {
 	}
 
 	/**
-		Will return the integer value. If the number of bits in the native
-		int does not support the bitlength of this BigInteger, unpredictable
-		values will occur.
+		Set from an integer value. If x is less than -DV, the integer will
+		be parsed through fromString.
 	**/
-	public function toInt() : Int {
+	public function fromInt32(x : Int32) : Void {
+#if neko
+		bi_from_int32(_hnd, x);
+#else
+		fromInt(Int32.toInt(x));
+#end
+	}
+
+	private function toInt() : Int {
 #if neko
 		return bi_to_int(_hnd);
 #else
@@ -161,14 +167,27 @@ class BigInteger {
 	}
 
 	/**
-		convert to bigendian byte array
+		Will return the integer value. If the number of bits in the native
+		int does not support the bitlength of this BigInteger, unpredictable
+		values will occur.
 	**/
-	public function toByteArray() : Array<Int> {
+	public function toInt32() : Int32 {
+#if neko
+		return bi_to_int32(_hnd);
+#else
+		return Int32.ofInt(toInt());
+#end
+	}
+
+	/**
+		convert to bigendian Int array
+	**/
+	public function toIntArray() : Array<Int> {
 #if neko
 		var i = toRadix(256);
 		var a = new Array<Int>();
 		for(x in 0...i.length) {
-			a.push(i.charCodeAt(x));
+			a.push(i.get(x));
 		}
 		return a;
 #else
@@ -209,42 +228,42 @@ class BigInteger {
 		Return a base 10 string
 	**/
 	public function toString() : String {
-		return toRadix(10);
+		return toRadix(10).toString();
 	}
 
 	/**
 		Return a hex string
 	**/
 	public function toHex() : String {
-		return toRadix(16);
+		return toRadix(16).toString();
 	}
 
 	/**
-		Return Bytes
+		Return Bytes. Convenience wrapper for toRadix(256)
 	**/
 	public function toBytes() : Bytes {
-#if neko
-		return ByteString.ofString(toRadix(256));
-#else
-		var i = toByteArray();
-		return ByteString.ofIntArray(i);
-#end
+		return toRadix(256);
 	}
 
 	/**
-		return string representation in given radix.
+		return bytes representation in given radix.
 		This function handles radix values 2-36 and 256.
+		Radixes other than 256 can be used as Strings on all platforms,
+		but radix 256 will contain embedded nulls, which may not be
+		representable as a string on some targets. In radix 256, the
+		first byte is either 0x00 for a positive number, or 0x80 for
+		a negative value.
 	**/
-	public function toRadix(b : Int) : BytesData {
+	public function toRadix(b : Int) : Bytes {
 		/**
 			convert to radix string, handles any base 2-36
 		**/
-		var toRadixExt = function(bi:BigInteger, ?b : Int) : String {
+		var toRadixExt = function(bi:BigInteger, ?b : Int) : Bytes {
 			if(b < 2 || b > 36) {
 				throw("invalid base for conversion");
-				return "0";
+				return Bytes.ofString("0");
 			}
-			if(bi.sigNum() == 0) return "0";
+			if(bi.sigNum() == 0) return Bytes.ofString("0");
 			if(b == null) b = 10;
 			var cs: Int = Math.floor(0.6931471805599453*DB/Math.log(b));
 			var a:Int = Std.int(Math.pow(b,cs));
@@ -254,35 +273,56 @@ class BigInteger {
 			var r:String = "";
 			bi.divRemTo(d,y,z);
 			while(y.sigNum() > 0) {
-				r = I32.baseEncode31(a + z.toInt(), b).substr(1) + r;
+				r = Int32Util.baseEncode(
+						Int32.add(
+							Int32.ofInt(a),
+							z.toInt32()
+						), b).substr(1) + r;
 				y.divRemTo(d,y,z);
 			}
-			return I32.baseEncode31(z.toInt(), b) + r;
+			return Bytes.ofString(Int32Util.baseEncode(z.toInt32(), b) + r);
 		}
 
 		if((b < 2 || b > 36) && b != 256) {
 			throw("invalid base for conversion");
-			return "0";
+			return Bytes.ofString("0");
 		}
-		if(sigNum() == 0) return "0";
+		if(sigNum() == 0) {
+			var rv = new BytesBuffer();
+			if(b == 256) {
+				rv.addByte(0);
+				rv.addByte(0);
+			}
+			else
+				rv.addByte("0".charCodeAt(0));
+			return rv.getBytes();
+		}
 #if neko
 		switch(b) {
-		case 10: return new String(bi_to_decimal(_hnd));
-		case 16: return new String(bi_to_hex(_hnd)).toLowerCase();
-		case 256: return new String(bi_to_bin(_hnd));
+// 		case 10: return Bytes.ofString(new String(bi_to_decimal(_hnd)));
+		case 10: return Bytes.ofData(cast bi_to_decimal(_hnd));
+// 		case 16: return new String(bi_to_hex(_hnd)).toLowerCase();
+		case 16: return Bytes.ofString(new String(bi_to_hex(_hnd)).toLowerCase() );
+// 		case 256: return new String(bi_to_bin(_hnd));
+		case 256: return Bytes.ofData(cast bi_to_bin(_hnd));
 		}
 		throw "conversion to base "+b+" not yet supported";
 #else
-		if(sign < 0) return "-"+neg().toRadix(b);
+		var rv = new BytesBuffer();
+		if(sign < 0) {
+			if( b != 256 )
+				rv.addByte("-".charCodeAt(0));
+			rv.add(neg().toRadix(b));
+			return rv.getBytes();
+		}
 		var k;
 		if(b == 16) k = 4;
 		else if(b == 256) {
-			var ba = toByteArray();
-			var sb = new StringBuf();
+			var ba = toIntArray();
 			for(x in 0...ba.length) {
-				sb.addChar(ba[x]);
+				rv.addByte(ba[x]);
 			}
-			return sb.toString();
+			return rv.getBytes();
 		}
 		else if(b == 8) k = 3;
 		else if(b == 2) k = 1;
@@ -307,7 +347,7 @@ class BigInteger {
 			if(m) r += int2char(d);
 			}
 		}
-		return m?r:"0";
+		return m?Bytes.ofString(r):Bytes.ofString("0");
 #end
 	}
 
@@ -1695,6 +1735,15 @@ class BigInteger {
 		return i;
 	}
 
+	/**
+		Construct a BigInteger from an integer value
+	**/
+	public static function ofInt32(x : Int32) : BigInteger {
+		var i = nbi();
+		i.fromInt32(x);
+		return i;
+	}
+
 	/*
 		Construct a BigInteger from a ByteString. This is abs() encoded
 		just like ofString().
@@ -1706,7 +1755,7 @@ class BigInteger {
 	*/
 
 	/**
-		Construct from a bigendian byte array. First byte must either be
+		Construct from a bigendian byte array in base 256. First byte must either be
 		0 for positive or 0x80 for negative.
 	**/
 	public static function ofBytes(r:Bytes, ?pos:Int, ?len:Int) : BigInteger {
@@ -1742,13 +1791,33 @@ class BigInteger {
 			if (sh >= DB)
 				sh -= DB;
 		}
-		if((r[0] & 0x80) != 0) {
+		if((r.get(0) & 0x80) != 0) {
 			bi.sign = -1;
 			if(sh > 0) bi.chunks[bi.t-1] |= ((1<<(DB-sh))-1)<<sh;
 		}
 		bi.clamp();
 		return bi;
 #end
+	}
+
+	public static function ofIntArray(a:Array<Int>, ?pos:Int, ?len:Int) {
+		if(pos == null)
+			pos = 0;
+		if(len == null)
+			len = a.length - pos;
+		if(len == 0)
+			return ZERO;
+		var start = pos;
+		var max:Int = pos+len;
+		if(max > a.length) {
+			max = a.length;
+			len = max - pos;
+		}
+		var bb = new BytesBuffer();
+		while (pos++ < max) {
+			bb.addByte(a[pos]);
+		}
+		return ofBytes(bb.getBytes(), 0, len);
 	}
 
 	/**
@@ -1764,9 +1833,8 @@ class BigInteger {
 		var hrnd : Dynamic = bi_rand(bits, -1, 0);
 		return hndToBigInt(hrnd);
 #else
-		var x = new ByteString();
+		var x = Bytes.alloc((bits>>3)+1);
 		var t : Int = bits&7;
-		x.setLength((bits>>3)+1);
 		rng.nextBytes(x);
 		if(t > 0) {
 			var v = x.get(0);
@@ -1774,7 +1842,7 @@ class BigInteger {
 			x.set(0, v);
 		}
 		else x.set(0, 0);
-		return ofString(x.toHex(), 16);
+		return ofString(BytesUtil.hexDump(x, ""), 16);
 #end
 	}
 
@@ -1879,8 +1947,7 @@ class BigInteger {
 	}
 
 	static function seedRandom(bits:Int, b:math.prng.Random) : Void {
-		var x = new ByteString();
-		x.setLength((bits>>3)+1);
+		var x = Bytes.alloc((bits>>3)+1);
 		b.nextBytes(x);
 		bi_rand_seed(untyped x.toString().__s);
 	}
@@ -1922,7 +1989,9 @@ class BigInteger {
 	private static var bi_to_bin=neko.Lib.load("openssl","bi_to_bin",1);
 	private static var bi_from_bin=neko.Lib.load("openssl","bi_from_bin",1);
 	private static var bi_from_int=neko.Lib.load("openssl","bi_from_int",2);
+	private static var bi_from_int32=neko.Lib.load("openssl","bi_from_int32",2);
 	private static var bi_to_int=neko.Lib.load("openssl","bi_to_int",1);
+	private static var bi_to_int32=neko.Lib.load("openssl","bi_to_int32",1);
 
 	// bitwise
 	private static var bi_shl_to=neko.Lib.load("openssl","bi_shl_to",3);

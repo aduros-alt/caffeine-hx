@@ -70,7 +70,7 @@ class BytesUtil {
 		Dump a string to hex bytes. By default, will be seperated with
 		spaces. To have no seperation, use the empty string as a seperator.
 	**/
-	public static function hexDump(b : Bytes, ?seperator:Dynamic) {
+	public static function hexDump(b : Bytes, ?seperator:Dynamic) : String {
 		if(seperator == null)
 			seperator = " ";
 		var sb = new StringBuf();

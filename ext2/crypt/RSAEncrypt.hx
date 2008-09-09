@@ -32,6 +32,9 @@
 
 package crypt;
 
+import haxe.io.Bytes;
+import haxe.io.BytesBuffer;
+import haxe.io.BytesUtil;
 import math.BigInteger;
 import math.prng.Random;
 
@@ -78,15 +81,15 @@ class RSAEncrypt implements IBlockCipher {
 		even-length hex string
 		TODO: Return Binary string, not text. Use padding etc...
 	**/
-	public function encrypt( text : String ) : String {
+	public function encrypt( text : Bytes ) : Bytes {
 		return doEncrypt(text, doPublic, new PadPkcs1Type2(blockSize));
 	}
 
-	public function verify( text : String ) : String {
+	public function verify( text : Bytes ) : Bytes {
 		return doDecrypt(text, doPublic, new PadPkcs1Type1(blockSize));
 	}
 
-	public function encryptBlock( block : String ) : String {
+	public function encryptBlock( block : Bytes ) : Bytes {
 		var bsize : Int = blockSize;
 		if(block.length != bsize)
 			throw("bad block size");
@@ -98,26 +101,26 @@ trace("n: " + n.toRadix(16));
 trace(n.bitLength());
 		var biRes = doPublic(biv);
 trace("result: " + biRes.toRadix(16));
-		var ba = biRes.toByteArray();
+		var ba = biRes.toIntArray();
 trace(ba);
 
 		while(ba.length > bsize) {
 			if(ba[0] == 0)
 				ba.shift();
 			else {
-				trace(ByteString.hexDump(ByteString.ofIntArray(ba).toString()));
+				trace(BytesUtil.hexDump(BytesUtil.ofIntArray(ba)));
 				throw("encoded length was "+ba.length);
 			}
 		}
 		while(ba.length < bsize)
 			ba.unshift(0); // = Std.chr(0) + buf;
 
-		var rv = ByteString.ofIntArray(ba).toString();
-		trace(ByteString.hexDump(rv));
+		var rv = BytesUtil.ofIntArray(ba);
+		trace(BytesUtil.hexDump(rv));
 		return rv;
 	}
 
-	public function decryptBlock( enc : String ) : String {
+	public function decryptBlock( enc : Bytes ) : Bytes {
 		throw("Not a private key");
 		return "";
 	}
@@ -131,7 +134,7 @@ trace(ba);
 	//////////////////////////////////////////////////
 	//               Private                        //
 	//////////////////////////////////////////////////
-	function doEncrypt(src:String, f : BigInteger->BigInteger, pf : IPad) : String
+	function doEncrypt(src:Bytes, f : BigInteger->BigInteger, pf : IPad) : String
 	{
 trace("source: " + src);
 		var bs = blockSize;
@@ -140,21 +143,21 @@ trace("source: " + src);
 		var msg = new StringBuf();
 		while(idx < src.length) {
 			var m:BigInteger = BigInteger.ofString(pf.pad(src.substr(idx,ts)),256);
-trace("padded: " + m.toRadix(16));
+trace("padded: " + m.toRadix(16).toString());
 			if(m == null) return null;
 			var c:BigInteger = f(m);
 			if(c == null) return null;
 			var h = c.toRadix(16);
 			if((h.length & 1) != 0)
 				msg.add( "0" );
-trace("crypted: " + h);
+trace("crypted: " + h.toString());
 			msg.add(h);
 			idx += ts;
 		}
 		return msg.toString();
 	}
 
-	function doDecrypt(src: String, f : BigInteger->BigInteger, pf : IPad) : String
+	function doDecrypt(src: Bytes, f : BigInteger->BigInteger, pf : IPad) : String
 	{
 		var bs = blockSize;
 		bs *= 2; // hex string, 2 bytes per char
@@ -221,8 +224,8 @@ trace("crypted: " + h);
 	public function toString() {
 		var sb = new StringBuf();
 		sb.add("Public:\n");
-		sb.add("N:\t" + n.toRadix(16) + "\n");
-		sb.add("E:\t" + BigInteger.ofInt(e).toRadix(16) + "\n");
+		sb.add("N:\t" + n.toRadix(16).toString() + "\n");
+		sb.add("E:\t" + BigInteger.ofInt(e).toRadix(16).toString() + "\n");
 		return sb.toString();
 	}
 }

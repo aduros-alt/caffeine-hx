@@ -27,9 +27,10 @@
 
 package crypt;
 
+import haxe.io.Bytes;
+
 interface IBlockCipher {
-	//var blockSize : Int;
 	var blockSize(getBlockSize,null) : Int;
-	function encryptBlock( plain : String ) : String;
-	function decryptBlock( enc : String ) : String;
+	function encryptBlock( plain : Bytes ) : Bytes;
+	function decryptBlock( enc : Bytes ) : Bytes;
 }
