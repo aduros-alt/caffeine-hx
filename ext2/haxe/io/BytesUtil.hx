@@ -32,6 +32,9 @@ import haxe.io.BytesBuffer;
 import haxe.Int32;
 
 class BytesUtil {
+	/** static 0 length Bytes object **/
+	public static var EMPTY : Bytes;
+
 	/////////////////////////////////////////////////////
 	//            Public Static methods                //
 	/////////////////////////////////////////////////////
@@ -236,5 +239,10 @@ class BytesUtil {
 		if(v > 0xff)
 			throw "not a byte";
 		return v;
+	}
+
+	static function __init__() {
+		var bb = new BytesBuffer();
+		EMPTY = bb.getBytes();
 	}
 }
