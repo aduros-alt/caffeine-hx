@@ -27,14 +27,16 @@
 
 package crypt;
 
+import haxe.io.Bytes;
+
 interface IMode {
 	//var blockSize : Int;
 	var cipher(default, null) : IBlockCipher;
 	var padding : IPad;
 
-	function encrypt( s : String ) : String;
+	function encrypt( s : Bytes ) : Bytes;
 
-	function decrypt( s : String ) : String;
+	function decrypt( s : Bytes ) : Bytes;
 
 	function startStreamMode() : Void;
 

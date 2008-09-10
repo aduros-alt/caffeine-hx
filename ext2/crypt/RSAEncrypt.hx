@@ -94,15 +94,15 @@ class RSAEncrypt implements IBlockCipher {
 		if(block.length != bsize)
 			throw("bad block size");
 
-		var biv:BigInteger = BigInteger.ofString(block, 256);
-trace("BI of Block: " + biv.toRadix(16));
-trace("e: " + StringTools.hex(e));
-trace("n: " + n.toRadix(16));
-trace(n.bitLength());
+		var biv:BigInteger = BigInteger.ofBytes(block);
+// 		trace("BI of Block: " + biv.toRadix(16));
+// 		trace("e: " + StringTools.hex(e));
+// 		trace("n: " + n.toRadix(16));
+// 		trace(n.bitLength());
 		var biRes = doPublic(biv);
-trace("result: " + biRes.toRadix(16));
+// 		trace("result: " + biRes.toRadix(16));
 		var ba = biRes.toIntArray();
-trace(ba);
+// 		trace(ba);
 
 		while(ba.length > bsize) {
 			if(ba[0] == 0)
@@ -122,7 +122,7 @@ trace(ba);
 
 	public function decryptBlock( enc : Bytes ) : Bytes {
 		throw("Not a private key");
-		return "";
+		return null;
 	}
 /*
 	http://www.imc.org/ietf-openpgp/mail-archive/msg14307.html
@@ -136,21 +136,21 @@ trace(ba);
 	//////////////////////////////////////////////////
 	function doEncrypt(src:Bytes, f : BigInteger->BigInteger, pf : IPad) : String
 	{
-trace("source: " + src);
+		//trace("source: " + src);
 		var bs = blockSize;
 		var ts : Int = bs - 11;
 		var idx : Int = 0;
 		var msg = new StringBuf();
 		while(idx < src.length) {
-			var m:BigInteger = BigInteger.ofString(pf.pad(src.substr(idx,ts)),256);
-trace("padded: " + m.toRadix(16).toString());
+			var m:BigInteger = BigInteger.ofBytes(pf.pad(src.sub(idx,ts)),0);
+			//trace("padded: " + m.toRadix(16).toString());
 			if(m == null) return null;
 			var c:BigInteger = f(m);
 			if(c == null) return null;
 			var h = c.toRadix(16);
 			if((h.length & 1) != 0)
 				msg.add( "0" );
-trace("crypted: " + h.toString());
+			//trace("crypted: " + h.toString());
 			msg.add(h);
 			idx += ts;
 		}

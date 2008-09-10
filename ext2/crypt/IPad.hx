@@ -27,15 +27,17 @@
 
 package crypt;
 
+import haxe.io.Bytes;
+
 interface IPad {
 	/** finished padded block size **/
 	var blockSize(default,setBlockSize) : Int;
 	/** text that can fit into each block **/
 	var textSize(default,null) : Int;
 
-	function pad( s : String ) : String;
+	function pad( s : Bytes ) : Bytes;
 
-	function unpad( s : String ) : String;
+	function unpad( s : Bytes ) : Bytes;
 
 	/** pads by block? **/
 	function isBlockPad() : Bool;

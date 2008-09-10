@@ -27,6 +27,8 @@
 
 package crypt;
 
+import haxe.io.Bytes;
+
 class ModeCBC extends IV, implements IMode {
 	public function new(bCipher: IBlockCipher, ?pad : IPad) {
 		super(bCipher, pad);
@@ -38,7 +40,7 @@ class ModeCBC extends IV, implements IMode {
 		return "???-???-cbc";
 	}
 
-	public function encrypt( s : String ) : String {
+	public function encrypt( s : Bytes ) : Bytes {
 		var buf = prepareEncrypt( s );
 		var bsize = cipher.blockSize;
 		var numBlocks = Std.int(buf.length/bsize);
@@ -61,7 +63,7 @@ class ModeCBC extends IV, implements IMode {
 		return finishEncrypt(sb);
 	}
 
-	public function decrypt( s : String ) : String {
+	public function decrypt( s : Bytes ) : Bytes {
 		var buf = prepareDecrypt( s );
 		var bsize = cipher.blockSize;
 		if(buf.length % bsize != 0)

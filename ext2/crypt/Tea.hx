@@ -42,7 +42,7 @@ class Tea implements IBlockCipher {
 #end
 	public var blockSize(getBlockSize,null) : Int;
 
-	public function new(key : String) {
+	public function new(key : Bytes) {
 #if !neko
 		k = ByteString.strToInt32(
 				ByteString.nullPadString(key.substr(0,16), 16)
@@ -72,7 +72,7 @@ class Tea implements IBlockCipher {
 	}
 
 #if neko
-	public function encryptBlock(plaintext : String) : String {
+	public function encryptBlock(plaintext : Bytes) : Bytes {
 		if (plaintext.length == 0) return('');
 		var v : Array<neko.Int32> = ByteString.strToInt32(plaintext);
 		var n = v.length;
@@ -85,7 +85,7 @@ class Tea implements IBlockCipher {
 		return new String(rv);
 	}
 #else
-	public function encryptBlock(plaintext : String) : String {
+	public function encryptBlock(plaintext : Bytes) : Bytes {
 		if (plaintext.length == 0) return('');
 		var v = ByteString.strToInt32(plaintext);
 		var n = v.length;
@@ -119,7 +119,7 @@ class Tea implements IBlockCipher {
 #end
 
 #if neko
-	public function decryptBlock(ciphertext : String) : String {
+	public function decryptBlock(ciphertext : Bytes) : Bytes {
 		if (ciphertext.length == 0) return('');
 		var v = ByteString.strToInt32(ciphertext);
 		var n = v.length;
@@ -130,7 +130,7 @@ class Tea implements IBlockCipher {
 		return new String(rv);
 	}
 #else
-	public function decryptBlock(ciphertext : String) : String
+	public function decryptBlock(ciphertext : Bytes) : Bytes
 	{
 		if (ciphertext.length == 0) return('');
 		var v = ByteString.strToInt32(ciphertext);

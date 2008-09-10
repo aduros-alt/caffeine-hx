@@ -35,7 +35,7 @@ class PadNull implements IPad {
 		setBlockSize(blockSize);
 	}
 
-	public function pad( s : String ) : String {
+	public function pad( s : Bytes ) : Bytes {
 		return ByteString.nullPadString(s, blockSize);
 	}
 
@@ -44,7 +44,7 @@ class PadNull implements IPad {
 		source may contain nulls. It is up to the implementation to
 		keep track of how many bytes in the packet are used.
 	**/
-	public function unpad( s : String ) : String {
+	public function unpad( s : Bytes ) : Bytes {
 		return s;
 	}
 

@@ -27,6 +27,8 @@
 
 package crypt;
 
+import haxe.io.Bytes;
+
 class PadPkcs5 implements IPad {
 	public var blockSize(default,setBlockSize) : Int;
 	public var textSize(default,null) : Int;
@@ -35,7 +37,7 @@ class PadPkcs5 implements IPad {
 		setBlockSize(blockLen);
 	}
 
-	public function pad( s : String ) : String {
+	public function pad( s : Bytes ) : Bytes {
 		var sb = new StringBuf();
 		sb.add ( s );
 		var chr : Int = blockSize - (s.length % blockSize);
@@ -47,7 +49,7 @@ class PadPkcs5 implements IPad {
 		return sb.toString();
 	}
 
-	public function unpad( s : String ) : String {
+	public function unpad( s : Bytes ) : Bytes {
 		if( s.length % blockSize != 0)
 			throw "crypt.padpkcs5 unpad: buffer length "+s.length+" not multiple of block size " + blockSize;
 		var c = s.charCodeAt(s.length-1);

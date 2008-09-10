@@ -27,6 +27,8 @@
 
 package crypt;
 
+import haxe.io.Bytes;
+
 private enum IvState {
 	IV_UNINIT;
 	IV_BLOCK;
@@ -44,12 +46,12 @@ class IV {
 		an ecryption is complete, the next get on iv will reflect the
 		changes.
 	**/
-	public var iv(getIV, setNextIV) 	: String;
+	public var iv(getIV, setNextIV) 	: Bytes;
 	public var cipher(default,null) 	: IBlockCipher;
 	public var padding				 	: IPad;
 	var prepend 	: Bool;
-	var startIV		: String;
-	var currentIV	: String;
+	var startIV		: Bytes;
+	var currentIV	: Bytes;
 	var curValue	: StringBuf;
 	var nextValue	: StringBuf;
 	var state		: IvState;
@@ -75,7 +77,7 @@ class IV {
 		prepend = p;
 	}
 
-	public function getIV() : String {
+	public function getIV() : Bytes {
 		if(curValue == null) {
 			if(nextValue == null) {
 				var sb = new StringBuf();
@@ -92,7 +94,7 @@ class IV {
 		return curValue.toString();
 	}
 
-	public function setNextIV( s : String ) : String {
+	public function setNextIV( s : Bytes ) : Bytes {
 		if(s.length % cipher.blockSize != 0)
 			throw("crypt.iv: invalid length. Expected "+cipher.blockSize+ " bytes.");
 		var sb = new StringBuf();
@@ -101,7 +103,7 @@ class IV {
 		return s;
 	}
 
-	function prepareEncrypt( s : String ) : String {
+	function prepareEncrypt( s : Bytes ) : Bytes {
 		var buf = padding.pad(s);
 		if(buf.length % cipher.blockSize != 0)
 			throw "crypt.iv: padding error";
@@ -115,7 +117,7 @@ class IV {
 		beginning of the buffer. Destroys the current IV
 		in preparation for next crypt function.
 	**/
-	function finishEncrypt( sb : StringBuf ) : String {
+	function finishEncrypt( sb : Bytes ) : Bytes {
 		var buf : String = "";
 		if(prepend)
 			buf += getIV();
@@ -125,7 +127,7 @@ class IV {
 		return buf;
 	}
 
-	function prepareDecrypt( s : String ) : String {
+	function prepareDecrypt( s : Bytes ) : Bytes {
 		var buf : String;
 
 		if(prepend) {
@@ -143,7 +145,7 @@ class IV {
 		return buf;
 	}
 
-	function finishDecrypt( s : String ) : String {
+	function finishDecrypt( s : Bytes ) : Bytes {
 		var buf = padding.unpad(s);
 		curValue = null;
 		return buf;

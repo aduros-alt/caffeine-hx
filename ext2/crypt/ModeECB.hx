@@ -27,6 +27,8 @@
 
 package crypt;
 
+import haxe.io.Bytes;
+
 class ModeECB implements IMode {
 	public var cipher(default,null)	: IBlockCipher;
 	public var padding				: IPad;
@@ -48,7 +50,7 @@ class ModeECB implements IMode {
 		return "???-???-ecb";
 	}
 
-	public function encrypt( s : String ) : String {
+	public function encrypt( s : Bytes ) : Bytes {
 		var buf : String;
 		var padBlocks : Bool = padding.isBlockPad();
 		var tsize = padding.textSize;
@@ -90,7 +92,7 @@ trace(ByteString.hexDump(enc,""));
 		return sb.toString();
 	}
 
-	public function decrypt( s : String ) : String {
+	public function decrypt( s : Bytes ) : Bytes {
 		var padBlocks : Bool = padding.isBlockPad();
 		var bsize = padding.blockSize;
 		if(s.length % bsize != 0)
