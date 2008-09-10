@@ -28,6 +28,8 @@
 package crypt;
 
 import haxe.io.Bytes;
+import haxe.io.BytesBuffer;
+import haxe.io.BytesUtil;
 
 private enum IvState {
 	IV_UNINIT;
@@ -52,8 +54,8 @@ class IV {
 	var prepend 	: Bool;
 	var startIV		: Bytes;
 	var currentIV	: Bytes;
-	var curValue	: StringBuf;
-	var nextValue	: StringBuf;
+	var curValue	: BytesBuffer;
+	var nextValue	: BytesBuffer;
 	var state		: IvState;
 
 	public function new(bCipher: IBlockCipher, ?padMethod : IPad) {
@@ -80,24 +82,24 @@ class IV {
 	public function getIV() : Bytes {
 		if(curValue == null) {
 			if(nextValue == null) {
-				var sb = new StringBuf();
+				var sb = new BytesBuffer();
 				for(x in 0...cipher.blockSize) {
-					sb.addChar(randomByte());
+					sb.addByte(randomByte());
 				}
 				nextValue = sb;
 			}
-			curValue = new StringBuf();
-			curValue.add(nextValue.toString());
+			curValue = new BytesBuffer();
+			curValue.add(nextValue.getBytes());
 			nextValue = null;
-			currentIV = curValue.toString();
+			currentIV = curValue.getBytes();
 		}
-		return curValue.toString();
+		return curValue.getBytes();
 	}
 
 	public function setNextIV( s : Bytes ) : Bytes {
 		if(s.length % cipher.blockSize != 0)
 			throw("crypt.iv: invalid length. Expected "+cipher.blockSize+ " bytes.");
-		var sb = new StringBuf();
+		var sb = new BytesBuffer();
 		sb.add(s);
 		nextValue = sb;
 		return s;
@@ -118,24 +120,27 @@ class IV {
 		in preparation for next crypt function.
 	**/
 	function finishEncrypt( sb : Bytes ) : Bytes {
-		var buf : String = "";
+		var buf : BytesBuffer = new BytesBuffer();
 		if(prepend)
-			buf += getIV();
-		buf += sb.toString();
+			buf.add(getIV());
+		buf.add(sb);
 		// don't destroy before call to getIV!
 		curValue = null;
-		return buf;
+		return buf.getBytes();
 	}
 
 	function prepareDecrypt( s : Bytes ) : Bytes {
-		var buf : String;
+		var buf : Bytes;
 
 		if(prepend) {
-			var biv = s.substr(0,cipher.blockSize);
+			var biv = s.sub(0,cipher.blockSize);
 			iv = biv;
 			if(iv != biv)
 				throw "crypt.iv: invalid state";
-			buf = s.substr(cipher.blockSize);
+			if(s.length - cipher.blockSize >= 0)
+				buf = s.sub(cipher.blockSize, s.length - cipher.blockSize);
+			else
+				buf = BytesUtil.EMPTY;
 		}
 		else {
 			buf = s;

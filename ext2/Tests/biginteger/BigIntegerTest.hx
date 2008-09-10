@@ -1,5 +1,5 @@
 import math.BigInteger;
-//import crypt.RSAEncrypt;
+import crypt.RSAEncrypt;
 import haxe.Int32;
 
 class DecimalConversion extends haxe.unit.TestCase {
@@ -207,7 +207,6 @@ class Functions extends haxe.unit.TestCase {
 		assertEquals(0x3fffffff, Int32.toInt(i.toInt32()));
 	}
 
-/*
 	public function test10_RsaValues() {
 		var bufh = "1ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff007768617420697320746865726520666f7220796f7520746f20646f3f0a";
 		var bufh2 = "271a4c189acfa1fcc7364a74eb5d64e53358deb648611d67ba6ec0331c14212fba90e9ac12e9f760210e45505a88b577ecc074a5884f9332b0efbab8b7191588db69fb536861c45f3ba5319b96209319810a87342aafb682427955340e1ac077211a95564810ec6c12e4927bac9aea8b8485358f8da8f53bd8a2900796f0a";
@@ -272,7 +271,6 @@ class Functions extends haxe.unit.TestCase {
 //trace(res.toRadix(16));
 
 	}
-*/
 }
 
 

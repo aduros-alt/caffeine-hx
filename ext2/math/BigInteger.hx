@@ -1755,8 +1755,8 @@ class BigInteger {
 	*/
 
 	/**
-		Construct from a bigendian byte array in base 256. First byte must either be
-		0 for positive or 0x80 for negative.
+		Construct from a bigendian byte array in base 256. First byte high bit, if set,
+		indicates a negative number.
 	**/
 	public static function ofBytes(r:Bytes, ?pos:Int, ?len:Int) : BigInteger {
 		if(pos == null)

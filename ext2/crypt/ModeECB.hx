@@ -28,6 +28,8 @@
 package crypt;
 
 import haxe.io.Bytes;
+import haxe.io.BytesBuffer;
+import haxe.io.BytesUtil;
 
 class ModeECB implements IMode {
 	public var cipher(default,null)	: IBlockCipher;
@@ -51,7 +53,7 @@ class ModeECB implements IMode {
 	}
 
 	public function encrypt( s : Bytes ) : Bytes {
-		var buf : String;
+		var buf : Bytes = null;
 		var padBlocks : Bool = padding.isBlockPad();
 		var tsize = padding.textSize;
 		var bsize = padding.blockSize;
@@ -62,26 +64,26 @@ class ModeECB implements IMode {
 // trace(tsize);
 // trace(bsize);
 // trace(numBlocks);
-		var sb = new StringBuf();
+		var sb = new BytesBuffer();
  		if(!padBlocks)
 			buf = padding.pad(s);
 		for (i in 0...numBlocks) {
-			var rv : String;
+			var rv : Bytes;
 			if(padBlocks) {
 // trace(s.substr(offset, tsize));
-				rv = padding.pad(s.substr(offset, tsize));
+				rv = padding.pad(s.sub(offset, tsize));
 				offset += tsize;
 			}
 			else {
-				rv = buf.substr(offset, tsize);
+				rv = buf.sub(offset, tsize);
 				offset += bsize;
 			}
 
 // trace(rv.length);
-trace(ByteString.hexDump(rv, ""));
+// trace(BytesUtil.hexDump(rv, ""));
 			var enc = cipher.encryptBlock(rv);
-trace(ByteString.hexDump(cipher.decryptBlock(enc),false));
-trace(ByteString.hexDump(enc,""));
+// trace(BytesUtil.hexDump(cipher.decryptBlock(enc),false));
+// trace(BytesUtil.hexDump(enc,""));
 			if(enc.length != bsize)
 				throw("block encryption to wrong block size");
 			sb.add(enc);
@@ -89,7 +91,7 @@ trace(ByteString.hexDump(enc,""));
 		}
 // trace(ByteStringTools.hexDump(sb.toString()));
 
-		return sb.toString();
+		return sb.getBytes();
 	}
 
 	public function decrypt( s : Bytes ) : Bytes {
@@ -99,10 +101,10 @@ trace(ByteString.hexDump(enc,""));
 			throw "Invalid message length " + s.length;
 		var numBlocks = Std.int(s.length/bsize);
 		var offset : Int = 0;
-		var sb = new StringBuf();
+		var sb = new BytesBuffer();
 		for (i in 0...numBlocks) {
-			var rv : String = cipher.decryptBlock(s.substr(offset, bsize));
-trace(ByteString.hexDump(rv));
+			var rv : Bytes = cipher.decryptBlock(s.sub(offset, bsize));
+// trace(BytesUtil.hexDump(rv));
 			if(!padBlocks)
 				sb.add(rv);
 			else
@@ -110,8 +112,8 @@ trace(ByteString.hexDump(rv));
 			offset += bsize;
 		}
 		if(!padBlocks)
-			return padding.unpad(sb.toString());
-		return sb.toString();
+			return padding.unpad(sb.getBytes());
+		return sb.getBytes();
 	}
 
 	// These have no effect when using ECB mode.

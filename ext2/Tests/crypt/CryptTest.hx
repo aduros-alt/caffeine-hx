@@ -2,7 +2,6 @@ import crypt.Aes;
 import crypt.ModeECB;
 import crypt.ModeCBC;
 import crypt.IMode;
-import crypt.Tea;
 import crypt.RSA;
 import crypt.PadPkcs1Type1;
 
@@ -55,22 +54,7 @@ class AesTestFunctions extends haxe.unit.TestCase {
 	static var ivstr = "00000000000000000000000000000000";
 
 	static var b : Array<Int> = [128,192,256];
-	public static var msgs : Array<String> = [
-		"yo\n",
-		"what is there for you to do?\n",
-		"0123456789abcdef",
-		"ewjkhwety sdfhjsdrkj qweiruqwer iasd faif aoif aijsdfj aiojsfd iaojsdf iojaf iojas oifjaif jasdjf sdoijf osidjf oisdjf sdjfisjdfisj doifjs oidfjosidjf oisjdf oisjdoif jasiojoijjuioasjf asjf ijasjf oaijsdfi odajfioajfdio ajsdifj :#&$&#&*($&\n",
-		"The quick brown fox jumped over the lazy dog. The quick brown fox jumped over the lazy dog again.",
-	];
-	public static var phrases : Array<String> = [
-		"pass",
-		"eiwe",
-		"ewrkhoiuewqo etuiwehru asfdjha ewr",
-		"my super secret passphrase"
-	];
 
-	public static var latin_passphrase : String = "my passphrase";
-	public static var latin : String = "Haec dum oriens diu perferret, caeli reserato tepore Constantius consulatu suo septies et Caesaris ter egressus Arelate Valentiam petit, in Gundomadum et Vadomarium fratres Alamannorum reges arma moturus, quorum crebris excursibus vastabantur confines limitibus terrae Gallorum.\nQuam quidem partem accusationis admiratus sum et moleste tuli potissimum esse Atratino datam. Neque enim decebat neque aetas illa postulabat neque, id quod animadvertere poteratis, pudor patiebatur optimi adulescentis in tali illum oratione versari. Vellem aliquis ex vobis robustioribus hunc male dicendi locum suscepisset; aliquanto liberius et fortius et magis more nostro refutaremus istam male dicendi licentiam.";
 	public static var latin_cbc : String = "000000000000000000000000000000003EADB4B64216760699560EAD97228B35D50B2DBCD3D12A0683FEC3F3AFD4A92B067AD65E4E48548B81DD8A6B91C5B353D8BB83A016E68AC939A4C1CDD75B4672473FA7F9058296D8A918F5C94A6E26250300AD0D53B4FC2E4748B1AB1BFD16D124B7D212FCE96EBA9749F8C3837C55AA979216C1183C27EA4282C363EAA9ED061AFE3F2A1911A72A6E516715B14AAA17B9B9BE992CC5F67E5ACA5EFB571FBE911B5E84DA652E37DC1CC2B110F1C32132E5D6BFA19468182CA82340C353E40604370B703769330BCABD199F951C483EF98BC51D7ACEC0ABA4AF233DD28B27C8C345B972FFEA11A3DB9FCA26AC63C2C45B6FDAAC5659584997CDB7538E17F1C8D4188932E4A5DEE8F8D3727FE42A9296460E659E7A542B0C0F234D1E73DE6D118F371D0990AE8290E180EFE834D900BECD6D41AC8DE0129543A880DD0CA0E003B0A3746E3350514DD21FC567D8EFA6FC2AA051E7AB04A5EDD13F0E400DEF1D1B115F6C7A363E2BB20776B5560CE65E231CD75AEA42F7E75B01AF73B671551D21F1FCC708893968CB9B0D34711A1EABE94C49E213C8335DAEF639EF26E2218922130B3B0EA44870333C45B80A5E8AB27B2588907B9293CB4897E96D09F021B3A70378F567E8054B7FB8CA19BBD7BC87845C751C558B5BB31CDBCA8CDFDA0C8E157DF2F22D5471F4B30C06580DE7B363B46D08AE8761485B93385CDF4A00B042823AFA4557ED2230FEC128D979FFA5B77302393FF5F67A806B6E46EFC4B173889C51E89CB8A70EC529BCAAEC2211C3FFCE71684D7B4828A3BAD00147F637D075F657207EE980EA7EB4E67CF7FBA83DF0CE9E03AB5113B66510E4AEC00687BD920D1EE2DDACD91825A4E4867517F799844EBE04A9504582C208E55836413945AAE6BFC5411107B45A16A967A503F28F58777BF95203C835EF1D864CB255AE1BB06416FA3032639E4A3868DBEEF6335F995024E3F82EA091F5A927790E804C0DC685BB";
 
 	public function testEcbOne() {
@@ -118,10 +102,10 @@ class AesTestFunctions extends haxe.unit.TestCase {
 	}
 
 	public function testCbcLatinEncrypt() {
-		var a = new Aes(128, latin_passphrase);
+		var a = new Aes(128, CommonData.latin_passphrase);
 		var aes = new ModeCBC( a );
 		aes.iv = ByteString.nullString(16);
-		var e = aes.encrypt(latin);
+		var e = aes.encrypt(CommonData.latin);
 		assertEquals( latin_cbc,
 				ByteString.hexDump(e, "")
 		);
@@ -129,8 +113,8 @@ class AesTestFunctions extends haxe.unit.TestCase {
 
 	public function testEcbAll() {
 		for(bits in b) {
-			for(phrase in phrases) {
-				for(msg in msgs) {
+			for(phrase in CommonData.phrases) {
+				for(msg in CommonData.msgs) {
 					assertEquals( true,
 							doTestAes(bits, phrase, msg, ECB)
 					);
@@ -141,8 +125,8 @@ class AesTestFunctions extends haxe.unit.TestCase {
 
 	public function testCbcAll() {
 		for(bits in b) {
-			for(phrase in phrases) {
-				for(msg in msgs) {
+			for(phrase in CommonData.phrases) {
+				for(msg in CommonData.msgs) {
 					assertEquals( true,
 							doTestAes(bits, phrase, msg, CBC)
 					);
@@ -187,57 +171,7 @@ class AesTestFunctions extends haxe.unit.TestCase {
 
 }
 
-class TeaTestFunctions extends haxe.unit.TestCase {
-	public function testOne() {
-		//var s = "Whoa there nellie. Have some tea";
-		var s = "Message";
-		var t = new Tea("This is my passphrase");
-/*
-trace('');
-var te = t.encryptBlock( s );
-trace("Hex dump");
-trace(ByteString.hexDump(te));
-var td = t.decryptBlock(te);
-trace("Raw td");
-trace(td);
-trace("Hex dump");
-trace(ByteString.hexDump(td));
-*/
-		var tea = new ModeECB( t );
-		var e = tea.encrypt(s);
 
-//trace(ByteString.hexDump(e));
-
-		var d = tea.decrypt(e);
-
-		assertTrue(s != e);
-		assertEquals(s, d);
-	}
-
-	public function testEcbAll() {
-		for(phrase in AesTestFunctions.phrases) {
-			for(msg in AesTestFunctions.msgs) {
-				assertEquals( true,
-						doTestTea(phrase, msg, ECB)
-				);
-			}
-		}
-	}
-
-	static function doTestTea(phrase, msg, mode) {
-		var t = new Tea(phrase);
-		var tea : IMode;
-		switch(mode) {
-		case CBC: tea = cast { var c = new ModeCBC(t); c.iv = ByteString.nullString(16); c; }
-		case ECB: tea = cast new ModeECB(t);
-		}
-		var enc = tea.encrypt(msg);
-		var dec = tea.decrypt(enc);
-		if(dec == msg)
-			return true;
-		return false;
-	}
-}
 
 class PadFunctions extends haxe.unit.TestCase {
 	function testPkcs1() {

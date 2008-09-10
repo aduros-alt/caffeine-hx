@@ -1,4 +1,10 @@
 -cp ../../
+-neko testTea.n
+-main TeaTest
+
+--next
+
+-cp ../../
 -neko test.n
 -main CryptTest
 

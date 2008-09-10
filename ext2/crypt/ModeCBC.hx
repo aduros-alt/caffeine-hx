@@ -28,6 +28,8 @@
 package crypt;
 
 import haxe.io.Bytes;
+import haxe.io.BytesBuffer;
+import haxe.io.BytesUtil;
 
 class ModeCBC extends IV, implements IMode {
 	public function new(bCipher: IBlockCipher, ?pad : IPad) {
@@ -45,22 +47,22 @@ class ModeCBC extends IV, implements IMode {
 		var bsize = cipher.blockSize;
 		var numBlocks = Std.int(buf.length/bsize);
 		var offset : Int = 0;
-		var sb = new StringBuf();
+		var sb = new BytesBuffer();
 
 		var curIV = iv;
 		for (i in 0...numBlocks) {
-			var sb2 = new StringBuf();
+			var sb2 = new BytesBuffer();
 			for(x in 0...cipher.blockSize) {
-				var bc : Int = buf.charCodeAt(offset + x);
-				var ic : Int = curIV.charCodeAt(x);
-				sb2.addChar( bc ^ ic );
+				var bc : Int = buf.get(offset + x);
+				var ic : Int = curIV.get(x);
+				sb2.addByte( bc ^ ic );
 			}
-			var outBuffer = cipher.encryptBlock(sb2.toString());
+			var outBuffer = cipher.encryptBlock(sb2.getBytes());
 			sb.add(outBuffer);
 			curIV = outBuffer;
 			offset += cipher.blockSize;
 		}
-		return finishEncrypt(sb);
+		return finishEncrypt(sb.getBytes());
 	}
 
 	public function decrypt( s : Bytes ) : Bytes {
@@ -70,18 +72,18 @@ class ModeCBC extends IV, implements IMode {
 			throw "Invalid buffer length";
 		var numBlocks = Std.int(buf.length/bsize);
 		var offset : Int = 0;
-		var sb = new StringBuf();
+		var sb = new BytesBuffer();
 
 		for (i in 0...numBlocks) {
-			var rv = cipher.decryptBlock(buf.substr(offset, bsize));
-			var sb2 = new StringBuf();
+			var rv = cipher.decryptBlock(buf.sub(offset, bsize));
+			var sb2 = new BytesBuffer();
 			for(x in 0...cipher.blockSize) {
-				sb2.addChar( rv.charCodeAt(x) ^ currentIV.charCodeAt(x));
+				sb2.addByte( rv.get(x) ^ currentIV.get(x));
 			}
-			sb.add(sb2.toString());
-			currentIV = buf.substr(offset, cipher.blockSize);
+			sb.add(sb2.getBytes());
+			currentIV = buf.sub(offset, cipher.blockSize);
 			offset += bsize;
 		}
-		return finishDecrypt(sb.toString());
+		return finishDecrypt(sb.getBytes());
 	}
 }

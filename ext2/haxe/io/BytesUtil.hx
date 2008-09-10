@@ -30,6 +30,7 @@ package haxe.io;
 import haxe.io.Bytes;
 import haxe.io.BytesBuffer;
 import haxe.Int32;
+import haxe.Int32Util;
 
 class BytesUtil {
 	/** static 0 length Bytes object **/
@@ -54,6 +55,16 @@ class BytesUtil {
 	public static function byte32ToHex(b : Int32) {
 		var bs : Int = Int32.toInt(Int32.and(b, Int32.ofInt(0xFF)));
 		return StringTools.hex(bs,2).toLowerCase();
+	}
+
+	/**
+		Convert a string containing little endian encoded 32bit integers to an array of int32s<br />
+		If the string length is not a multiple of 4, it will be 0 padded
+		at the end.
+	**/
+	public static function bytesToInt32LE(s : Bytes) : Array<Int32>
+	{
+		return Int32Util.unpackLE(nullPad(s,4));
 	}
 
 	/**
@@ -85,13 +96,13 @@ class BytesUtil {
 		return StringTools.rtrim(sb.toString());
 	}
 
-// 	/*
-// 		Convert an array of 32bit integers to a little endian Bytes<br />
-// 	**/
-// 	public static function int32ToBytes(l : Array<Int32>) : String
-// 	{
-// 		return I32.packLE(l);
-// 	}
+	/*
+		Convert an array of 32bit integers to a little endian Bytes<br />
+	**/
+	public static inline function int32ToBytesLE(l : Array<Int32>) : Bytes
+	{
+		return Int32Util.packLE(l);
+	}
 
 	/**
 		Transform an array of integers x where 0xFF >= x >= 0 to
@@ -107,7 +118,7 @@ class BytesUtil {
 			sb.addByte(i);
 		}
 		if(padToBytes != null && padToBytes > 0) {
-			return nullPadBytes(sb.getBytes(), padToBytes);
+			return nullPad(sb.getBytes(), padToBytes);
 		}
 		return sb.getBytes();
 	}
@@ -127,7 +138,7 @@ class BytesUtil {
 		that 0 length buffer passed to this will not be padded. See also
 		nullBytes()
 	**/
-	public static function nullPadBytes(s : Bytes, chunkLen: Int) : Bytes {
+	public static function nullPad(s : Bytes, chunkLen: Int) : Bytes {
 		var r = chunkLen - (s.length % chunkLen);
 		if(r == chunkLen)
 			return s;
@@ -191,20 +202,6 @@ class BytesUtil {
 // 			}
 // 		}
 // 		return a;
-// 	}
-
-// 	/**
-// 		Convert a string containing 32bit integers to an array of ints<br />
-// 		If the string length is not a multiple of 4, it will be NULL padded
-// 		at the end.
-// 	**/
-// #if neko
-// 	public static function strToInt32(s : String) : Array<neko.Int32>
-// #else true
-// 	public static function strToInt32(s : String) : Array<Int>
-// #end
-// 	{
-// 		return I32.unpackLE(nullPadString(s,4));
 // 	}
 
 	/**

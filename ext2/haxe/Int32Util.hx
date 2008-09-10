@@ -166,6 +166,20 @@ class Int32Util {
 	}
 
 	/**
+		Returns true if a > b
+	**/
+	public static inline function gt(a:Int32, b:Int32) {
+		return(Int32.compare(a,b) > 0) ? true : false;
+	}
+
+	/**
+		Returns true if a >= b
+	**/
+	public static inline function gteq(a:Int32, b:Int32) {
+		return(Int32.compare(a,b) >= 0) ? true : false;
+	}
+
+	/**
 		Returns true if a < b
 	**/
 	public static inline function lt(a:Int32, b:Int32) {
@@ -189,24 +203,29 @@ class Int32Util {
 			Int32.and(Int32.ofInt(0xFFFF), Int32.ofInt(low)));
 	}
 
+#if neko
 	/**
-		Returns true if a > b
+		Create a neko array of Int32
 	**/
-	public static inline function gt(a:Int32, b:Int32) {
-		return(Int32.compare(a,b) > 0) ? true : false;
+	public static function mkNekoArray( a : Array<Int32> ) {
+		if( a == null )
+			return null;
+		untyped {
+			var r = __dollar__amake(a.length);
+			var i = 0;
+			while( i < a.length ) {
+				r[i] = a[i];
+				i += 1;
+			}
+			return r;
+		}
 	}
-
-	/**
-		Returns true if a >= b
-	**/
-	public static inline function gteq(a:Int32, b:Int32) {
-		return(Int32.compare(a,b) >= 0) ? true : false;
-	}
+#end
 
 	/**
 		Convert an array of 32bit integers to a little endian string<br />
 	**/
-	public static function packLE(l : Array<Int32>) : BytesBuffer
+	public static function packLE(l : Array<Int32>) : Bytes
 	{
 		var sb = new BytesBuffer();
 		for(i in 0...l.length) {
@@ -215,13 +234,13 @@ class Int32Util {
 			sb.addByte( Int32.toInt(B2(l[i])) );
 			sb.addByte( Int32.toInt(B3(l[i])) );
 		}
-		return sb;
+		return sb.getBytes();
 	}
 
 	/**
 		Convert an array of 32bit integers to a big endian string<br />
 	**/
-	public static function packBE(l : Array<Int32>) : BytesBuffer
+	public static function packBE(l : Array<Int32>) : Bytes
 	{
 		var sb = new BytesBuffer();
 		for(i in 0...l.length) {
@@ -230,7 +249,7 @@ class Int32Util {
 			sb.addByte( Int32.toInt(B1(l[i])) );
 			sb.addByte( Int32.toInt(B0(l[i])) );
 		}
-		return sb;
+		return sb.getBytes();
 	}
 
 	/**
