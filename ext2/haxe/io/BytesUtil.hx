@@ -110,6 +110,26 @@ class BytesUtil {
 		padToBytes. 0 length input returns 0 length output, not
 		padded.
 	**/
+	public static function int32ArrayToBytes(a: Array<Int32>, ?padToBytes:Int) : Bytes  {
+		var sb = new BytesBuffer();
+		for(v in a) {
+			var i = Int32.toInt(v);
+			if(i > 0xFF || i < 0)
+				throw "Value out of range";
+			sb.addByte(i);
+		}
+		if(padToBytes != null && padToBytes > 0) {
+			return nullPad(sb.getBytes(), padToBytes);
+		}
+		return sb.getBytes();
+	}
+
+	/**
+		Transform an array of integers x where 0xFF >= x >= 0 to
+		a string of binary data, optionally padded to a multiple of
+		padToBytes. 0 length input returns 0 length output, not
+		padded.
+	**/
 	public static function intArrayToBytes(a: Array<Int>, ?padToBytes:Int) : Bytes  {
 		var sb = new BytesBuffer();
 		for(i in a) {

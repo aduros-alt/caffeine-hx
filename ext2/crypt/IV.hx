@@ -35,7 +35,7 @@ private enum IvState {
 	IV_UNINIT;
 	IV_BLOCK;
 	IV_STREAM_UNINIT;
-	IV_STREAMcipherONTINUE;
+	IV_STREAM_CONTINUE;
 }
 
 /**
@@ -54,8 +54,8 @@ class IV {
 	var prepend 	: Bool;
 	var startIV		: Bytes;
 	var currentIV	: Bytes;
-	var curValue	: BytesBuffer;
-	var nextValue	: BytesBuffer;
+	var curValue	: Bytes;
+	var nextValue	: Bytes;
 	var state		: IvState;
 
 	public function new(bCipher: IBlockCipher, ?padMethod : IPad) {
@@ -80,28 +80,33 @@ class IV {
 	}
 
 	public function getIV() : Bytes {
+		// trace(here.methodName);
+		// trace("Cipher blockSize " + cipher.blockSize);
+		// trace("curValue: "  + curValue);
+		// trace("nextValue: " + nextValue);
+		// if(nextValue != null)
+		// trace(nextValue.length);
 		if(curValue == null) {
 			if(nextValue == null) {
 				var sb = new BytesBuffer();
 				for(x in 0...cipher.blockSize) {
 					sb.addByte(randomByte());
 				}
-				nextValue = sb;
+				nextValue = sb.getBytes();
 			}
-			curValue = new BytesBuffer();
-			curValue.add(nextValue.getBytes());
+			curValue = nextValue;
 			nextValue = null;
-			currentIV = curValue.getBytes();
+			currentIV = curValue;
 		}
-		return curValue.getBytes();
+		return curValue;
 	}
 
 	public function setNextIV( s : Bytes ) : Bytes {
-		if(s.length % cipher.blockSize != 0)
+		if(s.length % cipher.blockSize != 0 || s.length == 0)
 			throw("crypt.iv: invalid length. Expected "+cipher.blockSize+ " bytes.");
 		var sb = new BytesBuffer();
 		sb.add(s);
-		nextValue = sb;
+		nextValue = sb.getBytes().sub(0,cipher.blockSize);
 		return s;
 	}
 
@@ -135,7 +140,7 @@ class IV {
 		if(prepend) {
 			var biv = s.sub(0,cipher.blockSize);
 			iv = biv;
-			if(iv != biv)
+			if(!BytesUtil.eq(iv, biv))
 				throw "crypt.iv: invalid state";
 			if(s.length - cipher.blockSize >= 0)
 				buf = s.sub(cipher.blockSize, s.length - cipher.blockSize);
@@ -156,8 +161,7 @@ class IV {
 		return buf;
 	}
 
-	// inline
-	function randomByte() : Int {
+	private inline function randomByte() : Int {
 		return Std.int(Math.random() * 256);
 	}
 

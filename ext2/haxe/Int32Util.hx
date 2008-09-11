@@ -92,6 +92,28 @@ class Int32Util {
 	}
 
 	/**
+		Encode a 32 bit int to String in base 'radix'.
+	**/
+	public static function baseEncode(vi : Int32, radix : Int) : String
+	{
+		if(radix < 2 || radix > 36)
+			throw "radix out of range";
+		var sb = "";
+		var av : Int32 = abs(vi);
+		var radix32 = Int32.ofInt(radix);
+		while(true) {
+			var r32 = haxe.Int32.mod(av, radix32);
+			sb = Constants.DIGITS_BN.charAt(Int32.toInt(r32)) + sb;
+			av = Int32.div(Int32.sub(av,r32),radix32);
+			if(eq(av, ZERO))
+				break;
+		}
+		if(lt(vi, ZERO))
+			return "-" + sb;
+		return sb;
+	}
+
+	/**
 		Encode an Int32 to a little endian string. Lowest byte is first in string so
 		0xA0B0C0D0 encodes to [D0,C0,B0,A0]
 	**/
@@ -253,6 +275,36 @@ class Int32Util {
 	}
 
 	/**
+		On platforms where there is a native 32 bit int, this will
+		cast an Int32 properly without overflows thrown.
+	**/
+	public static inline function toNativeInt32(v : Int32) : Int {
+		#if (flash || js || php )
+			#if flash9
+				return cast v;
+			#else
+				return ((cast v) & 0xFFFFFFFF);
+			#end
+		#else
+			throw "Architecture has no native 32 bit int";
+			return 0;
+		#end
+	}
+
+	/**
+		On platforms where there is a native 32 bit int, this will
+		cast an Int32 array properly without overflows thrown.
+	**/
+	public static inline function toNativeInt32Array(v : Array<Int32>) : Array<Int> {
+		#if (flash || js || php )
+			return cast v;
+		#else
+			throw "Architecture has no native 32 bit int";
+			return new Array();
+		#end
+	}
+
+	/**
 		Convert a string containing 32bit integers to an array of ints<br />
 		If the string length is not a multiple of 4, an exception is thrown
 	**/
@@ -295,27 +347,5 @@ class Int32Util {
 			i++;
 		}
 		return a;
-	}
-
-	/**
-		Encode a 32 bit int to String in base 'radix'.
-	**/
-	public static function baseEncode(vi : Int32, radix : Int) : String
-	{
-		if(radix < 2 || radix > 36)
-			throw "radix out of range";
-		var sb = "";
-		var av : Int32 = abs(vi);
-		var radix32 = Int32.ofInt(radix);
-		while(true) {
-			var r32 = haxe.Int32.mod(av, radix32);
-			sb = Constants.DIGITS_BN.charAt(Int32.toInt(r32)) + sb;
-			av = Int32.div(Int32.sub(av,r32),radix32);
-			if(eq(av, ZERO))
-				break;
-		}
-		if(lt(vi, ZERO))
-			return "-" + sb;
-		return sb;
 	}
 }

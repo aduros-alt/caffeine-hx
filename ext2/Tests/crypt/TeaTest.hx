@@ -2,8 +2,6 @@ import crypt.Tea;
 import crypt.IMode;
 import crypt.ModeECB;
 import crypt.ModeCBC;
-// import crypt.PadPkcs1Type1;
-
 import haxe.io.Bytes;
 import haxe.io.BytesUtil;
 
@@ -18,26 +16,17 @@ class TeaTestFunctions extends haxe.unit.TestCase {
 		//var s = "Whoa there nellie. Have some tea";
 		var s = Bytes.ofString("Message");
 		var t = new Tea(Bytes.ofString("This is my passphrase"));
-/*
-trace('');
-var te = t.encryptBlock( s );
-trace("Hex dump");
-trace(ByteString.hexDump(te));
-var td = t.decryptBlock(te);
-trace("Raw td");
-trace(td);
-trace("Hex dump");
-trace(ByteString.hexDump(td));
-*/
 		var tea = new ModeECB( t );
 		var e = tea.encrypt(s);
-
-//trace(ByteString.hexDump(e));
-
 		var d = tea.decrypt(e);
 
-		assertTrue(s != e);
-		assertEquals(s, d);
+		assertFalse(BytesUtil.eq(s, e));
+// 		trace(BytesUtil.hexDump(s));
+// 		trace(BytesUtil.hexDump(e));
+// 		trace(BytesUtil.hexDump(d));
+
+		// Test for equality of contents of Bytes objects
+		assertTrue(BytesUtil.eq(s,d));
 	}
 
 	public function testEcbAll() {
@@ -45,6 +34,16 @@ trace(ByteString.hexDump(td));
 			for(msg in CommonData.msgs) {
 				assertEquals( true,
 						doTestTea(Bytes.ofString(phrase), Bytes.ofString(msg), ECB)
+				);
+			}
+		}
+	}
+
+	public function testCbcAll() {
+		for(phrase in CommonData.phrases) {
+			for(msg in CommonData.msgs) {
+				assertEquals( true,
+						doTestTea(Bytes.ofString(phrase), Bytes.ofString(msg), CBC)
 				);
 			}
 		}
@@ -59,8 +58,12 @@ trace(ByteString.hexDump(td));
 		}
 		var enc = tea.encrypt(msg);
 		var dec = tea.decrypt(enc);
-		if(dec == msg)
+		if(BytesUtil.eq(dec, msg))
 			return true;
+		trace("FAILED: dump of msg, encrypted, decrypted: ");
+		trace(BytesUtil.hexDump(msg));
+		trace(BytesUtil.hexDump(enc));
+		trace(BytesUtil.hexDump(dec));
 		return false;
 	}
 }
