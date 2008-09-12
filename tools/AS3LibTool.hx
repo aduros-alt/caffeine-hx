@@ -255,7 +255,7 @@ class AS3LibTool {
 
 
 	static function log(s : String) {
-		neko.io.File.stderr().write(s+"\n");
+		neko.io.File.stderr().writeString(s+"\n");
 		neko.io.File.stderr().flush();
 	}
 
@@ -410,7 +410,7 @@ class AS3LibTool {
 		s += "}\n";
 
 		var fo = neko.io.File.write(destinationPath(d, imgAppend), false);
-		fo.write(s);
+		fo.writeString(s);
 		fo.close();
 	}
 
@@ -426,7 +426,7 @@ class AS3LibTool {
 				),
 				false
 		);
-		fo.write(mainClassContent);
+		fo.writeString(mainClassContent);
 		fo.close();
 	}
 

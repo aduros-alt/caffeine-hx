@@ -128,7 +128,7 @@ class PrTool {
 	}
 
 	static function log(s : String) {
-		neko.io.File.stderr().write(s+"\n");
+		neko.io.File.stderr().writeString(s+"\n");
 		neko.io.File.stderr().flush();
 	}
 
@@ -219,7 +219,7 @@ class PrTool {
 				}
 			}
 		}
-		catch(e : neko.io.Eof) {
+		catch(e : haxe.io.Eof) {
 			fiCaffeine.close();
 		}
 		catch(e : Dynamic) {
@@ -321,12 +321,12 @@ class PrTool {
 		var mline = "+++ " + nfile + "  " + xdiff.Tools.dateFormat(Date.now());
 
 		var patch = xdiff.Tools.diff(hs, caf);
-		var fo = new neko.io.StringOutput();
+		var fo = new haxe.io.BytesOutput();
 		//var fo = neko.io.File.write(file + ".patch",false);
-		fo.write(oline + "\n");
-		fo.write(mline + "\n");
-		fo.write(patch);
+		fo.writeString(oline + "\n");
+		fo.writeString(mline + "\n");
+		fo.writeString(patch);
 		fo.close();
-		return fo.toString();
+		return fo.getBytes().toString();
 	}
 }

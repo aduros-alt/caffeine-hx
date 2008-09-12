@@ -1,17 +1,17 @@
 #the library release builder
--neko librealease.n
+-neko librelease.n
 -main tools/HaxelibRelease.hx
 
---next
+#--next
 
 #the PR file builder
--neko prtool.n
--cp ext
--main tools/PrTool.hx
+#-neko prtool.n
+#-cp ext2
+#-main tools/PrTool.hx
 
 --next
 
 #the AS3 library builder
 -neko as3libtool.n
--cp ext
+-cp ext2
 -main tools/AS3LibTool.hx

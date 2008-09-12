@@ -82,7 +82,7 @@ class HaxelibRelease {
 		version = v;
 	}
 
-	public static function makeFileContents() : String {
+	public static function makeFileContents() {
 		var s = "<project name=\""+ project +"\" url=\"http://code.google.com/p/caffeine-hx\" license=\"BSD\">\n";
 		s += "    <user name=\""+ maintainer +"\"/>\n";
 		s += "    <description>"+ desc +"</description>\n";
@@ -118,7 +118,7 @@ class HaxelibRelease {
 
 	static function writeFileContents() {
 		var fo = neko.io.File.write(projectRoot + "/haxelib.xml", false);
-		fo.write(makeFileContents());
+		fo.writeString( makeFileContents() );
 		fo.close();
 	}
 
