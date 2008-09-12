@@ -27,6 +27,10 @@
 
 package crypt;
 
+import haxe.io.Bytes;
+import haxe.io.BytesBuffer;
+import haxe.io.BytesUtil;
+
 /**
 	Pads string with 0xFF bytes
 **/
@@ -45,23 +49,23 @@ class PadPkcs1Type1 implements IPad {
 		padByte = 0xFF;
 	}
 
-	public function pad( s : String ) : String {
+	public function pad( s : Bytes ) : Bytes {
 		if(s.length > textSize)
 			throw "Unable to pad block";
-		var sb = new StringBuf();
-		sb.addChar(0);
-		sb.addChar(typeByte);
+		var sb = new BytesBuffer();
+		sb.addByte(0);
+		sb.addByte(typeByte);
 		var n = blockSize - s.length - 3; //padCount + (textSize - s.length);
 		while(n-- > 0) {
-			sb.addChar(getPadByte());
+			sb.addByte(getPadByte());
 		}
-		sb.addChar(0);
+		sb.addByte(0);
 		sb.add(s);
 
-		return sb.toString();
+		return sb.getBytes();
 	}
 
-	public function unpad( s : String ) : String {
+	public function unpad( s : Bytes ) : Bytes {
 		// src string may be shorter than block size. This happens when
 		// converting to BigIntegers then to padded string before calling
 		// unpad.
@@ -69,23 +73,23 @@ class PadPkcs1Type1 implements IPad {
 		#if CAFFEINE_DEBUG
 		trace(BytesUtil.hexDump(s));
 		#end
-		var sb = new StringBuf();
+		var sb = new BytesBuffer();
 		while(i < s.length) {
-			while( i < s.length && s.charCodeAt(i) == 0) ++i;
+			while( i < s.length && s.get(i) == 0) ++i;
 			if(s.length-i-3-padCount < 0) {
 				throw("Unexpected short message");
 			}
-			if(s.charCodeAt(i) != typeByte)
+			if(s.get(i) != typeByte)
 				throw("Expected marker "+ typeByte + " at position "+i + " [" + BytesUtil.hexDump(s) + "]");
 			if(++i >= s.length)
-				return sb.toString();
-			while(i < s.length && s.charCodeAt(i) != 0) ++i;
+				return sb.getBytes();
+			while(i < s.length && s.get(i) != 0) ++i;
 			i++;
 			var n : Int = 0;
 			while(i < s.length && n++ < textSize )
-				sb.addChar(s.charCodeAt(i++));
+				sb.addByte(s.get(i++));
 		}
-		return sb.toString();
+		return sb.getBytes();
 	}
 
 	public function calcNumBlocks(len : Int) : Int {
