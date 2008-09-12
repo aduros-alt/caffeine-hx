@@ -1,29 +1,29 @@
 /*
- * Copyright (c) 2008, The Caffeine-hx project contributors
- * Original author : Russell Weir
- * Contributors:
- * All rights reserved.
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- *   - Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   - Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in the
- *     documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE CAFFEINE-HX PROJECT CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE CAFFEINE-HX PROJECT CONTRIBUTORS
- * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGE.
- */
+* Copyright (c) 2008, The Caffeine-hx project contributors
+* Original author : Russell Weir
+* Contributors:
+* All rights reserved.
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions are met:
+*
+*   - Redistributions of source code must retain the above copyright
+*     notice, this list of conditions and the following disclaimer.
+*   - Redistributions in binary form must reproduce the above copyright
+*     notice, this list of conditions and the following disclaimer in the
+*     documentation and/or other materials provided with the distribution.
+*
+* THIS SOFTWARE IS PROVIDED BY THE CAFFEINE-HX PROJECT CONTRIBUTORS "AS IS"
+* AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+* IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+* ARE DISCLAIMED. IN NO EVENT SHALL THE CAFFEINE-HX PROJECT CONTRIBUTORS
+* BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+* CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+* SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+* INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+* CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+* ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+* THE POSSIBILITY OF SUCH DAMAGE.
+*/
 
 #include <stdlib.h>
 #include <string.h>
@@ -32,11 +32,11 @@
 #include <cfhxdef.h>
 
 #ifndef uint32
-#define uint32 unsigned long int
+#define uint32 u_int32_t
 #endif
 
 typedef struct {
-	unsigned int type;
+	u_int16_t type;
 	union {
 		SHA1_CTX   *text1;
 		sha224_ctx *text224;
@@ -65,17 +65,17 @@ typedef struct {
 
 static void sha1_string(SHA1_CTX *context, const char *message, size_t length)
 {
-    size_t j;
-    unsigned char buffer[16384];
-    unsigned int i = 16384;
-    const char *c = message;
+	size_t j;
+	unsigned char buffer[16384];
+	u_int16_t i = 16384;
+	const char *c = message;
 
-    for(j=length; j; j -= i) {
-        if(j < i) i = j;
-        memcpy(buffer, c, i);
-        SHA1Update(context, buffer, i);
-        c += i;
-    }
+	for(j=length; j; j -= i) {
+		if(j < i) i = j;
+		memcpy(buffer, c, i);
+		SHA1Update(context, buffer, i);
+		c += i;
+	}
 }
 
 static void sha_uint32(SHA1_CTX *context, uint32 val)
@@ -85,16 +85,16 @@ static void sha_uint32(SHA1_CTX *context, uint32 val)
 
 static void sha_string(sha_container *container, const char *message, size_t length)
 {
-    size_t j;
-    unsigned char buffer[16384];
-    unsigned int i = 16384;
-    const char *c = message;
+	size_t j;
+	unsigned char buffer[16384];
+	u_int16_t i = 16384;
+	const char *c = message;
 
-    for(j=length; j; j -= i) {
-        if(j < i) i = j;
-        memcpy(buffer, c, i);
+	for(j=length; j; j -= i) {
+		if(j < i) i = j;
+		memcpy(buffer, c, i);
 		switch(container->type) {
-        case 1:
+		case 1:
 			SHA1Update(container->con.text1, buffer, i);
 			break;
 		case 224:
@@ -104,8 +104,8 @@ static void sha_string(sha_container *container, const char *message, size_t len
 		case 384: sha384_update(container->con.text384, buffer, i); break;
 		case 512: sha512_update(container->con.text512, buffer, i); break;
 		}
-        c += i;
-    }
+		c += i;
+	}
 }
 
 static void sha1_uint32(SHA1_CTX *context, uint32 val)
@@ -126,19 +126,19 @@ see libs/std/md5.c
 **/
 
 typedef struct stack {
-        uint32 pos;
-        value v;
-        SHA1_CTX *context;
-		//neko_sha_container *
-        struct stack *next;
+	uint32 pos;
+	value v;
+	SHA1_CTX *context;
+	//neko_sha_container *
+	struct stack *next;
 } stack;
 static void neko_sha1( SHA1_CTX *context, value v, stack *cur);
 
 
 static void make_sha1_fields( value v, field f, void *c ) {
-        stack *s = (stack*)c;
-        sha1_uint32(s->context, f);
-        neko_sha1(s->context, v, s);
+	stack *s = (stack*)c;
+	sha1_uint32(s->context, f);
+	neko_sha1(s->context, v, s);
 }
 
 static void neko_sha1( SHA1_CTX *context, value v, stack *cur) {
@@ -210,10 +210,11 @@ static void destroy_container( value c ) {
 }
 
 static value sha_init(value Size) {
-	int size;
+	u_int32_t size;
 	sha_container *sc;
 	val_check(Size, int);
 	size = val_int(Size);
+	buffer b;
 
 	sc = (sha_container *) malloc(sizeof(sha_container));
 	if(sc == NULL)
@@ -251,7 +252,9 @@ static value sha_init(value Size) {
 		break;
 	default:
 		free(sc);
-		THROW("invalid SHA size");
+		b = alloc_buffer("sha_init: invalid sha size ");
+		val_buffer(b, alloc_int(sc->type));
+		val_throw(buffer_to_string(b));
 	}
 	value v = alloc_abstract(k_shacontainer, sc);
 	val_gc(v, destroy_container);
@@ -266,6 +269,7 @@ static value sha_update(value SC, value Msg) {
 	sha_container *sc;
 	val_check_kind(SC, k_shacontainer);
 	val_check(Msg, string);
+	buffer b;
 
 	sc = val_shacontainer(SC);
 	if(sc == NULL)
@@ -287,7 +291,9 @@ static value sha_update(value SC, value Msg) {
 		sha512_update(sc->con.text512, val_string(Msg), val_strlen(Msg));
 		break;
 	default:
-		THROW("invalid sha size");
+		b = alloc_buffer("sha_update: invalid sha size ");
+		val_buffer(b, alloc_int(sc->type));
+		val_throw(buffer_to_string(b));
 	}
 	return alloc_bool(1);
 }
@@ -297,6 +303,11 @@ static value sha_final(value SC) {
 	sha_container *sc;
 	val_check_kind(SC, k_shacontainer);
 	value rv;
+	buffer b;
+
+	sc = val_shacontainer(SC);
+	if(sc == NULL)
+		THROW("sha_final: null handle");
 	switch(sc->type) {
 	case 1:
 		rv = alloc_empty_string(SHA1_DIGEST_SIZE);
@@ -319,7 +330,9 @@ static value sha_final(value SC) {
 		sha512_final(sc->con.text512, (unsigned char *)val_string(rv));
 		break;
 	default:
-		THROW("invalid sha size");
+		b = alloc_buffer("sha_final: invalid sha size ");
+		val_buffer(b, alloc_int(sc->type));
+		val_throw(buffer_to_string(b));
 	}
 	return rv;
 }
@@ -356,14 +369,14 @@ static int lsha1 (lua_State *L) {
 
 
 static struct luaL_reg sha1lib[] = {
-  {"sum", lsha1},
-  {NULL, NULL}
+{"sum", lsha1},
+{NULL, NULL}
 };
 
 
 int luaopen_sha1 (lua_State *L) {
-  luaL_openlib(L, "sha1", sha1lib, 0);
-  return 1;
+luaL_openlib(L, "sha1", sha1lib, 0);
+return 1;
 }
 
 #endif

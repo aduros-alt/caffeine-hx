@@ -21,7 +21,7 @@ A million repetitions of "a"
 #include <string.h>
 #include "sha1.h"
 
-void SHA1Transform(unsigned long state[5], unsigned char buffer[64], unsigned char le);
+void SHA1Transform(u_int32_t state[5], u_char buffer[64], u_char le);
 
 #define rol(value, bits) (((value) << (bits)) | ((value) >> (32 - (bits))))
 
@@ -52,16 +52,16 @@ void SHA1Transform(unsigned long state[5], unsigned char buffer[64], unsigned ch
 
 /* Hash a single 512-bit block. This is the core of the algorithm. */
 
-void SHA1Transform(unsigned long state[5], unsigned char buffer[64], unsigned char le)
+void SHA1Transform(u_int32_t state[5], u_char buffer[64], u_char le)
 {
-unsigned long a, b, c, d, e;
-typedef union {
-    unsigned char c[64];
-    unsigned long l[16];
-} CHAR64LONG16;
-CHAR64LONG16* block;
+	u_int32_t a, b, c, d, e;
+	typedef union {
+		u_char c[64];
+		u_int32_t l[16];
+	} CHAR64LONG16;
+	CHAR64LONG16* block;
 #ifdef SHA1HANDSOFF
-static unsigned char workspace[64];
+	static u_char workspace[64];
     block = (CHAR64LONG16*)workspace;
     memcpy(block, buffer, 64);
 #else
@@ -79,7 +79,7 @@ static unsigned char workspace[64];
       R0(b,c,d,e,a, 4); R0(a,b,c,d,e, 5); R0(e,a,b,c,d, 6); R0(d,e,a,b,c, 7);
       R0(c,d,e,a,b, 8); R0(b,c,d,e,a, 9); R0(a,b,c,d,e,10); R0(e,a,b,c,d,11);
       R0(d,e,a,b,c,12); R0(c,d,e,a,b,13); R0(b,c,d,e,a,14); R0(a,b,c,d,e,15);
-    } 
+    }
     else {
       R0le(a,b,c,d,e, 0); R0le(e,a,b,c,d, 1); R0le(d,e,a,b,c, 2); R0le(c,d,e,a,b, 3);
       R0le(b,c,d,e,a, 4); R0le(a,b,c,d,e, 5); R0le(e,a,b,c,d, 6); R0le(d,e,a,b,c, 7);
@@ -114,9 +114,9 @@ static unsigned char workspace[64];
 
 
 static int be_test() {
-    union { 
-	long l; 
-	char c[sizeof (long)]; 
+    union {
+	long l;
+	char c[sizeof (long)];
     } testu;
     testu.l = 1;
     return (testu.c[sizeof (long) - 1] == 1);
@@ -139,9 +139,9 @@ void SHA1Init(SHA1_CTX* context)
 
 /* Run your data through this. */
 
-void SHA1Update(SHA1_CTX* context, unsigned char* data, unsigned int len)
+void SHA1Update(SHA1_CTX* context, u_char* data, u_int32_t len)
 {
-unsigned int i, j;
+u_int32_t i, j;
 
     j = (context->count[0] >> 3) & 63;
     if ((context->count[0] += len << 3) < (len << 3)) context->count[1]++;
@@ -161,22 +161,22 @@ unsigned int i, j;
 
 /* Add padding and return the message digest. */
 
-void SHA1Final(unsigned char digest[20], SHA1_CTX* context)
+void SHA1Final(u_char digest[20], SHA1_CTX* context)
 {
-unsigned long i, j;
-unsigned char finalcount[8];
+u_int32_t i, j;
+u_char finalcount[8];
 
     for (i = 0; i < 8; i++) {
-        finalcount[i] = (unsigned char)((context->count[(i >= 4 ? 0 : 1)]
+        finalcount[i] = (u_char)((context->count[(i >= 4 ? 0 : 1)]
          >> ((3-(i & 3)) * 8) ) & 255);  /* Endian independent */
     }
-    SHA1Update(context, (unsigned char *)"\200", 1);
+    SHA1Update(context, (u_char *)"\200", 1);
     while ((context->count[0] & 504) != 448) {
-        SHA1Update(context, (unsigned char *)"\0", 1);
+        SHA1Update(context, (u_char *)"\0", 1);
     }
     SHA1Update(context, finalcount, 8);  /* Should cause a SHA1Transform() */
     for (i = 0; i < 20; i++) {
-        digest[i] = (unsigned char)
+        digest[i] = (u_char)
          ((context->state[i>>2] >> ((3-(i & 3)) * 8) ) & 255);
     }
     /* Wipe variables */
@@ -194,21 +194,21 @@ unsigned char finalcount[8];
 /*************************************************************/
 
 
-int SHA1(const char *message, size_t length, unsigned char *digest)
+int SHA1(const char *message, size_t length, u_char *digest)
 {
 	size_t j;
 	SHA1_CTX context;
-	unsigned char buffer[16384];
-	unsigned int i = 16384;
+	u_char buffer[16384];
+	u_int32_t i = 16384;
 	const char *c = message;
 
 	SHA1Init(&context);
 	for(j=length; j; j -= i) {
 		if(j < i) i = j;
-		memcpy(buffer, c, i); 
+		memcpy(buffer, c, i);
 		SHA1Update(&context, buffer, i);
 		c += i;
-	} 
+	}
 	SHA1Final(digest, &context);
 	return 1;
 }
