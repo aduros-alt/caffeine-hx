@@ -36,13 +36,10 @@
 package hash;
 
 import haxe.io.Bytes;
+import haxe.io.BytesBuffer;
 import haxe.io.BytesUtil;
-
-#if neko
-private enum ShaCtx {
-}
-#end
-
+import haxe.Int32Util;
+import haxe.HexUtil;
 
 //class Sha1 implements IHash {
 class Sha1 {
@@ -58,12 +55,12 @@ class Sha1 {
 		return "sha1";
 	}
 
-	public function calculate( msg:String ) : String {
-		return encode(msg, false);
+	public function calculate( msg:Bytes ) : String {
+		return HexUtil.bytesToHex(encode(msg));
 	}
 
 	public function calcBin( msg:Bytes ) : Bytes {
-		return Bytes.ofString(encode(msg.toString(), true));
+		return encode(msg);
 	}
 
 	public function getLengthBytes() : Int {
@@ -83,7 +80,7 @@ class Sha1 {
 	}
 
 #if neko
-	var _ctx : ShaCtx;
+	var _ctx : Void;
 	public var value(default, null) : String;
 
 	/**
@@ -117,27 +114,21 @@ class Sha1 {
 	public static function objEncode( o : Dynamic, ?binary : Bool ) : String {
 		var m : String;
 		if(Std.is(o, String))
-			m = new String(nsha1(untyped o.__s));
+			m = Bytes.ofData(nsha1(untyped o.__s)).toString();
 		else
-			m = new String(nsha1(o));
+			m = Bytes.ofData(nsha1(o)).toString();
 		if(!binary)
 			m = StringTools.baseEncode(m, Constants.DIGITS_HEXL);
 		return m;
 	}
 #end
 	/**
-		Calculate the Sha1 for a string. The optional parameter binary
-		can be set to return a binary string of the sha1. Otherwise, a
-		lower case hex encoded string is returned.
+		Calculate the Sha1 for a string.
 	**/
-	public static function encode(msg : String, ?binary:Bool) : String {
+	public static function encode(msg : Bytes) : Bytes {
 #if neko
-		var m = new String(nsha1(untyped msg.__s));
-		if(!binary)
-			m = StringTools.baseEncode(m, Constants.DIGITS_HEXL);
-		return m;
-#elseif true
-
+		return Bytes.ofData(nsha1(msg.getData()));
+#else
 		//
 		// function 'f' [§4.1.1]
 		//
@@ -161,7 +152,10 @@ class Sha1 {
 		}
 
 		//msg += BytesUtil.ofHex('0x80').toString(); // add trailing '1' bit to string [§5.1.1]
-		msg += String.fromCharCode(0x80); // add trailing '1' bit to string [§5.1.1]
+		var bb = new BytesBuffer();
+		bb.add(msg);
+		bb.addByte(0x80);
+		msg = bb.getBytes();
 
 		// convert string msg into 512-bit/16-integer blocks arrays of ints [§5.2.1]
 		var l : Int = Math.ceil(msg.length/4) + 2;  // long enough to contain msg plus 2-word length
@@ -170,8 +164,8 @@ class Sha1 {
 		for(i in 0...N) {
 			M[i] = new Array<Int>();
 			for(j in 0...16) { // encode 4 chars per integer, big-endian encoding
-				M[i][j] = (msg.charCodeAt(i*64+j*4)<<24) | (msg.charCodeAt(i*64+j*4+1)<<16) |
-					(msg.charCodeAt(i*64+j*4+2)<<8) | (msg.charCodeAt(i*64+j*4+3));
+				M[i][j] = (msg.get(i*64+j*4)<<24) | (msg.get(i*64+j*4+1)<<16) |
+					(msg.get(i*64+j*4+2)<<8) | (msg.get(i*64+j*4+3));
 			}
 		}
 
@@ -222,23 +216,13 @@ class Sha1 {
 			H4 = (H4+e) & 0xffffffff;
     	}
 
-		var toHexChr = function(j:Int)
-		{
-			var sb = new StringBuf();
-			var i : Int = 8;
-			while(i-- > 0) {
-				var v = (j>>>(i*4)) & 0xf;
-				sb.add(StringTools.hex(v).toLowerCase());
-			}
-				return sb.toString();
-		}
-		var sb = new StringBuf();
-		sb.add(toHexChr(H0));
-		sb.add(toHexChr(H1));
-		sb.add(toHexChr(H2));
-		sb.add(toHexChr(H3));
-		sb.add(toHexChr(H4));
-		return sb.toString();
+		bb = new BytesBuffer();
+		bb.add(Int32Util.encodeBE(cast H0));
+		bb.add(Int32Util.encodeBE(cast H1));
+		bb.add(Int32Util.encodeBE(cast H2));
+		bb.add(Int32Util.encodeBE(cast H3));
+		bb.add(Int32Util.encodeBE(cast H4));
+		return bb.getBytes();
 #end
 	}
 

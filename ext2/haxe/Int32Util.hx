@@ -59,7 +59,6 @@ class Int32Util {
 		Returns second lowest byte of Int32
 	**/
 	public static inline function B1(i : Int32) : Int32 {
-		//return ((i>>8) & 255);
 		return
 		haxe.Int32.and(
 			haxe.Int32.ushr(i, 8),
@@ -71,7 +70,6 @@ class Int32Util {
 		Returns second highest byte of Int32
 	**/
 	public static inline function B2(i : Int32) : Int32 {
-		//return ((i>>16) & 255);
 		return
 		haxe.Int32.and(
 			haxe.Int32.ushr(i, 16),
@@ -83,7 +81,6 @@ class Int32Util {
 		Returns highest byte of Int32
 	**/
 	public static inline function B3(i : Int32) : Int32 {
-		//return ((i>>24) & 255);
 		return
 		haxe.Int32.and(
 			haxe.Int32.ushr(i, 24),
@@ -114,17 +111,30 @@ class Int32Util {
 	}
 
 	/**
+		Encode an Int32 to a big endian string.
+	**/
+	public static function encodeBE(i : Int32) : Bytes
+	{
+		var sb = new BytesBuffer();
+		sb.addByte( Int32.toInt(B3(i)) );
+		sb.addByte( Int32.toInt(B2(i)) );
+		sb.addByte( Int32.toInt(B1(i)) );
+		sb.addByte( Int32.toInt(B0(i)) );
+		return sb.getBytes();
+	}
+
+	/**
 		Encode an Int32 to a little endian string. Lowest byte is first in string so
 		0xA0B0C0D0 encodes to [D0,C0,B0,A0]
 	**/
-	public static function encodeLE(i : Int32) : BytesBuffer
+	public static function encodeLE(i : Int32) : Bytes
 	{
 		var sb = new BytesBuffer();
 		sb.addByte( Int32.toInt(B0(i)) );
 		sb.addByte( Int32.toInt(B1(i)) );
 		sb.addByte( Int32.toInt(B2(i)) );
 		sb.addByte( Int32.toInt(B3(i)) );
-		return sb;
+		return sb.getBytes();
 	}
 
 	/**
@@ -132,39 +142,6 @@ class Int32Util {
 	**/
 	public static inline function eq(a:Int32, b:Int32) {
 		return(Int32.compare(a,b) == 0) ? true : false;
-	}
-
-	/**
-		Decode a 4 byte string to a 32 bit integer.
-	**/
-	public static function decodeLE( s : Bytes, ?pos : Int ) : Int32
-	{
-		if(pos == null)
-			pos = 0;
-		var b0 = haxe.Int32.ofInt(s.get(pos));
-		var b1 = haxe.Int32.ofInt(s.get(pos+1));
-		var b2 = haxe.Int32.ofInt(s.get(pos+2));
-		var b3 = haxe.Int32.ofInt(s.get(pos+3));
-		b1 = haxe.Int32.shl(b1, 8);
-		b2 = haxe.Int32.shl(b2, 16);
-		b3 = haxe.Int32.shl(b3, 24);
-		var a = haxe.Int32.add(b0, b1);
-		a = haxe.Int32.add(a, b2);
-		a = haxe.Int32.add(a, b3);
-		return a;
-	}
-
-	/**
-		Encode an Int32 to a big endian string.
-	**/
-	public static function encodeBE(i : Int32) : BytesBuffer
-	{
-		var sb = new BytesBuffer();
-		sb.addByte( Int32.toInt(B3(i)) );
-		sb.addByte( Int32.toInt(B2(i)) );
-		sb.addByte( Int32.toInt(B1(i)) );
-		sb.addByte( Int32.toInt(B0(i)) );
-		return sb;
 	}
 
 	/**
@@ -178,6 +155,26 @@ class Int32Util {
 		var b1 = haxe.Int32.ofInt(s.get(pos+2));
 		var b2 = haxe.Int32.ofInt(s.get(pos+1));
 		var b3 = haxe.Int32.ofInt(s.get(pos));
+		b1 = haxe.Int32.shl(b1, 8);
+		b2 = haxe.Int32.shl(b2, 16);
+		b3 = haxe.Int32.shl(b3, 24);
+		var a = haxe.Int32.add(b0, b1);
+		a = haxe.Int32.add(a, b2);
+		a = haxe.Int32.add(a, b3);
+		return a;
+	}
+
+	/**
+		Decode a 4 byte string to a 32 bit integer.
+	**/
+	public static function decodeLE( s : Bytes, ?pos : Int ) : Int32
+	{
+		if(pos == null)
+			pos = 0;
+		var b0 = haxe.Int32.ofInt(s.get(pos));
+		var b1 = haxe.Int32.ofInt(s.get(pos+1));
+		var b2 = haxe.Int32.ofInt(s.get(pos+2));
+		var b3 = haxe.Int32.ofInt(s.get(pos+3));
 		b1 = haxe.Int32.shl(b1, 8);
 		b2 = haxe.Int32.shl(b2, 16);
 		b3 = haxe.Int32.shl(b3, 24);
