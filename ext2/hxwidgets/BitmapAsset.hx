@@ -288,7 +288,7 @@ class BitmapAsset extends LibraryAsset, implements Icon {
 		return Std.int(assetHeight);
 	}
 
-	public function getIcon(c:Component) {
+	public function getIcon(c:Component) : DisplayObject {
 		width = getIconWidth(c);
 		height = getIconHeight(c);
 		return _mc;

@@ -41,7 +41,7 @@ class X509CertificateCollection {
 	private var _map : Dynamic;
 
 	public function new() {
-		_map = Reflect.empty();
+		_map = {};
 	}
 
 	/**

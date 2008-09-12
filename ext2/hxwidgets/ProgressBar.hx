@@ -118,7 +118,7 @@ class ProgressBar extends Component {
 		}
 		if(value < targetValue ) {
 			Reflect.setField(this, "value", value + inc);
-			haxe.Timer.delayed(callback(smoother,false,inc), 100)();
+			haxe.Timer.delay(callback(smoother,false,inc), 100);
 		}
 		updateBar();
 	}

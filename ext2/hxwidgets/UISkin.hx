@@ -67,7 +67,7 @@ class UISkin {
 	//          Component Skinning             //
 	/////////////////////////////////////////////
 	public function getSkinFor(c:Component) {
-		var obj :Dynamic = Reflect.empty();
+		var obj :Dynamic = {};
 		switch(c.className()) {
 		case "Component":
 		case "Button":
@@ -86,8 +86,8 @@ class UISkin {
 		case "Slider":
 			var sn = fast.node.slider;
 			createColors(obj, sn);
-			obj.normal = Reflect.empty();
-			obj.over = Reflect.empty();
+			obj.normal = {};
+			obj.over = {};
 			var norm = sn.node.normal;
 			var over = sn.node.over;
 			obj.normal.north = createAsset(norm.node.north);
@@ -126,7 +126,7 @@ class UISkin {
 	}
 
 	function createColors(obj:Dynamic, fn:Fast) {
-		var oc = Reflect.empty();
+		var oc = {};
 		obj.colors = oc;
 		if(!fn.hasNode.colors) return;
 		var colors = fn.node.colors;

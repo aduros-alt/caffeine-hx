@@ -69,7 +69,7 @@ class LibraryAsset extends AssetContainer {
 			classReference = Type.resolveClass(linkageName);
 		}
 		else {
-			classReference = Type.toClass(applicationDomain.getDefinition(linkageName));
+			classReference = applicationDomain.getDefinition(linkageName);
 		}
 
 		if(classReference == null) {
