@@ -28,13 +28,22 @@
 package hash;
 
 class Util {
+	/**
+	**/
 	public static function safeAdd(x, y) {
-//#if !neko
+#if !neko
 		var lsw = (x & 0xFFFF) + (y & 0xFFFF);
 		var msw = (x >> 16) + (y >> 16) + (lsw >> 16);
 		return (msw << 16) | (lsw & 0xFFFF);
-//#else error
-//#end
+#else
+		var mask = Int32.ofInt(0xFFFF);
+		var st = Int32.ofInt(16);
+		var lsw = Int32.add(Int32.and(x, mask), Int32.and(y, mask));
+		var msw = Int32.add(
+				Int32.add(Int32.shr(x, st), Int32.shr(y, 16)),
+				Int32.shr(lsw, st));
+		return Int32.or(Int32.shl(msw, st), Int32.and(lsw, mask));
+#end
 	}
 
 	/**

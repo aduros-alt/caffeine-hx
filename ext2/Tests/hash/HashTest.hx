@@ -1,7 +1,7 @@
-// import hash.Md2;
-// import hash.Md5;
+import hash.Md2;
+import hash.Md5;
 import hash.Sha1;
-// import hash.Sha256;
+import hash.Sha256;
 
 import haxe.HexUtil;
 import haxe.io.Bytes;
@@ -132,53 +132,59 @@ class Sha1TestFunctions extends haxe.unit.TestCase {
 
 }
 
-/*
 class Sha256TestFunctions extends haxe.unit.TestCase {
 	public function testSha256() {
 		assertEquals(
 			"248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1",
-			Sha256.encode("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq")
+			HexUtil.bytesToHex(Sha256.encode(Bytes.ofString("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq")))
 		);
 	}
 }
 
 class Md5TestFunctions extends haxe.unit.TestCase {
 	function testMd5() {
-		assertEquals("098f6bcd4621d373cade4e832627b4f6", Md5.encode("test"));
+		assertEquals("098f6bcd4621d373cade4e832627b4f6",
+			HexUtil.bytesToHex(Md5.encode(Bytes.ofString("test"))));
 	}
 
 	function testMd5Empty() {
-		assertEquals("d41d8cd98f00b204e9800998ecf8427e", Md5.encode(""));
+		assertEquals("d41d8cd98f00b204e9800998ecf8427e",
+			HexUtil.bytesToHex(Md5.encode(Bytes.ofString(""))));
 	}
 }
 
 class Md2Test extends haxe.unit.TestCase {
 	function test01() {
-		assertEquals("8350e5a3e24c153df2275c9f80692773", Md2.encode(""));
+		assertEquals("8350e5a3e24c153df2275c9f80692773",
+			HexUtil.bytesToHex(Md2.encode(Bytes.ofString(""))));
 	}
 
 	function test02() {
-		assertEquals("32ec01ec4a6dac72c0ab96fb34c0b5d1", Md2.encode("a"));
+		assertEquals("32ec01ec4a6dac72c0ab96fb34c0b5d1",
+			HexUtil.bytesToHex(Md2.encode(Bytes.ofString("a"))));
 	}
 
 	function test03() {
-		assertEquals("da853b0d3f88d99b30283a69e6ded6bb", Md2.encode("abc"));
+		assertEquals("da853b0d3f88d99b30283a69e6ded6bb",
+			HexUtil.bytesToHex(Md2.encode(Bytes.ofString("abc"))));
 	}
 
 	function test04() {
-		assertEquals("ab4f496bfb2a530b219ff33031fe06b0", Md2.encode("message digest"));
+		assertEquals("ab4f496bfb2a530b219ff33031fe06b0",
+			HexUtil.bytesToHex(Md2.encode(Bytes.ofString("message digest"))));
 	}
 
 	function test05() {
-		assertEquals("4e8ddff3650292ab5a4108c3aa47940b", Md2.encode("abcdefghijklmnopqrstuvwxyz"));
+		assertEquals("4e8ddff3650292ab5a4108c3aa47940b",
+			HexUtil.bytesToHex(Md2.encode(Bytes.ofString("abcdefghijklmnopqrstuvwxyz"))));
 	}
 
 	function test06() {
-		assertEquals("da33def2a42df13975352846c30338cd", Md2.encode("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"));
+		assertEquals("da33def2a42df13975352846c30338cd",
+			HexUtil.bytesToHex(Md2.encode(Bytes.ofString("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"))));
 	}
 
 }
-*/
 
 class HashTest {
 	static function main()
@@ -191,9 +197,9 @@ class HashTest {
 
 		var r = new haxe.unit.TestRunner();
 		r.add(new Sha1TestFunctions());
-// 		r.add(new Sha256TestFunctions());
-// 		r.add(new Md5TestFunctions());
-// 		r.add(new Md2Test());
+		r.add(new Sha256TestFunctions());
+		r.add(new Md5TestFunctions());
+		r.add(new Md2Test());
 		r.run();
 	}
 }

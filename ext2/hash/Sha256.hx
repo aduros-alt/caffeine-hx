@@ -38,11 +38,8 @@ package hash;
 
 import haxe.io.Bytes;
 import haxe.io.BytesUtil;
-
-#if neko
-private enum ShaCtx {
-}
-#end
+import haxe.Int32Util;
+import haxe.HexUtil;
 
 class Sha256 implements IHash {
 
@@ -53,12 +50,12 @@ class Sha256 implements IHash {
 		return "sha256";
 	}
 
-	public function calculate( msg:String ) : String {
-		return encode(msg, false);
+	public function calculate( msg:Bytes ) : String {
+		return HexUtil.bytesToHex(encode(msg));
 	}
 
 	public function calcBin( msg:Bytes ) : Bytes {
-		return Bytes.ofString(encode(msg.toString(), true));
+		return encode(msg);
 	}
 
 	public function getLengthBytes() : Int {
@@ -78,22 +75,21 @@ class Sha256 implements IHash {
 	}
 
 #if !neko
-	public static var charSize : Int = 8;
-	public static function encode(s : String, ?binary  : Bool) {
-		var rv = Util.binb2hex(core_sha256(Util.str2binb(s, 8), s.length * charSize));
-		if(!binary)
-			return rv;
-		return BytesUtil.ofHex(rv).toString();
+	private static var charSize : Int = 8;
+	public static function encode(s : Bytes) : Bytes {
+		var pb : Array<Int> = cast Int32Util.unpackBE(s);
+		var res = core_sha256(pb, s.length * charSize);
+		return Int32Util.packBE(cast res);
 	}
 
-	static function S (X, n) {return ( X >>> n ) | (X << (32 - n));}
-	static function R (X, n) {return ( X >>> n );}
-	static function Ch(x, y, z) {return ((x & y) ^ ((~x) & z));}
-	static function Maj(x, y, z) {return ((x & y) ^ (x & z) ^ (y & z));}
-	static function Sigma0256(x) {return (S(x, 2) ^ S(x, 13) ^ S(x, 22));}
-	static function Sigma1256(x) {return (S(x, 6) ^ S(x, 11) ^ S(x, 25));}
-	static function Gamma0256(x) {return (S(x, 7) ^ S(x, 18) ^ R(x, 3));}
-	static function Gamma1256(x) {return (S(x, 17) ^ S(x, 19) ^ R(x, 10));}
+	static inline function S (X, n) {return ( X >>> n ) | (X << (32 - n));}
+	static inline function R (X, n) {return ( X >>> n );}
+	static inline function Ch(x, y, z) {return ((x & y) ^ ((~x) & z));}
+	static inline function Maj(x, y, z) {return ((x & y) ^ (x & z) ^ (y & z));}
+	static inline function Sigma0256(x) {return (S(x, 2) ^ S(x, 13) ^ S(x, 22));}
+	static inline function Sigma1256(x) {return (S(x, 6) ^ S(x, 11) ^ S(x, 25));}
+	static inline function Gamma0256(x) {return (S(x, 7) ^ S(x, 18) ^ R(x, 3));}
+	static inline function Gamma1256(x) {return (S(x, 17) ^ S(x, 19) ^ R(x, 10));}
 	static function core_sha256 (m, l) {
 		var K : Array<Int> = [
 			0x428A2F98,0x71374491,0xB5C0FBCF,0xE9B5DBA5,0x3956C25B,
@@ -147,13 +143,10 @@ class Sha256 implements IHash {
 		return HASH;
 	}
 #elseif true
-	public static function encode(s : String, ?binary : Bool) : String {
-		var _ctx : ShaCtx = sha_init(256);
-		sha_update(_ctx, untyped s.__s);
-		var value = new String(sha_final(_ctx));
-		if(!binary)
-			value = StringTools.baseEncode(value, Constants.DIGITS_HEXL);
-		return value;
+	public static function encode(s : Bytes) : Bytes {
+		var _ctx : Void = sha_init(256);
+		sha_update(_ctx, s.getData());
+		return Bytes.ofData(sha_final(_ctx));
 	}
 
 	private static var sha_init = neko.Lib.load("hash","sha_init",1);

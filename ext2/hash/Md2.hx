@@ -29,6 +29,7 @@ package hash;
 
 import haxe.io.Bytes;
 import haxe.io.BytesUtil;
+import haxe.HexUtil;
 
 class Md2 implements IHash {
 
@@ -39,8 +40,8 @@ class Md2 implements IHash {
 		return "md2";
 	}
 
-	public function calculate( msg:String ) : String {
-		return encode(msg, false);
+	public function calculate( msg:Bytes ) : String {
+		return HexUtil.bytesToHex(encode(msg));
 	}
 
 	public function calcBin( msg:Bytes ) : Bytes {
@@ -65,14 +66,11 @@ class Md2 implements IHash {
 		return 128;
 	}
 
-	public static function encode(msg : String, ?binary:Bool) : String {
+	public static function encode(msg : Bytes) : Bytes {
 		var m = new Md2();
 		m.init();
 		m.update(msg);
-		var bs = m.final();
-		if(binary)
-			return bs.toString();
-		return BytesUtil.hexDump(bs,"");
+		return m.final();
 	}
 
 	static var K : Array<Int> = function() {
@@ -137,15 +135,7 @@ class Md2 implements IHash {
 		}
 	}
 
-	private function update(si:Dynamic) {
-		var s:Bytes;
-		if(Std.is(si, String))
-			s = Bytes.ofString(si);
-		else if(Std.is(si,Bytes))
-			s = cast(si, Bytes);
-		else
-			throw "can not update with type";
-
+	private function update(s:Bytes) {
 		var l = s.length;
 		if(l == 0) return;
 
