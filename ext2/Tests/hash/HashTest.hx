@@ -38,9 +38,6 @@ class Vectors {
 		message.push(sb.toString());
 		hash.push("50ABF5706A150990A08B2C5EA40FA0E585554732");
 
-		// null bits - wrong hash..
-		//message.push(ByteStringTools.nullString(30));
-		//hash.push("2759FBD73570D43A3954F54F02D39042B1B91A76");
 #if neko
 		//1 million times "a"
 		sb = new StringBuf();
@@ -85,6 +82,15 @@ class Sha1TestFunctions extends haxe.unit.TestCase {
 			}
 		}
 	}
+
+	public function testNulls() {
+		// nulls
+		var blah = BytesUtil.nullBytes(30);
+		var res = "deb6c11e1971aa61dbbcbc76e5ea7553a5bea7b7";
+
+		assertEquals(res, HexUtil.bytesToHex(Sha1.encode(blah)));
+	}
+
 #if neko
 	public function testObjSha() {
 
