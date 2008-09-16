@@ -140,7 +140,7 @@ class UISkin {
 	}
 
 	function createAsset(fn:Fast) : AssetContainer {
-		var a : AssetContainer;
+		var a : AssetContainer = null;
 		switch(fn.att.type) {
 		case "bitmap":
 			a = new BitmapAsset(fn.att.id);

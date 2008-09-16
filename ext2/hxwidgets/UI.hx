@@ -46,7 +46,7 @@ class UI {
 	static public function scheduleRepaint(c:Component) {
 		if(repaintQueue == null)
 			repaintQueue = new List();
-		var l : List<Component>;
+		var l : List<Component> = null;
 		for(li in repaintQueue) {
 			if(li.first() == c) {
 				l = li;
