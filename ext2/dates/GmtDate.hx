@@ -124,7 +124,7 @@ class GmtDate {
 	  Sun, 06 Nov 1994 08:49:37 GMT  ; RFC 822, updated by RFC 1123 (preferred http/1.1)
 	  Will throw on invalid date formats
 	*/
-        static public function fromString(s : String) : GmtDate {
+	static public function fromString(s : String) : GmtDate {
 		var d : Date;
 		var gmd : GmtDate = new GmtDate();
 

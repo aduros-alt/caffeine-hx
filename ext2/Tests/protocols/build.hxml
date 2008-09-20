@@ -1,0 +1,24 @@
+#
+-cp ../../
+-neko test.n
+-main ProtocolsTest
+
+--next
+-cp ../../
+-js test.js
+-main ProtocolsTest
+
+--next
+-cp ../../
+-D FIREBUG
+-swf test9.swf
+-swf-version 9
+-main ProtocolsTest
+
+--next
+-cp ../../
+-swf test8.swf
+-swf-version 8
+-main ProtocolsTest
+-debug
+

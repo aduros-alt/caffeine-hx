@@ -166,47 +166,6 @@ class Cookie {
 		return cookielist;
 	}
 
-// 	public static function fromString(cs:String) : Array<Cookie> {
-// 		var cookielist = new Array<Cookie>();
-// 		var eReg = ~/^[Set-]*Cookie: /gi;
-// 		cs = eReg.replace(cs,"");
-// 		var parts = cs.split(",");
-// 		for(i in parts) {
-// 			var tags = StringTools.trim(i).split(";");
-// 			var nameValue = StringTools.trim(tags.shift()).split("=");
-// 			//trace(here.methodName + " "+ nameValue[0] +" "+ nameValue[1]);
-// 			var cookie = new Cookie(nameValue[0], nameValue[1]);
-// 			for(t in tags) {
-// 				t = StringTools.trim(t);
-// 				nameValue = t.split("=");
-// 				nameValue[0] = StringTools.trim(nameValue[0]);
-// 				var attr = StringTools.urlDecode(nameValue[0]).toLowerCase();
-// 				var value = StringTools.urlDecode(nameValue[1]);
-// 				switch(attr) {
-// 				case "comment": // V1
-// 					cookie.setVersion(1);
-// 					cookie.setComment(value);
-// 				case "domain":  // both
-// 					cookie.setDomain(value);
-// 				case "expires": // V0
-// 				case "max-age": // V1
-// 					cookie.setVersion(1);
-// 					cookie.setMaxAge(Std.parseInt(value));
-// 				case "path": // BOTH
-// 					cookie.setPath(value);
-// 				case "secure": // BOTH
-// 					cookie.setSecure(true);
-// 				case "version": // V1 only
-// 					cookie.setVersion(Std.parseInt(value));
-// 				default:
-// 					trace("UNKNOWN cookie attribute: "+attr);
-// 				}
-// 			}
-// 			cookielist.push(cookie);
-// 		}
-// 		return cookielist;
-// 	}
-
 	/**
 		Return a cookie header line for sending to web browser
 		From a web script/webserver, syntax is "Set-Cookie: name=val[; ...]"
