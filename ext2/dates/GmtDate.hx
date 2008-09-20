@@ -207,7 +207,6 @@ class GmtDate {
 		nd = new Date(nd.getFullYear(),nd.getMonth(),nd.getDate(),nd.getHours(),0,0);
 		//trace(here.methodName + " Old time: " + d.toString() + " Setting next gmt update to " + nd.toString());
 		nextUpdate = nd.getTime();
-		// Got to be a better way to determine GMT time than this
 		var offString = DateTools.format(d, "%z");   // "0400" "-0600"
 
 		var add : Bool = true;
