@@ -30,7 +30,9 @@
 	each application using it.
 **/
 class DateTools {
+	public static var WEEKDAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 	public static var WEEKDAYS_ABBREV = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+	public static var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 	public static var MONTHS_ABBREV = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 	#if neko
@@ -40,6 +42,10 @@ class DateTools {
 		return switch( e ){
 			case "%":
 				"%";
+			case "a":
+				WEEKDAYS_ABBREV[d.getDay()];
+			case "b":
+				MONTHS_ABBREV[d.getMonth()];
 			case "C":
 				untyped StringTools.lpad(Std.string(Std.int(d.getFullYear()/100)),"0",2);
 			case "d":
@@ -84,13 +90,14 @@ class DateTools {
 				untyped StringTools.lpad(Std.string(d.getFullYear()%100),"0",2);
 			case "Y":
 				untyped Std.string(d.getFullYear());
-#if js
-			case "a":
-				WEEKDAYS_ABBREV[d.getDay()];
-			case "b":
-				MONTHS_ABBREV[d.getMonth()];
 			case "z":
+#if js
 				var o : Float = untyped __js__("d.getTimezoneOffset()");
+#elseif flash9
+				var o : Float = untyped d.timezoneOffset;
+#elseif flash
+				var o : Float = untyped d.getTimezoneOffset();
+#end
 				var i : String = Std.string(Std.int(Math.abs(Math.floor(o / 60 * 100))));
 				var neg : Bool = if(o < 0) true else false;
 				var s : String = StringTools.lpad(i,"0",4);
@@ -98,7 +105,6 @@ class DateTools {
 					"-" + s;
 				else
 					"+" + s;
-#end
 			default:
 				throw "Date.format %"+e+"- not implemented yet.";
 		}

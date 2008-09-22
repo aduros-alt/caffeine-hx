@@ -129,8 +129,11 @@ class GmtDate {
 		var gmd : GmtDate = new GmtDate();
 
 		s = StringTools.trim(s);
+#if !(flash7 || flash8)
 		var r : EReg = ~/ +/g;
 		s = r.replace(s, " ");
+#else
+#end
 
 		// lengths 8, 10, 19 handled by Date
 		if(s.length == 8 || s.length == 10 || s.length ==19) {
@@ -212,6 +215,7 @@ class GmtDate {
 		var add : Bool = true;
 		var hours : Int = 0;
 		var mins : Int = 0;
+#if !(flash7 || flash8)
 		var r : EReg = ~/([\-\+]*)([0-1][0-9])([0-6][0-9])$/;
 		try {
 			r.match(offString);
@@ -219,7 +223,16 @@ class GmtDate {
 			hours = Std.parseInt(r.matched(2));
 			mins = Std.parseInt(r.matched(3));
 		} catch (e : Dynamic) { trace(e); };
-
+#else
+		if(offString.length == 4) {
+			add = false;
+		} else {
+			add = { if(offString.charAt(0) == "-") true; else false; }
+			offString = offString.substr(1);
+		}
+		hours = Std.parseInt(offString.substr(0,2));
+		mins = Std.parseInt(offString.substr(2,2));
+#end
 		var t : Float = ((hours * 3600) + (mins * 60)) * 1000;
 		if(!add) {
 			l2gmt_add = t;

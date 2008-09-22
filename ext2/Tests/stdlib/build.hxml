@@ -1,0 +1,31 @@
+-cp ../../
+-js test.js
+-main MiscTest
+-debug
+
+--next
+
+-cp ../../
+-neko test.n
+-main MiscTest
+-debug
+
+--next
+
+-cp ../../
+-main MiscTest
+-swf-version 8
+-swf test8.swf
+-swf-header 800:600:1:FFFFFF
+-debug
+
+--next
+
+-cp ../../
+-main MiscTest
+-swf-version 9
+-swf test9.swf
+-swf-header 800:600:1:FFFFFF
+-debug
+
+
