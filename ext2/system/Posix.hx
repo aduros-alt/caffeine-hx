@@ -123,7 +123,7 @@ class Posix {
 	/**
 		Gets system uname information. Returns an object
 		with the fields sysname, nodename, release, version,
-		machine and optionally dommainname.
+		machine and optionally dommainname (available in Linux).
 	**/
 	public static function uname() : Dynamic {
 #if neko

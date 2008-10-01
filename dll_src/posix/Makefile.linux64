@@ -2,7 +2,7 @@ PROJECT:=sys_posix
 NDLL:=ndll/Linux64/$(PROJECT).ndll
 ARCH_PATHS:=
 
-CC:=gcc -Isrc
+CC:=gcc -Isrc -D _GNU_SOURCE
 NEKO_FLAGS:=-fPIC -shared -L/usr/lib -lneko -lz -ldl
 LOCAL_FLAGS:=$(CFLAGS) -Iinclude -Isrc/linux -DLINUX -lgd
 STRIP:=strip
