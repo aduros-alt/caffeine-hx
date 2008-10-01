@@ -9,11 +9,11 @@ import protocols.memedb.View;
 
 class MemeHammer {
 	static var testname = "hammertest";
-	static var maxRecords : Int = 1000;
-	static var host : String = "localhost";
+	static var maxRecords : Int = 10000;
+	static var host : String = "france";
 	static var port : Int = 4100;
-	static var user : String = "russell";
-	static var pass : String = "";
+	static var user : String = "sa";
+	static var pass : String = "password";
 
 	var session : Session;
 	var db : Database;

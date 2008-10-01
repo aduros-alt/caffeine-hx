@@ -17,7 +17,7 @@ class MemeTest {
 	var session : Session;
 
 	public function new() {
-		session = new Session("localhost", 4100, "russell", "");
+		session = new Session("france", 4100, "anonymous", "");
 
 		var dbn = session.getDatabaseNames();
 		println("Existing databases: ");
@@ -25,18 +25,22 @@ class MemeTest {
 			println("\t" + i);
 		}
 
-		makeView();
+ 		makeView();
 // 		initialTests();
 // 		dbCreateTest();
 // 		docTest();
-//  		createMultipleDocuments();
-		gifDocTest();
+
+// 		fulltextView();
+// 		createMultipleDocuments();
+// 		fulltextQueryTest();
+
+// 		gifDocTest();
 // 		animGifTest();
 // 		nekoDocTest();
 // 		viewTest();
 // 		adHocViewTest();
 		//adHocReduceTest();
-		//storedViewsTest();
+// 		storedViewsTest();
 		//compactTest();
 		//cleanup();
 
@@ -64,7 +68,7 @@ class MemeTest {
 	public function getDb(n : String) : Database {
 		var db = session.getDatabase(n);
 		if(db == null) {
-// 			traceError("session.getDatabase(" + n+ ")");
+ 			traceError("session.getDatabase(" + n+ ")");
 			db = session.createDatabase(n);
 		}
 		else {
@@ -134,15 +138,15 @@ class MemeTest {
 		var rand = new neko.Random();
 		var idx : Int = 0;
 		var names= ['Jack','Judy','Jill','John','Jeremy','Joseph','Jaqueline','Jim'];
+		var lastNames=['Smith', 'Jones', 'Wright', 'Miller', 'Abercrombie', 'Walnut', 'Pecan', 'Barnstow'];
 
 		var insert = function() {
 			var d = new JSONDocument();
-			d.set("name", names[rand.int(names.length)]);
+			d.set("name", names[rand.int(names.length)] + " " + lastNames[rand.int(names.length)]);
 			d.set("age", rand.int(100));
 			d.id = Std.string(idx++);
 			db.save(d);
 		}
-
 		for(i in 0...22) {
 			insert();
 		}
@@ -294,6 +298,40 @@ class MemeTest {
 		}
 		println("---- end of results --------");
 		//trace(untyped result.outputRequest);
+	}
+
+	function fulltextView() {
+		println("\n============= fulltext view creation ================");
+		var db = getDb("mytestdb2");
+		if(db == null) {
+			throw "exit";
+		}
+		var dd = new DesignDocument("_fulltext");
+		dd.addView(new View("function(doc) { tokenize(\"name\", doc.name); }"), "default");
+		db.save(dd);
+	}
+
+	function fulltextQueryTest() {
+		println("\n============= fulltextQueryTest ================");
+		var db = getDb("mytestdb2");
+		if(db == null) {
+			throw "exit";
+		}
+		var result : Result = db.fulltextQuery(
+			"name",
+			"Jones"
+		);
+		traceError("fulltextQueryTest");
+
+// 		for(d in result.getRows()) {
+// 			//d.reload();
+// 			//println(d.getId() + " " + d.data.getInt("age"));
+// 			println(d.getId() + " " + d.getValue());
+// 		}
+//
+// 		for(r in result.getStrings()) {
+// 			println(r);
+// 		}
 	}
 
 	function compactTest() {

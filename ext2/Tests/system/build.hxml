@@ -1,0 +1,24 @@
+#
+-cp ../../
+-neko test.n
+-main SystemTest
+
+--next
+-cp ../../
+-js test.js
+-main SystemTest
+
+--next
+-cp ../../
+-D FIREBUG
+-swf test9.swf
+-swf-version 9
+-main SystemTest
+
+--next
+-cp ../../
+-swf test8.swf
+-swf-version 8
+-main SystemTest
+-debug
+

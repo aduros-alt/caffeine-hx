@@ -27,6 +27,8 @@
 
 package system;
 
+import haxe.Int32;
+
 #if (neko || php)
 class Posix {
 	public static function ctermid() : String {
@@ -112,7 +114,7 @@ class Posix {
 
 	public static function strerror(v:Int32) : String {
 #if neko
-		return nekoToHaxe(posix_strerror(v));
+		return cast neko.Lib.nekoToHaxe(posix_strerror(v));
 #elseif php
 		return untyped __call__("posix_strerror", v);
 #end

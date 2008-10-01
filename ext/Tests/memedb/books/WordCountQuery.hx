@@ -64,7 +64,7 @@ class WordCountQuery {
 			"/"+Settings.DBNAME+"/_view/_word_count?key=[\"flight\",\"davinci_notebook\"]");
 		echo("\nTry dropping that in your browser...");
 
-		echo("\nTo run a fulltext query, simply call db.fulltextQuery(). In this example, our default fulltext field is named 'text'. The results from a fulltext query are keyed from most relevant to least relevant, with a DocumentId field 'id' and Document revision field 'rev'");
+		echo("\nTo run a fulltext query, simply call db.fulltextQuery(). In this example, our default fulltext field is named 'text', and we are looking for the word 'brown'. The results from a fulltext query are keyed from most relevant to least relevant, with a DocumentId field 'id' and Document revision field 'rev'");
 		showResult(db.fulltextQuery("text", "brown"));
 	}
 
