@@ -33,6 +33,8 @@ class Posix {
 #if neko
 		return cast neko.Lib.nekoToHaxe(posix_ctermid());
 #elseif php
+
+		return untyped __call__("posix_ctermid");
 #end
 	}
 
@@ -40,6 +42,7 @@ class Posix {
 #if neko
 		return untyped posix_getegid();
 #elseif php
+		return untyped __call__("posix_getegid");
 #end
 	}
 
@@ -47,6 +50,7 @@ class Posix {
 #if neko
 		return untyped posix_geteuid();
 #elseif php
+		return untyped __call__("posix_geteuid");
 #end
 	}
 
@@ -54,6 +58,7 @@ class Posix {
 #if neko
 		return untyped posix_getgid();
 #elseif php
+		return untyped __call__("posix_getgid");
 #end
 	}
 
@@ -61,6 +66,7 @@ class Posix {
 #if neko
 		return untyped posix_getpid();
 #elseif php
+		return untyped __call__("getpid");
 #end
 	}
 
@@ -68,6 +74,7 @@ class Posix {
 #if neko
 		return untyped posix_getuid();
 #elseif php
+		return untyped __call__("getuid");
 #end
 	}
 
@@ -75,6 +82,7 @@ class Posix {
 #if neko
 		return untyped posix_get_last_error();
 #elseif php
+		return untyped __call__("posix_get_last_error");
 #end
 	}
 
@@ -82,6 +90,7 @@ class Posix {
 #if neko
 		return untyped posix_kill(pid, signal);
 #elseif php
+		return untyped __call__("posix_kill", pid, signal);
 #end
 	}
 
@@ -89,6 +98,7 @@ class Posix {
 #if neko
 		return untyped posix_setgid(v);
 #elseif php
+		return untyped __call__("posix_setgid", v);
 #end
 	}
 
@@ -96,6 +106,7 @@ class Posix {
 #if neko
 		return untyped posix_setuid(v);
 #elseif php
+		return untyped __call__("posix_setuid", v);
 #end
 	}
 
@@ -103,6 +114,7 @@ class Posix {
 #if neko
 		return nekoToHaxe(posix_strerror(v));
 #elseif php
+		return untyped __call__("posix_strerror", v);
 #end
 	}
 
@@ -115,6 +127,7 @@ class Posix {
 #if neko
 		return neko.Lib.nekoToHaxe(posix_uname());
 #elseif php
+		return untyped __call__("posix_uname");
 #end
 	}
 
