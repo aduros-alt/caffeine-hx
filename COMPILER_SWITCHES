@@ -1,2 +1,5 @@
 CRYPT_DEBUG_PROTOCOL
 	Adds traces to Debug the crypt packets in haxe/remoting/EncRemotingAdaptor.hx
+
+REMOTING_USE_SOCKET
+	In flash9 and higher, uses flash.net.Socket instead of flash.net.XMLSocket for remoting. This allows for socket connections to ports < 1024 without policy file serving
