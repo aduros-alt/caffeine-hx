@@ -5,6 +5,6 @@ ARCH_PATHS:=
 CC:=i686-mingw32-gcc -Isrc -DWIN32
 STRIP:=i686-mingw32-strip
 NEKO_FLAGS:=-shared -L/usr/lib -lneko -lz -lws2_32
-LOCAL_FLAGS:=-Iinclude -Isrc/windows -lgd
+LOCAL_FLAGS:=-Iinclude -Isrc/windows
 
 include Makefile.common

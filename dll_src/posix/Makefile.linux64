@@ -4,7 +4,7 @@ ARCH_PATHS:=
 
 CC:=gcc -Isrc -D _GNU_SOURCE
 NEKO_FLAGS:=-fPIC -shared -L/usr/lib -lneko -lz -ldl
-LOCAL_FLAGS:=$(CFLAGS) -Iinclude -Isrc/linux -DLINUX -lgd
+LOCAL_FLAGS:=$(CFLAGS) -Iinclude -Isrc/linux -DLINUX
 STRIP:=strip
 
 include Makefile.common
