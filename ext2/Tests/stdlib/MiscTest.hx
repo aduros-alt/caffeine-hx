@@ -48,6 +48,7 @@ class MiscTest {
 		r.add(new StdParseInt());
 		r.add(new ReflectTest());
 		r.add(new TestReflect());
+		r.add(new XYHashTest());
 		r.run();
 	}
 }
