@@ -34,14 +34,14 @@ package concurrent;
 class ConcurrentXYHash<T> {
 	var cache : IntHash<IntHash<T>>;
 	#if neko
-	var lock : neko.vm.Lock;
+	var mutex : neko.vm.Mutex;
 	#end
 
 	public function new() {
 		cache = new IntHash();
 		#if neko
-			lock = new neko.vm.Lock();
-			lock.release();
+			mutex = new neko.vm.Mutex();
+			mutex.release();
 		#end
 	}
 
@@ -60,7 +60,7 @@ class ConcurrentXYHash<T> {
 			k = a.iterator();
 		}
 		#if neko
-			lock.wait();
+			mutex.acquire();
 		#end
 		for(i in k) {
 			if(!cache.exists(i))
@@ -79,7 +79,7 @@ class ConcurrentXYHash<T> {
 				cache.remove(i);
 		}
 		#if neko
-			lock.release();
+			mutex.release();
 		#end
 	}
 
@@ -115,18 +115,18 @@ class ConcurrentXYHash<T> {
 
 	public function remove(x:Int, y: Int) : Bool {
 		#if neko
-			lock.wait();
+			mutex.acquire();
 		#end
 		var c = cache.get(x);
 		if(c == null) {
 			#if neko
-				lock.release();
+				mutex.release();
 			#end
 			return false;
 		}
 		var rv = c.remove(y);
 		#if neko
-			lock.release();
+			mutex.release();
 		#end
 		return rv;
 	}
@@ -136,7 +136,7 @@ class ConcurrentXYHash<T> {
 	**/
 	public function set(x:Int, y:Int, value:T) : Null<T> {
 		#if neko
-			lock.wait();
+			mutex.acquire();
 		#end
 		var c = cache.get(x);
 		if(c == null) {
@@ -144,7 +144,7 @@ class ConcurrentXYHash<T> {
 			c.set(y, value);
 			cache.set(x, c);
 			#if neko
-				lock.release();
+				mutex.release();
 			#end
 			return null;
 		}
@@ -152,7 +152,7 @@ class ConcurrentXYHash<T> {
 		c.set(y, value);
 
 		#if neko
-			lock.release();
+			mutex.release();
 		#end
 		return rv;
 	}
