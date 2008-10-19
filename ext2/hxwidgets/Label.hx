@@ -56,7 +56,7 @@ class Label extends Component {
 			styleSheet = Component.defaultStyleSheet;
 		_textField = iCreateField();
 		_mc.addChild(_textField);
-		tFormat = Config.getTextFormat();
+		tFormat = Config.inst.getTextFormat();
 
 		if(asHtml) {
 			isHtml = true;
