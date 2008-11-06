@@ -53,7 +53,7 @@ class WeakReference {
 	**/
 	public function new(o : Dynamic) {
 		d = new TypedDictionary(true);
-		d.set(o, null);
+		d.set(o, {});
 	}
 
 	/**
