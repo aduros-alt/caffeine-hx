@@ -35,13 +35,9 @@ class Syslog extends EventLog, implements IEventLog {
 	/** the system command needed to add entries to the syslog service **/
 	public static var loggerCmd : String = "logger";
 
-	public function new(service: String, level:LogLevel) {
-		super(service, level);
-	}
-
 	override public function _log(s:String, ?lvl:LogLevel) {
 		if(lvl == null)
-			lvl = INFO;
+			lvl = NOTICE;
 		if(Type.enumIndex(lvl) >= Type.enumIndex(level)) {
 			var priority : String = switch(lvl) {
 			case DEBUG: "user.debug";

@@ -36,6 +36,7 @@ import system.log.LogLevel;
 class EventLog implements IEventLog {
 	public static var defaultLogger : IEventLog;
 	public static var defaultServiceName : String;
+	public static var defaultLevel : LogLevel;
 
 	public var serviceName : String;
 	public var level : LogLevel;
@@ -46,12 +47,13 @@ class EventLog implements IEventLog {
 		LogLevel [level]
 	**/
 	public function new(service : String, level : LogLevel) {
-		if(defaultLogger == null)
-			defaultLogger = this;
 		if(defaultServiceName == null)
 			defaultServiceName = service;
+		if(defaultLevel == null)
+			defaultLevel = NOTICE;
 		this.serviceName = service;
 		this.level = level;
+
 	}
 
 	public function debug(s:String) : Void { _log(s,DEBUG); }
@@ -64,11 +66,26 @@ class EventLog implements IEventLog {
 	public function emerg(s : String) : Void { _log(s,EMERG); }
 
 	public function _log(s : String, ?lvl:LogLevel) {
-		throw "override";
+		if(defaultLogger == this)
+			throw "override";
+		else
+			log(s, lvl);
 	}
 
+	/**
+		Logs to the default logger, at the error level specified by
+		[lvl]. If [lvl] is not specified, the level NOTICE will be used.
+	**/
 	public static function log(s : String, ?lvl:LogLevel) {
-		if(defaultLogger == null) return;
+		if(lvl == null)
+			lvl = NOTICE;
+		if(defaultLogger == null) {
+			#if neko
+				defaultLogger = new File(defaultServiceName, defaultLevel, null);
+			#else
+				defaultLogger = new TraceLog(defaultServiceName, defaultLevel);
+			#end
+		}
 		defaultLogger._log(s, lvl);
 	}
 }

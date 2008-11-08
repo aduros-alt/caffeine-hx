@@ -31,47 +31,14 @@ package system.log;
 import system.log.LogLevel;
 
 /**
-	Log to a text file. The class is started with a logging level
+	Log to haxe trace
 **/
-
-#if neko
-
-class File extends EventLog, implements IEventLog {
-	var STDOUT 		: neko.io.FileOutput;
-#if neko
-	var mutex		: neko.vm.Mutex;
-#end
-
-	/**
-		Logs to the provided file handle. If the handle is null, logging will go
-		to STDOUT
-	**/
-	public function new(service: String,  level:LogLevel, ?hndFile : neko.io.FileOutput ) {
-		super(service, level);
-		if(hndFile == null)
-			STDOUT = neko.io.File.stdout();
-		else
-			STDOUT = hndFile;
-		#if neko
-			mutex = new neko.vm.Mutex();
-			mutex.release();
-		#end
-	}
-
+class TraceLog extends EventLog, implements IEventLog {
 	override public function _log(s : String, ?lvl : LogLevel) {
 		if(lvl == null)
 			lvl = NOTICE;
 		if(Type.enumIndex(lvl) >= Type.enumIndex(level)) {
-			mutex.acquire();
-			try {
-				STDOUT.write(haxe.io.Bytes.ofString(serviceName + ": "+Std.string(lvl)+" : "+ s + "\n"));
-				STDOUT.flush();
-			} catch(e:Dynamic) {
-				trace(e);
-			}
-			mutex.release();
+			trace(serviceName + ": "+Std.string(lvl)+" : "+ s + "\n");
 		}
 	}
 }
-
-#end
