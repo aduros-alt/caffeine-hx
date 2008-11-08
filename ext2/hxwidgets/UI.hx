@@ -76,6 +76,9 @@ class UI {
 		}
 	}
 
+	/**
+		The first method that must be called when starting up hxwidgets. This takes a URL to the skin xml definition file, and a callback method that will receive true for a succeful load, or false and a String error message.
+	**/
 	static public function initialize(initialSkinXmlUrl : String, onInitialized:Bool->String->Void)
 	{
 		currentSkin = new UISkin(initialSkinXmlUrl,callback(initSkinHandler,onInitialized));

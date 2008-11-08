@@ -3,15 +3,15 @@
 
 COMPC:=compc
 MXMLC:=mxmlc
+SKINS=tan
 
-all: tan
+all: $(SKINS)
 
 tan: dummy
-	neko ../../as3libtool.n -i skins/Tan -o out -f hxwidgets_tan.swf --img-append _tan
+	neko ../../as3libtool.n -i tan -o tan_out -f hxwidgets_skin_tan.swf --capitalize
 
 clean:
-	rm -f hxwidgets_tan.swf
-	rm -rf out
+	rm -rf tan_out
 
 dummy:
 

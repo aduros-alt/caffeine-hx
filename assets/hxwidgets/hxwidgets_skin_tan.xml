@@ -1,0 +1,45 @@
+<skin name="Tan" assetSwf="hxwidgets_skin_tan.swf">
+	<button minWidth="64" minHeight="16" maxWidth="300" maxHeight="120">
+		<normal id="hxwidgets.skin.tan.Button_normal" type="bitmap">
+			<scale9Grid x="5" y="5" width="118" height="22" />
+		</normal>
+		<over id="hxwidgets.skin.tan.Button_over" type="bitmap">
+			<scale9Grid x="5" y="5" width="118" height="22" />
+		</over>
+		<press id="hxwidgets.skin.tan.Button_press" type="bitmap">
+			<scale9Grid x="5" y="5" width="118" height="22" />
+		</press>
+	</button>
+
+	<checkbox minWidth="12" minHeight="12" maxWidth="12" maxHeight="12">
+		<normal id="hxwidgets.skin.tan.Checkbox_normal" type="bitmap" />
+		<checked id="hxwidgets.skin.tan.Checkbox_checked" type="bitmap" />
+	</checkbox>
+
+	<radio minWidth="12" minHeight="12" maxWidth="12" maxHeight="12">
+		<normal id="hxwidgets.skin.tan.Radio_normal" type="bitmap" />
+		<checked id="hxwidgets.skin.tan.Radio_checked" type="bitmap" />
+	</radio>
+
+	<slider minWidth="25" minHeight="15" maxWidth="1024" maxHeight="15">
+		<normal>
+			<north id="hxwidgets.skin.tan.Slider_north" type="bitmap" />
+			<south id="hxwidgets.skin.tan.Slider_south" type="bitmap" />
+			<west id="hxwidgets.skin.tan.Slider_west" type="bitmap" />
+			<east id="hxwidgets.skin.tan.Slider_east" type="bitmap" />
+		</normal>
+		<over>
+			<north id="hxwidgets.skin.tan.Slider_north_over" type="bitmap" />
+			<south id="hxwidgets.skin.tan.Slider_south_over" type="bitmap" />
+			<west id="hxwidgets.skin.tan.Slider_west_over" type="bitmap" />
+			<east id="hxwidgets.skin.tan.Slider_east_over" type="bitmap" />
+		</over>
+		<colors>
+			<color name="border" type="solid" rgb="0x787870" alpha="1.0" />
+			<color name="fill" type="solid" rgb="0x000000" alpha="1.0" />
+		</colors>
+	</slider>
+	<progressbar>
+			<as3 classname="hxwidgets.skin.tan.ProgressBar" />
+	</progressbar>
+</skin>

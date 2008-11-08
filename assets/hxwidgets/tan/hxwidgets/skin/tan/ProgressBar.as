@@ -21,7 +21,7 @@
  * under the License.
  */
 
-package {
+package hxwidgets.skin.tan {
 	import flash.display.Sprite;
 	import flash.events.Event;	
 	import flash.geom.Matrix;
@@ -33,7 +33,7 @@ package {
 	* @author The Actionscript Man (theactionscriptman [at] gmail.com)
 	* @version 1.0.0
 	*/
-	public class ProgressBarTan extends Sprite {
+	public class ProgressBar extends Sprite {
 
 		public var backgroundColour:uint = 0xC9C9C9;
 		public var backgroundBorderColour:uint = 0xB2B2B2;
@@ -59,7 +59,7 @@ package {
 		private var barWidth:int;
 		private var barHeight:int;
 		
-		public function ProgressBarTan() {
+		public function ProgressBar() {
 			this.progress = 0.5;
 			this.barWidth = 100;
 			this.barHeight = 20;
