@@ -50,22 +50,27 @@ typedef Descriptor = {
 };
 
 class AS3LibTool {
-	static var system : String = { neko.Sys.systemName(); }
-	static var indir 	: String;
-	static var outdir	: String;
-	static var haxedir  : String;
-	static var cpath	: Array<String>;
+	static var system 		: String = { neko.Sys.systemName(); }
+	static var indir 		: String;
+	static var outdir		: String;
+	static var haxeOutdir	: String;
+	static var cpath		: Array<String>;
 
-	static var sources  : Array<Descriptor> = new Array();
-	static var outfilename : String = "as3libtool_assets.swf";
-	static var mainClassName : String = "as3libtool_res";
-	static var mainClassContent : String = "package{\n\timport flash.display.Sprite;\n\tpublic class as3libtool_res extends Sprite {\n\t\tpublic function as3libtool_res() { super(); }\n\t}\n}";
+	static var sources  	: Array<Descriptor> = new Array();
+	static var outfilename 	: String = "as3libtool_assets.swf";
+	static var mainClassName: String = "as3libtool_res";
+	static var mainClassContent: String = "package{\n\timport flash.display.Sprite;\n\tpublic class as3libtool_res extends Sprite {\n\t\tpublic function as3libtool_res() { super(); }\n\t}\n}";
 
-	static var imgAppend : String = "";
-	static var mxmlc	 : String = "mxmlc";
-	static var doClasses : Bool = true;
-	static var doImages  : Bool = true;
-	static var doSwfs    : Bool = true;
+	static var imgAppend 	: String = "";
+	static var mxmlc	 	: String = "mxmlc";
+	static var compc		: String = "compc";
+	static var haxe			: String = "haxe";
+	static var doClasses 	: Bool = true;
+	static var doImages  	: Bool = true;
+	static var doSwfs    	: Bool = true;
+
+	static var capitalizeClassNames	: Bool = false;
+	static var ignoreClassPaths		: Array<EReg> = new Array();
 /*
 	static var haxe_base: String;
 	static var haxe_cur : String;
@@ -77,19 +82,33 @@ class AS3LibTool {
 	static var eSwf = ~/^(.+)\.(swf)$/i;
 
 	public static function usage() {
-		var pf = neko.Lib.println;
-		neko.Lib.println("as3libtool -i [path] -o [path] -h [path]");
-		pf("Creates classes for all assets in inputdir into outdir");
-		pf("\t-i [inputdir]   Input source path");
-		pf("\t-o [output.swf] Output library file");
-		pf("\t-h [haxedir]    Path for outputting haxe extern classes");
+		var pf = log;
+		pf("as3libtool -i [path] -o [path] -h [path]");
+		pf("Creates classes for all assets in inputdir into --build dir");
+		pf("\t-i [inputdir]   Input source path.");
+		pf("\t-o [path]  Path for compiling classes into.");
 
-		pf("\t--build [path]  Path for compiling classes into");
+		pf("");
+		pf("Build options");
+		pf("\t-f [output.swf] Output library file name. Default as3libtool_assets.swf");
+		pf("\t--haxe-extern [haxeOutdir] Path for outputting haxe extern classes, if needed.");
+
+		pf("");
+		pf("File naming modifiers");
+		pf("\t--capitalize    Capitalizes any input file for class name generation");
 		pf("\t--img-append [text] Append text to class names for image resources");
+
+		pf("");
+		pf("Exclude targets");
+		pf("\t--ignore-classpath [class.path.[?*]] ignore sources with filename pattern matching (before appends)");
 		pf("\t--no-images     Do not process images in inputdir");
 		pf("\t--no-swf        Do not add swf files found in input dir");
 		pf("\t--no-classes    Ignore .as files in inputdir");
+
+		pf("");
+		pf("Support program paths (if as3libtool is unable to locate automatically)");
 		pf("\t--mxmlc [path]  mxmlc compiler binary");
+		pf("\t--haxe [path]   haxe compiler binary");
 
 	}
 	public static function main() {
@@ -100,16 +119,15 @@ class AS3LibTool {
 			neko.Sys.exit(1);
 		}
 
+		var icp = new Array<String>();
 		var i = 0;
 		while(i < argv.length) {
 			switch(argv[i]) {
 			case "-i":
 				indir = neko.FileSystem.fullPath(argv[++i]);
 				if(!neko.FileSystem.isDirectory(indir))
-					error("Specify the input directory");
+					error("Specify a correct input directory");
 			case "-o":
-				outfilename = argv[++i];
-			case "--build":
 				outdir = StringTools.trim(argv[++i]);
 				if(!neko.FileSystem.exists(outdir) || !neko.FileSystem.isDirectory(outdir)) {
 					try {
@@ -119,10 +137,28 @@ class AS3LibTool {
 						error("Unable to create output directory.");
 					}
 				}
+				//outdir = StringTools.trim(argv[++i]);
 				outdir = neko.FileSystem.fullPath(outdir);
+			case "-f":
+				outfilename = argv[++i];
+			case "--haxe-extern":
+				haxeOutdir = argv[++i];
+				if(!neko.FileSystem.exists(haxeOutdir) || !neko.FileSystem.isDirectory(haxeOutdir)) {
+					try {
+						neko.FileSystem.createDirectory(haxeOutdir);
+					}
+					catch(e:Dynamic) {
+						error("Unable to create output directory.");
+					}
+				}
+				haxeOutdir = neko.FileSystem.fullPath(haxeOutdir);
+			case "--ignore-classpath":
+				icp.push(argv[++i]);
 			case "--img-append":
 				imgAppend = argv[++i];
 				log("> appending " + imgAppend + " to images");
+			case "--capitalize":
+				capitalizeClassNames = true;
 			case "--no-images":
 				doImages = false;
 			case "--no-swf":
@@ -131,6 +167,11 @@ class AS3LibTool {
 				doClasses = false;
 			case "--mxmlc":
 				mxmlc = argv[++i];
+			case "--haxe":
+				haxe = argv[++i];
+			case "--help":
+				usage();
+				neko.Sys.exit(0);
 			default:
 				error("Unknown option " + argv[i]);
 			}
@@ -141,6 +182,20 @@ class AS3LibTool {
 		if(outdir == null)
 			error("No output path specified");
 
+		for(cp in icp) {
+			var parts = cp.split(".");
+			if(parts.length == 1)
+				parts.push(".*");
+			parts[parts.length - 1] = checkCapitalize(parts[parts.length - 1]);
+			var mcp = parts.join(".");
+			mcp = StringTools.replace(mcp, ".", "\\.");
+			mcp = StringTools.replace(mcp, "-", "\\-");
+			mcp = StringTools.replace(mcp, "?", "[\\.]{1,0}");
+			mcp = StringTools.replace(mcp, "*", ".*");
+			mcp = "^" + mcp + "$";
+			var ereg = new EReg(mcp, "");
+			ignoreClassPaths.push(new EReg(mcp,""));
+		}
 
 		cpath = new Array();
 
@@ -148,7 +203,7 @@ class AS3LibTool {
 		sources = processDirectory(".");
 
 		neko.Sys.setCwd(startdir);
-		neko.Lib.println("");
+		log("");
 		if(sources.length == 0) {
 			error("No asset files to process.");
 		}
@@ -187,12 +242,54 @@ class AS3LibTool {
 
 		createMainClass();
 		log(mxmlc + cmdArgs.join(" "));
-		neko.Sys.command(mxmlc, cmdArgs);
+		if(neko.Sys.command(mxmlc, cmdArgs) != 0) {
+			error("**** There was an error running mxmlc.\nPlease review the compiler output for possible causes.");
+		}
+
+		if(haxeOutdir != null) {
+			var cwd = neko.Sys.getCwd();
+			var orig : String = null;
+			try orig = neko.FileSystem.fullPath(outfilename) catch(e:Dynamic) {
+				error("*** Could not locate " + outfilename);
+			}
+			/**
+				This hack is because
+				1) Haxe will not take a full path to a file for --gen-hx-classes
+				2) Neko has no FileSystem.copy (yes, I could open...stream.. ya ya)
+			**/
+
+
+			try neko.Sys.setCwd(haxeOutdir) catch(e:Dynamic) {
+				error("*** Unable to change directory to "+ haxeOutdir);
+			}
+
+			try neko.FileSystem.rename(orig, "./" + outfilename) catch(e:Dynamic) {
+				neko.Sys.setCwd(cwd);
+				error("*** Unable to copy asset pack to "+ haxeOutdir + "\n");
+			}
+
+			var cleanup = function() {
+				neko.FileSystem.rename("./" + outfilename, orig);
+				neko.Sys.setCwd(cwd);
+			}
+
+			neko.Lib.print("Creating haxe extern classes in " + haxeOutdir + "...");
+			var proc = new neko.io.Process(haxe, ["--gen-hx-classes", outfilename]);
+			if(proc.exitCode() != 0) {
+				log("ERROR.");
+				cleanup();
+				error(proc.stderr.readAll().toString());
+			}
+			log("complete.");
+			cleanup();
+		}
 	}
 
+	/**
+		Logs a string to stderr and exits program
+	**/
 	public static function error( s : String ) {
-		neko.Lib.println(s);
-		usage();
+		neko.io.File.stderr().writeString(s + "\n");
 		neko.Sys.exit(1);
 	}
 
@@ -209,7 +306,7 @@ class AS3LibTool {
 		return b;
 	}
 
-	public static function getFilesInCwd() {
+	public static function getFilesInCwd() : Array<Descriptor> {
 		var a = neko.FileSystem.readDirectory(".");
 		var b : Array<Descriptor> = new Array();
 		for(d in a) {
@@ -243,20 +340,22 @@ class AS3LibTool {
 				error("file " + neko.Sys.getCwd() + "/"+ d + " is not a regular file!");
 			}
 
-			b.push({
+			var d = {
 				path:cpath.slice(1),
 				filename: filename,
 				extension:ext,
-				type:type}
-			);
+				type:type
+			};
+			if(!ignoreClassPath(classPath(d)))
+				b.push(d);
 		}
 		return b;
 	}
 
 
 	static function log(s : String) {
-		neko.io.File.stderr().writeString(s+"\n");
-		neko.io.File.stderr().flush();
+		neko.io.File.stdout().writeString(s+"\n");
+		neko.io.File.stdout().flush();
 	}
 
 	/**
@@ -265,33 +364,41 @@ class AS3LibTool {
 	static function makeOutputPaths() : Void {
 		if(cpath.length > 1) {
 			createOutputPath(outdir, cpath.slice(1));
-			if(haxedir != null)
-				createOutputPath(haxedir, cpath.slice(1));
+// 			--gen-hx-classes takes carfe of this
+// 			if(haxeOutdir != null)
+// 				createOutputPath(haxeOutdir, cpath.slice(1));
 		}
 	}
 
 	static function processDirectory(p : String) : Array<Descriptor> {
 		cpath.push(p);
+		var files = new Array();
+		var bcp = cpath.slice(1).join(".");
 		neko.Sys.setCwd(p);
-		makeOutputPaths();
-		var files = getFilesInCwd();
-		for(f in files) {
-			switch(f.type) {
-			case UNKNOWN:
-				error("Unset asset type!");
-			case SWF:
-				log("+[SWF] " + relativePath(f) );
-			case IMAGE:
-				log("+[IMG] " + relativePath(f) );
-			case CLASS:
-				log("+[AS3] " + relativePath(f) );
+		if(ignoreClassPath(bcp + ".")) {
+			log(">>> Skipping path " + bcp);
+		} else {
+			log(">>> Starting " + (if(bcp == "") "(root)" else bcp));
+			makeOutputPaths();
+			files = getFilesInCwd();
+			for(f in files) {
+				switch(f.type) {
+				case UNKNOWN:
+					error("Unset asset type!");
+				case SWF:
+					log("+[SWF] " + relativePath(f));
+				case IMAGE:
+					log("+[IMG] " + relativePath(f));
+				case CLASS:
+					log("+[AS3] " + relativePath(f));
+				}
 			}
-		}
-		var dirs = getDirs(".");
-		for(d in dirs) {
-			var ef = processDirectory(d);
-			for(f in ef)
-				files.push(f);
+			var dirs = getDirs(".");
+			for(d in dirs) {
+				var ef = processDirectory(d);
+				for(f in ef)
+					files.push(f);
+			}
 		}
 		cpath.pop();
 		neko.Sys.setCwd("./../");
@@ -329,13 +436,19 @@ class AS3LibTool {
 
 	/**
 		Full path to output file. If appendToFilename is specified, the resulting
-		filename will be modified.
+		filename will be modified. If it is an image asset, the filename may be capitalized
+		based on the capitalizeClassNames switch
 	**/
-	static function destinationPath(d : Descriptor, ?appendToFilename:String) : String {
+	static function destinationPath(base:String, d : Descriptor, ?appendToFilename:String) : String {
 		if(appendToFilename == null) appendToFilename = "";
 		var desc : Descriptor = {
 			path: d.path,
-			filename: d.filename + appendToFilename,
+			filename: switch(d.type) {
+				case IMAGE:
+					checkCapitalize(d.filename) + appendToFilename;
+				default:
+					d.filename + appendToFilename;
+				},
 			extension: d.extension,
 			type: d.type
 		};
@@ -343,9 +456,9 @@ class AS3LibTool {
 		return switch(d.type) {
 		case UNKNOWN: "";
 		case SWF, CLASS:
-			outdir + relativePath(desc);
+			base + relativePath(desc);
 		case IMAGE:
-			outdir + relativePath(desc, "as");
+			base + relativePath(desc, "as");
 		}
 	}
 
@@ -364,7 +477,7 @@ class AS3LibTool {
 			appendToClassName = "";
 		var rv = Std.string(packageName(d));
 		if(d.path.length > 0) rv += ".";
-		rv += d.filename + appendToClassName;
+		rv += checkCapitalize(d.filename) + appendToClassName;
 		return rv;
 	}
 
@@ -390,33 +503,36 @@ class AS3LibTool {
 
 	static function copyClass(d) {
 		var spath = sourcePath(d);
-		var dpath = destinationPath(d);
+		var dpath = destinationPath(outdir, d);
 		neko.io.File.copy(spath,dpath);
 	}
 
 	static function createImageClass(d) {
 		var spath = sourcePath(d);
-		var dpath = destinationPath(d, imgAppend);
 		var s = "package " + packageName(d) + " {\n";
 		s += "\timport flash.display.Sprite;\n";
-		s += "\tpublic class " + d.filename + imgAppend + " extends Sprite {\n";
+		s += "\tpublic class " + checkCapitalize(d.filename) + imgAppend + " extends Sprite {\n";
 		s += "\t\t[Embed(source=\"" + sourcePath(d) + "\")]\n";
 		s += "\t\tprivate var c:Class;\n";
-		s += "\t\tpublic function " + d.filename + imgAppend + "() {\n";
+		s += "\t\tpublic function " + checkCapitalize(d.filename) + imgAppend + "() {\n";
 		s += "\t\t\tsuper();\n";
 		s += "\t\t\taddChild(new c());\n";
 		s += "\t\t}\n";
 		s += "\t}\n";
 		s += "}\n";
 
-		var fo = neko.io.File.write(destinationPath(d, imgAppend), false);
+		var fo = neko.io.File.write(destinationPath(outdir, d, imgAppend), false);
 		fo.writeString(s);
 		fo.close();
 	}
 
+	/**
+		This is just a stub class required for compiling with mxmlc
+	**/
 	static function createMainClass() {
 		var fo = neko.io.File.write(
 				destinationPath(
+					outdir,
 					{
 						path : new Array(),
 						filename: mainClassName,
@@ -430,38 +546,24 @@ class AS3LibTool {
 		fo.close();
 	}
 
-/*
-
-	static function createStdLibPatch(file:String, caf:String, path:String ) {
-		var hf = haxe_cur + path;
-		var hs : String;
-		try {
-			hs = neko.io.File.getContent(hf);
+	/**
+		Takes a string class path and checks all --ignore-classpath args
+		against it, returning true if the class is to be ignored.
+	**/
+	static function ignoreClassPath(s:String) : Bool {
+		for(ereg in ignoreClassPaths) {
+			if(ereg.match(s))
+				return true;
 		}
-		catch(e:Dynamic) {
-			hs = "";
-		}
-		var fdate : Date;
-		try {
-			fdate = neko.FileSystem.stat(hf).mtime;
-		}
-		catch(e:Dynamic) {
-			fdate = Date.now();
-		}
-
-		var ofile = "haxe.orig/std" + path;
-		var nfile = "haxe/std" + path;
-		var oline = "--- " + ofile + "     " + xdiff.Tools.dateFormat(fdate);
-		var mline = "+++ " + nfile + "  " + xdiff.Tools.dateFormat(Date.now());
-
-		var patch = xdiff.Tools.diff(hs, caf);
-		var fo = new neko.io.StringOutput();
-		//var fo = neko.io.File.write(file + ".patch",false);
-		fo.write(oline + "\n");
-		fo.write(mline + "\n");
-		fo.write(patch);
-		fo.close();
-		return fo.toString();
+		return false;
 	}
-*/
+
+	/**
+		Capitalizes a string if the
+	**/
+	static function checkCapitalize(s : String) : String {
+		if(!capitalizeClassNames)
+			return s;
+		return s.substr(0,1).toUpperCase()+s.substr(1);
+	}
 }
