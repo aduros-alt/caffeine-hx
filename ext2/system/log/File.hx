@@ -64,7 +64,7 @@ class File extends EventLog, implements IEventLog {
 		if(Type.enumIndex(lvl) >= Type.enumIndex(level)) {
 			mutex.acquire();
 			try {
-				STDOUT.write(haxe.io.Bytes.ofString(serviceName + ": "+Std.string(lvl)+" : "+ s + "\n"));
+				STDOUT.write(haxe.io.Bytes.ofString("["+Date.now().toString()+"] " +serviceName + " : "+Std.string(lvl)+" : "+ s + "\n"));
 				STDOUT.flush();
 			} catch(e:Dynamic) {
 				trace(e);
