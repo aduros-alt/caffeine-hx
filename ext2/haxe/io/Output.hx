@@ -97,11 +97,11 @@ class Output {
 		#elseif php
 		write(untyped Bytes.ofString(__call__('pack', 'f', x)));
 		#elseif flash9
-		var bo = new haxe.io.BytesOutput(haxe.io.Bytes.alloc(4));
+		var bo = new haxe.io.BytesOutput();
 		bo.writeFloat(x);
 		write(bo.getBytes());
 		#else
-		throw "Not implemented";
+		write(math.IEEE754.floatToBytes(x, bigEndian));
 		#end
 	}
 
@@ -111,11 +111,11 @@ class Output {
 		#elseif php
 		write(untyped Bytes.ofString(__call__('pack', 'd', x)));
 		#elseif flash9
-		var bo = new haxe.io.BytesOutput(haxe.io.Bytes.alloc(8));
+		var bo = new haxe.io.BytesOutput();
 		bo.writeDouble(x);
 		write(bo.getBytes());
 		#else
-		throw "Not implemented";
+		write(math.IEEE754.doubleToBytes(x, bigEndian));
 		#end
 	}
 

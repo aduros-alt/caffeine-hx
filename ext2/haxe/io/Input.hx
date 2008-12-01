@@ -141,8 +141,7 @@ class Input {
 			var bi = new haxe.io.BytesInput(read(4));
 			return bi.readFloat();
 		#else
-			throw "Not implemented";
-			return 0;
+			return math.IEEE754.bytesToFloat(read(4), bigEndian);
 		#end
 	}
 
@@ -156,8 +155,7 @@ class Input {
 			var bi = new haxe.io.BytesInput(read(8));
 			return bi.readDouble();
 		#else
-			throw "Not implemented";
-			return 0;
+			return math.IEEE754.bytesToFloat(read(8), bigEndian);
 		#end
 	}
 

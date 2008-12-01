@@ -1,0 +1,28 @@
+-cp ../../
+-js test.js
+-main MathTest
+
+--next
+
+-cp ../../
+-neko test.n
+-main MathTest
+
+--next
+
+-cp ../../
+-main MathTest
+-swf-version 8
+-swf test8.swf
+-debug
+
+--next
+
+-cp ../../
+-main MathTest
+-swf-version 9
+-swf-header 800:600:20:FFFFFF
+-swf test9.swf
+-debug
+
+
