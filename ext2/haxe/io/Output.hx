@@ -98,6 +98,7 @@ class Output {
 		write(untyped Bytes.ofString(__call__('pack', 'f', x)));
 		#elseif flash9
 		var bo = new haxe.io.BytesOutput();
+		bo.bigEndian = this.bigEndian;
 		bo.writeFloat(x);
 		write(bo.getBytes());
 		#else
@@ -112,6 +113,7 @@ class Output {
 		write(untyped Bytes.ofString(__call__('pack', 'd', x)));
 		#elseif flash9
 		var bo = new haxe.io.BytesOutput();
+		bo.bigEndian = this.bigEndian;
 		bo.writeDouble(x);
 		write(bo.getBytes());
 		#else

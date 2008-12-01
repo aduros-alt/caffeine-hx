@@ -139,6 +139,7 @@ class Input {
 			return a[1];
 		#elseif flash9
 			var bi = new haxe.io.BytesInput(read(4));
+			bi.bigEndian = this.bigEndian;
 			return bi.readFloat();
 		#else
 			return math.IEEE754.bytesToFloat(read(4), bigEndian);
@@ -153,6 +154,7 @@ class Input {
 			return a[1];
 		#elseif flash9
 			var bi = new haxe.io.BytesInput(read(8));
+			bi.bigEndian = this.bigEndian;
 			return bi.readDouble();
 		#else
 			return math.IEEE754.bytesToFloat(read(8), bigEndian);
