@@ -36,6 +36,10 @@ class Input {
 		return throw "Not implemented";
 	}
 
+	/**
+		Reads up to len bytes from the input buffer, returning the number of
+		bytes that were actually available to read
+	**/
 	public function readBytes( s : Bytes, pos : Int, len : Int ) : Int {
 		var k = len;
 		var b = s.getData();
@@ -86,6 +90,10 @@ class Input {
 		return total.getBytes();
 	}
 
+	/**
+		Reads len bytes. Will continue to loop calling readBytes until the requested
+		number of bytes is read.
+	**/
 	public function readFullBytes( s : Bytes, pos : Int, len : Int ) {
 		while( len > 0 ) {
 			var k = readBytes(s,pos,len);
@@ -94,6 +102,9 @@ class Input {
 		}
 	}
 
+	/**
+		Reads nbytes from the input stream, by calling readBytes until nbytes is reached
+	**/
 	public function read( nbytes : Int ) : Bytes {
 		var s = Bytes.alloc(nbytes);
 		var p = 0;
@@ -106,6 +117,9 @@ class Input {
 		return s;
 	}
 
+	/**
+		Reads from input until the unsigned int8 value 'end' is reached.
+	**/
 	public function readUntil( end : Int ) : String {
 		var buf = new StringBuf();
 		var last : Int;
@@ -114,6 +128,9 @@ class Input {
 		return buf.toString();
 	}
 
+	/**
+		Reads from input until an \n or \r\n sequence is reached.
+	**/
 	public function readLine() : String {
 		var buf = new StringBuf();
 		var last : Int;
@@ -161,6 +178,9 @@ class Input {
 		#end
 	}
 
+	/**
+		Read a single byte as a signed Int (-128 to +128)
+	**/
 	public function readInt8() {
 		var n = readByte();
 		if( n >= 128 )
@@ -168,6 +188,9 @@ class Input {
 		return n;
 	}
 
+	/**
+		Reads 2 bytes, returning a signed Int
+	**/
 	public function readInt16() {
 		var ch1 = readByte();
 		var ch2 = readByte();
@@ -177,12 +200,18 @@ class Input {
 		return n;
 	}
 
+	/**
+		Reads 2 bytes, returning an unsigned Int
+	**/
 	public function readUInt16() {
 		var ch1 = readByte();
 		var ch2 = readByte();
 		return bigEndian ? ch2 | (ch1 << 8) : ch1 | (ch2 << 8);
 	}
 
+	/**
+		Reads 3 bytes, returning a signed Int
+	**/
 	public function readInt24() {
 		var ch1 = readByte();
 		var ch2 = readByte();
@@ -193,6 +222,9 @@ class Input {
 		return n;
 	}
 
+	/**
+		Reads 3 bytes, returning an unsigned Int
+	**/
 	public function readUInt24() {
 		var ch1 = readByte();
 		var ch2 = readByte();
@@ -200,6 +232,9 @@ class Input {
 		return bigEndian ? ch3 | (ch2 << 8) | (ch1 << 16) : ch1 | (ch2 << 8) | (ch3 << 16);
 	}
 
+	/**
+		Reads 4 bytes, returning a signed Int
+	**/
 	public function readInt31() {
 		var ch1,ch2,ch3,ch4;
 		if( bigEndian ) {
@@ -217,6 +252,9 @@ class Input {
 		return ch1 | (ch2 << 8) | (ch3 << 16) | (ch4 << 24);
 	}
 
+	/**
+		Reads 4 bytes, returning an unsigned Int
+	**/
 	public function readUInt30() {
 		var ch1 = readByte();
 		var ch2 = readByte();
@@ -226,6 +264,9 @@ class Input {
 		return bigEndian ? ch4 | (ch3 << 8) | (ch2 << 16) | (ch1 << 24) : ch1 | (ch2 << 8) | (ch3 << 16) | (ch4 << 24);
 	}
 
+	/**
+		Reads 4 bytes, returning a signed Int32
+	**/
 	public function readInt32() {
 		var ch1 = readByte();
 		var ch2 = readByte();
@@ -234,6 +275,9 @@ class Input {
 		return bigEndian ? haxe.Int32.make((ch1 << 8) | ch2,(ch3 << 8) | ch4) : haxe.Int32.make((ch4 << 8) | ch3,(ch2 << 8) | ch1);
 	}
 
+	/**
+		Reads len bytes as a string
+	**/
 	public function readString( len : Int ) : String {
 		var b = Bytes.alloc(len);
 		readFullBytes(b,0,len);
