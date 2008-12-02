@@ -212,7 +212,7 @@ class BufferedInput extends haxe.io.Input {
 			ch1 = if(r.length > 0) r.get(0) else bufferByte();
 			ch2 = if(r.length > 1) r.get(1) else bufferByte();
 			ch3 = if(r.length > 2) r.get(2) else bufferByte();
-			ch3 = if(r.length > 3) r.get(3) else bufferByte();
+			ch4 = if(r.length > 3) r.get(3) else bufferByte();
 		}
 		consumed(4);
 		if( ((ch4 & 128) == 0) != ((ch4 & 64) == 0) ) throw Error.Overflow;
