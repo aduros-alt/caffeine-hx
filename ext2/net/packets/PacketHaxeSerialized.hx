@@ -27,22 +27,44 @@
 
 package net.packets;
 
-class PacketNull extends net.Packet {
-	inline static var VALUE : Int = 0x00;
+/**
+	A packet that can containnn haxe serialized data as well as an arbitrary integer flag.
+**/
+class PacketHaxeSerialized extends net.Packet {
+	/** An unsigned int 16 value **/
+	public var flag : Int;
+	/** haxe serialized data **/
+	public var data : String;
+
+	public function new(?s : String) {
+		super();
+		data = s;
+	}
+
+	override function toBytes(buf:haxe.io.BytesOutput) : Void {
+		buf.writeUInt16(this.flag);
+		buf.writeString(this.data);
+	}
+
+	override function fromBytes(buf : haxe.io.BytesInput) : Void {
+		this.flag = buf.readUInt16();
+		this.data = buf.readString();
+	}
+
+	/**
+		Unserializes the data. Will throw anything haxe.Unserializer does.
+	**/
+	public function unserialize() : Dynamic {
+		return haxe.Unserializer.run(this.data);
+	}
+
+	inline static var VALUE : Int = 0x3D;
 
 	static function __init__() {
-		net.Packet.register(VALUE, PacketNull);
+		net.Packet.register(VALUE, PacketHaxeSerialized);
 	}
 
 	override public function getValue() : Int {
 		return VALUE;
-	}
-
-	override function toBytes(buf:haxe.io.BytesOutput) : Void {
-		buf.writeInt8(0);
-	}
-
-	override function fromBytes(buf : haxe.io.BytesInput) : Void {
-		buf.readInt8();
 	}
 }

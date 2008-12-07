@@ -27,22 +27,58 @@
 
 package net.packets;
 
-class PacketNull extends net.Packet {
-	inline static var VALUE : Int = 0x00;
+/**
+	Pong packet
+**/
+class PacketPong extends net.Packet {
+	public var pingId : Int;
+	public var ping_timestamp : Float;
+	/** timestamp on other machine **/
+	public var remote_timestamp(default,null) : Float;
+	/** time at which this packet was received **/
+	public var received_timestamp(default,null) : Float;
+
+	public function new(p : PacketPing) {
+		super();
+		this.pingId = p.pingId;
+		this.ping_timestamp = p.timestamp;
+		this.remote_timestamp = Date.now().getTime();
+		this.received_timestamp = this.remote_timestamp;
+	}
+
+	override function toBytes(buf:haxe.io.BytesOutput) : Void {
+		buf.writeInt31(this.pingId);
+		buf.writeFloat(this.ping_timestamp);
+		buf.writeFloat(this.remote_timestamp);
+	}
+
+	override function fromBytes(buf : haxe.io.BytesInput) : Void {
+		this.pingId = buf.readInt31();
+		this.ping_timestamp = buf.readFloat();
+		this.remote_timestamp = buf.readFloat();
+	}
+
+	inline static var VALUE : Int = 0x3B;
 
 	static function __init__() {
-		net.Packet.register(VALUE, PacketNull);
+		net.Packet.register(VALUE, PacketPong);
 	}
 
 	override public function getValue() : Int {
 		return VALUE;
 	}
 
-	override function toBytes(buf:haxe.io.BytesOutput) : Void {
-		buf.writeInt8(0);
+	/**
+		Get time required for ping/pong
+	**/
+	public function getRoundTripTime() : Float {
+		return received_timestamp - ping_timestamp;
 	}
 
-	override function fromBytes(buf : haxe.io.BytesInput) : Void {
-		buf.readInt8();
+	/**
+		Returns the time offset for the remote system clock
+	**/
+	public function getRemoteTimeOffset() : Float {
+		return remote_timestamp - ping_timestamp - (getRoundTripTime() / 2.0);
 	}
 }

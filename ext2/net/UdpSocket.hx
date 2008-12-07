@@ -25,24 +25,14 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package net.packets;
-
-class PacketNull extends net.Packet {
-	inline static var VALUE : Int = 0x00;
-
-	static function __init__() {
-		net.Packet.register(VALUE, PacketNull);
-	}
-
-	override public function getValue() : Int {
-		return VALUE;
-	}
-
-	override function toBytes(buf:haxe.io.BytesOutput) : Void {
-		buf.writeInt8(0);
-	}
-
-	override function fromBytes(buf : haxe.io.BytesInput) : Void {
-		buf.readInt8();
+#if neko
+class UdpSocket extends TcpSocket, implements Socket {
+	public function new(?s:UdpSocket) {
+		__s = if( s == null ) socket_new(true) else s;
+		input = new SocketInput(__s);
+		output = new SocketOutput(__s);
 	}
 }
+#else
+#error
+#end

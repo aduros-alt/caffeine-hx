@@ -35,7 +35,7 @@ import haxe.io.BytesInput;
 
 /**
 	A class to simplify writing network protocols. Extend with subclasses which each
-	have a unique value (0 and 0x3C are reserved) which call Packet.register in the
+	have a unique value (0 and 0x3A-0x3F are reserved) which call Packet.register in the
 	static __init__. Then override toBytes and fromBytes with matching BytesOutput and
 	BytesInput writing and reading of the class data.
 **/
@@ -51,8 +51,15 @@ class Packet {
 		}
 		if(v < 0 || v > 255)
 			throw "Packet value out of range";
+
+		if(v == 0x3A &&  Type.getClassName(c) != "net.packets.PacketPing")
+			throw "Packet value 0x3C is reserved for net.packets.PacketPing";
+		if(v == 0x3B &&  Type.getClassName(c) != "net.packets.PacketPong")
+			throw "Packet value 0x3C is reserved for net.packets.PacketPong";
 		if(v == 0x3C &&  Type.getClassName(c) != "net.packets.PacketXmlData")
 			throw "Packet value 0x3C is reserved for net.packets.PacketXmlData";
+		if(v == 0x3D &&  Type.getClassName(c) != "net.packets.PacketHaxeSerialized")
+			throw "Packet value 0x3D is reserved for net.packets.PacketHaxeSerialized";
 		if(v == 0 &&  Type.getClassName(c) != "net.packets.PacketNull")
 			throw "Packet value 0x00 is reserved for net.packets.PacketNull";
 		if(pktRegister.exists(v))
@@ -63,7 +70,10 @@ class Packet {
 		pktRegister.set(v, c);
 	}
 
+	public var value(getValue, null) : Int;
+
 	public function new() {
+		this.value = getValue();
 	}
 
 	/**
@@ -88,20 +98,24 @@ class Packet {
 		If there are not enough bytes in the buffer, the packet will be null with 0 bytes
 		consumed. Will throw a haxe.io.Error.Custom if the packet type is not registered.
 	**/
-	public static function read(buf : Bytes, ?pos:Int) : { packet: Packet, bytes: Int } {
+	public static function read(buf : Bytes, ?pos:Int, ?len:Int) : { packet: Packet, bytes: Int } {
 		if(pos == null)
 			pos = 0;
-		var len = buf.length - pos;
+		if(len == null)
+			len = buf.length - pos;
+		if(pos + len > buf.length)
+			throw haxe.io.Error.Custom("Buffer range error");
 		var msgLen = getPacketLength( buf, pos, len);
-		if(len < msgLen)
+		if(msgLen == null || len < msgLen)
 			return { packet: null, bytes : 0 }
 
-		var bi = newInputBuffer(buf, pos);
-		var t = bi.readByte();
-		var p = createType(t);
+
+		var p = createType(buf.get(pos));
 		if(p == null)
-			throw haxe.io.Error.Custom("Not a registered packet " + t);
-		var j = bi.readInt31();
+			throw haxe.io.Error.Custom("Not a registered packet " + buf.get(pos));
+		if(p.getValue() != 0x3C && p.getValue() != 0)
+			pos += 5;
+		var bi = newInputBuffer(buf, pos);
 		p.fromBytes(bi);
 		return { packet: p, bytes : msgLen};
 	}
@@ -111,7 +125,7 @@ class Packet {
 	**/
 	static function newOutputBuffer() : BytesOutput {
 		var b = new BytesOutput();
-		b.bigEndian = false;
+		b.bigEndian = true;
 		return b;
 	}
 
@@ -120,7 +134,7 @@ class Packet {
 	**/
 	static function newInputBuffer(buf : Bytes, ?pos:Int, ?len : Int) : BytesInput {
 		var i = new BytesInput(buf, pos, len);
-		i.bigEndian = false;
+		i.bigEndian = true;
 		return i;
 	}
 

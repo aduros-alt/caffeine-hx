@@ -25,24 +25,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package net.packets;
+package net;
 
-class PacketNull extends net.Packet {
-	inline static var VALUE : Int = 0x00;
-
-	static function __init__() {
-		net.Packet.register(VALUE, PacketNull);
-	}
-
-	override public function getValue() : Int {
-		return VALUE;
-	}
-
-	override function toBytes(buf:haxe.io.BytesOutput) : Void {
-		buf.writeInt8(0);
-	}
-
-	override function fromBytes(buf : haxe.io.BytesInput) : Void {
-		buf.readInt8();
-	}
+interface IEventDrivenSocketListener {
+	function onSocketConnect(s:Socket, evt:Dynamic) : Void;
+	function onSocketConnectFail(s:Socket, evt:Dynamic) : Void;
+	function onSocketClose(s:Socket, evt:Dynamic) : Void;
+	function onSocketData(s:Socket, evt:Dynamic) : Void;
+	function onSocketError(s:Socket, evt:Dynamic) : Void;
 }

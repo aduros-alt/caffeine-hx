@@ -27,22 +27,41 @@
 
 package net.packets;
 
-class PacketNull extends net.Packet {
-	inline static var VALUE : Int = 0x00;
+/**
+	Ping packet
+**/
+class PacketPing extends net.Packet {
+	/** Initially set to a random number, is the next ping id that will go out **/
+	public static var pingIndex : Int;
+
+	public var pingId : Int;
+	public var timestamp : Float;
+
+	public function new() {
+		super();
+		this.pingId = pingIndex;
+		pingIndex++;
+		this.timestamp = Date.now().getTime();
+	}
+
+	override function toBytes(buf:haxe.io.BytesOutput) : Void {
+		buf.writeInt31(this.pingId);
+		buf.writeDouble(this.timestamp);
+	}
+
+	override function fromBytes(buf : haxe.io.BytesInput) : Void {
+		this.pingId = buf.readInt31();
+		this.timestamp = buf.readDouble();
+	}
+
+	inline static var VALUE : Int = 0x3A;
 
 	static function __init__() {
-		net.Packet.register(VALUE, PacketNull);
+		net.Packet.register(VALUE, PacketPing);
+		pingIndex = Std.int(Math.random() * 10000.0);
 	}
 
 	override public function getValue() : Int {
 		return VALUE;
-	}
-
-	override function toBytes(buf:haxe.io.BytesOutput) : Void {
-		buf.writeInt8(0);
-	}
-
-	override function fromBytes(buf : haxe.io.BytesInput) : Void {
-		buf.readInt8();
 	}
 }
