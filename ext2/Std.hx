@@ -211,19 +211,27 @@ class Std {
 		Convert a String to a Float, parsing different possible reprensations.
 	**/
 	public static function parseFloat( x : String ) : Float {
-		return untyped
 		#if flash9
-		__global__["parseFloat"](x);
+		return untyped __global__["parseFloat"](x);
 		#elseif flash
-		_global["parseFloat"](x);
+		return untyped _global["parseFloat"](x);
 		#elseif neko
-		__dollar__float(x.__s);
+		untyped {
+			var t = __dollar__typeof(x);
+			if( t == __dollar__tint )
+				return x * 1.0;
+			if( t == __dollar__tfloat )
+				return x;
+			if( t != __dollar__tobject )
+				return Math.NaN;
+			return __dollar__float(x.__s);
+		}
 		#elseif js
-		__js__("parseFloat")(x);
+		return untyped __js__("parseFloat")(x);
 		#elseif php
-		__php__("is_numeric($x) ? floatval($x) : acos(1.01)");
+		return untyped __php__("is_numeric($x) ? floatval($x) : acos(1.01)");
 		#else
-		0;
+		return untyped 0;
 		#end
 	}
 
