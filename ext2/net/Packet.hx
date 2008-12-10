@@ -171,6 +171,14 @@ class Packet {
 		throw "override";
 	}
 
+	public function toString() {
+		var s = "Packet:";
+		for(f in Reflect.fields(this)) {
+			s += " " + f + "=" + Std.string(Reflect.field(this,f));
+		}
+		return s;
+	}
+
 	/**
 		Creates a new packet fromt the byte value
 	**/
