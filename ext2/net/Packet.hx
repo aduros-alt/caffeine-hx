@@ -77,6 +77,15 @@ class Packet {
 	}
 
 	/**
+		Called after a packet is created by createType() during packet reads.
+		Incoming packets are created with Type.createEmptyInstance(), so any
+		construction should be done here.
+	**/
+	public function onConstructed() {
+		this.value = getValue();
+	}
+
+	/**
 		Writes the packet to Bytes.
 	**/
 	public function write() : Bytes {
@@ -168,7 +177,10 @@ class Packet {
 	public static function createType(b:Int) : Packet {
 		if(!pktRegister.exists(b))
 			return null;
-		return Type.createEmptyInstance(pktRegister.get(b));
+		var pkt = Type.createEmptyInstance(pktRegister.get(b));
+		if(pkt != null)
+			pkt.onConstructed();
+		return pkt;
 	}
 
 	/**

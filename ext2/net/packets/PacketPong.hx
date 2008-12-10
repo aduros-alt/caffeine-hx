@@ -42,20 +42,22 @@ class PacketPong extends net.Packet {
 		super();
 		this.pingId = p.pingId;
 		this.ping_timestamp = p.timestamp;
-		this.remote_timestamp = Date.now().getTime();
-		this.received_timestamp = this.remote_timestamp;
+		var now = Date.now().getTime();
+		this.remote_timestamp = now;
+		this.received_timestamp = now;
 	}
 
 	override function toBytes(buf:haxe.io.BytesOutput) : Void {
 		buf.writeInt31(this.pingId);
-		buf.writeFloat(this.ping_timestamp);
-		buf.writeFloat(this.remote_timestamp);
+		buf.writeDouble(this.ping_timestamp);
+		buf.writeDouble(this.remote_timestamp);
 	}
 
 	override function fromBytes(buf : haxe.io.BytesInput) : Void {
+		this.received_timestamp = Date.now().getTime();
 		this.pingId = buf.readInt31();
-		this.ping_timestamp = buf.readFloat();
-		this.remote_timestamp = buf.readFloat();
+		this.ping_timestamp = buf.readDouble();
+		this.remote_timestamp = buf.readDouble();
 	}
 
 	inline static var VALUE : Int = 0x3B;
@@ -76,7 +78,7 @@ class PacketPong extends net.Packet {
 	}
 
 	/**
-		Returns the time offset for the remote system clock
+		Returns the time offset in milliseconds for the remote system clock
 	**/
 	public function getRemoteTimeOffset() : Float {
 		return remote_timestamp - ping_timestamp - (getRoundTripTime() / 2.0);

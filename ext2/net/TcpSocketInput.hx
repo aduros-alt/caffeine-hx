@@ -117,10 +117,13 @@ class TcpSocketInput extends haxe.io.BufferedInput {
 		if( pos < 0 || len < 0 || pos + len > s.length )
 			throw Error.OutsideBounds;
 		var b = s.getData();
-		var op = b.position;
+		var ba = __handle.bytesAvailable;
+		if(ba == 0) return 0;
+		if(len > ba)
+			len = ba;
  		try {
 			__handle.readBytes(b, pos, len);
-			return b.position - op;
+			return len;
 		}
 		catch( e : flash.errors.EOFError ) {
 			throw Blocked;
