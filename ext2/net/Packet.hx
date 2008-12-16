@@ -159,20 +159,20 @@ class Packet {
 	/**
 		Packets mus override this to write all data to the data
 	**/
-	function toBytes(buf:haxe.io.BytesOutput) : Void {
+	function toBytes(buf:haxe.io.Output) : Void {
 		throw "override";
 	}
 
 	/**
-		Read object in from specified BytesInput, returning number of
-		bytes consumed. The supplied BytesInput must be in littleEndian format, by setting buf.bigEndian to false
+		Read object in from specified Input, returning number of
+		bytes consumed. The supplied Input must be in bigEndian format, by setting buf.bigEndian to true
 	**/
-	function fromBytes(buf:haxe.io.BytesInput) : Void {
+	function fromBytes(buf:haxe.io.Input) : Void {
 		throw "override";
 	}
 
 	public function toString() {
-		var s = "Packet:";
+		var s = Type.getClassName(Type.getClass(this)) + ":";
 		for(f in Reflect.fields(this)) {
 			s += " " + f + "=" + Std.string(Reflect.field(this,f));
 		}

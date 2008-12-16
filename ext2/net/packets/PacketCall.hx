@@ -50,13 +50,13 @@ class PacketCall extends net.Packet {
 	public var params : Array<Dynamic>;
 
 
-	override function toBytes(buf:haxe.io.BytesOutput) : Void {
+	override function toBytes(buf:haxe.io.Output) : Void {
 		buf.writeInt31(id);
 		buf.writeString(path.join("."));
 		buf.writeString(haxe.Serializer.run(params));
 	}
 
-	override function fromBytes(buf : haxe.io.BytesInput) : Void {
+	override function fromBytes(buf : haxe.io.Input) : Void {
 		id = buf.readInt31();
 		path = buf.readString().split(".");
 		params = haxe.Unserializer.run(buf.readString());

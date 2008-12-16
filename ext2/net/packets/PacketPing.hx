@@ -44,12 +44,12 @@ class PacketPing extends net.Packet {
 		this.timestamp = Date.now().getTime();
 	}
 
-	override function toBytes(buf:haxe.io.BytesOutput) : Void {
+	override function toBytes(buf:haxe.io.Output) : Void {
 		buf.writeInt31(this.pingId);
 		buf.writeDouble(this.timestamp);
 	}
 
-	override function fromBytes(buf : haxe.io.BytesInput) : Void {
+	override function fromBytes(buf : haxe.io.Input) : Void {
 		this.pingId = buf.readInt31();
 		this.timestamp = buf.readDouble();
 	}

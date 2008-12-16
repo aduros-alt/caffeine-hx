@@ -47,13 +47,13 @@ class PacketPong extends net.Packet {
 		this.received_timestamp = now;
 	}
 
-	override function toBytes(buf:haxe.io.BytesOutput) : Void {
+	override function toBytes(buf:haxe.io.Output) : Void {
 		buf.writeInt31(this.pingId);
 		buf.writeDouble(this.ping_timestamp);
 		buf.writeDouble(this.remote_timestamp);
 	}
 
-	override function fromBytes(buf : haxe.io.BytesInput) : Void {
+	override function fromBytes(buf : haxe.io.Input) : Void {
 		this.received_timestamp = Date.now().getTime();
 		this.pingId = buf.readInt31();
 		this.ping_timestamp = buf.readDouble();

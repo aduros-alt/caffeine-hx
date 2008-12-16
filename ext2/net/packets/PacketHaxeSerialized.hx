@@ -41,12 +41,12 @@ class PacketHaxeSerialized extends net.Packet {
 		data = s;
 	}
 
-	override function toBytes(buf:haxe.io.BytesOutput) : Void {
+	override function toBytes(buf:haxe.io.Output) : Void {
 		buf.writeUInt16(this.flag);
 		buf.writeString(this.data);
 	}
 
-	override function fromBytes(buf : haxe.io.BytesInput) : Void {
+	override function fromBytes(buf : haxe.io.Input) : Void {
 		this.flag = buf.readUInt16();
 		this.data = buf.readString();
 	}

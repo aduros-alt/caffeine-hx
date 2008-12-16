@@ -40,13 +40,13 @@ class PacketXmlData extends net.Packet {
 		return VALUE;
 	}
 
-	override function toBytes(buf:haxe.io.BytesOutput) : Void {
+	override function toBytes(buf : haxe.io.Output) : Void {
 		var b = haxe.io.Bytes.ofString(data);
 		buf.writeBytes(b, 0, b.length);
 		buf.writeByte(0);
 	}
 
-	override function fromBytes(buf : haxe.io.BytesInput) : Void {
+	override function fromBytes(buf : haxe.io.Input) : Void {
 		var bb = new haxe.io.BytesBuffer();
 		var byte = 255;
 		while(true) {

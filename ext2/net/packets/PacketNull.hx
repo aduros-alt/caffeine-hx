@@ -38,11 +38,11 @@ class PacketNull extends net.Packet {
 		return VALUE;
 	}
 
-	override function toBytes(buf:haxe.io.BytesOutput) : Void {
+	override function toBytes(buf:haxe.io.Output) : Void {
 		buf.writeInt8(0);
 	}
 
-	override function fromBytes(buf : haxe.io.BytesInput) : Void {
+	override function fromBytes(buf : haxe.io.Input) : Void {
 		buf.readInt8();
 	}
 }
