@@ -100,7 +100,7 @@ class TcpSocketInput extends haxe.io.BufferedInput {
 
 	public override function readByte() {
 		return try {
-			__handle.readByte();
+			cast __handle.readUnsignedByte();
 		}
 		catch( e : flash.errors.EOFError ) {
 			throw Blocked;
@@ -211,6 +211,23 @@ class TcpSocketInput extends haxe.io.BufferedInput {
 		}
 		if( ((v & 0x800000) == 0) != ((v & 0x400000) == 0) ) throw Error.Overflow;
 		return v;
+	}
+
+	public override function readUInt30() {
+		var v = try {
+			__handle.readUnsignedInt();
+		}
+		catch( e : flash.errors.EOFError ) {
+			throw Blocked;
+		}
+		catch( e : flash.errors.IOError ) {
+			throw new haxe.io.Eof();
+		}
+		catch( e : Dynamic ) {
+			throw Custom(e);
+		}
+		if( v >= 0x40000000) throw Error.Overflow;
+		return cast v;
 	}
 
 	public override function readInt32() : haxe.Int32 {

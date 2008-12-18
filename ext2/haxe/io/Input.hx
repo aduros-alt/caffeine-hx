@@ -32,6 +32,10 @@ class Input {
 
 	public var bigEndian(default,setEndian) : Bool;
 
+	/**
+		Abstract method for reading an unsigned 8 bit value from the
+		input stream. For a signed value, use readInt8.
+	**/
 	public function readByte() : Int {
 		return throw "Not implemented";
 	}
@@ -179,7 +183,8 @@ class Input {
 	}
 
 	/**
-		Read a single byte as a signed Int (-128 to +128)
+		Read a single byte as a signed Int (-128 to +128). For an unsigned
+		value, use readByte()
 	**/
 	public function readInt8() {
 		var n = readByte();
