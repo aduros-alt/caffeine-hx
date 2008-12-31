@@ -220,4 +220,44 @@ class Packet {
 		var bi = newInputBuffer(bb.getBytes());
 		return bi.readInt31();
 	}
+
+	/**
+		Writes a string with leading string length to the buffer.
+	**/
+	public static function writeStringToBuf(s : String, buf : haxe.io.Output) : Void {
+		if(s == null || s.length == 0) {
+			buf.writeUInt16(0);
+		}
+		else {
+			if(s.length > 0xFFFF)
+				throw("string length overflow");
+			buf.writeUInt16(s.length);
+			buf.writeString(s);
+		}
+	}
+
+	/**
+		Reads a length/string from buffer. Returns empty string for 0 length strings
+	**/
+	public static function readStringFromBuf(buf : haxe.io.Input) : String {
+		var len = buf.readUInt16();
+		if(len > 0)
+			return buf.readString(len);
+		return "";
+	}
+
+	public static function writeBoolToBuf(v : Bool, buf : haxe.io.Output) : Void {
+		if(v)
+			buf.writeByte(1);
+		else
+			buf.writeByte(0);
+	}
+
+	public static function readBoolFromBuf(buf : haxe.io.Input) : Bool {
+		var v = buf.readByte();
+		if(v == 0)
+			return false;
+		return true;
+	}
+
 }

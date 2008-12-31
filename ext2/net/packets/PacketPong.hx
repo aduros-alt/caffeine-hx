@@ -38,10 +38,15 @@ class PacketPong extends net.Packet {
 	/** time at which this packet was received **/
 	public var received_timestamp(default,null) : Float;
 
-	public function new(p : PacketPing) {
+	public function new(?p : PacketPing) {
 		super();
-		this.pingId = p.pingId;
-		this.ping_timestamp = p.timestamp;
+		if(p != null) {
+			this.pingId = p.pingId;
+			this.ping_timestamp = p.timestamp;
+		} else {
+			this.pingId = 0;
+			this.ping_timestamp = 0.0;
+		}
 		var now = Date.now().getTime();
 		this.remote_timestamp = now;
 		this.received_timestamp = now;
