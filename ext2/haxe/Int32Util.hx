@@ -282,6 +282,8 @@ class Int32Util {
 			#else
 				return ((cast v) & 0xFFFFFFFF);
 			#end
+		#elseif neko
+			return try untyped __i32__to_int(x) catch( e : Dynamic ) throw "Overflow "+v;
 		#else
 			throw "Architecture has no native 32 bit int";
 			return 0;
@@ -295,6 +297,11 @@ class Int32Util {
 	public static inline function toNativeInt32Array(v : Array<Int32>) : Array<Int> {
 		#if (flash || js || php )
 			return cast v;
+		#elseif neko
+			var a = new Array<Int>();
+			for(i in v)
+				a.push(toNativeInt32(i));
+			return a;
 		#else
 			throw "Architecture has no native 32 bit int";
 			return new Array();
@@ -345,4 +352,8 @@ class Int32Util {
 		}
 		return a;
 	}
+
+	#if neko
+	static var __i32__to_int = neko.Lib.load("std","int32_to_int",1);
+	#end
 }
