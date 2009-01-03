@@ -40,7 +40,7 @@ class Std {
 		#elseif js
 		js.Boot.__instanceof(v,t);
 		#elseif php
-		php.Boot.__instanceof(v,t);
+		untyped __call__("_hx_instanceof", v,t);
 		#else
 		false;
 		#end
@@ -58,7 +58,7 @@ class Std {
 		#elseif js
 		js.Boot.__string_rec(s,"");
 		#elseif php
-		php.Boot.__string_rec(s);
+		__call__("_hx_string_rec", s, '');
 		#else
 		"";
 		#end
