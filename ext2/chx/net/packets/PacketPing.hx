@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, The Caffeine-hx project contributors
+ * Copyright (c) 2008-2009, The Caffeine-hx project contributors
  * Original author : Russell Weir
  * Contributors:
  * All rights reserved.
@@ -25,12 +25,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package net.packets;
+package chx.net.packets;
 
 /**
 	Ping packet
 **/
-class PacketPing extends net.Packet {
+class PacketPing extends Packet {
 	/** Initially set to a random number, is the next ping id that will go out **/
 	public static var pingIndex : Int;
 
@@ -44,12 +44,12 @@ class PacketPing extends net.Packet {
 		this.timestamp = Date.now().getTime();
 	}
 
-	override function toBytes(buf:haxe.io.Output) : Void {
+	override function toBytes(buf:chx.io.Output) : Void {
 		buf.writeInt31(this.pingId);
 		buf.writeDouble(this.timestamp);
 	}
 
-	override function fromBytes(buf : haxe.io.Input) : Void {
+	override function fromBytes(buf : chx.io.Input) : Void {
 		this.pingId = buf.readInt31();
 		this.timestamp = buf.readDouble();
 	}
@@ -57,7 +57,7 @@ class PacketPing extends net.Packet {
 	inline static var VALUE : Int = 0x3A;
 
 	static function __init__() {
-		net.Packet.register(VALUE, PacketPing);
+		Packet.register(VALUE, PacketPing);
 		pingIndex = Std.int(Math.random() * 10000.0);
 	}
 

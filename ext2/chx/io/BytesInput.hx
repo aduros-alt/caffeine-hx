@@ -30,7 +30,7 @@ import chx.lang.OverflowException;
 
 class BytesInput extends chx.io.Input {
 
-	var b : haxe.io.BytesData;
+	var b : chx.io.BytesData;
 	#if !flash9
 	var pos : Int;
 	var len : Int;

@@ -52,9 +52,8 @@
  * Contributor: Lee McColl Sylvester
  */
 
-package net;
+package chx.net;
 
-import haxe.io.Error;
 #if flash9
 	import flash.events.Event;
 	import flash.events.IOErrorEvent;
@@ -65,13 +64,17 @@ import haxe.io.Error;
 // 	import flash.errors.SecurityError;
 #end
 
+import chx.lang.Exception;
+import chx.lang.FatalException;
+import chx.lang.IOException;
+import chx.net.io.TcpSocketInput;
+import chx.net.io.TcpSocketOutput;
 
-
-class TcpSocket implements Socket {
+class TcpSocket implements chx.net.Socket {
 	public var __handle(default, null) : Dynamic;
 	public var bigEndian(default,setEndian) : Bool;
-	public var input(default,null) : haxe.io.Input;
-	public var output(default,null) : haxe.io.Output;
+	public var input(default,null) : chx.io.Input;
+	public var output(default,null) : chx.io.Output;
 	public var custom : Dynamic;
 	var listeners : Array<IEventDrivenSocketListener>;
 	#if !neko
@@ -114,7 +117,7 @@ class TcpSocket implements Socket {
 		#if neko
 			return new TcpSocket(socket_accept(__handle));
 		#elseif flash9
-			throw "not implemented";
+			throw new FatalException("not implemented");
 			return null;
 		#end
 	}
@@ -130,7 +133,7 @@ class TcpSocket implements Socket {
 		#if neko
 			socket_bind(__handle, h.ip, port);
 		#elseif flash9
-			throw "not implemented";
+			throw new FatalException("not implemented");
 		#end
 	}
 
@@ -148,6 +151,11 @@ class TcpSocket implements Socket {
 		output.close();
 	}
 
+	/** Connect to a remote host/port
+		<h1>Throws</h1>
+		chx.lang.IOException - Connection failed<br />
+		chx.lang.Exception - Other errors
+	**/
 	public function connect(host : String, port : Int) {
 		var h = new Host(host);
 		var failMsg = function(msg:String) {
@@ -156,7 +164,7 @@ class TcpSocket implements Socket {
 			var s = "Failed to connect on "+ r +":"+port;
 			if(msg != null)
 				s += " : " + msg;
-			return s;
+			return new IOException(s);
 		}
 		#if neko
 			try {
@@ -165,7 +173,7 @@ class TcpSocket implements Socket {
 				if( s == "std@socket_connect" )
 					throw failMsg(s);
 				else
-					neko.Lib.rethrow(s);
+					throw new Exception(s);
 			}
 		#elseif flash9
 			try {
@@ -175,7 +183,7 @@ class TcpSocket implements Socket {
 				throw failMsg( e.message );
 			}
 			catch( e : flash.Error ) {
-				throw failMsg( Std.string(e.message) );
+				throw new Exception( Std.string(e.message), e );
 			}
 			remote_host = {
 				host: h,
@@ -202,7 +210,7 @@ class TcpSocket implements Socket {
 		#if neko
 			socket_listen(__handle, connections);
 		#elseif flash9
-			throw "not implemented";
+			throw new FatalException("not implemented");
 		#end
 	}
 
@@ -241,7 +249,7 @@ class TcpSocket implements Socket {
 			socket_set_blocking(__handle,b);
 		#elseif flash9
 			if(b)
-				throw "flash will not block on sockets";
+				throw new FatalException("flash will not block on sockets");
 		#end
 	}
 
@@ -265,7 +273,7 @@ class TcpSocket implements Socket {
 		#if neko
 			socket_shutdown(__handle,read,write);
 		#else
-			throw "not implemented";
+			throw new FatalException("not implemented");
 		#end
 	}
 
@@ -273,24 +281,24 @@ class TcpSocket implements Socket {
 		select([this],null,null,0.0);
 	}
 
-	public function write( content : haxe.io.Bytes ) {
+	public function write( content : Bytes ) {
 		#if neko
 			try {
 				socket_write(__handle, content.getData());
 			}
 			catch(e : String) {
 				if(e == "Blocking")
-					throw Blocked;
+					throw new BlockedException();
 			}
 			catch(e : Dynamic ) {
-				throw Custom(Std.string(e));
+				throw new IOException(Std.string(e), e);
 			}
 		#elseif flash9
 			try {
 				__handle.writeBytes(content, 0, content.length);
 			}
 			catch(e:IOError) {
-				throw Custom(e.message);
+				throw new IOException(e.message, e);
 			}
 		#end
 	}
@@ -321,7 +329,7 @@ class TcpSocket implements Socket {
 				var i = 0;
 				while( i < untyped __dollar__asize(a) ){
 					var t = untyped __dollar__hget(c,a[i],null);
-					if( t == null ) throw "Socket object not found.";
+					if( t == null ) throw new Exception("Socket object not found.");
 					r[i] = t;
 					i += 1;
 				}

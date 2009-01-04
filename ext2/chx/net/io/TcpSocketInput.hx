@@ -25,23 +25,22 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package net;
+package chx.net.io;
 
-import haxe.io.Error;
+import chx.lang.Exception;
+import chx.lang.EofException;
+import chx.lang.BlockedException;
+import chx.lang.OutsideBoundsException;
+import chx.lang.OverflowException;
+
 
 #if neko
-class TcpSocketInput extends haxe.io.BufferedInput {
+class TcpSocketInput extends chx.io.Input {
 
 	var __handle : Void;
 
 	public function new(s) {
-		super();
 		__handle = s;
-	}
-
-	public override function close() {
-		super.close();
-		if( __handle != null ) socket_close(__handle);
 	}
 
 	public override function readByte() {
@@ -49,27 +48,36 @@ class TcpSocketInput extends haxe.io.BufferedInput {
 			socket_recv_char(__handle);
 		} catch( e : Dynamic ) {
 			if( e == "Blocking" )
-				throw Blocked;
+				throw new BlockedException();
 			else if( __handle == null )
-				throw Custom(e);
+				throw new Exception("unhandled", e);
 			else
-				throw new haxe.io.Eof();
+				throw new chx.lang.EofException();
 		}
 	}
 
-	public override function readBytes( buf : haxe.io.Bytes, pos : Int, len : Int ) : Int {
+	override function getBytesAvailable() : Int {
+		return throw new chx.lang.FatalException("Not implemented");
+	}
+
+	public override function readBytes( buf : Bytes, pos : Int, len : Int ) : Int {
 		var r;
 		try {
 			r = socket_recv(__handle,buf.getData(),pos,len);
 		} catch( e : Dynamic ) {
 			if( e == "Blocking" )
-				throw Blocked;
+				throw new BlockedException();
 			else
-				throw Custom(e);
+				throw new Exception("unhandled", e);
 		}
 		if( r == 0 )
-			throw new haxe.io.Eof();
+			throw new EofException();
 		return r;
+	}
+
+	public override function close() {
+		super.close();
+		if( __handle != null ) socket_close(__handle);
 	}
 
 	private static var socket_recv = neko.Lib.load("std","socket_recv",4);
@@ -79,17 +87,11 @@ class TcpSocketInput extends haxe.io.BufferedInput {
 
 #elseif flash9
 
-class TcpSocketInput extends haxe.io.BufferedInput {
+class TcpSocketInput extends chx.io.Input {
 	var __handle : flash.net.Socket;
 
 	public function new(s : flash.net.Socket) {
-		super();
 		__handle = s;
-	}
-
-	public override function close() {
-		super.close();
-		if( __handle != null ) __handle.close();
 	}
 
 	override function setEndian(b) {
@@ -103,19 +105,23 @@ class TcpSocketInput extends haxe.io.BufferedInput {
 			cast __handle.readUnsignedByte();
 		}
 		catch( e : flash.errors.EOFError ) {
-			throw Blocked;
+			throw new BlockedException();
 		}
 		catch( e : flash.errors.IOError ) {
-			throw new haxe.io.Eof();
+			throw new EofException();
 		}
 		catch( e : Dynamic ) {
-			throw Custom(e);
+			throw new Exception("unhandled", e);
 		}
+	}
+
+	override function getBytesAvailable() : Int {
+		return __handle.bytesAvailable;
 	}
 
 	public override function readBytes(s : Bytes, pos : Int, len : Int ) : Int {
 		if( pos < 0 || len < 0 || pos + len > s.length )
-			throw Error.OutsideBounds;
+			throw new OutsideBoundsException();
 		var b = s.getData();
 		var ba = __handle.bytesAvailable;
 		if(ba == 0) return 0;
@@ -126,14 +132,19 @@ class TcpSocketInput extends haxe.io.BufferedInput {
 			return len;
 		}
 		catch( e : flash.errors.EOFError ) {
-			throw Blocked;
+			throw new BlockedException();
 		}
 		catch( e : flash.errors.IOError ) {
-			throw new haxe.io.Eof();
+			throw new EofException();
 		}
 		catch( e : Dynamic ) {
-			throw Custom(e);
+			throw new Exception("unhandled", e);
 		}
+	}
+
+	public override function close() {
+		super.close();
+		if( __handle != null ) __handle.close();
 	}
 
 	public override function readDouble() : Float {
@@ -141,13 +152,13 @@ class TcpSocketInput extends haxe.io.BufferedInput {
 			__handle.readDouble();
 		}
 		catch( e : flash.errors.EOFError ) {
-			throw Blocked;
+			throw new BlockedException();
 		}
 		catch( e : flash.errors.IOError ) {
-			throw new haxe.io.Eof();
+			throw new EofException();
 		}
 		catch( e : Dynamic ) {
-			throw Custom(e);
+			throw new Exception("unhandled", e);
 		}
 	}
 
@@ -156,13 +167,13 @@ class TcpSocketInput extends haxe.io.BufferedInput {
 			__handle.readFloat();
 		}
 		catch( e : flash.errors.EOFError ) {
-			throw Blocked;
+			throw new BlockedException();
 		}
 		catch( e : flash.errors.IOError ) {
-			throw new haxe.io.Eof();
+			throw new EofException();
 		}
 		catch( e : Dynamic ) {
-			throw Custom(e);
+			throw new Exception("unhandled", e);
 		}
 	}
 
@@ -171,13 +182,13 @@ class TcpSocketInput extends haxe.io.BufferedInput {
 			__handle.readShort();
 		}
 		catch( e : flash.errors.EOFError ) {
-			throw Blocked;
+			throw new BlockedException();
 		}
 		catch( e : flash.errors.IOError ) {
-			throw new haxe.io.Eof();
+			throw new EofException();
 		}
 		catch( e : Dynamic ) {
-			throw Custom(e);
+			throw new Exception("unhandled", e);
 		}
 	}
 
@@ -186,13 +197,13 @@ class TcpSocketInput extends haxe.io.BufferedInput {
 			__handle.readUnsignedShort();
 		}
 		catch( e : flash.errors.EOFError ) {
-			throw Blocked;
+			throw new BlockedException();
 		}
 		catch( e : flash.errors.IOError ) {
-			throw new haxe.io.Eof();
+			throw new EofException();
 		}
 		catch( e : Dynamic ) {
-			throw Custom(e);
+			throw new Exception("unhandled", e);
 		}
 	}
 
@@ -201,15 +212,16 @@ class TcpSocketInput extends haxe.io.BufferedInput {
 			__handle.readInt();
 		}
 		catch( e : flash.errors.EOFError ) {
-			throw Blocked;
+			throw new BlockedException();
 		}
 		catch( e : flash.errors.IOError ) {
-			throw new haxe.io.Eof();
+			throw new EofException();
 		}
 		catch( e : Dynamic ) {
-			throw Custom(e);
+			throw new Exception("unhandled", e);
 		}
-		if( ((v & 0x800000) == 0) != ((v & 0x400000) == 0) ) throw Error.Overflow;
+		if( ((v & 0x800000) == 0) != ((v & 0x400000) == 0) )
+			throw new OverflowException();
 		return v;
 	}
 
@@ -218,15 +230,16 @@ class TcpSocketInput extends haxe.io.BufferedInput {
 			__handle.readUnsignedInt();
 		}
 		catch( e : flash.errors.EOFError ) {
-			throw Blocked;
+			throw new BlockedException();
 		}
 		catch( e : flash.errors.IOError ) {
-			throw new haxe.io.Eof();
+			throw new EofException();
 		}
 		catch( e : Dynamic ) {
-			throw Custom(e);
+			throw new Exception("unhandled", e);
 		}
-		if( v >= 0x40000000) throw Error.Overflow;
+		if( v >= 0x40000000)
+			throw new OverflowException();
 		return cast v;
 	}
 
@@ -235,13 +248,13 @@ class TcpSocketInput extends haxe.io.BufferedInput {
 			cast __handle.readInt();
 		}
 		catch( e : flash.errors.EOFError ) {
-			throw Blocked;
+			throw new BlockedException();
 		}
 		catch( e : flash.errors.IOError ) {
-			throw new haxe.io.Eof();
+			throw new EofException();
 		}
 		catch( e : Dynamic ) {
-			throw Custom(e);
+			throw new Exception("unhandled", e);
 		}
 	}
 }

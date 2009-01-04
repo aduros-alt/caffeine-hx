@@ -31,7 +31,7 @@ import chx.lang.OutsideBoundsException;
 import chx.lang.EofException;
 
 /**
-	An Input is an abstract reader. See other classes in the [haxe.io] package
+	An Input is an abstract reader. See other classes in the [chx.io] package
 	for several possible implementations.
 **/
 class Input {

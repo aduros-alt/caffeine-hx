@@ -25,7 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package net;
+package chx.net;
 
 interface IEventDrivenSocketListener {
 	function onSocketConnect(s:Socket, evt:Dynamic) : Void;

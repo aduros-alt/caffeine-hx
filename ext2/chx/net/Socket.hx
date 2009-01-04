@@ -25,13 +25,13 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package net;
+package chx.net;
 
 interface Socket {
 	var __handle(default, null) : Dynamic;
 	var bigEndian(default,setEndian) : Bool;
-	var input(default,null) : haxe.io.Input;
-	var output(default,null) : haxe.io.Output;
+	var input(default,null) : chx.io.Input;
+	var output(default,null) : chx.io.Output;
 	var custom : Dynamic;
 
 	/** Accept an incoming connection **/
@@ -40,7 +40,11 @@ interface Socket {
 	function addEventListener( l : IEventDrivenSocketListener ) : Void;
 	/** Bind to a host/port to accept incoming connections */
 	function bind(host : String, port : Int) : Void;
-	/** Connect to a remote host/port **/
+	/** Connect to a remote host/port
+		<h1>Throws</h1>
+		chx.lang.IOException - Connection failed<br />
+		chx.lang.Exception - Other errors
+	**/
 	function connect(host : String, port : Int) : Void;
 	/** Close the socket **/
 	function close() : Void;
@@ -65,6 +69,6 @@ interface Socket {
 	/** Block until a read occurs **/
 	function waitForRead() : Void;
 	/** Write the contents of Bytes to the socket. Throws io.Error.Blocked or Custom for closed sockets **/
-	function write( content : haxe.io.Bytes ) : Void;
+	function write( content : Bytes ) : Void;
 
 }

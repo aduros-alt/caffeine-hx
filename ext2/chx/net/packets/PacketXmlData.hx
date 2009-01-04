@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, The Caffeine-hx project contributors
+ * Copyright (c) 2008-2009, The Caffeine-hx project contributors
  * Original author : Russell Weir
  * Contributors:
  * All rights reserved.
@@ -25,13 +25,13 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package net.packets;
+package chx.net.packets;
 
-class PacketXmlData extends net.Packet {
+class PacketXmlData extends Packet {
 	inline static var VALUE : Int = 0x3C;
 
 	static function __init__() {
-		net.Packet.register(VALUE, PacketXmlData);
+		Packet.register(VALUE, PacketXmlData);
 	}
 
 	public var data : String;
@@ -40,14 +40,14 @@ class PacketXmlData extends net.Packet {
 		return VALUE;
 	}
 
-	override function toBytes(buf : haxe.io.Output) : Void {
-		var b = haxe.io.Bytes.ofString(data);
+	override function toBytes(buf : chx.io.Output) : Void {
+		var b = Bytes.ofString(data);
 		buf.writeBytes(b, 0, b.length);
 		buf.writeByte(0);
 	}
 
-	override function fromBytes(buf : haxe.io.Input) : Void {
-		var bb = new haxe.io.BytesBuffer();
+	override function fromBytes(buf : chx.io.Input) : Void {
+		var bb = new BytesBuffer();
 		var byte = 255;
 		while(true) {
 			byte = buf.readByte();

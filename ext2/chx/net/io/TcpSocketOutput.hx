@@ -1,9 +1,10 @@
-package net;
+package chx.net.io;
 
-import haxe.io.Error;
+import chx.lang.BlockedException;
+import chx.lang.IOException;
 
 #if neko
-class TcpSocketOutput extends haxe.io.Output {
+class TcpSocketOutput extends chx.io.Output {
 
 	var __handle : Void;
 
@@ -16,20 +17,20 @@ class TcpSocketOutput extends haxe.io.Output {
 			socket_send_char(__handle, c);
 		} catch( e : Dynamic ) {
 			if( e == "Blocking" )
-				throw Blocked;
+				throw new BlockedException();
 			else
-				throw Custom(e);
+				throw new IOException("unhandled", e);
 		}
 	}
 
-	public override function writeBytes( buf : haxe.io.Bytes, pos : Int, len : Int) : Int {
+	public override function writeBytes( buf : Bytes, pos : Int, len : Int) : Int {
 		return try {
 			socket_send(__handle, buf.getData(), pos, len);
 		} catch( e : Dynamic ) {
 			if( e == "Blocking" )
-				throw Blocked;
+				throw new BlockedException();
 			else
-				throw Custom(e);
+				throw new IOException("unhandled", e);
 		}
 	}
 
@@ -47,7 +48,7 @@ class TcpSocketOutput extends haxe.io.Output {
 
 import flash.errors.IOError;
 
-class TcpSocketOutput extends haxe.io.Output {
+class TcpSocketOutput extends chx.io.Output {
 	var __handle : flash.net.Socket;
 
 	public function new(s) {
@@ -58,15 +59,15 @@ class TcpSocketOutput extends haxe.io.Output {
 		try {
 			__handle.writeByte(c);
 		} catch( e : IOError ) {
-			throw Custom(e);
+			throw new IOException("unhandled", e);
 		}
 	}
 
-	public override function writeBytes( buf : haxe.io.Bytes, pos : Int, len : Int) : Int {
+	public override function writeBytes( buf : Bytes, pos : Int, len : Int) : Int {
 		try {
 			__handle.writeBytes(buf.getData(), pos, len);
 		} catch( e : IOError ) {
-			throw Custom(e);
+			throw new IOException("unhandled", e);
 		}
 		return len;
 	}

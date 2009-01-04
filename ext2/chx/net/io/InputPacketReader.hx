@@ -27,7 +27,7 @@
 
 package chx.net.io;
 
-import net.Packet;
+import chx.net.packets.Packet;
 import chx.io.Input;
 import chx.io.BufferedInput;
 import chx.io.BytesOutput;
@@ -80,10 +80,10 @@ class InputPacketReader {
 
 		try {
 			if(type == 0x3C) {
-				p.fromBytes(new BytesInput(xmlBuf));
+				untyped p.fromBytes(new BytesInput(xmlBuf));
 			}
 			else {
-				p.fromBytes(input);
+				untyped p.fromBytes(input);
 			}
 		} catch(e : Dynamic) {
 		}

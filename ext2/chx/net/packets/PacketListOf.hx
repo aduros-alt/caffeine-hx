@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, The Caffeine-hx project contributors
+ * Copyright (c) 2008-2009, The Caffeine-hx project contributors
  * Original author : Russell Weir
  * Contributors:
  * All rights reserved.
@@ -25,13 +25,13 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package net.packets;
+package chx.net.packets;
 
 /**
 	Abstract base class for lists of packets. Do not override
 	toBytes/fromBytes.
 **/
-class PacketListOf<T:net.Packet> extends net.Packet {
+class PacketListOf<T:Packet> extends Packet {
 	/** count of packets in list **/
 	public var length(getLength, null) : Int;
 	var packets : List<T>;

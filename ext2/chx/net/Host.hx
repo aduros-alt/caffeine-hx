@@ -23,7 +23,7 @@
  * DAMAGE.
  *
  */
-package net;
+package chx.net;
 
 
 class Host {

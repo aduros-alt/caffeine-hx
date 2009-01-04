@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, The Caffeine-hx project contributors
+ * Copyright (c) 2008-2009, The Caffeine-hx project contributors
  * Original author : Russell Weir
  * Contributors:
  * All rights reserved.
@@ -25,13 +25,11 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package net;
+package chx.net.packets;
 
-import haxe.io.Bytes;
-import haxe.io.BytesBuffer;
-import haxe.io.BytesData;
-import haxe.io.BytesOutput;
-import haxe.io.BytesInput;
+import chx.io.BytesOutput;
+import chx.io.BytesInput;
+import chx.lang.FatalException;
 
 /**
 	A class to simplify writing network protocols. Extend with subclasses which each
@@ -50,23 +48,23 @@ class Packet {
 			pktRegister = new IntHash<Class<Packet>>();
 		}
 		if(v < 0 || v > 255)
-			throw "Packet value out of range";
+			throw new chx.lang.OutsideBoundsException("Packet value out of range");
 
-		if(v == 0x3A &&  Type.getClassName(c) != "net.packets.PacketPing")
-			throw "Packet value 0x3C is reserved for net.packets.PacketPing";
-		if(v == 0x3B &&  Type.getClassName(c) != "net.packets.PacketPong")
-			throw "Packet value 0x3C is reserved for net.packets.PacketPong";
-		if(v == 0x3C &&  Type.getClassName(c) != "net.packets.PacketXmlData")
-			throw "Packet value 0x3C is reserved for net.packets.PacketXmlData";
-		if(v == 0x3D &&  Type.getClassName(c) != "net.packets.PacketHaxeSerialized")
-			throw "Packet value 0x3D is reserved for net.packets.PacketHaxeSerialized";
-		if(v == 0 &&  Type.getClassName(c) != "net.packets.PacketNull")
-			throw "Packet value 0x00 is reserved for net.packets.PacketNull";
+		if(v == 0x3A &&  Type.getClassName(c) != "chx.net.packets.PacketPing")
+			throw new FatalException("Packet value 0x3C is reserved for chx.net.packets.PacketPing");
+		if(v == 0x3B &&  Type.getClassName(c) != "chx.net.packets.PacketPong")
+			throw new FatalException("Packet value 0x3C is reserved for chx.net.packets.PacketPong");
+		if(v == 0x3C &&  Type.getClassName(c) != "chx.net.packets.PacketXmlData")
+			throw new FatalException("Packet value 0x3C is reserved for chx.net.packets.PacketXmlData");
+		if(v == 0x3D &&  Type.getClassName(c) != "chx.net.packets.PacketHaxeSerialized")
+			throw new FatalException("Packet value 0x3D is reserved for chx.net.packets.PacketHaxeSerialized");
+		if(v == 0 &&  Type.getClassName(c) != "chx.net.packets.PacketNull")
+			throw new FatalException("Packet value 0x00 is reserved for chx.net.packets.PacketNull");
 		if(pktRegister.exists(v))
-			throw "Packet value " + v + " already registered";
+			throw new FatalException("Packet value " + v + " already registered");
 		for(i in pktRegister)
 			if(Type.getClassName(i) == Type.getClassName(c))
-				throw "Packet of type " + Type.getClassName(c) + " already registered";
+				throw new FatalException("Packet of type " + Type.getClassName(c) + " already registered");
 		pktRegister.set(v, c);
 	}
 
@@ -105,7 +103,10 @@ class Packet {
 	/**
 		Reads a packet from Bytes, returning a packet and number of bytes consumed.
 		If there are not enough bytes in the buffer, the packet will be null with 0 bytes
-		consumed. Will throw a haxe.io.Error.Custom if the packet type is not registered.
+		consumed.<br />
+		<h1>Throws</h1><br />
+		chx.lang.Exception - Packet type is not registered.
+		chx.lang.OutsideBoundsException - Buffer not big enough
 	**/
 	public static function read(buf : Bytes, ?pos:Int, ?len:Int) : { packet: Packet, bytes: Int } {
 		if(pos == null)
@@ -113,7 +114,7 @@ class Packet {
 		if(len == null)
 			len = buf.length - pos;
 		if(pos + len > buf.length)
-			throw haxe.io.Error.Custom("Buffer range error");
+			throw new chx.lang.OutsideBoundsException();
 		var msgLen = getPacketLength( buf, pos, len);
 		if(msgLen == null || len < msgLen)
 			return { packet: null, bytes : 0 }
@@ -121,7 +122,7 @@ class Packet {
 
 		var p = createType(buf.get(pos));
 		if(p == null)
-			throw haxe.io.Error.Custom("Not a registered packet " + buf.get(pos));
+			throw new chx.lang.Exception("Not a registered packet " + buf.get(pos));
 		if(p.getValue() != 0x3C && p.getValue() != 0)
 			pos += 5;
 		var bi = newInputBuffer(buf, pos);
@@ -152,23 +153,23 @@ class Packet {
 		Returns the value of a packet
 	**/
 	public function getValue() : Int {
-		throw "override";
+		throw new FatalException("override");
 		return 0;
 	}
 
 	/**
 		Packets mus override this to write all data to the data
 	**/
-	function toBytes(buf:haxe.io.Output) : Void {
-		throw "override";
+	function toBytes(buf:chx.io.Output) : Void {
+		throw new FatalException("override");
 	}
 
 	/**
 		Read object in from specified Input, returning number of
 		bytes consumed. The supplied Input must be in bigEndian format, by setting buf.bigEndian to true
 	**/
-	function fromBytes(buf:haxe.io.Input) : Void {
-		throw "override";
+	function fromBytes(buf:chx.io.Input) : Void {
+		throw new FatalException("override");
 	}
 
 	public function toString() {
@@ -224,13 +225,13 @@ class Packet {
 	/**
 		Writes a string with leading string length to the buffer.
 	**/
-	public static function writeStringToBuf(s : String, buf : haxe.io.Output) : Void {
+	public static function writeStringToBuf(s : String, buf : chx.io.Output) : Void {
 		if(s == null || s.length == 0) {
 			buf.writeUInt16(0);
 		}
 		else {
 			if(s.length > 0xFFFF)
-				throw("string length overflow");
+				throw new chx.lang.OutsideBoundsException("string length overflow");
 			buf.writeUInt16(s.length);
 			buf.writeString(s);
 		}
@@ -239,21 +240,21 @@ class Packet {
 	/**
 		Reads a length/string from buffer. Returns empty string for 0 length strings
 	**/
-	public static function readStringFromBuf(buf : haxe.io.Input) : String {
+	public static function readStringFromBuf(buf : chx.io.Input) : String {
 		var len = buf.readUInt16();
 		if(len > 0)
 			return buf.readString(len);
 		return "";
 	}
 
-	public static function writeBoolToBuf(v : Bool, buf : haxe.io.Output) : Void {
+	public static function writeBoolToBuf(v : Bool, buf : chx.io.Output) : Void {
 		if(v)
 			buf.writeByte(1);
 		else
 			buf.writeByte(0);
 	}
 
-	public static function readBoolFromBuf(buf : haxe.io.Input) : Bool {
+	public static function readBoolFromBuf(buf : chx.io.Input) : Bool {
 		var v = buf.readByte();
 		if(v == 0)
 			return false;

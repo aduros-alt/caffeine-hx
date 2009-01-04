@@ -25,20 +25,22 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package net;
+package chx.net.io;
+
+import chx.net.packets.Packet;
 
 #if flash9
 /**
 	Reads packets directly from a flash TcpSocket
 **/
 class FlashPacketReader {
-	var sock : net.TcpSocket;
+	var sock : chx.net.TcpSocket;
 	var type : Null<Int>;
 	var length : Null<Int>;
-	var xmlBo : haxe.io.BytesOutput;
+	var xmlBo : chx.io.BytesOutput;
 	var xmlBuf : Bytes;
 
-	public function new(s : net.TcpSocket) {
+	public function new(s : chx.net.TcpSocket) {
 		this.sock = s;
 		this.type = null;
 		this.length = null;
@@ -47,7 +49,9 @@ class FlashPacketReader {
 	/**
 		Reads a packet from Bytes, returning a packet and number of bytes consumed.
 		If there are not enough bytes in the buffer, the packet will be null with 0 bytes
-		consumed. Will throw a haxe.io.Error.Custom if the packet type is not registered.
+		consumed.<br />
+		<h1>Throws</h1>
+		chx.lang.Exception - Packet type is not registered.
 	**/
 	public function read() : Packet {
 		if(sock.__handle == null || sock.__handle.bytesAvailable == 0)
@@ -55,7 +59,7 @@ class FlashPacketReader {
 		if(type == null) {
 			type = sock.input.readByte();
 			if(type == 0x3C)
-				xmlBo = new haxe.io.BytesOutput();
+				xmlBo = new chx.io.BytesOutput();
 		}
 
 		if(length == null)
@@ -66,11 +70,11 @@ class FlashPacketReader {
 
 		var p = Packet.createType(type);
 		if(p == null)
-			throw haxe.io.Error.Custom("Not a registered packet " + type);
+			throw new chx.lang.Exception("Not a registered packet " + type);
 
 		try {
 			if(type == 0x3C) {
-				untyped p.fromBytes(new haxe.io.BytesInput(xmlBuf));
+				untyped p.fromBytes(new chx.io.BytesInput(xmlBuf));
 			}
 			else {
 				untyped p.fromBytes(sock.input);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, The Caffeine-hx project contributors
+ * Copyright (c) 2008-2009, The Caffeine-hx project contributors
  * Original author : Russell Weir
  * Contributors:
  * All rights reserved.
@@ -25,12 +25,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package net.packets;
+package chx.net.packets;
 
 /**
-	A packet that can containnn haxe serialized data as well as an arbitrary integer flag.
+	A packet that can contain haxe serialized data as well as an arbitrary integer flag.
 **/
-class PacketHaxeSerialized extends net.Packet {
+class PacketHaxeSerialized extends Packet {
 	/** An unsigned int 16 value **/
 	public var flag : Int;
 	/** haxe serialized data **/
@@ -41,12 +41,12 @@ class PacketHaxeSerialized extends net.Packet {
 		data = s;
 	}
 
-	override function toBytes(buf:haxe.io.Output) : Void {
+	override function toBytes(buf:chx.io.Output) : Void {
 		buf.writeUInt16(this.flag);
 		buf.writeString(this.data);
 	}
 
-	override function fromBytes(buf : haxe.io.Input) : Void {
+	override function fromBytes(buf : chx.io.Input) : Void {
 		this.flag = buf.readUInt16();
 		this.data = buf.readString();
 	}
@@ -61,7 +61,7 @@ class PacketHaxeSerialized extends net.Packet {
 	inline static var VALUE : Int = 0x3D;
 
 	static function __init__() {
-		net.Packet.register(VALUE, PacketHaxeSerialized);
+		Packet.register(VALUE, PacketHaxeSerialized);
 	}
 
 	override public function getValue() : Int {
