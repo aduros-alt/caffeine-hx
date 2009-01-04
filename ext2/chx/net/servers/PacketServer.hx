@@ -27,10 +27,8 @@
 
 package system.net.servers;
 
-import haxe.io.Bytes;
-import haxe.io.BytesData;
-import net.Socket;
-import net.Packet;
+import chx.net.Socket;
+import chx.net.packets.Packet;
 
 
 private typedef ThreadInfo = {
@@ -152,10 +150,10 @@ class PacketServer <Client> {
 	}
 
 	/**
-		Writing to client is done through SocketInfo.writePacket(net.Packet). This is the callback
+		Writing to client is done through SocketInfo.writePacket(Packet). This is the callback
 		handler
 	**/
-	function writePacket( c : SocketInfo<Client>, pkt : net.Packet) {
+	function writePacket( c : SocketInfo<Client>, pkt : Packet) {
 		if(pkt == null)
 			return;
 		var buf = pkt.write();
@@ -187,10 +185,10 @@ class PacketServer <Client> {
 
 
 	/**
-		Writing to client is done through SocketInfo.writePacket(net.Packet). This is the callback
+		Writing to client is done through SocketInfo.writePacket(Packet). This is the callback
 		handler
 	**/
-	function writeRaw( c : SocketInfo<Client>, buf : haxe.io.Bytes) {
+	function writeRaw( c : SocketInfo<Client>, buf : Bytes) {
 		if(buf.length == 0)
 			return;
 
@@ -313,13 +311,16 @@ class PacketServer <Client> {
 		try {
 			c.rbytes += c.sock.input.readBytes(c.rbuffer,c.rbytes,available);
 		} catch( e : Dynamic ) {
-			if( !Std.is(e,haxe.io.Eof) && !Std.is(e,haxe.io.Error) )
+			// if eof return false
+			// if just Exception return false
+			// rethrow (BlockedExceptions)
+			if( Std.is(e, chx.lang.BlockedException))
 				neko.Lib.rethrow(e);
 			return false;
 		}
 		var pos = 0;
 		while( c.rbytes > 0 ) {
-			var pd = net.Packet.read(c.rbuffer, pos, c.rbytes);
+			var pd = Packet.read(c.rbuffer, pos, c.rbytes);
 			if(pd.packet == null)
 				break;
 			onPacket(c.client, pd.packet);
@@ -395,7 +396,7 @@ class PacketServer <Client> {
 	/**
 		Called when a complete packet is read from the client
 	**/
-	public function onPacket(c : Client, packet : net.Packet) {
+	public function onPacket(c : Client, packet : Packet) {
 		throw "onPacket must be implemented";
 	}
 

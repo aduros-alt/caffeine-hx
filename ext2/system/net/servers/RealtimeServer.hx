@@ -24,8 +24,6 @@
  */
 package system.net.servers;
 
-import haxe.io.Bytes;
-
 import neko.net.Socket;
 
 private typedef ThreadInfos<SockType> = {

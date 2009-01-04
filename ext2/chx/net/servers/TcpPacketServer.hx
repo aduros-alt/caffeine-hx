@@ -26,11 +26,11 @@
  */
 package system.net.servers;
 
-import haxe.io.Bytes;
+import chx.net.TcpSocket;
 import system.net.servers.PacketServer;
 import system.net.servers.PacketServer.SocketInfo;
 import system.net.servers.PacketServer.ThreadMessage;
-import net.TcpSocket;
+
 
 class TcpPacketServer<Client> extends PacketServer<Client> {
 
@@ -43,7 +43,7 @@ class TcpPacketServer<Client> extends PacketServer<Client> {
 		return untyped new TcpSocket();
 	}
 
-	override function writeToClient(c : SocketInfo<Client>, buf : haxe.io.Bytes, pos:Int, len: Int) : Int {
+	override function writeToClient(c : SocketInfo<Client>, buf : Bytes, pos:Int, len: Int) : Int {
 		#if neko
 			return socket_send(
 				c.sock.__handle,
