@@ -165,4 +165,17 @@ class Utils {
 		var parts = context.full.split(".");
 		return addSubdirTrailingSlash(parts.join("/"));
 	}
+
+	public static function createOutputDirectory(path:String) {
+		if(!neko.FileSystem.exists(path)) {
+			try {
+				neko.FileSystem.createDirectory(path);
+			} catch(e : Dynamic) {
+				throw "Error while trying to make package output path " + path;
+			}
+		}
+		if(!neko.FileSystem.isDirectory(path)) {
+			throw "Package output path " + path + " is not a directory.";
+		}
+	}
 }

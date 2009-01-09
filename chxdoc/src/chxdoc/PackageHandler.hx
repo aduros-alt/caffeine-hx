@@ -65,18 +65,8 @@ class PackageHandler extends TypeHandler<PackageContext> {
 	}
 
 	public function pass2(context : PackageContext) {
-		if(!isFilteredPackage(context.full)) {
-			if(!neko.FileSystem.exists(context.resolvedPath)) {
-				try {
-					neko.FileSystem.createDirectory(context.resolvedPath);
-				} catch(e : Dynamic) {
-					throw "Error while trying to make package output path " + context.resolvedPath + ". Error is " + Std.string(e);
-				}
-			}
-			if(!neko.FileSystem.isDirectory(context.resolvedPath)) {
-				throw "Package output path " + context.resolvedPath + " is not a directory.";
-			}
-		}
+		if(!isFilteredPackage(context.full))
+			Utils.createOutputDirectory(context.resolvedPath);
 		for(ctx in context.classes)
 			classHandler.pass2(ctx);
 		for(ctx in context.enums)

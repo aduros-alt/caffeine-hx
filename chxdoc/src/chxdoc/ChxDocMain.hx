@@ -316,6 +316,14 @@ class ChxDocMain {
 		mtwin.templo.Loader.TMP_DIR = config.temploTmpDir;
 		mtwin.templo.Loader.MACROS = config.temploMacros;
 
+		Utils.createOutputDirectory(config.temploTmpDir);
+		Utils.createOutputDirectory(outputDir);
+		var tmf = Utils.addSubdirTrailingSlash(config.temploBaseDir) + config.temploMacros;
+		if(!neko.FileSystem.exists(tmf)) {
+			neko.Lib.println("The macro file " + tmf + " does not exist.");
+			neko.Sys.exit(1);
+		}
+
 		////////////////
 		//  Generator //
 		////////////////
@@ -354,7 +362,7 @@ class ChxDocMain {
 				if(outputDir.charAt(0) != "/") {
 					outputDir = neko.Sys.getCwd() + outputDir;
 				}
-				trace(outputDir);
+// 				trace(outputDir);
 				expectOutputDir = false;
 			}
 			else if( x == "-cp")
@@ -376,6 +384,9 @@ class ChxDocMain {
 				case "--showPrivateEnums": config.showPrivateEnums = getBool(parts[1]);
 				case "--showPrivateMethods": config.showPrivateMethods = getBool(parts[1]);
 				case "--showPrivateVars": config.showPrivateVars = getBool(parts[1]);
+				case "--templateDir": config.temploBaseDir = parts[1];
+				case "--tmpDir": config.temploTmpDir = parts[1];
+				case "--macroFile": config.temploMacros = parts[1];
 				}
 			}
 			else if( x == "--help" || x == "-help")
@@ -409,12 +420,15 @@ class ChxDocMain {
 // 		print("\t-cp classpath Add a source file class path"); // not implemented
 		print("\t--title=string Set the package title");
 		print("\t--subtitle=string Set the package subtitle");
-		print("\t--showPrivateClasses =[true|false] Toggle private classes display");
-		print("\t--showPrivateTypedefs =[true|false] Toggle private typedef display");
-		print("\t--showPrivateEnums =[true|false] Toggle private enum display");
-		print("\t--showPrivateMethods =[true|false] Toggle private method display");
-		print("\t--showPrivateVars =[true|false] Toggle private var display");
+		print("\t--showPrivateClasses=[true|false] Toggle private classes display");
+		print("\t--showPrivateTypedefs=[true|false] Toggle private typedef display");
+		print("\t--showPrivateEnums=[true|false] Toggle private enum display");
+		print("\t--showPrivateMethods=[true|false] Toggle private method display");
+		print("\t--showPrivateVars=[true|false] Toggle private var display");
 		print("\t--stylesheet=file Sets the stylesheet relative to the outputdir");
+		print("\t--templateDir=path Path to template (.mtt) directory (default ./templates)");
+		print("\t--tmpDir=path Path for tempory file generation (default ./tmp)");
+		print("\t--macroFile=file.mtt Temploc macro file. (default macros.mtt)");
 		print(" XML Files:");
 		print("\tinput.xml[,platform[,remap]");
 		print("\tXml files are generated using the -xml option when compiling haxe projects. ");
