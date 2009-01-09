@@ -39,8 +39,8 @@ function windowTitle()
 		<DD>
 			<DL>
 				<DT><B>implements</B></DT>
-				::if interfaces != null::
-					::foreach i interfaces::
+				::if interfacesHtml != null::
+					::foreach i interfacesHtml::
 						<DD>::raw i::</DD>
 					::end::
 				::end::
