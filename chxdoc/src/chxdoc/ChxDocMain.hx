@@ -312,6 +312,7 @@ class ChxDocMain {
 
 		parseArgs();
 
+		outputDir = Utils.addSubdirTrailingSlash(outputDir);
 		mtwin.templo.Loader.BASE_DIR = config.temploBaseDir;
 		mtwin.templo.Loader.TMP_DIR = config.temploTmpDir;
 		mtwin.templo.Loader.MACROS = config.temploMacros;
@@ -331,10 +332,16 @@ class ChxDocMain {
 		packageContexts = new Array<PackageContext>();
 		baseRelPath = "";
 
+		var print = neko.Lib.print;
+		print(proginfo + "\n");
 		pass1([TPackage("root", "root types", parser.root)]);
+		print(".");
 		pass2();
+		print(".");
 		pass3();
+		print(".");
 		pass4();
+		print("\nComplete.\n");
 	}
 
 

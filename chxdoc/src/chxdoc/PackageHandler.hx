@@ -117,6 +117,7 @@ class PackageHandler extends TypeHandler<PackageContext> {
 		if(isFilteredPackage(context.full))
 			return;
 		var me = this;
+		var pf = neko.Lib.print;
 		var makePath = function(ctx : TypeInfos) {
 			var fi :FileInfo = cast Reflect.field(ctx, "fileInfo");
 			if(fi == null)
@@ -129,6 +130,7 @@ class PackageHandler extends TypeHandler<PackageContext> {
 		var writeHtml = function(ctx : TypeInfos, content: String) {
 			var path = makePath(ctx);
 			Utils.writeFileContents(path, content);
+			pf(".");
 		}
 
 		var types = new Array<PackageFileTypesContext>();
