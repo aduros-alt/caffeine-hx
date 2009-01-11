@@ -1,0 +1,29 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/tr/html4/loose.dtd">
+<html>
+	<head>
+		::raw build.comment::
+		<title>Packages List ::platform.title::</title>
+		<meta name="date" content="::meta.date::" />
+		::foreach kw meta.keywords::
+		<meta name="keywords" content="::kw::" />
+		::end::
+		<link rel="stylesheet" type="text/css" href="::meta.stylesheet::" />
+	</head>
+	<body>
+		<div id="packages-frame">
+			<h1>::platform.title::</h1>
+			<h2>::platform.subtitle::</h2>			
+			<div id="packages-header">
+				<ul>
+					<li><a href="all_classes.html" target="packageFrame">All Types</a></li>
+					<li><a href="package.html" target="packageFrame">Root Types</a></li>
+				</ul>
+			</div>
+			<ul class="packages">
+::foreach i packages::
+				<li><a href="::i.linkString::" target="packageFrame">::i.name::</a></li>
+::end::
+			</ul>
+		</div>
+	</body>
+</html>

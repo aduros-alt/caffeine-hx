@@ -1,0 +1,85 @@
+<macros>
+	<macro name="typeDocs()">
+		::if docs != null::
+		
+			<!-- Comment block -->
+			::if docs.comments != null::
+			::raw docs.comments::
+			::end::
+		::end::
+	</macro>
+
+	<macro name="methodHeader(m)">
+		<h3>
+			<a name="::raw m.name::()"></a><span class="name">::raw m.name::</span>::m.params::(::if m.args != null::::raw m.args::::end::) : ::raw m.returns::
+		</h3>
+			::if m.isOverride::
+				<div class="overrides">overrides</div>
+			::elseif m.isInherited::
+				<div class="inherited">inherited from <a href="::m.inheritance.linkString::#::m.name::()">::m.inheritance.nameDots::</a></div>
+			::end::
+	</macro>
+
+	<macro name="methodDocs(m)">
+		::if m.docs != null::
+			<dl>
+			<!-- method call parameters -->
+			::if m.docs.params.length != 0::
+				<dt>parameters:</dt>
+				::foreach pd m.docs.params::
+				<dd><code>::pd.arg::</code> ::raw pd.desc::</dd>
+				::end::
+			::end::			
+			<!-- method return types comments -->
+			::if m.docs.returns.length != 0::
+				<dt>returns:</dt>
+				::foreach s m.docs.returns::
+				<dd>::raw s::</dd>
+				::end::
+			::end::
+			<!-- method throws -->
+			::if m.docs.throws.length != 0::
+				<dt>throws:</dt>
+				::foreach td m.docs.throws::
+				<dd><a href="::raw td.uri::"><code>::td.name::</code></a> ::raw td.desc::</dd>
+				::end::
+			::end::
+			</dl>
+			<!-- Comment block -->
+			::if m.docs.comments != null::
+			<div class="comment">::raw m.docs.comments::</div>
+			::end::
+		::end::
+	</macro>
+
+
+	<macro name="varHeader(f)">
+		<h3>
+			<a name="::f.name::"></a><span class="name">::f.name::</span>::raw f.rights:: : ::raw f.returns::
+		</h3>
+		::if f.isInherited::
+		<div class="inherited">inherited from <a href="::f.inheritance.linkString::#::f.name::">::f.inheritance.nameDots::</a></div>
+		::end::
+	</macro>
+
+	<macro name="varDocs(m)">
+		::if m.docs != null::
+		<!-- Comment block -->
+		::if m.docs.comments != null::
+		<div class="comment">::raw m.docs.comments::</div>
+		::end::
+		::end::
+	</macro>
+
+	<macro name="enumConstructor(m)">
+		<a name="::raw m.name::()"></a><span class="name">::raw m.name::</span>::if m.args != null::(::raw m.args::)::end::
+	</macro>
+
+	<macro name="showPlatforms(l)">
+		::if l != null::
+			::if l.length > 0::
+			available in ::foreach i l::::i:: ::end::
+			::end::
+		::end::
+	</macro>
+</macros>
