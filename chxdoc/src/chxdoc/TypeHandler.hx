@@ -296,7 +296,7 @@ class TypeHandler<T> {
 		Makes the base relative path from a context.
 	**/
 	function makeBaseRelPath(ctx : Ctx) {
-		var parts = ctx.nameDots.split(".");
+		var parts = ctx.path.split(".");
 		parts.pop();
 		var s = "";
 		for(i in 0...parts.length)
@@ -315,6 +315,7 @@ class TypeHandler<T> {
 
 			name			: fi.name,
 			nameDots		: fi.nameDots,
+			path			: t.path,
 			packageDots		: fi.packageDots,
 			subdir			: fi.subdir,
 			rootRelative	: null,
@@ -358,6 +359,7 @@ class TypeHandler<T> {
 
 			name			: name,
 			nameDots		: null,
+			path			: null,
 			packageDots		: null,
 			subdir			: null,
 			rootRelative	: null,
@@ -439,7 +441,7 @@ class TypeHandler<T> {
 	}
 
 	public static function ctxSorter(a : Ctx, b : Ctx) : Int {
-		return Utils.stringSorter(a.nameDots, b.nameDots);
+		return Utils.stringSorter(a.path, b.path);
 	}
 
 	public static function ctxFieldSorter(a : FieldCtx, b : FieldCtx) : Int {

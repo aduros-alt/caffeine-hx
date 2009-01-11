@@ -95,7 +95,7 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 			var rv = t.execute(ctx);
 			return rv;
 		} catch(e : Dynamic) {
-			trace("ERROR generating doc for " + ctx.nameDots + ". Check class.mtt");
+			trace("ERROR generating doc for " + ctx.path + ". Check class.mtt");
 			return neko.Lib.rethrow(e);
 		}
 	}

@@ -80,7 +80,7 @@ class EnumHandler extends TypeHandler<EnumCtx> {
 			var rv = t.execute(ctx);
 			return rv;
 		} catch(e : Dynamic) {
-			trace("ERROR generating doc for " + ctx.nameDots + ". Check enum.mtt");
+			trace("ERROR generating doc for " + ctx.path + ". Check enum.mtt");
 			return neko.Lib.rethrow(e);
 		}
 	}

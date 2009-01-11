@@ -166,7 +166,7 @@ class PackageHandler extends TypeHandler<PackageContext> {
 
 		var makeCtxPath = function(ctx : Ctx) {
 			if(ctx.subdir == null)
-				throw "Error determining output path for " + ctx.nameDots;
+				throw "Error determining output path for " + ctx.path;
 			return  ChxDocMain.outputDir +
 					Std.string(ctx.subdir) +
 					Std.string(ctx.name) +
@@ -271,7 +271,7 @@ class PackageHandler extends TypeHandler<PackageContext> {
 
 	/** Returns true if the type is filtered **/
 	function isFilteredCtx(ctx : Ctx) : Bool {
-		if(Utils.isFiltered(ctx.nameDots, false))
+		if(Utils.isFiltered(ctx.path, false))
 			return true;
 		var showFlag = switch(ctx.type) {
 		case "class", "interface": ChxDocMain.config.showPrivateClasses;

@@ -118,6 +118,11 @@ class TypedefHandler extends TypeHandler<TypedefCtx> {
 			context.isAllPlatforms = false;
 			context.platforms = cloneList(platforms);
 		}
+
+		if(context.type == "typedef") {
+			context.fields.sort(TypeHandler.ctxFieldSorter);
+		}
+
 		origContext.contexts.push(context);
 	}
 
@@ -144,7 +149,7 @@ class TypedefHandler extends TypeHandler<TypedefCtx> {
 			var rv = t.execute(context);
 			return rv;
 		} catch(e : Dynamic) {
-			trace("ERROR generating doc for " + context.nameDots + ". Check typedef.mtt");
+			trace("ERROR generating doc for " + context.path + ". Check typedef.mtt");
 			return neko.Lib.rethrow(e);
 		}
 	}

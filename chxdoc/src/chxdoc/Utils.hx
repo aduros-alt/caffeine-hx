@@ -184,7 +184,7 @@ class Utils {
 	}
 
 	public static function makeRelativeSubdirLink(ctx : Ctx) {
-		var parts = ctx.nameDots.split(".");
+		var parts = ctx.path.split(".");
 		parts.pop();
 		return addSubdirTrailingSlash(parts.join("/"));
 	}
