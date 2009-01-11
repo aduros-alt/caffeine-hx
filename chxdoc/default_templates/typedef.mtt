@@ -2,7 +2,7 @@
 <HTML>
 <HEAD>
 	::raw build.comment::
-	<TITLE>::fileInfo.name:: (::platform.title::)</TITLE>
+	<TITLE>::name:: (::platform.title::)</TITLE>
 	<META NAME="date" CONTENT="::meta.date::" />
 	::foreach kw meta.keywords::
 	<META NAME="keywords" CONTENT="::kw::" />
@@ -13,7 +13,7 @@
 function windowTitle()
 {
     if (location.href.indexOf('is-external=true') == -1) {
-        parent.document.title="::fileInfo.name:: (::platform.title::)";
+        parent.document.title="::name:: (::platform.title::)";
     }
 }
 </SCRIPT>
@@ -24,7 +24,7 @@ function windowTitle()
 
 <BODY BGCOLOR="white" onload="windowTitle();">
 	<HR /><!-- ======== START OF CLASS DATA ======== -->
-	<H2>::fileInfo.name::<BR /><FONT SIZE="-1">::if isPrivate::private::end::typdef ::fileInfo.nameDots::::raw paramsStr::</FONT></H2>
+	<H2>::name::<BR /><FONT SIZE="-1">::if isPrivate::private::end::typdef ::nameDots::::raw params::</FONT></H2>
 	::if module != null && module.length > 0::
 		<h3>import ::module::</h3>
 	::end::
@@ -42,23 +42,25 @@ function windowTitle()
 	<HR />
 
 
-	::if typeHtml != null::
-		Alias for ::raw typeHtml::
-	::else::
-		::foreach f typesInfo::
-		<P>
-			<A NAME="::name::"></A>
-			<H3>::f.name::</H3>
-			<PRE>var <B>::f.name::</B> : ::raw f.html::</PRE>
-		</P>
+	::foreach ctx contexts::
+		::if ctx.alias != null::
+			$$showPlatforms(::ctx.platforms::) as an alias for ::raw ctx.alias::
+		::else::
+			::foreach f ctx.fields::
+			<P>
+				<A NAME="::f.name::"></A>
+				<H3>::f.name::</H3>
+				$$showPlatforms(::ctx.platforms::)
+				<PRE>var <B>::f.name::</B> : ::raw f.returns::</PRE>
+			</P>
+			::end::
 		::end::
+		<HR />
 	::end::
 
 
 <!-- ========= END OF TYPEDEF DATA ========= -->
 
 
-<HR />
-::footerText::
 </BODY>
 </HTML>

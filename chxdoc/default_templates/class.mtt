@@ -2,7 +2,7 @@
 <HTML>
 <HEAD>
 	::raw build.comment::
-	<TITLE>::fileInfo.name:: (::platform.title::)</TITLE>
+	<TITLE>::name:: (::platform.title::)</TITLE>
 	<META NAME="date" CONTENT="::meta.date::" />
 	::foreach kw meta.keywords::
 	<META NAME="keywords" CONTENT="::kw::" />
@@ -13,7 +13,7 @@
 function windowTitle()
 {
     if (location.href.indexOf('is-external=true') == -1) {
-        parent.document.title="::fileInfo.name:: (::platform.title::)";
+        parent.document.title="::name:: (::platform.title::)";
     }
 }
 </SCRIPT>
@@ -24,9 +24,9 @@ function windowTitle()
 
 <BODY BGCOLOR="white" onload="windowTitle();">
 	<HR /><!-- ======== START OF CLASS DATA ======== -->
-	<H2>::fileInfo.name::<BR /><FONT SIZE="-1">::if isPrivate::private ::end::::type:: ::fileInfo.nameDots::</FONT></H2>
+	<H2>::name::<BR /><FONT SIZE="-1">::if isPrivate::private ::end::::type:: ::nameDots::</FONT></H2>
 	<DL>
-		::if superClass != null::
+		::if superClassHtml != null::
 		<DD>
 			<DL>
 				<DT><B>extends</B></DT>
@@ -35,17 +35,12 @@ function windowTitle()
 		</DD>
 		::end::
 
-		::if interfacesHtml != null || dynamicTypeHtml != null::
+		::if interfacesHtml != null::
 		<DD>
 			<DL>
 				<DT><B>implements</B></DT>
-				::if interfacesHtml != null::
-					::foreach i interfacesHtml::
-						<DD>::raw i::</DD>
-					::end::
-				::end::
-				::if dynamicTypeHtml != null::
-				<DD><A HREF="http://haxe.org/ref/dynamic#Implementing Dynamic" TARGET="#new">Dynamic</A></DD>
+				::foreach i interfacesHtml::
+					<DD>::raw i::</DD>
 				::end::
 			</DL>
 		</DD>
@@ -68,7 +63,7 @@ function windowTitle()
 		<DL>
 			<DT>Known subclasses</DT>
 			::foreach sc subclasses::
-			<DD><A HREF="::sc.linkString::">::sc.nameDots::</A></DD>
+			<DD><A HREF="::raw sc.href::">::raw sc.text::</A></DD>
 			::end::
 		</DL>
 	::end::

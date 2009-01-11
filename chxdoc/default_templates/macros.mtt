@@ -1,10 +1,10 @@
 <macros>
 	<macro name="typeDocs()">
-		::if docsContext != null::
+		::if docs != null::
 		<HR />
 			<!-- Comment block -->
-			::if docsContext.comments != null::
-			::raw docsContext.comments::
+			::if docs.comments != null::
+			::raw docs.comments::
 			::end::
 		::end::
 	</macro>
@@ -12,7 +12,7 @@
 	<macro name="methodHeader(m)">
 		<A NAME="::raw m.name::()"></A>
 		<H3>::m.name::</H3>
-		::m.access:: ::if m.isStatic::static ::end::function <B>::raw m.name::</B>::m.paramsStr::(::if m.argsStr != null::::raw m.argsStr::::end::)
+		::m.access:: ::if m.isStatic::static ::end::function <B>::raw m.name::</B>::m.params::(::if m.args != null::::raw m.args::::end::) : ::raw m.returns::
 			::if m.isOverride::
 				overrides
 			::elseif m.isInherited::
@@ -21,29 +21,29 @@
 	</macro>
 
 	<macro name="methodDocs(m)">
-		::if m.docsContext != null::
+		::if m.docs != null::
 		<DL>
 			<!-- Comment block -->
-			::if m.docsContext.comments != null::
-			<DD>::raw m.docsContext.comments::</DD>
+			::if m.docs.comments != null::
+			<DD>::raw m.docs.comments::</DD>
 			::end::
 			<!-- method call parameters -->
-			::if m.docsContext.params.length != 0::
+			::if m.docs.params.length != 0::
 			<DD>
 				<DL>
 					<DT><B>Parameters</B></DT>
-					::foreach pd m.docsContext.params::
+					::foreach pd m.docs.params::
 					<DD><CODE>::pd.arg::</CODE> ::raw pd.desc::</DD>
 					::end::
 				</DL>
 			</DD>
 			::end::
 			<!-- method return types comments -->
-			::if m.docsContext.returns.length != 0::
+			::if m.docs.returns.length != 0::
 			<DD>
 				<DL>
 					<DT><B>Returns:</B></DT>
-					::foreach s m.docsContext.returns::
+					::foreach s m.docs.returns::
 					<DD>::raw s::</DD>
 					::end::
 				</DL>
@@ -51,11 +51,11 @@
 			::end::
 
 			<!-- method throws -->
-			::if m.docsContext.throws.length != 0::
+			::if m.docs.throws.length != 0::
 			<DD>
 				<DL>
 					<DT><B>Throws:</B></DT>
-					::foreach td m.docsContext.throws::
+					::foreach td m.docs.throws::
 					<DD><A HREF="::raw td.uri::"><CODE>::td.name::</CODE></A> ::raw td.desc::</DD>
 					::end::
 				</DL>
@@ -69,18 +69,18 @@
 	<macro name="varHeader(f)">
 		<A NAME="::f.name::"></A>
 		<H3>::f.name::</H3>
-		<PRE>::f.access:: var <B>::f.name::</B>::if f.rights != null::::raw f.rights::::end:: : ::raw f.returnType::</PRE>
+		<PRE>::f.access:: var <B>::f.name::</B>::raw f.rights:: : ::raw f.returns::</PRE>
 		::if f.isInherited::
 		inherited from <A HREF="::f.inheritance.linkString::#::f.name::">::f.inheritance.nameDots::</A>
 		::end::
 	</macro>
 
 	<macro name="varDocs(m)">
-		::if m.docsContext != null::
+		::if m.docs != null::
 		<DL>
 			<!-- Comment block -->
-			::if m.docsContext.comments != null::
-			<DD>::raw m.docsContext.comments::</DD>
+			::if m.docs.comments != null::
+			<DD>::raw m.docs.comments::</DD>
 			::end::
 		</DL>
 		::end::
@@ -88,8 +88,15 @@
 
 	<macro name="enumConstructor(m)">
 		<A NAME="::raw m.name::()"></A>
-		<B>::raw m.name::</B>::if m.argsStr != null::(::raw m.argsStr::)::end::
+		<B>::raw m.name::</B>::if m.args != null::(::raw m.args::)::end::
 	</macro>
 
 
+	<macro name="showPlatforms(l)">
+		::if l != null::
+			::if l.length > 0::
+			Available in ::foreach i l::::i:: ::end::
+			::end::
+		::end::
+	</macro>
 </macros>

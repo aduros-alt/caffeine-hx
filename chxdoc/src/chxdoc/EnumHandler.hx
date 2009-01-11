@@ -1,123 +1,112 @@
+/*
+ * Copyright (c) 2008-2009, The Caffeine-hx project contributors
+ * Original author : Russell Weir
+ * Contributors:
+ * All rights reserved.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *   - Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   - Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE CAFFEINE-HX PROJECT CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE CAFFEINE-HX PROJECT CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 package chxdoc;
 
 import haxe.rtti.CType;
+import chxdoc.Defines;
 import chxdoc.Types;
 
-class EnumHandler extends TypeHandler<EnumContext> {
+class EnumHandler extends TypeHandler<EnumCtx> {
+
+	var current : Enumdef;
+
 	public function new() {
 		super();
 	}
 
-	public function pass1(e : Enumdef) : EnumContext {
-		var context = newEnumContext(e);
+	public function pass1(e : Enumdef) : EnumCtx {
+		current = e;
 
-		if( context.params != null && context.params.length != 0 )
-			context.paramsStr = "<"+context.params.join(", ")+">";
+		var ctx = newEnumCtx(e);
 
-		context.meta.keywords[0] = context.fileInfo.nameDots + " enum";
+		for(c in e.constructors)
+			ctx.constructorInfo.push(newEnumFieldCtx(c));
 
-		for(c in context.constructors) {
-			var f = newEnumFieldContext(c);
-			if(f.args != null) {
-				var me = this;
-				f.argsStr = doStringBlock( function() {
-					me.display(f.args, function(a) {
-						if( a.opt )
-							me.print("?");
-						me.print(a.name);
-						me.print(" : ");
-						me.processType(a.t);
-					},",");
-				});
-			}
-			context.constructorInfo.push(f);
-		}
-		context.constructorInfo.sort(constructorInfoSorter);
+		ctx.constructorInfo.sort(TypeHandler.ctxFieldSorter);
 
-		return context;
+		return ctx;
 	}
 
 	/**
 		<pre>Types -> create documentation</pre>
 	**/
-	public function pass2(context : EnumContext) {
-		if(context.doc != null)
-			context.docsContext = processDoc(context.doc);
+	public function pass2(ctx : EnumCtx) {
+		if(ctx.originalDoc != null)
+			ctx.docs = processDoc(ctx.originalDoc);
 		else
-			context.docsContext = null;
-		for(f in context.constructorInfo) {
-			if(f.doc == null)
-				f.docsContext = null;
+			ctx.docs = null;
+		for(f in ctx.constructorInfo) {
+			if(f.originalDoc == null)
+				f.docs = null;
 			else
-				f.docsContext = processDoc(f.doc);
+				f.docs = processDoc(f.originalDoc);
 		}
 	}
 
 	/**
 		<pre>Types	-> Resolve all super classes, inheritance, subclasses</pre>
 	**/
-	public function pass3(context : EnumContext) {
+	public function pass3(ctx : EnumCtx) {
 	}
 
-	/**
-		Array sort function for EnumContexts.
-	**/
-	public static function sorter(a : EnumContext, b : EnumContext) {
-		return Utils.stringSorter(a.fileInfo.nameDots, b.fileInfo.nameDots);
-	}
-
-	static function constructorInfoSorter(a : EnumFieldContext, b : EnumFieldContext) {
-		return Utils.stringSorter(a.name, b.name);
-	}
-
-	public static function write(context : EnumContext) : String  {
+	public static function write(ctx : EnumCtx) : String  {
 		var t = new mtwin.templo.Loader("enum.mtt");
 		try {
-			var rv = t.execute(context);
+			var rv = t.execute(ctx);
 			return rv;
 		} catch(e : Dynamic) {
-			trace("ERROR generating doc for " + context.path + ". Check enum.mtt");
+			trace("ERROR generating doc for " + ctx.nameDots + ". Check enum.mtt");
 			return neko.Lib.rethrow(e);
 		}
 	}
 
-	function newEnumContext(c : Enumdef) : EnumContext {
-		return {
-			meta			: newMetaData(),
-			build			: ChxDocMain.buildData,
-			platform		: ChxDocMain.platformData,
-			footerText		: "",
-			fileInfo		: makeFileInfo(c),
-			paramsStr		: "",
-			constructorInfo	: new Array(),
-			docsContext		: null,
-
-			// inherited from TypeInfos
-			path			: c.path,
-			module			: c.module,
-			params			: c.params, // Array<String> -> paramsStr
-			doc				: c.doc, // raw docs
-			isPrivate		: (c.isPrivate ? true : false),
-			platforms		: c.platforms, // List<String>
-
-			// inherited from Enumdef
-			isExtern		: (c.isExtern ? true : false),
-			constructors	: c.constructors,
-		};
+	function newEnumCtx(t : Enumdef) : EnumCtx {
+		var c = createCommon(t, "enum");
+		c.setField("constructorInfo", new Array<FieldCtx>());
+		return cast c;
 	}
 
-	function newEnumFieldContext(f : EnumField) : EnumFieldContext {
-		return {
-			argsStr			: null,
-			docsContext		: null,
-
-			// inherited from EnumField
-			platforms		: f.platforms, // List<String>
-			name			: f.name,
-			doc 			: f.doc,
-			args			: f.args, // Null<List<{ t : CType, opt : Bool, name : String }>>
+	function newEnumFieldCtx(f : EnumField) : FieldCtx {
+		var ctx = createField(f.name, false, f.platforms, f.doc);
+		if(f.args != null) {
+			var me = this;
+			ctx.args = doStringBlock( function() {
+				me.display(f.args, function(a) {
+					if( a.opt )
+						me.print("?");
+					me.print(a.name);
+					me.print(" : ");
+					me.processType(a.t);
+				},",");
+			});
 		}
+		ctx.type = "enumfield";
+		return ctx;
 	}
-
 
 }

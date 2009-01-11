@@ -1,53 +1,235 @@
+/*
+ * Copyright (c) 2008-2009, The Caffeine-hx project contributors
+ * Original author : Russell Weir
+ * Contributors:
+ * All rights reserved.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *   - Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   - Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE CAFFEINE-HX PROJECT CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE CAFFEINE-HX PROJECT CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 package chxdoc;
 
 import haxe.rtti.CType;
+import chxdoc.Defines;
 import chxdoc.Types;
 
-class ClassHandler extends TypeHandler<ClassContext> {
+class ClassHandler extends TypeHandler<ClassCtx> {
 	public function new() {
 		super();
 	}
 
-	public function pass1(c : Classdef) : ClassContext {
-		var context = newClassContext(c);
+	public function pass1(c : Classdef) : ClassCtx {
+		return newClassCtx(c);
+	}
 
-		if( context.isInterface ) {
-			context.type = "interface";
+
+	public function pass2(ctx : ClassCtx) {
+		ctx.docs = processDoc(ctx.originalDoc);
+
+		var me = this;
+		forAllFields(ctx,
+			function(f:FieldCtx) {
+				f.docs = me.processDoc(f.originalDoc);
+			}
+		);
+	}
+
+	//Types	-> Resolve all super classes, inheritance, subclasses
+	public function pass3(ctx : ClassCtx) {
+		var sc = ctx.scPathParams;
+		var first = true;
+		while(sc != null) {
+			var s : Ctx = ChxDocMain.findType(sc.path);
+			var source : ClassCtx = cast s;
+			if(first) {
+				first = false;
+				addSubclass(source, ctx);
+			}
+			for(i in source.vars)
+				makeInheritedVar(ctx, source, i);
+			for(i in source.methods)
+				makeInheritedMethod(ctx, source, i);
+			sc = source.scPathParams;
+		}
+
+		// private vars and methods do not need to be removed
+		// here, since they are ignored in pass 1
+		var a = [ctx.vars, ctx.staticVars, ctx.methods, ctx.staticMethods];
+		for(e in a)
+			e.sort(TypeHandler.ctxFieldSorter);
+
+	}
+
+
+	/**
+		@return FieldCtx or null
+	**/
+	static function getMethod(ctx: ClassCtx, name : String) : FieldCtx {
+		for(i in ctx.methods)
+			if(i.name == name)
+				return i;
+		return null;
+	}
+
+	public static function write(ctx : ClassCtx) : String  {
+		var t = new mtwin.templo.Loader("class.mtt");
+		try {
+			var rv = t.execute(ctx);
+			return rv;
+		} catch(e : Dynamic) {
+			trace("ERROR generating doc for " + ctx.nameDots + ". Check class.mtt");
+			return neko.Lib.rethrow(e);
+		}
+	}
+
+	function addSubclass(superClass : ClassCtx, subClass : ClassCtx) : Void {
+		var link = makeBaseRelPath(superClass) +
+			subClass.subdir +
+			subClass.name +
+			".html";
+		superClass.subclasses.push({
+			text : subClass.nameDots,
+			href : link,
+			css : "subclass",
+		});
+	}
+
+	function makeInheritedField(field : FieldCtx) : FieldCtx {
+		var ctx = createField(
+			field.name,
+			field.isPrivate,
+			field.platforms,
+			field.originalDoc);
+
+		ctx.params = field.params;
+		ctx.docs = field.docs;
+
+		ctx.args = field.args;
+		ctx.returns = field.returns;
+		ctx.isMethod = field.isMethod;
+		ctx.isInherited = true;
+		ctx.isOverride = false;
+		ctx.inheritance = {
+			owner : null,
+			link :
+				{
+					text: null,
+					href: null,
+					css : null,
+				},
+		};
+		ctx.isStatic = field.isStatic;
+		ctx.isDynamic = field.isDynamic;
+		ctx.rights = field.rights;
+
+		return ctx;
+	}
+
+	function makeInheritedVar(ctx : ClassCtx, srcCtx:ClassCtx, field : FieldCtx) {
+		var f = makeInheritedField(field);
+		if(!field.isInherited)
+			f.inheritance.owner = srcCtx;
+		else
+			f.inheritance.owner = field.inheritance.owner;
+
+		f.inheritance.link = makeLink(
+			makeBaseRelPath(ctx) +
+				f.inheritance.owner.subdir +
+				f.inheritance.owner.name +
+				".html",
+			f.inheritance.owner.nameDots,
+			"inherited"
+		);
+
+		ctx.vars.push(f);
+	}
+
+	function makeInheritedMethod(ctx : ClassCtx, srcCtx:ClassCtx, field : FieldCtx) {
+		var cur = getMethod(ctx, field.name);
+		if(cur != null && (cur.isInherited || cur.isOverride))
+			return;
+
+		var f = makeInheritedField(field);
+		if(cur != null) {
+			f.isInherited = false;
+			f.isOverride = true;
+		}
+		if(!field.isInherited) {
+			f.inheritance.owner = srcCtx;
 		}
 		else {
-			context.type = "class";
+			var f2 = getMethod(srcCtx, field.name);
+			while(!f2.isInherited)
+				f2 = getMethod(f2.inheritance.owner, field.name);
+			f.inheritance.owner = f2.inheritance.owner;
 		}
 
-		if( context.params != null && context.params.length != 0 )
-			context.paramsStr = "<"+context.params.join(", ")+">";
+		f.inheritance.link = makeLink(
+			makeBaseRelPath(ctx) +
+				f.inheritance.owner.subdir +
+				f.inheritance.owner.name +
+				".html",
+			f.inheritance.owner.nameDots,
+			"inherited"
+		);
 
-		/*
-		trace(
-			"found " + context.type + " " +
-			context.fileInfo.nameDots +
-			(context.paramsStr != null ? context.paramsStr : "") +
-			(context.module != null ? " in module " + context.module : "") +
-			". Original "+ context.path +
-			" and html out to " + context.fileInfo.subdir);
-		*/
+		ctx.methods.push(f);
+	}
 
-		if( context.superClass != null ) {
-			var me = this;
-			context.superClassHtml = doStringBlock(
+	function newClassCtx(c : Classdef) : ClassCtx {
+		var ctx : ClassCtx = null;
+		var me = this;
+
+		if( c.isInterface )
+			ctx = cast createCommon(c, "interface");
+		else
+			ctx = cast createCommon(c, "class");
+
+		ctx.setField("scPathParams", c.superClass);
+		ctx.setField("superClassHtml", null);
+		ctx.setField("superClasses", new Array<ClassCtx>());
+		ctx.setField("interfacesHtml", new Array<Html>());
+		ctx.setField("isDynamic", (c.tdynamic != null));
+		ctx.setField("constructor", null);
+		ctx.setField("vars", new Array<FieldCtx>());
+		ctx.setField("staticVars", new Array<FieldCtx>());
+		ctx.setField("methods", new Array<FieldCtx>());
+		ctx.setField("staticMethods", new Array<FieldCtx>());
+		ctx.setField("subclasses", new Array<Link>());
+
+		if( c.superClass != null ) {
+			ctx.superClassHtml = doStringBlock(
 				function() {
-					me.processPath(context.superClass.path, context.superClass.params);
+					me.processPath(c.superClass.path, c.superClass.params);
 				}
 			);
 		}
 
-		if(!context.interfaces.isEmpty()) {
-			var me = this;
-			context.interfacesHtml = new Array();
-			for(i in context.interfaces) {
-				context.interfacesHtml.push(
+		if(!c.interfaces.isEmpty()) {
+			ctx.interfacesHtml = new Array();
+			for(i in c.interfaces) {
+				ctx.interfacesHtml.push(
 					doStringBlock(
 						function() {
-							me.processPath(i.path,i.params);
+							me.processPath(i.path, i.params);
 						}
 					)
 				);
@@ -55,73 +237,69 @@ class ClassHandler extends TypeHandler<ClassContext> {
 		}
 
 		if(c.tdynamic != null) {
-			var me = this;
-			context.dynamicTypeHtml = doStringBlock(
-				function() {
-					var d = new List();
-					d.add(c.tdynamic);
-					me.processPath("Dynamic",d);
-				}
+			ctx.interfacesHtml.push(
+// 				doStringBlock(
+// 					function() {
+// 						var d = new List();
+// 						d.add(c.tdynamic);
+// 						me.processPath("Dynamic",d);
+// 					}
+// 				)
+				"<A HREF=\"http://haxe.org/ref/dynamic#Implementing Dynamic\" TARGET=\"#new\">Dynamic</A>"
 			);
 		}
 
-		context.meta.keywords[0] = context.fileInfo.nameDots + " " + context.type;
-
-		for( f in context.fields ) {
-			var cfctx = classFieldPass1(context, c.platforms,f,false);
-			if(cfctx != null) {
-				if(cfctx.name == "new" && !context.isInterface) {
-					context.constructor = cfctx;
+		for( f in c.fields ) {
+			var field = newClassFieldCtx(ctx, f, false);
+			if(field != null) {
+				if(field.name == "new" && !c.isInterface) {
+					ctx.constructor = field;
 				} else {
-					if(cfctx.isMethod)
-						context.methods.push(cfctx);
+					if(field.isMethod)
+						ctx.methods.push(field);
 					else
-						context.vars.push(cfctx);
+						ctx.vars.push(field);
 				}
 			}
 		}
 
-		for( f in context.statics ) {
-			var cfctx = classFieldPass1(context, c.platforms,f,true);
-			if(cfctx != null) {
-				if(cfctx.isMethod)
-					context.staticMethods.push(cfctx);
+		for( f in c.statics ) {
+			var field = newClassFieldCtx(ctx, f, true);
+			if(field != null) {
+				if(field.isMethod)
+					ctx.staticMethods.push(field);
 				else
-					context.staticVars.push(cfctx);
+					ctx.staticVars.push(field);
 			}
 		}
 
-		return context;
+		return ctx;
 	}
 
-	function classFieldPass1(cContext : ClassContext, platforms : Platforms, f : ClassField, stat : Bool) : ClassFieldContext {
-		var context : ClassFieldContext = newClassFieldContext();
-		context.isStatic = stat;
+
+	function newClassFieldCtx(c : ClassCtx, f : ClassField, isStatic : Bool) : FieldCtx
+	{
 		var me = this;
+		var ctx : FieldCtx = createField(f.name, !f.isPublic, f.platforms, f.doc);
+		ctx.isStatic = isStatic;
 
 		var oldParams = TypeHandler.typeParams;
 		if( f.params != null )
 			TypeHandler.typeParams = TypeHandler.typeParams.concat(Utils.prefix(f.params,f.name));
 
-		context.name = f.name;
-		context.isMethod = false;
-		context.isVar = true;
 		switch( f.type ) {
 		case CFunction(args,ret):
-			//trace("Examining method " + f.name + " in " + cContext.path + " f.get: " + Std.string(f.get));
+			//trace("Examining method " + f.name + " in " + current.nameDots + " f.get: " + Std.string(f.get));
 			if( f.get == RNormal && (f.set == RNormal || f.set == RF9Dynamic) ) {
-				context.isMethod = true;
-				context.isVar = false;
+				ctx.isMethod = true;
 
 				if( f.set == RF9Dynamic )
-					context.isDynamic = true;
-				context.name = f.name;
-				if( f.params != null )
-					context.paramsStr = "<"+f.params.join(", ")+">";
-				else
-					context.paramsStr = "";
+					ctx.isDynamic = true;
 
-				context.argsStr = doStringBlock( function() {
+				if( f.params != null )
+					ctx.params = "<"+f.params.join(", ")+">";
+
+				ctx.args = doStringBlock( function() {
 					me.display(args,function(a) {
 						if( a.opt )
 							me.print("?");
@@ -133,7 +311,7 @@ class ClassHandler extends TypeHandler<ClassContext> {
 					},", ");
 				});
 
-				context.returnType = doStringBlock(
+				ctx.returns = doStringBlock(
 					function() {
 						me.processType(ret);
 					}
@@ -141,13 +319,11 @@ class ClassHandler extends TypeHandler<ClassContext> {
 			}
 		default:
 		}
-		if(context.isVar) {
+		if(!ctx.isMethod) {
 			if( f.get != RNormal || f.set != RNormal )
-				context.rights = ("("+Utils.rightsStr(f.get)+","+Utils.rightsStr(f.set)+")");
-			else
-				context.rights = null;
+				ctx.rights = ("("+Utils.rightsStr(f.get)+","+Utils.rightsStr(f.set)+")");
 
-			context.returnType = doStringBlock(
+			ctx.returns = doStringBlock(
 				function() {
 					me.processType(f.type);
 				}
@@ -155,238 +331,28 @@ class ClassHandler extends TypeHandler<ClassContext> {
 		}
 
 		if( !f.isPublic ) {
-			context.isPublic = false;
-			context.access = "private";
-			if(context.isMethod && !ChxDocMain.config.showPrivateMethods)
+			if(ctx.isMethod && !ChxDocMain.config.showPrivateMethods)
 				return null;
-			if(context.isVar && !ChxDocMain.config.showPrivateVars)
+			if(!ctx.isMethod && !ChxDocMain.config.showPrivateVars)
 				return null;
-		} else {
-			context.isPublic = true;
-			context.access = "public";
 		}
 
-		if( f.platforms.length != platforms.length )
-			context.platforms = f.platforms;
 
-		context.docsContext = processDoc(f.doc);
 
 		if( f.params != null )
 			TypeHandler.typeParams = oldParams;
-		return context;
-	}
-
-	public function pass2(context : ClassContext) {
-		if(context.doc != null)
-			context.docsContext = processDoc(context.doc);
-		else
-			context.docsContext = null;
-	}
-
-	//Types	-> Resolve all super classes, inheritance, subclasses
-	public function pass3(context : ClassContext) {
-		var sc = context.superClass;
-// 		if(sc != null)
-// 			trace("Class " + context.path + " has a super");
-		var first = true;
-		while(sc != null) {
-			var source : ClassContext = cast ChxDocMain.findType(sc.path);
-			if(first) {
-				first = false;
-				addSubclass(source, context);
-			}
-			for(i in source.vars)
-				makeInheritedVar(context, source, i);
-			for(i in source.methods)
-				makeInheritedMethod(context, source, i);
-			sc = source.superClass;
-		}
-
-		// private vars and methods do not need to be removed
-		// here, since they are ignored in pass 1
-		context.vars.sort(fieldSorter);
-		context.methods.sort(fieldSorter);
+		return ctx;
 	}
 
 	/**
-		Array sort function for classes.
+		Applies a function to all fields (vars and methods both static and member) in a class context.
+		@param ctx A class context
+		@param f Function taking a FieldCtx returning Void
 	**/
-	public static function sorter(a : ClassContext, b : ClassContext) {
-		return Utils.stringSorter(a.path, b.path);
+	function forAllFields(ctx : ClassCtx, f : FieldCtx->Void) {
+		var a = [ctx.vars, ctx.staticVars, ctx.methods, ctx.staticMethods];
+		for(e in a)
+			for(i in e)
+				f(i);
 	}
-
-	static function fieldSorter(a : ClassFieldContext, b:ClassFieldContext) {
-		return Utils.stringSorter(a.name, b.name);
-	}
-
-	/**
-		Returns a ClassFieldContext
-	**/
-	static function getMethod(context: ClassContext, name : String) : ClassFieldContext {
-// 		if(tr) {
-// 			trace("Searching " + context.path + " for method " + name);
-// 			for(i in context.methods)
-// 				trace("-> " + i.name);
-// 		}
-		for(i in context.methods)
-			if(i.name == name)
-				return i;
-// 		if(tr)
-// 			trace("----- not found");
-		return null;
-	}
-
-	public static function write(context : ClassContext) : String  {
-		var t = new mtwin.templo.Loader("class.mtt");
-		try {
-			var rv = t.execute(context);
-			return rv;
-		} catch(e : Dynamic) {
-			trace("ERROR generating doc for " + context.path + ". Check class.mtt");
-			return neko.Lib.rethrow(e);
-		}
-	}
-
-	function newClassContext(c : Classdef) : ClassContext {
-		return {
-			meta			: newMetaData(),
-			build			: ChxDocMain.buildData,
-			platform		: ChxDocMain.platformData,
-			footerText		: "",
-			fileInfo		: makeFileInfo(c),
-			type			: null,
-			paramsStr		: null,
-			superClassHtml	: null,
-			interfacesHtml	: null,
-			dynamicTypeHtml	: null,
-			constructor 	: null,
-			vars			: new Array(),
-			staticVars		: new Array(),
-			methods			: new Array(),
-			staticMethods	: new Array(),
-			docsContext		: null,
-			subclasses		: new Array(),
-
-			// inherited from TypeInfos
-			path			: c.path,
-			module			: c.module,
-			params			: c.params, // Array<String> -> paramsStr
-			doc				: c.doc, // raw docs
-			isPrivate		: (c.isPrivate ? true : false),
-			platforms		: c.platforms, // List<String>
-
-			// inherited from Classdef
-			isExtern		: c.isExtern,
-			isInterface 	: c.isInterface,
-			superClass		: c.superClass, // { path : String, params:List<CType>}
-			interfaces		: c.interfaces,//List<{ path : String, params:List<CType>}>
-			fields			: c.fields, // Liat<ClassField>
-			statics			: c.statics, // List<ClassField>
-			tdynamic		: c.tdynamic, // Null<CType>
-		};
-	}
-
-	static function newClassFieldContext() : ClassFieldContext {
-		return {
-			name 		: null,
-			returnType	: null,
-			isMethod 	: false,
-			isVar		: false,
-			isPublic 	: true,
-			isInherited	: false,
-			isOverride	: false,
-			inheritance : { owner :null, nameDots: null, linkString : null },
-			access		: "public",
-			isStatic 	: false,
-			isDynamic	: false,
-			platforms	: null,
-			paramsStr	: null,
-			argsStr		: "",
-			rights		: "",
-			docsContext		: null,
-		};
-	}
-
-
-	function addSubclass(superClass : ClassContext, subClass : ClassContext) : Void {
-		var link = makeBaseRelPath(superClass) +
-			subClass.fileInfo.subdir +
-			subClass.fileInfo.name + ".html";
-		superClass.subclasses.push({
-			nameDots : subClass.fileInfo.nameDots,
-			linkString : link
-		});
-	}
-
-	static function makeInheritedField(field : ClassFieldContext) {
-		return {
-			name 		: field.name,
-			returnType	: field.returnType,
-			isMethod 	: field.isMethod,
-			isVar		: field.isVar,
-			isPublic 	: field.isPublic,
-			isInherited	: true,
-			isOverride	: false,
-			inheritance : {
-							owner : null,
-							nameDots: null,
-							linkString : null,
-						},
-			access		: field.access,
-			isStatic 	: field.isStatic,
-			isDynamic	: field.isDynamic,
-			platforms	: field.platforms,
-			paramsStr	: field.paramsStr,
-			argsStr		: field.argsStr,
-			rights		: field.rights,
-			docsContext	: field.docsContext,
-		};
-	}
-
-	function makeInheritedVar(context : ClassContext, srcContext:ClassContext, field : ClassFieldContext) {
-		var f = makeInheritedField(field);
-		if(!field.isInherited) {
-			f.inheritance.owner = srcContext;
-			f.inheritance.nameDots = srcContext.fileInfo.nameDots;
-		}
-		else {
-			f.inheritance.owner = field.inheritance.owner;
-			f.inheritance.nameDots = field.inheritance.nameDots;
-		}
-		f.inheritance.linkString =
-				makeBaseRelPath(context) +
-				f.inheritance.owner.fileInfo.subdir +
-				f.inheritance.owner.fileInfo.name + ".html";
-		context.vars.push(f);
-	}
-
-	function makeInheritedMethod(context : ClassContext, srcContext:ClassContext, field : ClassFieldContext) {
-		var cur = getMethod(context, field.name);
-		if(cur != null && (cur.isInherited || cur.isOverride))
-			return;
-
-		var f = makeInheritedField(field);
-		if(cur != null) {
-			f.isInherited = false;
-			f.isOverride = true;
-		}
-		if(!field.isInherited) {
-			f.inheritance.owner = srcContext;
-			f.inheritance.nameDots = srcContext.fileInfo.nameDots;
-		}
-		else {
-			var f2 = getMethod(srcContext, field.name);
-			while(!f2.isInherited)
-				f2 = getMethod(f2.inheritance.owner, field.name);
-			f.inheritance.owner = f2.inheritance.owner;
-			f.inheritance.nameDots = f2.inheritance.nameDots;
-		}
-		f.inheritance.linkString =
-				makeBaseRelPath(context) +
-				f.inheritance.owner.fileInfo.subdir +
-				f.inheritance.owner.fileInfo.name + ".html";
-		context.methods.push(f);
-	}
-
-
 }

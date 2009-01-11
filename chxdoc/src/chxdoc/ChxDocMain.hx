@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2005, The haXe Project Contributors
+ * Copyright (c) 2008-2009, The Caffeine-hx project contributors
+ * Original author : Russell Weir
+ * Contributors:
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -10,25 +12,27 @@
  *     notice, this list of conditions and the following disclaimer in the
  *     documentation and/or other materials provided with the distribution.
  *
- * THIS SOFTWARE IS PROVIDED BY THE HAXE PROJECT CONTRIBUTORS "AS IS" AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE HAXE PROJECT CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
- * DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE CAFFEINE-HX PROJECT CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE CAFFEINE-HX PROJECT CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package chxdoc;
 
+import chxdoc.Defines;
 import chxdoc.Types;
 import haxe.rtti.CType;
 
 class ChxDocMain {
-	static var proginfo = "ChxDoc Generator 0.2 - (c) 2009 Russell Weir";
+	static var proginfo = "ChxDoc Generator 0.3 - (c) 2009 Russell Weir";
 	static var buildNumber = 1;
 
 	public static var buildData : BuildData;
@@ -57,6 +61,8 @@ class ChxDocMain {
 	public static var shortDate 	: String;
 	public static var longDate		: String;
 
+	/** The platforms being generated for **/
+	public static var platforms					: List<String>;
 	/** The base output dir **/
 	public static var outputDir(default, null) : String;
 	/** the stylesheet name, relative to output root dir **/
@@ -136,9 +142,9 @@ class ChxDocMain {
 
 	// these are initialized in pass3
 	// and contain all types that are not filtered
-	static var allClasses : Array<ClassContext>;
-	static var allEnums : Array<EnumContext>;
-	static var allTypedefs : Array<TypedefContext>;
+	static var allClasses : Array<ClassCtx>;
+	static var allEnums : Array<EnumCtx>;
+	static var allTypedefs : Array<TypedefCtx>;
 	static var allTypes : Array<PackageFileTypesContext>;
 	// all packages that have types not filtered
 	static var allPackages : Array<NameLinkStringContext>;
@@ -161,9 +167,9 @@ class ChxDocMain {
 		for(i in packageContexts)
 			packageHandler.pass3(i);
 
-		allClasses.sort(ClassHandler.sorter);
-		allEnums.sort(EnumHandler.sorter);
-		allTypedefs.sort(TypedefHandler.sorter);
+		allClasses.sort(TypeHandler.ctxSorter);
+		allEnums.sort(TypeHandler.ctxSorter);
+		allTypedefs.sort(TypeHandler.ctxSorter);
 		allTypes.sort(function(a,b) {
 			return Utils.stringSorter(a.name, b.name);
 		});
@@ -172,33 +178,33 @@ class ChxDocMain {
 		});
 	}
 
-	public static function registerClass(context : ClassContext) : Void
+	public static function registerClass(ctx : ClassCtx) : Void
 	{
-		allClasses.push(context);
+		allClasses.push(ctx);
 		allTypes.push({
-			name			: context.fileInfo.name,
-			linkString		: Utils.makeRelativeSubdirLink(context) + context.fileInfo.name + ".html",
-			type			: (context.isInterface ? "interface" : "class"),
+			name			: ctx.name,
+			linkString		: Utils.makeRelativeSubdirLink(ctx) + ctx.name + ".html",
+			type			: ctx.type,
 		});
 	}
 
-	public static function registerEnum(context : EnumContext) : Void
+	public static function registerEnum(ctx : EnumCtx) : Void
 	{
-		allEnums.push(context);
+		allEnums.push(ctx);
 		allTypes.push({
-			name			: context.fileInfo.name,
-			linkString		: Utils.makeRelativeSubdirLink(context) + context.fileInfo.name + ".html",
-			type			: "enum",
+			name			: ctx.name,
+			linkString		: Utils.makeRelativeSubdirLink(ctx) + ctx.name + ".html",
+			type			: ctx.type,
 		});
 	}
 
-	public static function registerTypedef(context : TypedefContext) : Void
+	public static function registerTypedef(ctx : TypedefCtx) : Void
 	{
-		allTypedefs.push(context);
+		allTypedefs.push(ctx);
 		allTypes.push({
-			name			: context.fileInfo.name,
-			linkString		: Utils.makeRelativeSubdirLink(context) + context.fileInfo.name + ".html",
-			type			: (context.typeHtml == null ? "alias" : "typedef"),
+			name			: ctx.name,
+			linkString		: Utils.makeRelativeSubdirLink(ctx) + ctx.name + ".html",
+			type			: ctx.type,
 		});
 	}
 
@@ -259,10 +265,10 @@ class ChxDocMain {
 	//               Utilities                  //
 	//////////////////////////////////////////////
 	/**
-		Locate a type context from it's full path [TypeInfos.path] in all
+		Locate a type context from it's full path in all
 		packages. Can not be used until after pass 1.
 	**/
-	public static function findType( path : String ) : TypeInfos {
+	public static function findType( path : String ) : Ctx {
 		var parts = path.split(".");
 		var name = parts.pop();
 		var pkgPath = parts.join(".");
@@ -282,7 +288,7 @@ class ChxDocMain {
 			throw "Unable to locate package " + pkgPath + " for "+ path;
 
 		for(ctx in pkg.classes) {
-			if(ctx.fileInfo.name == name)
+			if(ctx.name == name)
 				return ctx;
 		}
 		throw "Could not find type " + path;
@@ -294,6 +300,9 @@ class ChxDocMain {
 	//              Main                        //
 	//////////////////////////////////////////////
 	public static function main() {
+		#if BUILD_DEBUG
+			chx.Log.redirectTraces(true);
+		#end
 		now = Date.now();
 		shortDate = DateTools.format(now, "%Y-%m-%d");
 		longDate = DateTools.format(now, "%a %b %d %H:%M:%S %Z %Y");
@@ -309,21 +318,31 @@ class ChxDocMain {
 			subtitle : "http://www.haxe.org/",
 		}
 		stylesheet = "stylesheet.css";
+		platforms = new List();
 
 		parseArgs();
 
+// trace(parser.root);
+// neko.Sys.exit(0);
+		//sortPlatforms();
+
+		// Add trailing slashes to all directory paths
 		outputDir = Utils.addSubdirTrailingSlash(outputDir);
+		config.temploBaseDir = Utils.addSubdirTrailingSlash(config.temploBaseDir);
+		config.temploTmpDir = Utils.addSubdirTrailingSlash(config.temploTmpDir);
+
 		mtwin.templo.Loader.BASE_DIR = config.temploBaseDir;
 		mtwin.templo.Loader.TMP_DIR = config.temploTmpDir;
 		mtwin.templo.Loader.MACROS = config.temploMacros;
 
-		Utils.createOutputDirectory(config.temploTmpDir);
-		Utils.createOutputDirectory(outputDir);
-		var tmf = Utils.addSubdirTrailingSlash(config.temploBaseDir) + config.temploMacros;
+		var tmf = config.temploBaseDir + config.temploMacros;
 		if(!neko.FileSystem.exists(tmf)) {
 			neko.Lib.println("The macro file " + tmf + " does not exist.");
 			neko.Sys.exit(1);
 		}
+
+		Utils.createOutputDirectory(config.temploTmpDir);
+		Utils.createOutputDirectory(outputDir);
 
 		////////////////
 		//  Generator //
@@ -460,6 +479,8 @@ class ChxDocMain {
 			transformPackage(x,remap,platform);
 
 		parser.process(x,platform);
+		if(platform != null)
+			platforms.add(platform);
 	}
 
 	static function transformPackage( x : Xml, remap, platform ) {

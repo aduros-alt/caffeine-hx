@@ -1,12 +1,38 @@
+/*
+ * Copyright (c) 2008-2009, The Caffeine-hx project contributors
+ * Original author : Russell Weir
+ * Contributors:
+ * All rights reserved.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *   - Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   - Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE CAFFEINE-HX PROJECT CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE CAFFEINE-HX PROJECT CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 package chxdoc;
 
 import haxe.rtti.CType;
+import chxdoc.Defines;
 import chxdoc.Types;
 
 class TypeHandler<T> {
 	static var typeParams : TypeParams = new Array();
-
-	public var curpackage : String;
 
 	public function new() {
 	}
@@ -269,8 +295,8 @@ class TypeHandler<T> {
 	/**
 		Makes the base relative path from a context.
 	**/
-	function makeBaseRelPath(info : TypeInfos) {
-		var parts = info.path.split(".");
+	function makeBaseRelPath(ctx : Ctx) {
+		var parts = ctx.nameDots.split(".");
 		parts.pop();
 		var s = "";
 		for(i in 0...parts.length)
@@ -279,21 +305,158 @@ class TypeHandler<T> {
 	}
 
 	/**
-		Sorter for any type array.
+		Creates and populates common fields in a Ctx.
+		@return New Ctx instance
 	**/
-	static function TypeSorter(a : TypeInfos, b : TypeInfos) {
-		var ap : String = null;
-		var bp : String = null;
-		if(Reflect.hasField(a, "fileInfo")) {
-			ap = untyped a.fileInfo.nameDots;
-		} else {
-			ap = a.path;
+	function createCommon(t : TypeInfos, type : String) : Ctx {
+		var fi = makeFileInfo(t);
+		var c : Ctx = {
+			type	: type,
+
+			name			: fi.name,
+			nameDots		: fi.nameDots,
+			packageDots		: fi.packageDots,
+			subdir			: fi.subdir,
+			rootRelative	: null,
+
+			isAllPlatforms	: (t.platforms.length == ChxDocMain.platforms.length),
+			platforms		: cloneList(t.platforms),
+			contexts		: new Array(),
+
+			params			: "",
+			module			: t.module,
+			isPrivate		: t.isPrivate,
+			access			: (t.isPrivate ? "private" : "public"),
+			docs			: null,
+
+			meta			: newMetaData(),
+			build			: ChxDocMain.buildData,
+			platform		: ChxDocMain.platformData,
+
+			setField		: null,
+			originalDoc		: t.doc,
 		}
-		if(Reflect.hasField(b, "fileInfo")) {
-			bp = untyped b.fileInfo.nameDots;
-		} else {
-			bp = b.path;
+
+		if( t.params != null && t.params.length > 0 )
+			c.params = "<"+t.params.join(", ")+">";
+
+		if(c.platforms.length == 0) {
+			c.platforms = cloneList(ChxDocMain.platforms);
+			c.isAllPlatforms = true;
 		}
-		return Utils.stringSorter(ap, bp);
+
+		resetMetaKeywords(c);
+
+		// creates a function field [setField] which
+		setField(c, "setField", callback(setField, c));
+		return c;
+	}
+
+	function createField(name : String, isPrivate : Bool, platforms : List<String>, originalDoc : String) : FieldCtx {
+		var c : FieldCtx = {
+			type			: "field",
+
+			name			: name,
+			nameDots		: null,
+			packageDots		: null,
+			subdir			: null,
+			rootRelative	: null,
+
+			isAllPlatforms	: (platforms.length == ChxDocMain.platforms.length),
+			platforms		: cloneList(platforms),
+			contexts		: null,
+
+			params			: "",
+			module			: null,
+			isPrivate		: isPrivate,
+			access			: (isPrivate ? "private" : "public"),
+			docs			: null,
+
+			meta			: null,
+			build			: null,
+			platform		: null,
+
+			setField		: null,
+			originalDoc		: originalDoc,
+
+			args			: "",
+			returns			: "",
+			isMethod		: false,
+			isInherited		: false,
+			isOverride		: false,
+			inheritance		: { owner :null, link : null },
+			isStatic		: false,
+			isDynamic		: false,
+			rights			: "",
+		}
+
+		if(c.platforms.length == 0) {
+			c.platforms = cloneList(ChxDocMain.platforms);
+			c.isAllPlatforms = true;
+		}
+
+		return c;
+	}
+
+	/**
+		Sets the default meta keywords for a context
+	**/
+	function resetMetaKeywords(ctx : Ctx) : Void {
+		ctx.meta.keywords[0] = ctx.nameDots + " " + ctx.type;
+	}
+
+	/**
+		Set a field in the supplied Ctx instance. This method is added as a callback in
+		Ctx instances created with createCommon as the method [setField].
+	**/
+	function setField(c : Ctx, field : String, value : Dynamic) {
+		Reflect.setField(c, field, value);
+	}
+
+	/**
+		Clones a context, but does not copy the contexts or platforms fields.
+		@return Ctx copy
+	**/
+	function cloneContext(v : Ctx) : Ctx {
+		var c = {};
+		var c = Reflect.copy(v);
+		setField(c, "setField", callback(setField, c));
+		c.contexts = new Array();
+		c.platforms = new List();
+		return c;
+	}
+
+	/**
+		Copies a list.
+		@return new List of type T, empty if [v] is null
+	**/
+	function cloneList<T>( v : List<T>) : List<T> {
+		var rv = new List<T>();
+		if(v != null)
+			for(i in v)
+				rv.add(i);
+		return rv;
+	}
+
+	public static function ctxSorter(a : Ctx, b : Ctx) : Int {
+		return Utils.stringSorter(a.nameDots, b.nameDots);
+	}
+
+	public static function ctxFieldSorter(a : FieldCtx, b : FieldCtx) : Int {
+		return Utils.stringSorter(a.name, b.name);
+	}
+
+	/**
+		Makes an html encoded Link
+	**/
+	function makeLink(href : String, text : String, css:String) : Link {
+		if(href == null) href = "";
+		if(text == null) text = "";
+		if(css == null) css = "";
+		return {
+			href	: StringTools.urlEncode(href),
+			text	: StringTools.urlEncode(text),
+			css		: StringTools.urlEncode(css),
+		};
 	}
 }
