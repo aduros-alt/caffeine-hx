@@ -200,6 +200,8 @@ class Utils {
 	public static function createOutputDirectory(path:String) {
 		if(path.charAt(path.length-1) == "/")
 			path = path.substr(0, path.length-1);
+		if(path.length == 0)
+			return;
 		if(!neko.FileSystem.exists(path)) {
 			try {
 				neko.FileSystem.createDirectory(path);

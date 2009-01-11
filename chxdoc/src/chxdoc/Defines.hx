@@ -82,6 +82,7 @@ typedef PackageContext = {
 	var name				: String;	// short name
 	var full				: String;	// full dotted name
 	var resolvedPath		: String;	// full final output path
+	var rootRelative		: String;
 	var classes				: Array<ClassCtx>;
 	var enums				: Array<EnumCtx>;
 	var typedefs			: Array<TypedefCtx>;
@@ -105,12 +106,17 @@ typedef PackageFileTypesContext = {
 	var type			: String;
 }
 
+typedef PackageOutputContext = {
+	> NameLinkStringContext,
+	var rootRelative	: String;
+}
+
 typedef IndexContext = {
 	var meta		: MetaData;
 	var platform	: PlatformData;
 	var build		: BuildData;
 
-	var packages	: Array<NameLinkStringContext>;
+	var packages	: Array<PackageOutputContext>;
 	var types		: Array<PackageFileTypesContext>;
 }
 

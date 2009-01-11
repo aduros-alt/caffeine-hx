@@ -50,6 +50,7 @@ class PackageHandler extends TypeHandler<PackageContext> {
 			name				: name,	// short name
 			full				: full,	// full dotted name
 			resolvedPath		: "",	// final output path
+			rootRelative		: new String(ChxDocMain.baseRelPath),
 			classes				: new Array(),
 			enums				: new Array(),
 			typedefs			: new Array(),
@@ -239,6 +240,7 @@ class PackageHandler extends TypeHandler<PackageContext> {
 					platform		: ChxDocMain.platformData,
 					name			: context.full,
 					types			: types,
+					rootRelative	: context.rootRelative,
 				});
 		} catch(e : Dynamic) {
 			trace("ERROR generating package file for " + context.full + ". Check package.mtt");

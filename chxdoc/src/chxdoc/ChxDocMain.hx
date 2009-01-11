@@ -147,7 +147,7 @@ class ChxDocMain {
 	static var allTypedefs : Array<TypedefCtx>;
 	static var allTypes : Array<PackageFileTypesContext>;
 	// all packages that have types not filtered
-	static var allPackages : Array<NameLinkStringContext>;
+	static var allPackages : Array<PackageOutputContext>;
 
 	/**
 		<pre>
@@ -213,6 +213,7 @@ class ChxDocMain {
 		allPackages.push({
 			name			: context.full,
 			linkString		: Utils.makeRelativePackageLink(context) + "package.html",
+			rootRelative	: context.rootRelative,
 		});
 	}
 
@@ -228,7 +229,7 @@ class ChxDocMain {
 		for(i in packageContexts)
 			packageHandler.pass4(i);
 
-		var e : NameLinkStringContext = null;
+		var e : PackageOutputContext = null;
 		for(i in allPackages) {
 			if(i.name == "root types") {
 				e = i;
