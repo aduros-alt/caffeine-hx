@@ -48,7 +48,7 @@ typedef Config = {
 	var packageDirectory	: String; // /my/path/packages/ (pkg/path/package.html)
 	var typeDirectory		: String; // /my/path/types/ (pkg/path/Class.html)
 
-	var noPrompt			: Bool; // turn off prommpting
+	var noPrompt			: Bool; // turn off prommpting (not implemented)
 	var installImagesDir	: Bool;
 	var installCssFile		: Bool;
 };
@@ -77,6 +77,9 @@ typedef MetaData = {
 typedef PlatformData = {
 	var title 		: String;
 	var subtitle 	: String;
+	/** true if generating developer documentation (any of showPrivate* switches set) **/
+	var developer	: Bool;
+	var platforms	: List<String>;
 };
 
 typedef DocsContext = {

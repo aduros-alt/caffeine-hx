@@ -247,22 +247,6 @@ class PackageHandler extends TypeHandler<PackageContext> {
 		return Utils.stringSorter(a.full, b.full);
 	}
 
-	/** Returns true if the type is filtered **
-	function isFilteredType(type:String, info : TypeInfos) {
-		if(Utils.isFiltered(info.path,false))
-			return true;
-		var showFlag = switch(type) {
-		case "class": ChxDocMain.config.showPrivateClasses;
-		case "enum": ChxDocMain.config.showPrivateEnums;
-		case "typedef": ChxDocMain.config.showPrivateTypedefs;
-		default: throw "bad type " + Std.string(type) + " for " + Std.string(info);
-		}
-		if(showFlag)
-			return true;
-		return (info.isPrivate == true);
-	}
-	*/
-
 	/** Returns true if the type is filtered **/
 	function isFilteredCtx(ctx : Ctx) : Bool {
 		if(Utils.isFiltered(ctx.path, false))
@@ -280,7 +264,7 @@ class PackageHandler extends TypeHandler<PackageContext> {
 			#end
 		}
 		if(showFlag)
-			return true;
+			return false;
 		return (ctx.isPrivate == true);
 	}
 

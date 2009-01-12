@@ -39,7 +39,7 @@ function windowTitle()
 		<dd>::raw i::</dd>
 		::end::
 	::end::
-	
+
 	::if module != null && module.length > 0::
 		<dt>defined in</dt>
 		<dd>::module::</dd>
@@ -59,7 +59,7 @@ function windowTitle()
 	</dl>
 
 	<div class="doc">$$typeDocs()</div>
-	
+
 
 	::if staticVars.length > 0::
 	<!-- ============ STATIC VAR DETAIL =========== -->
@@ -98,7 +98,7 @@ function windowTitle()
 		<div class="members">
 			<div class="member">
 				<div class="header">
-					<a name="::raw constructor.name::()"></a><span class="name">::raw constructor.name::</span>(::if constructor.args != null::::raw constructor.args::::end::)
+					<a name="::raw constructor.name::()"></a>$$showAccess(::constructor::)<span class="name">::raw constructor.name::</span>(::if constructor.args != null::::raw constructor.args::::end::)
 				</div>
 				<div class="body">$$methodDocs(::constructor::)</div>
 			</div>

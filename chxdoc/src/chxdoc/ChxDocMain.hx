@@ -32,8 +32,8 @@ import chxdoc.Types;
 import haxe.rtti.CType;
 
 class ChxDocMain {
-	static var proginfo = "ChxDoc Generator 0.4 - (c) 2009 Russell Weir";
-	static var buildNumber = 445;
+	static var proginfo = "ChxDoc Generator 0.5 - (c) 2009 Russell Weir";
+	static var buildNumber = 447;
 
 	public static var buildData : BuildData;
 	public static var platformData : PlatformData;
@@ -56,7 +56,7 @@ class ChxDocMain {
 		packageDirectory	: "./html/packages/",
 		typeDirectory		: "./html/types/",
 
-		noPrompt			: false,
+		noPrompt			: false, // not implemented
 		installImagesDir	: false,
 		installCssFile		: false,
 	};
@@ -311,6 +311,8 @@ class ChxDocMain {
 		#if BUILD_DEBUG
 			chx.Log.redirectTraces(true);
 		#end
+		var print = neko.Lib.print;
+		print(proginfo + "\n");
 		now = Date.now();
 		shortDate = DateTools.format(now, "%Y-%m-%d");
 		longDate = DateTools.format(now, "%a %b %d %H:%M:%S %Z %Y");
@@ -324,11 +326,22 @@ class ChxDocMain {
 		platformData = {
 			title : "Haxe Application",
 			subtitle : "http://www.haxe.org/",
+			developer : false,
+			platforms : new List(),
 		}
 		platforms = new List();
 
 		initDefaultPaths();
 		parseArgs();
+
+		if(	config.showPrivateClasses ||
+			config.showPrivateTypedefs ||
+			config.showPrivateEnums ||
+			config.showPrivateMethods ||
+			config.showPrivateVars)
+				platformData.developer = true;
+		platformData.platforms = platforms;
+
 		checkAllPaths();
 
 
@@ -339,8 +352,6 @@ class ChxDocMain {
 		packageContexts = new Array<PackageContext>();
 		baseRelPath = "";
 
-		var print = neko.Lib.print;
-		print(proginfo + "\n");
 		pass1([TPackage("root", "root types", parser.root)]);
 		print(".");
 		pass2();
@@ -370,8 +381,9 @@ class ChxDocMain {
 		Utils.createOutputDirectory(config.packageDirectory);
 		Utils.createOutputDirectory(config.typeDirectory);
 
-		var imgDir = config.baseDirectory + "images";
-		if(!neko.FileSystem.exists(imgDir)) {
+		var targetImgDir = config.baseDirectory + "images";
+		/*
+		if(!neko.FileSystem.exists(targetImgDir)) {
 			var copyImgDir = config.installImagesDir;
 			var srcDir = config.temploBaseDir + "images";
 			if(neko.FileSystem.exists(srcDir)) {
@@ -383,9 +395,37 @@ class ChxDocMain {
 				// cp -R srcDir config.baseDirectory
 			}
 		}
+		*/
+		if(config.installImagesDir) {
+			Utils.createOutputDirectory(targetImgDir);
+			var srcDir = config.temploBaseDir + "images";
+			if(neko.FileSystem.exists(srcDir) && neko.FileSystem.isDirectory(srcDir)) {
+				targetImgDir += "/";
+				var entries = neko.FileSystem.readDirectory(srcDir);
+				for(i in entries) {
+					var p = srcDir + "/" + i;
+					switch(neko.FileSystem.kind(p)) {
+					case kfile:
+					default:
+						continue;
+					}
+					neko.Lib.println("Installing " + p + " to " + targetImgDir);
+					neko.io.File.copy(p, targetImgDir + i);
+				}
+			} else {
+				neko.Lib.println("WARNING: Template " + config.temploBaseDir + " has no 'images' directory");
+			}
+		}
 
-		if(!neko.FileSystem.exists(config.baseDirectory + config.stylesheet)) {
-
+		if(config.installCssFile) {
+			var srcCssFile = config.temploBaseDir + "stylesheet.css";
+			if(neko.FileSystem.exists(srcCssFile)) {
+				var targetCssFile = config.baseDirectory + config.stylesheet;
+				neko.Lib.println("Installing " + srcCssFile + " to " + targetCssFile);
+				neko.io.File.copy(srcCssFile, targetCssFile);
+			} else {
+				neko.Lib.println("WARNING: Template " + config.temploBaseDir + " has no stylesheet.css");
+			}
 		}
 	}
 
@@ -448,6 +488,17 @@ class ChxDocMain {
 				switch(parts[0]) {
 				case "--title": platformData.title = parts[1];
 				case "--subtitle": platformData.subtitle = parts[1];
+				case "--developer":
+					var show = getBool(parts[1]);
+					config.showPrivateClasses = show;
+					config.showPrivateTypedefs = show;
+					config.showPrivateEnums = show;
+					config.showPrivateMethods = show;
+					config.showPrivateVars = show;
+				case "--installTemplate":
+					var i = getBool(parts[1]);
+					config.installImagesDir = i;
+					config.installCssFile = i;
 				case "--stylesheet": config.stylesheet = parts[1];
 				case "--showPrivateClasses": config.showPrivateClasses = getBool(parts[1]);
 				case "--showPrivateTypedefs": config.showPrivateTypedefs = getBool(parts[1]);
@@ -489,6 +540,8 @@ class ChxDocMain {
 // 		print("\t-cp classpath Add a source file class path"); // not implemented
 		print("\t--title=string Set the package title");
 		print("\t--subtitle=string Set the package subtitle");
+		print("\t--developer=[true|false] Shortcut to showing all privates, if true");
+		print("\t--installTemplate=[true|false] Install stylesheet and images from template");
 		print("\t--showPrivateClasses=[true|false] Toggle private classes display");
 		print("\t--showPrivateTypedefs=[true|false] Toggle private typedef display");
 		print("\t--showPrivateEnums=[true|false] Toggle private enum display");

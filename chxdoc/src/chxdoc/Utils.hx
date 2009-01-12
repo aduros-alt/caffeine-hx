@@ -134,11 +134,11 @@ class Utils {
 		Creates a path to an html file relative to the current path.
 	**/
 	public static function makeRelPath( pathStr : String ) {
-		return ChxDocMain.baseRelPath + pathStr  + ".html";
+		return ChxDocMain.baseRelPath + pathStr  + ChxDocMain.config.htmlFileExtension;
 	}
 
 	public static function makeUrl( url, text, cssClass ) {
-		return "<a href=\"" + ChxDocMain.baseRelPath + url + ".html \" class=\""+cssClass+"\">"+text+"</a>";
+		return "<a href=\"" + ChxDocMain.baseRelPath + url + ChxDocMain.config.htmlFileExtension + "\" class=\""+cssClass+"\">"+text+"</a>";
 	}
 
 	public static function makeTypeBaseRelPath(path : String) {

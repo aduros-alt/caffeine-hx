@@ -111,7 +111,7 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 		var link = makeBaseRelPath(superClass) +
 			subClass.subdir +
 			subClass.name +
-			".html";
+			ChxDocMain.config.htmlFileExtension;
 		superClass.subclasses.push({
 			text : subClass.nameDots,
 			href : link,
@@ -169,7 +169,7 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 			makeBaseRelPath(ctx) +
 				field.inheritance.owner.subdir +
 				field.inheritance.owner.name +
-				".html",
+				ChxDocMain.config.htmlFileExtension,
 			field.inheritance.owner.nameDots,
 			"inherited"
 		);
@@ -260,13 +260,6 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 
 		if(c.tdynamic != null) {
 			ctx.interfacesHtml.push(
-// 				doStringBlock(
-// 					function() {
-// 						var d = new List();
-// 						d.add(c.tdynamic);
-// 						me.processPath("Dynamic",d);
-// 					}
-// 				)
 				"<A HREF=\"http://haxe.org/ref/dynamic#Implementing Dynamic\" TARGET=\"#new\">Dynamic</A>"
 			);
 		}
