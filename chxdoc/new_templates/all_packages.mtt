@@ -16,7 +16,7 @@
 			<div id="packages-header">
 				<ul>
 					<li><a href="all_classes.html" target="packageFrame">All Types</a></li>
-					<li><a href="package.html" target="packageFrame">Root Types</a></li>
+					<li><a href="all_packages.html" target="packageFrame">Root Types</a></li>
 				</ul>
 			</div>
 			<ul class="packages">
