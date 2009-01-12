@@ -1,5 +1,0 @@
-In order to use chxdoc, you must have 'temploc' Templo compiler installed on your path. 
-If you do not have it, simply run 'nekotools boot utils/temploc.n' to generate the binary, which
-will be in the utils/ directory, named either "temploc.exe" or "temploc".
-
-

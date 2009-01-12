@@ -1,5 +1,0 @@
--neko chxdoc.n
--main chxdoc/ChxDocMain.hx
--cp src
--cmd nekotools boot chxdoc.n
--cmd rm chxdoc.n
