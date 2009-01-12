@@ -101,23 +101,23 @@ ul.types li {
 }
 
 .class {
-	background-image: url(_images/class.png);
+	background-image: url(images/class.png);
 }
 
 .interface {
-	background-image: url(_images/interface.png);
+	background-image: url(images/interface.png);
 }
 
 .typedef {
-	background-image: url(_images/typedef.png);
+	background-image: url(images/typedef.png);
 }
 
 .alias {
-	background-image: url(_images/alias.png);
+	background-image: url(images/alias.png);
 }
 
 .enum {
-	background-image: url(_images/enum.png);
+	background-image: url(images/enum.png);
 }
 
 dl {
@@ -202,7 +202,7 @@ pre {
 }
 
 #packages-frame ul.packages li {
-	background-image: url(_images/package.png);
+	background-image: url(images/package.png);
 }
 
 #packages-header li {
