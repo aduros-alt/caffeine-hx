@@ -1,7 +1,7 @@
 <macros>
 	<macro name="typeDocs()">
 		::if docs != null::
-		
+
 			<!-- Comment block -->
 			::if docs.comments != null::
 			::raw docs.comments::
@@ -16,7 +16,7 @@
 			::if m.isOverride::
 				<div class="overrides">overrides</div>
 			::elseif m.isInherited::
-				<div class="inherited">inherited from <a href="::m.inheritance.linkString::#::m.name::()">::m.inheritance.nameDots::</a></div>
+				<div class="inherited">inherited from <a href="::raw m.inheritance.link.href::#::m.name::()">::raw m.inheritance.link.text::</a></div>
 			::end::
 	</macro>
 
@@ -29,7 +29,7 @@
 				::foreach pd m.docs.params::
 				<dd><code>::pd.arg::</code> ::raw pd.desc::</dd>
 				::end::
-			::end::			
+			::end::
 			<!-- method return types comments -->
 			::if m.docs.returns.length != 0::
 				<dt>returns:</dt>
@@ -58,7 +58,7 @@
 			<a name="::f.name::"></a><span class="name">::f.name::</span>::raw f.rights:: : ::raw f.returns::
 		</h3>
 		::if f.isInherited::
-		<div class="inherited">inherited from <a href="::f.inheritance.linkString::#::f.name::">::f.inheritance.nameDots::</a></div>
+		<div class="inherited">inherited from <a href="::raw f.inheritance.link.href::#::f.name::">::raw f.inheritance.link.text::</a></div>
 		::end::
 	</macro>
 
@@ -72,7 +72,7 @@
 	</macro>
 
 	<macro name="enumConstructor(m)">
-		<a name="::raw m.name::()"></a><span class="name">::raw m.name::</span>::if m.args != null::(::raw m.args::)::end::
+		<a name="::raw m.name::()"></a><span class="name">::raw m.name::</span>::if m.args.length > 0::(::raw m.args::)::end::
 	</macro>
 
 	<macro name="showPlatforms(l)">

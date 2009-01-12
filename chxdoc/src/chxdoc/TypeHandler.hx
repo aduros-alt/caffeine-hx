@@ -456,9 +456,29 @@ class TypeHandler<T> {
 		if(text == null) text = "";
 		if(css == null) css = "";
 		return {
-			href	: StringTools.urlEncode(href),
-			text	: StringTools.urlEncode(text),
-			css		: StringTools.urlEncode(css),
+			href	: htmlSpecialChars(href),
+			text	: htmlSpecialChars(text),
+			css		: htmlSpecialChars(css),
 		};
+	}
+
+	/**
+	* Translates html special characters for links etc.
+	* <ul>
+    * <li>'&amp;' (ampersand) becomes '&amp;amp;'</li>
+    * <li>'&quot' (double quote) becomes '&amp;quot;'</li>
+    * <li>'&lt;' (less than) becomes '&amp;lt;'</li>
+    * <li>'&gt;' (greater than) becomes '&amp;gt;'</li>
+	* </ul>
+	* @returns reformatted string
+	*/
+	function htmlSpecialChars(s : String) : String {
+		s = StringTools.replace(s, "&", "&amp;");
+		s = StringTools.replace(s, "&amp;amp;", "&amp;");
+		s = StringTools.replace(s, "<", "&lt;");
+		s = StringTools.replace(s, ">", "&gt;");
+		s = StringTools.replace(s, "\\\"", "&quot;");
+		s = StringTools.replace(s, "\"", "&quot;");
+		return s;
 	}
 }

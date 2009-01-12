@@ -37,7 +37,14 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 	}
 
 	public function pass1(c : Classdef) : ClassCtx {
+// 		#if BUILD_DEBUG
+// 		var rv = newClassCtx(c);
+// 		if(rv.path == "flash9.display.MovieClip")
+// 			trace(rv);
+// 		return rv;
+// 		#else
 		return newClassCtx(c);
+// 		#end
 	}
 
 
@@ -112,23 +119,28 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 		});
 	}
 
-	function makeInheritedField(field : FieldCtx) : FieldCtx {
-		var ctx = createField(
+	/**
+		Creates and returns a new field based on an existing super class field.
+		@param ownerCtx The super class Ctx which owns [field]
+		@param field The method or var being inherited or overridden
+	**/
+	function createInheritedField(ownerCtx:ClassCtx, field : FieldCtx) : FieldCtx {
+		var f = createField(
 			field.name,
 			field.isPrivate,
 			field.platforms,
 			field.originalDoc);
 
-		ctx.params = field.params;
-		ctx.docs = field.docs;
+		f.params = field.params;
+		f.docs = field.docs;
 
-		ctx.args = field.args;
-		ctx.returns = field.returns;
-		ctx.isMethod = field.isMethod;
-		ctx.isInherited = true;
-		ctx.isOverride = false;
-		ctx.inheritance = {
-			owner : null,
+		f.args = field.args;
+		f.returns = field.returns;
+		f.isMethod = field.isMethod;
+		f.isInherited = true;
+		f.isOverride = false;
+		f.inheritance = {
+			owner : ownerCtx,
 			link :
 				{
 					text: null,
@@ -136,29 +148,47 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 					css : null,
 				},
 		};
-		ctx.isStatic = field.isStatic;
-		ctx.isDynamic = field.isDynamic;
-		ctx.rights = field.rights;
+		f.isStatic = field.isStatic;
+		f.isDynamic = field.isDynamic;
+		f.rights = field.rights;
 
-		return ctx;
+		return f;
 	}
 
-	function makeInheritedVar(ctx : ClassCtx, srcCtx:ClassCtx, field : FieldCtx) {
-		var f = makeInheritedField(field);
-		if(!field.isInherited)
-			f.inheritance.owner = srcCtx;
-		else
-			f.inheritance.owner = field.inheritance.owner;
+	/**
+		Recreates the link for field inheritance.
+		@param ctx The class that [field] belongs to
+		@param field A field with [inheritance.owner] set
+		@throws String if inheritance or inheritance.owner is null
+	**/
+	function makeInheritedFieldLink(ctx : ClassCtx, field : FieldCtx) : Void {
+		if(field.inheritance == null || field.inheritance.owner == null)
+			throw "Error creating inheritance field link for " + field;
 
-		f.inheritance.link = makeLink(
+		field.inheritance.link = makeLink(
 			makeBaseRelPath(ctx) +
-				f.inheritance.owner.subdir +
-				f.inheritance.owner.name +
+				field.inheritance.owner.subdir +
+				field.inheritance.owner.name +
 				".html",
-			f.inheritance.owner.nameDots,
+			field.inheritance.owner.nameDots,
 			"inherited"
 		);
+	}
 
+	/**
+		Creates an inherited var field and attaches it to the supplied ClassCtx.
+		@param ctx The class receiving a new field.
+		@param srcCtx The super class that owns [field]
+		@param field The field to be copied
+	**/
+	function makeInheritedVar(ctx : ClassCtx, srcCtx:ClassCtx, field : FieldCtx) {
+		var f : FieldCtx =
+			if(!field.isInherited)
+				createInheritedField(srcCtx, field)
+			else
+				createInheritedField(field.inheritance.owner, field);
+
+		makeInheritedFieldLink(ctx, f);
 		ctx.vars.push(f);
 	}
 
@@ -167,7 +197,7 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 		if(cur != null && (cur.isInherited || cur.isOverride))
 			return;
 
-		var f = makeInheritedField(field);
+		var f = createInheritedField(srcCtx, field);
 		if(cur != null) {
 			f.isInherited = false;
 			f.isOverride = true;
@@ -182,15 +212,7 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 			f.inheritance.owner = f2.inheritance.owner;
 		}
 
-		f.inheritance.link = makeLink(
-			makeBaseRelPath(ctx) +
-				f.inheritance.owner.subdir +
-				f.inheritance.owner.name +
-				".html",
-			f.inheritance.owner.nameDots,
-			"inherited"
-		);
-
+		makeInheritedFieldLink(ctx, f);
 		ctx.methods.push(f);
 	}
 
