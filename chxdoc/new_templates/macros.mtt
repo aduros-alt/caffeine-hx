@@ -11,7 +11,7 @@
 
 	<macro name="methodHeader(m)">
 		<h3>
-			<a name="::raw m.name::()"></a>$$showAccess(::m::)<span class="name">::raw m.name::</span>::m.params::(::if m.args != null::::raw m.args::::end::) : ::raw m.returns::
+			<a name="::raw m.name::()"></a>$$showAccess(::m::)$$showDynamic(::m::)<span class="name">::raw m.name::</span>::m.params::(::if m.args != null::::raw m.args::::end::) : ::raw m.returns::
 		</h3>
 			::if m.isOverride::
 				<div class="overrides">overrides</div>
@@ -86,6 +86,12 @@
 	<macro name="showAccess(f)">
 		::if platform.developer::
 		<span class="::f.access::">::f.access::</span>
+		::end::
+	</macro>
+
+	<macro name="showDynamic(m)">
+		::if m.isDynamic::
+		<span class="dynamic">dynamic</span>
 		::end::
 	</macro>
 </macros>
