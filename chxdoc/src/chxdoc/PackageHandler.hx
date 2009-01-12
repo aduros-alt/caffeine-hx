@@ -32,8 +32,6 @@ import chxdoc.Defines;
 import chxdoc.Types;
 
 class PackageHandler extends TypeHandler<PackageContext> {
-	static var typePageExtension : String = ".html";
-
 	var classHandler : ClassHandler;
 	var enumHandler : EnumHandler;
 	var typedefHandler : TypedefHandler;
@@ -49,7 +47,8 @@ class PackageHandler extends TypeHandler<PackageContext> {
 		var context = {
 			name				: name,	// short name
 			full				: full,	// full dotted name
-			resolvedPath		: "",	// final output path
+			resolvedTypeDir		: "",	// final output path for types
+			resolvedPackageDir	: "", // final output dir for package.html
 			rootRelative		: new String(ChxDocMain.baseRelPath),
 			classes				: new Array(),
 			enums				: new Array(),
@@ -59,9 +58,12 @@ class PackageHandler extends TypeHandler<PackageContext> {
 		if(name == "root") {
 			name = "0";
 			full = "";
-			context.resolvedPath = ChxDocMain.outputDir;
+			context.resolvedTypeDir = ChxDocMain.config.typeDirectory;
+			context.resolvedPackageDir = ChxDocMain.config.packageDirectory;
 		} else {
-			context.resolvedPath = ChxDocMain.outputDir + full.split(".").join("/") + "/";
+			var subdir = full.split(".").join("/") + "/";
+			context.resolvedTypeDir = ChxDocMain.config.typeDirectory + subdir;
+			context.resolvedPackageDir = ChxDocMain.config.packageDirectory + subdir;
 		}
 
 // 		trace("FOUND PACKAGE " + full + " named: "+name+" resolvedPath: " + context.resolvedPath);
@@ -94,8 +96,10 @@ class PackageHandler extends TypeHandler<PackageContext> {
 	}
 
 	public function pass2(context : PackageContext) {
-		if(!isFilteredPackage(context.full))
-			Utils.createOutputDirectory(context.resolvedPath);
+		if(!isFilteredPackage(context.full)) {
+			Utils.createOutputDirectory(context.resolvedTypeDir);
+			Utils.createOutputDirectory(context.resolvedPackageDir);
+		}
 		for(ctx in context.classes)
 			classHandler.pass2(ctx);
 		for(ctx in context.enums)
@@ -146,47 +150,34 @@ class PackageHandler extends TypeHandler<PackageContext> {
 		@todo Remove TypeInfos methods, check path correct
 	**/
 	public function pass4(context : PackageContext) {
+		var config = ChxDocMain.config;
 		if(isFilteredPackage(context.full))
 			return;
 		var me = this;
-		var pf = neko.Lib.print;
-		var makePath = function(ctx : TypeInfos) {
-			var fi :FileInfo = cast Reflect.field(ctx, "fileInfo");
-			if(fi == null)
-				throw "Error determining output path for " + ctx.path;
-			return  ChxDocMain.outputDir +
-					Std.string(fi.subdir) +
-					Std.string(fi.name) +
-					typePageExtension;
-		}
-		var writeHtml = function(ctx : TypeInfos, content: String) {
-			var path = makePath(ctx);
-			Utils.writeFileContents(path, content);
-			pf(".");
-		}
 
 		var makeCtxPath = function(ctx : Ctx) {
 			if(ctx.subdir == null)
 				throw "Error determining output path for " + ctx.path;
-			return  ChxDocMain.outputDir +
+			return  ChxDocMain.config.typeDirectory +
 					Std.string(ctx.subdir) +
 					Std.string(ctx.name) +
-					typePageExtension;
+					ChxDocMain.config.htmlFileExtension;
 		}
 		var writeCtxHtml = function(ctx : Ctx, content: String) {
 			var path = makeCtxPath(ctx);
 			Utils.writeFileContents(path, content);
-			pf(".");
+			neko.Lib.print(".");
 		}
 
 		var types = new Array<PackageFileTypesContext>();
 
-// 		var pkgPathCount = context.full.split(".").length;
 		var makeTypeLink = function(ctx : Ctx) {
-// 			var parts = typeContext.nameDots.split(".");
-// 			parts = parts.slice(pkgPathCount - parts.length);
-// 			return parts.join("/") + ".html";
-			return ctx.name + ".html";
+			return
+				context.rootRelative +
+				"../types/" +
+				ctx.subdir +
+				ctx.name +
+				ChxDocMain.config.htmlFileExtension;
 		}
 
 		for(ctx in context.classes) {
@@ -247,7 +238,7 @@ class PackageHandler extends TypeHandler<PackageContext> {
 			neko.Lib.rethrow(e);
 		}
 
-		var p = context.resolvedPath + "package.html";
+		var p = context.resolvedPackageDir + "package" + ChxDocMain.config.htmlFileExtension;
 // 		trace("Writing " + p);
 		Utils.writeFileContents(p, output);
 	}
@@ -256,7 +247,7 @@ class PackageHandler extends TypeHandler<PackageContext> {
 		return Utils.stringSorter(a.full, b.full);
 	}
 
-	/** Returns true if the type is filtered **/
+	/** Returns true if the type is filtered **
 	function isFilteredType(type:String, info : TypeInfos) {
 		if(Utils.isFiltered(info.path,false))
 			return true;
@@ -270,6 +261,7 @@ class PackageHandler extends TypeHandler<PackageContext> {
 			return true;
 		return (info.isPrivate == true);
 	}
+	*/
 
 	/** Returns true if the type is filtered **/
 	function isFilteredCtx(ctx : Ctx) : Bool {

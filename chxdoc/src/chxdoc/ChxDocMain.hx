@@ -32,8 +32,8 @@ import chxdoc.Types;
 import haxe.rtti.CType;
 
 class ChxDocMain {
-	static var proginfo = "ChxDoc Generator 0.3 - (c) 2009 Russell Weir";
-	static var buildNumber = 1;
+	static var proginfo = "ChxDoc Generator 0.4 - (c) 2009 Russell Weir";
+	static var buildNumber = 445;
 
 	public static var buildData : BuildData;
 	public static var platformData : PlatformData;
@@ -48,6 +48,17 @@ class ChxDocMain {
 		temploBaseDir		: "./templates/",
 		temploTmpDir		: "./tmp/",
 		temploMacros		: "macros.mtt",
+		htmlFileExtension	: ".html", // .html
+
+		stylesheet			: "stylesheet.css",
+
+		baseDirectory		: "./html/",
+		packageDirectory	: "./html/packages/",
+		typeDirectory		: "./html/types/",
+
+		noPrompt			: false,
+		installImagesDir	: false,
+		installCssFile		: false,
 	};
 
 	static var classPaths : List<String>;
@@ -63,10 +74,6 @@ class ChxDocMain {
 
 	/** The platforms being generated for **/
 	public static var platforms					: List<String>;
-	/** The base output dir **/
-	public static var outputDir(default, null) : String;
-	/** the stylesheet name, relative to output root dir **/
-	public static var stylesheet(default,null) : String;
 
 	/** the one instance of PackageHandler that crawls the TypeTree **/
 	static var packageHandler : PackageHandler;
@@ -183,7 +190,7 @@ class ChxDocMain {
 		allClasses.push(ctx);
 		allTypes.push({
 			name			: ctx.name,
-			linkString		: Utils.makeRelativeSubdirLink(ctx) + ctx.name + ".html",
+			linkString		: "types/" + Utils.makeRelativeSubdirLink(ctx) + ctx.name + config.htmlFileExtension,
 			type			: ctx.type,
 		});
 	}
@@ -193,7 +200,7 @@ class ChxDocMain {
 		allEnums.push(ctx);
 		allTypes.push({
 			name			: ctx.name,
-			linkString		: Utils.makeRelativeSubdirLink(ctx) + ctx.name + ".html",
+			linkString		: "types/" + Utils.makeRelativeSubdirLink(ctx) + ctx.name + config.htmlFileExtension,
 			type			: ctx.type,
 		});
 	}
@@ -203,7 +210,7 @@ class ChxDocMain {
 		allTypedefs.push(ctx);
 		allTypes.push({
 			name			: ctx.name,
-			linkString		: Utils.makeRelativeSubdirLink(ctx) + ctx.name + ".html",
+			linkString		: "types/" + Utils.makeRelativeSubdirLink(ctx) + ctx.name + config.htmlFileExtension,
 			type			: ctx.type,
 		});
 	}
@@ -212,7 +219,7 @@ class ChxDocMain {
 	{
 		allPackages.push({
 			name			: context.full,
-			linkString		: Utils.makeRelativePackageLink(context) + "package.html",
+			linkString		: "packages/" + Utils.makeRelativePackageLink(context) + "package" + config.htmlFileExtension,
 			rootRelative	: context.rootRelative,
 		});
 	}
@@ -243,7 +250,7 @@ class ChxDocMain {
 		var metaData = {
 			date : DateTools.format(now, "%Y-%m-%d"),
 			keywords : new Array<String>(),
-			stylesheet : ChxDocMain.stylesheet,
+			stylesheet : ChxDocMain.config.stylesheet,
 		};
 		metaData.keywords.push("");
 		var context : IndexContext = {
@@ -257,7 +264,7 @@ class ChxDocMain {
 
 		for(i in ["index", "overview", "all_packages", "all_classes"]) {
 			var t = new mtwin.templo.Loader(i+".mtt");
-			Utils.writeFileContents(outputDir + i +".html", t.execute(context));
+			Utils.writeFileContents(config.baseDirectory + i + config.htmlFileExtension, t.execute(context));
 		}
 	}
 
@@ -318,32 +325,12 @@ class ChxDocMain {
 			title : "Haxe Application",
 			subtitle : "http://www.haxe.org/",
 		}
-		stylesheet = "stylesheet.css";
 		platforms = new List();
 
+		initDefaultPaths();
 		parseArgs();
+		checkAllPaths();
 
-// trace(parser.root);
-// neko.Sys.exit(0);
-		//sortPlatforms();
-
-		// Add trailing slashes to all directory paths
-		outputDir = Utils.addSubdirTrailingSlash(outputDir);
-		config.temploBaseDir = Utils.addSubdirTrailingSlash(config.temploBaseDir);
-		config.temploTmpDir = Utils.addSubdirTrailingSlash(config.temploTmpDir);
-
-		mtwin.templo.Loader.BASE_DIR = config.temploBaseDir;
-		mtwin.templo.Loader.TMP_DIR = config.temploTmpDir;
-		mtwin.templo.Loader.MACROS = config.temploMacros;
-
-		var tmf = config.temploBaseDir + config.temploMacros;
-		if(!neko.FileSystem.exists(tmf)) {
-			neko.Lib.println("The macro file " + tmf + " does not exist.");
-			neko.Sys.exit(1);
-		}
-
-		Utils.createOutputDirectory(config.temploTmpDir);
-		Utils.createOutputDirectory(outputDir);
 
 		////////////////
 		//  Generator //
@@ -365,14 +352,71 @@ class ChxDocMain {
 	}
 
 
+	static function initDefaultPaths() {
+		config.baseDirectory = neko.Sys.getCwd() + "html/";
+		config.packageDirectory = config.baseDirectory + "packages/";
+		config.typeDirectory = config.baseDirectory + "types/";
+	}
+
+	static function checkAllPaths() {
+		initTemplo();
+
+		// Add trailing slashes to all directory paths
+		config.baseDirectory = Utils.addSubdirTrailingSlash(config.baseDirectory);
+		config.packageDirectory = config.baseDirectory + "packages/";
+		config.typeDirectory = config.baseDirectory + "types/";
+
+		Utils.createOutputDirectory(config.baseDirectory);
+		Utils.createOutputDirectory(config.packageDirectory);
+		Utils.createOutputDirectory(config.typeDirectory);
+
+		var imgDir = config.baseDirectory + "images";
+		if(!neko.FileSystem.exists(imgDir)) {
+			var copyImgDir = config.installImagesDir;
+			var srcDir = config.temploBaseDir + "images";
+			if(neko.FileSystem.exists(srcDir)) {
+				if(!copyImgDir && !config.noPrompt) {
+					//copyImgDir = system.Terminal.promptYesNo("Install the images directory from the template?", true);
+				}
+			}
+			if(copyImgDir) {
+				// cp -R srcDir config.baseDirectory
+			}
+		}
+
+		if(!neko.FileSystem.exists(config.baseDirectory + config.stylesheet)) {
+
+		}
+	}
+
+	/**
+		Initializes Templo, exiting if there is any error.
+	**/
+	static function initTemplo() {
+		config.temploBaseDir = Utils.addSubdirTrailingSlash(config.temploBaseDir);
+		config.temploTmpDir = Utils.addSubdirTrailingSlash(config.temploTmpDir);
+
+		mtwin.templo.Loader.BASE_DIR = config.temploBaseDir;
+		mtwin.templo.Loader.TMP_DIR = config.temploTmpDir;
+		mtwin.templo.Loader.MACROS = config.temploMacros;
+
+		var tmf = config.temploBaseDir + config.temploMacros;
+		if(!neko.FileSystem.exists(tmf)) {
+			neko.Lib.println("The macro file " + tmf + " does not exist.");
+			neko.Sys.exit(1);
+		}
+
+		Utils.createOutputDirectory(config.temploTmpDir);
+	}
+
 	static function parseArgs() {
+		initDefaultPaths();
+
 		var expectOutputDir = false;
 		var expectFilter = false;
 		var expectClassPath = false;
 
 		classPaths = new List();
-		outputDir = neko.Sys.getCwd() + "html/";
-		stylesheet = "stylesheet.css";
 
 		for( x in neko.Sys.args() ) {
 			if( x == "-f" )
@@ -384,12 +428,11 @@ class ChxDocMain {
 			else if( x == "-o")
 				expectOutputDir = true;
 			else if( expectOutputDir ) {
-				outputDir = x;
-				outputDir = StringTools.replace(outputDir,"\\", "/");
-				if(outputDir.charAt(0) != "/") {
-					outputDir = neko.Sys.getCwd() + outputDir;
+				config.baseDirectory = x;
+				config.baseDirectory = StringTools.replace(config.baseDirectory,"\\", "/");
+				if(config.baseDirectory.charAt(0) != "/") {
+					config.baseDirectory = neko.Sys.getCwd() + config.baseDirectory;
 				}
-// 				trace(outputDir);
 				expectOutputDir = false;
 			}
 			else if( x == "-cp")
@@ -405,7 +448,7 @@ class ChxDocMain {
 				switch(parts[0]) {
 				case "--title": platformData.title = parts[1];
 				case "--subtitle": platformData.subtitle = parts[1];
-				case "--stylesheet": stylesheet = parts[1];
+				case "--stylesheet": config.stylesheet = parts[1];
 				case "--showPrivateClasses": config.showPrivateClasses = getBool(parts[1]);
 				case "--showPrivateTypedefs": config.showPrivateTypedefs = getBool(parts[1]);
 				case "--showPrivateEnums": config.showPrivateEnums = getBool(parts[1]);
@@ -443,7 +486,6 @@ class ChxDocMain {
 		print(" Options:");
 		print("\t-f filter Add a package or class filter");
 		print("\t-o outputdir Sets the output directory (defaults to ./html)");
-// 		print("\t-s stylesheet Sets the stylesheet relative to the outputdir");
 // 		print("\t-cp classpath Add a source file class path"); // not implemented
 		print("\t--title=string Set the package title");
 		print("\t--subtitle=string Set the package subtitle");

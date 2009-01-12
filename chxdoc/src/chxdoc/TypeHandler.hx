@@ -64,7 +64,7 @@ class TypeHandler<T> {
 		var metaData = {
 			date : ChxDocMain.shortDate,
 			keywords : new Array<String>(),
-			stylesheet : ChxDocMain.baseRelPath + ChxDocMain.stylesheet,
+			stylesheet : ChxDocMain.baseRelPath + "../" + ChxDocMain.config.stylesheet,
 		};
 		metaData.keywords.push("");
 		return metaData;

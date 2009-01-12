@@ -41,6 +41,16 @@ typedef Config = {
 	var temploBaseDir		: String; // path
 	var temploTmpDir		: String; // path
 	var temploMacros		: String; // macros.mtt
+	var htmlFileExtension	: String; // .html
+	/** the stylesheet name, relative to baseDirectory **/
+	var stylesheet			: String; // stylesheet.css
+	var baseDirectory		: String; // /my/path/html/ (index.html, all_classes.html etc)
+	var packageDirectory	: String; // /my/path/packages/ (pkg/path/package.html)
+	var typeDirectory		: String; // /my/path/types/ (pkg/path/Class.html)
+
+	var noPrompt			: Bool; // turn off prommpting
+	var installImagesDir	: Bool;
+	var installCssFile		: Bool;
 };
 
 typedef BuildData = {
@@ -81,11 +91,17 @@ typedef DocsContext = {
 typedef PackageContext = {
 	var name				: String;	// short name
 	var full				: String;	// full dotted name
-	var resolvedPath		: String;	// full final output path
+
 	var rootRelative		: String;
 	var classes				: Array<ClassCtx>;
 	var enums				: Array<EnumCtx>;
 	var typedefs			: Array<TypedefCtx>;
+
+	// Filesystem paths.
+	/** Filesystem path to types **/
+	var resolvedTypeDir		: String;
+	/** filesystem path to package files **/
+	var resolvedPackageDir	: String;
 };
 
 typedef PackageFileContext = {
