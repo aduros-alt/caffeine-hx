@@ -1,3 +1,10 @@
+-neko chxdoc.n
+-cp ext2
+-main tools/chxdoc/ChxDocMain.hx
+-cmd nekotools boot chxdoc.n
+
+--next
+
 #the library release builder
 -neko librelease.n
 -main tools/HaxelibRelease.hx
@@ -15,3 +22,4 @@
 -neko as3libtool.n
 -cp ext2
 -main tools/AS3LibTool.hx
+

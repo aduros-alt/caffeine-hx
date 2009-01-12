@@ -46,6 +46,44 @@ class HaxeObject : Dynamic, HaxeSerializable {
 
 	this() { isNull = false; }
 
+	/**
+		Creator which takes a variadic list of char[] name, * value, ...
+	**/
+	public static HaxeObject create(...) {
+		auto o = new HaxeObject();
+		for (int i = 0; i < _arguments.length; i+=2) {
+			char[] key = *cast(char[] *)_argptr;
+			_argptr += key.length;
+			Dynamic v;
+			if (_arguments[i+1] == typeid(Dynamic)) {
+				v = *cast(Dynamic *)_argptr;
+				_argptr += v.sizeof;
+			}
+			else if (_arguments[i+1] == typeid(long)) {
+				long val = *cast(long *)_argptr;
+				_argptr += val.sizeof;
+				v = new Int(val);
+			}
+			else if (_arguments[i+1] == typeid(real)) {
+				real val = *cast(real *)_argptr;
+				_argptr += val.sizeof;
+				v = new Float(val);
+			}
+			else if (_arguments[i+1] == typeid(char [])) {
+				char[] val = *cast(char[] *)_argptr;
+				_argptr += val.sizeof;
+				v = new String(val);
+			}
+			else if(v is null) {
+				v = new Dynamic();
+				_argptr += v.sizeof;
+			}
+			else
+				assert(0);
+			o.__fields[key] = v;
+		}
+	}
+
 	mixin DynamicHashType!(Dynamic, __fields);
 
 	public char[] toString() {

@@ -58,14 +58,14 @@ let display e = raise (Display e)
 
 let is_resuming p =
 	let p2 = !resume_display in
-	p.pmax = p2.pmin && (!Plugin.get_full_path) p.pfile = p2.pfile
+	p.pmax = p2.pmin && Common.get_full_path p.pfile = p2.pfile
 
 let priority = function
 	| OpAssign | OpAssignOp _ -> -4
 	| OpBoolOr -> -3
 	| OpBoolAnd -> -2
 	| OpInterval -> -2
-	| OpEq | OpNotEq | OpGt | OpLt | OpGte | OpLte | OpPhysEq | OpPhysNotEq -> -1
+	| OpEq | OpNotEq | OpGt | OpLt | OpGte | OpLte -> -1
 	| OpOr | OpAnd | OpXor -> 0
 	| OpShl | OpShr | OpUShr -> 1
 	| OpAdd | OpSub -> 2
@@ -129,6 +129,7 @@ let any_ident = parser
 
 let property_ident = parser
 	| [< i = any_ident >] -> i
+	| [< '(Kwd Dynamic,_) >] -> "dynamic"
 	| [< '(Kwd Default,_) >] -> "default"
 
 let log m s =
@@ -206,7 +207,7 @@ and parse_class_field_resume s =
 		(* junk all tokens until we reach next variable/function or next type declaration *)
 		let rec loop() =
 			(match List.map fst (Stream.npeek 2 s) with
-			| Kwd Public :: _ | Kwd Static :: _ | Kwd Var :: _ | Kwd Override :: _ ->
+			| Kwd Public :: _ | Kwd Static :: _ | Kwd Var :: _ | Kwd Override :: _ | Kwd Dynamic :: _ ->
 				raise Exit
 			| [] | Eof :: _ | Kwd Extern :: _ | Kwd Class :: _ | Kwd Interface :: _ | Kwd Enum :: _ | Kwd Typedef :: _ ->
 				raise Not_found
@@ -383,8 +384,8 @@ and parse_cf_rights allow_static l = parser
 	| [< '(Kwd Static,_) when allow_static; l = parse_cf_rights false (AStatic :: l) >] -> l
 	| [< '(Kwd Public,_) when not(List.mem APublic l || List.mem APrivate l); l = parse_cf_rights allow_static (APublic :: l) >] -> l
 	| [< '(Kwd Private,_) when not(List.mem APublic l || List.mem APrivate l); l = parse_cf_rights allow_static (APrivate :: l) >] -> l
-	| [< '(Kwd Override,_) when allow_static; l = parse_cf_rights false (AOverride :: l) >] -> l
-	| [< '(Kwd F9Dynamic,_) when not (List.mem AF9Dynamic l); l = parse_cf_rights false (AF9Dynamic :: l) >] -> l
+	| [< '(Kwd Override,_) when not (List.mem AOverride l); l = parse_cf_rights false (AOverride :: l) >] -> l
+	| [< '(Kwd Dynamic,_) when not (List.mem ADynamic l); l = parse_cf_rights allow_static (ADynamic :: l) >] -> l
 	| [< '(Kwd Inline,_); l = parse_cf_rights allow_static (AInline :: l) >] -> l
 	| [< >] -> l
 
@@ -394,8 +395,12 @@ and parse_fun_name = parser
 	| [< '(Kwd New,_) >] -> "new"
 
 and parse_fun_param = parser
-	| [< '(Question,_); name = any_ident; t = parse_type_opt >] -> (name,true,t)
-	| [< name = any_ident; t = parse_type_opt >] -> (name,false,t)
+	| [< '(Question,_); name = any_ident; t = parse_type_opt; c = parse_fun_param_value >] -> (name,true,t,c)
+	| [< name = any_ident; t = parse_type_opt; c = parse_fun_param_value >] -> (name,false,t,c)
+
+and parse_fun_param_value = parser
+	| [< '(Binop OpAssign,_); e = expr >] -> Some e
+	| [< >] -> None
 
 and parse_fun_param_type = parser
 	| [< '(Question,_); name = any_ident; '(DblDot,_); t = parse_type_path >] -> (name,true,t)
@@ -522,7 +527,7 @@ and expr = parser
 	| [< '(Kwd For,p); '(POpen,_); name = any_ident; '(Kwd In,_); it = expr; '(PClose,_); s >] ->
 		(try
 			let e = expr s in
-			expr_next (EFor (name,it,e),punion p (pos e)) s
+			(EFor (name,it,e),punion p (pos e))
 		with
 			Display e -> display (EFor (name,it,e),punion p (pos e)))
 	| [< '(Kwd If,p); '(POpen,_); cond = expr; '(PClose,_); e1 = expr; s >] ->
@@ -546,19 +551,19 @@ and expr = parser
 				| _ ->
 					None , s
 		) in
-		expr_next (EIf (cond,e1,e2), punion p (match e2 with None -> pos e1 | Some e -> pos e)) s
+		(EIf (cond,e1,e2), punion p (match e2 with None -> pos e1 | Some e -> pos e))
 	| [< '(Kwd Return,p); e = popt expr >] -> (EReturn e, match e with None -> p | Some e -> punion p (pos e))
 	| [< '(Kwd Break,p) >] -> (EBreak,p)
 	| [< '(Kwd Continue,p) >] -> (EContinue,p)
 	| [< '(Kwd While,p1); '(POpen,_); cond = expr; '(PClose,_); s >] ->
 		(try
 			let e = expr s in
-			expr_next (EWhile (cond,e,NormalWhile),punion p1 (pos e)) s
+			(EWhile (cond,e,NormalWhile),punion p1 (pos e))
 		with
 			Display e -> display (EWhile (cond,e,NormalWhile),punion p1 (pos e)))
-	| [< '(Kwd Do,p1); e = expr; '(Kwd While,_); '(POpen,_); cond = expr; '(PClose,_); s >] -> expr_next (EWhile (cond,e,DoWhile),punion p1 (pos e)) s
-	| [< '(Kwd Switch,p1); e = expr; '(BrOpen,_); cases , def = parse_switch_cases e []; '(BrClose,p2); s >] -> expr_next (ESwitch (e,cases,def),punion p1 p2) s
-	| [< '(Kwd Try,p1); e = expr; cl = plist (parse_catch e); s >] -> expr_next (ETry (e,cl),p1) s
+	| [< '(Kwd Do,p1); e = expr; '(Kwd While,_); '(POpen,_); cond = expr; '(PClose,_); s >] -> (EWhile (cond,e,DoWhile),punion p1 (pos e))
+	| [< '(Kwd Switch,p1); e = expr; '(BrOpen,_); cases , def = parse_switch_cases e []; '(BrClose,p2); s >] -> (ESwitch (e,cases,def),punion p1 p2)
+	| [< '(Kwd Try,p1); e = expr; cl = plist (parse_catch e); s >] -> (ETry (e,cl),p1)
 	| [< '(IntInterval i,p1); e2 = expr >] -> make_binop OpInterval (EConst (Int i),p1) e2
 	| [< '(Kwd Untyped,p1); e = expr >] -> (EUntyped e,punion p1 (pos e))
 
@@ -633,7 +638,7 @@ and toplevel_expr s =
 	with
 		Display e -> e
 
-let parse code file =
+let parse ctx code file =
 	let old = Lexer.save() in
 	let old_cache = !cache in
 	let mstack = ref [] in
@@ -658,14 +663,16 @@ let parse code file =
 			| _ :: l ->
 				mstack := l;
 				next_token())
-		| Macro "else" ->
+		| Macro "else" | Macro "elseif" ->
 			(match !mstack with
 			| [] -> raise Exit
 			| _ :: l ->
 				mstack := l;
-				process_token (skip_tokens false))
+				process_token (skip_tokens (snd tk) false))
 		| Macro "if" ->
-			process_token (enter_macro())
+			process_token (enter_macro (snd tk))
+		| Macro "error" ->
+			error Unimplemented (snd tk)
 		| Macro "line" ->
 			let line = (match next_token() with
 				| (Const (Int s),_) -> int_of_string s
@@ -676,19 +683,18 @@ let parse code file =
 		| _ ->
 			tk
 
-	and enter_macro() =
+	and enter_macro p =
 		let ok , tk = eval_macro false in
 		if ok then begin
-			mstack := snd tk :: !mstack;
+			mstack := p :: !mstack;
 			tk
 		end else
-			skip_tokens_loop true tk
+			skip_tokens_loop p true tk
 
 	and eval_macro allow_expr =
 		match Lexer.token code with
 		| (Const (Ident s),p) | (Const (Type s),p) ->
-			if s = "error" then error Unimplemented p;
-			let ok = Plugin.defined s in
+			let ok = Common.defined ctx s in
 			(match Lexer.token code with
 			| (Binop OpBoolOr,_) when allow_expr ->
 				let ok2 , tk = eval_macro allow_expr in
@@ -709,22 +715,25 @@ let parse code file =
 		| _ ->
 			raise Exit
 
-	and skip_tokens_loop test tk =
+	and skip_tokens_loop p test tk =
 		match fst tk with
 		| Macro "end" ->
 			Lexer.token code
-		| Macro "else" when not test ->
-			skip_tokens test
+		| Macro "elseif" | Macro "else" when not test ->
+			skip_tokens p test
 		| Macro "else" ->
-			enter_macro()
+			mstack := snd tk :: !mstack;
+			Lexer.token code
+		| Macro "elseif" ->
+			enter_macro (snd tk)
 		| Macro "if" ->
-			skip_tokens_loop test (skip_tokens false)
+			skip_tokens_loop p test (skip_tokens p false)
 		| Eof ->
-			raise Exit
+			error Unclosed_macro p
 		| _ ->
-			skip_tokens test
+			skip_tokens p test
 
-	and skip_tokens test = skip_tokens_loop test (Lexer.token code)
+	and skip_tokens p test = skip_tokens_loop p test (Lexer.token code)
 
 	in
 	let s = Stream.from (fun _ ->

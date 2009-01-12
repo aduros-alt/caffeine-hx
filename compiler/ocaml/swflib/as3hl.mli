@@ -32,6 +32,8 @@ type hl_opcode =
 	| HThrow
 	| HGetSuper of hl_name
 	| HSetSuper of hl_name
+	| HDxNs of hl_ident
+	| HDxNsLate
 	| HRegKill of reg
 	| HLabel
 	| HJump of hl_jump * int
@@ -72,10 +74,12 @@ type hl_opcode =
 	| HCallPropLex of hl_name * nargs
 	| HCallSuperVoid of hl_name * nargs
 	| HCallPropVoid of hl_name * nargs
+	| HApplyType of nargs
 	| HObject of nargs
 	| HArray of nargs
 	| HNewBlock
 	| HClassDef of hl_class
+	| HGetDescendants of hl_name
 	| HCatch of int
 	| HFindPropStrict of hl_name
 	| HFindProp of hl_name
@@ -141,6 +145,7 @@ and hl_name =
 	| HMRuntimeNameLate
 	| HMMultiNameLate of hl_ns_set
 	| HMAttrib of hl_name
+	| HMParams of hl_name * hl_name list
 
 and hl_value =
 	| HVNone
@@ -153,7 +158,7 @@ and hl_value =
 	| HVNamespace of int * hl_namespace
 
 and hl_method = {
-	hlmt_mark : int; (* unique id, for internal usage *)
+	hlmt_index : int; (* used to sort methods (preserve order) *)
 	hlmt_ret : hl_name option;
 	hlmt_args : hl_name option list;
 	hlmt_native : bool;
@@ -165,7 +170,7 @@ and hl_method = {
 	hlmt_debug_name : hl_ident option;
 	hlmt_dparams : hl_value list option;
 	hlmt_pnames : hl_ident option list option;
-	hlmt_function : hl_function option; (* None for interfaces constructors only *)
+	mutable hlmt_function : hl_function option; (* None for interfaces constructors only *)
 }
 
 and hl_try_catch = {
@@ -183,7 +188,7 @@ and hl_function = {
 	hlf_max_scope : int;
 	mutable hlf_code : hl_opcode array;
 	hlf_trys : hl_try_catch array;
-	hlf_locals : (hl_name * hl_name option * hl_slot) array;
+	hlf_locals : (hl_name * hl_name option * hl_slot * bool) array; (* bool = const - mostly false *)
 }
 
 and hl_method_kind = as3_method_kind
@@ -220,6 +225,7 @@ and hl_field = {
 }
 
 and hl_class = {
+	hlc_index : int;
 	hlc_name : hl_name;
 	hlc_super : hl_name option;
 	hlc_sealed : bool;
@@ -227,10 +233,10 @@ and hl_class = {
 	hlc_interface : bool;
 	hlc_namespace : hl_namespace option;
 	hlc_implements : hl_name array;
-	hlc_construct : hl_method;
-	hlc_fields : hl_field array;
-	hlc_static_construct : hl_method;
-	hlc_static_fields : hl_field array;
+	mutable hlc_construct : hl_method;
+	mutable hlc_fields : hl_field array;
+	mutable hlc_static_construct : hl_method;
+	mutable hlc_static_fields : hl_field array;
 }
 
 and hl_static = {

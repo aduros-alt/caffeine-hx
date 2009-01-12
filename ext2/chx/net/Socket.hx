@@ -34,41 +34,96 @@ interface Socket {
 	var output(default,null) : chx.io.Output;
 	var custom : Dynamic;
 
-	/** Accept an incoming connection **/
+	/**
+	 * Accept an incoming connection
+	 */
 	function accept() : Socket;
-	/** For event driven architectures like Flash, adds a listener class **/
+
+	/**
+	 * For event driven architectures like Flash, adds a listener class
+	 * @param l IEventDrivenSocketListener instance
+	 */
 	function addEventListener( l : IEventDrivenSocketListener ) : Void;
-	/** Bind to a host/port to accept incoming connections */
+
+	/**
+	 * Bind to a host/port to accept incoming connections
+	 */
 	function bind(host : String, port : Int) : Void;
-	/** Connect to a remote host/port
-		<h1>Throws</h1>
-		chx.lang.IOException - Connection failed<br />
-		chx.lang.Exception - Other errors
-	**/
+
+	/**
+	 * Connect to a remote host/port
+	 * @param host Host ip address or hostname.
+	 * @param port Port number to connect to.
+	 * @throws chx.lang.IOException - Connection failed
+	 * @throws chx.lang.Exception - Other errors
+	 */
 	function connect(host : String, port : Int) : Void;
-	/** Close the socket **/
+
+	/**
+	 * Closes the socket.
+	 */
 	function close() : Void;
-	/** returns information on the local portion of the socket **/
+
+	/**
+	 * Returns information on the local portion of the socket
+	 */
 	function host() : { host : Host, port : Int };
+
 	function listen(connections : Int) : Void;
-	/** returns information about the remot host **/
+
+	/**
+	 * Returns information about the remot host
+	 **/
 	function peer() : { host : Host, port : Int };
+
 	function read() : Bytes;
-	/** For event driven architectures like Flash, removes a listener class **/
+
+	/**
+	 * For event driven architectures like Flash, removes a listener class
+	 * @param l And IEventDrivenSocketListener instance
+	 */
 	function removeEventListener( l : IEventDrivenSocketListener ) : Void;
-	/** Sets if reads and writes will block **/
+
+	/**
+	 * Sets if reads and writes will block. Event driven socket listeners like flash
+	 * will not allow for blocking.
+	 * @param b True to set blocking, false for non-blocking
+	 */
 	function setBlocking( b : Bool ) : Void;
 
-	/** Sets the endianess of the socket connection **/
+	/**
+	 * Sets the endianess of the socket connection
+	 * @param bigEndian True to set big endian, false for little endian
+     * @return Input value
+	 */
 	function setEndian(bigEndian : Bool) : Bool;
+
+	/**
+	 *
+	 */
 	function setTimeout( timeout : Float ) : Void;
-	/** Returns the function that is used for select() calls for the socket type **/
+
+	/**
+	 * Returns the function that is used for select() calls for the socket type.
+	 */
 	function selectFunction() : Array<Socket> -> Array<Socket> ->  Array<Socket> -> Float -> {read: Array<Socket>,write: Array<Socket>,others: Array<Socket>};
-	/** Shutdown (close) either part of a socket connection **/
+
+	/**
+	 * Shutdown (close) either part of a socket connection.
+	 */
 	function shutdown( read : Bool, write : Bool ) : Void;
-	/** Block until a read occurs **/
+
+	/**
+	 * Block until a read occurs. Not available on event driven architectures.
+	 */
 	function waitForRead() : Void;
-	/** Write the contents of Bytes to the socket. Throws io.Error.Blocked or Custom for closed sockets **/
+
+    /**
+     * Write the contents of Bytes to the socket.
+     * @param content A Bytes value
+     * @throws chx.lang.BlockedException If socket blocks.
+	 * @throws chx.lang.IOException For other error conditions including socket closed
+     */
 	function write( content : Bytes ) : Void;
 
 }

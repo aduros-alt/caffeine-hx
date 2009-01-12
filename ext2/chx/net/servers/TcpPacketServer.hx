@@ -24,12 +24,12 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-package system.net.servers;
+package chx.net.servers;
 
 import chx.net.TcpSocket;
-import system.net.servers.PacketServer;
-import system.net.servers.PacketServer.SocketInfo;
-import system.net.servers.PacketServer.ThreadMessage;
+import chx.net.servers.PacketServer;
+import chx.net.servers.PacketServer.SocketInfo;
+import chx.net.servers.PacketServer.ThreadMessage;
 
 
 class TcpPacketServer<Client> extends PacketServer<Client> {

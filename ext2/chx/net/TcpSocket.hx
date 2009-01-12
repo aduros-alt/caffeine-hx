@@ -64,6 +64,7 @@ package chx.net;
 // 	import flash.errors.SecurityError;
 #end
 
+import chx.lang.BlockedException;
 import chx.lang.Exception;
 import chx.lang.FatalException;
 import chx.lang.IOException;
@@ -122,7 +123,6 @@ class TcpSocket implements chx.net.Socket {
 		#end
 	}
 
-	/** For event driven architectures like Flash, sets the listener class **/
 	public function addEventListener( l : IEventDrivenSocketListener ) : Void {
 		listeners.remove(l);
 		listeners.push(l);
@@ -151,11 +151,6 @@ class TcpSocket implements chx.net.Socket {
 		output.close();
 	}
 
-	/** Connect to a remote host/port
-		<h1>Throws</h1>
-		chx.lang.IOException - Connection failed<br />
-		chx.lang.Exception - Other errors
-	**/
 	public function connect(host : String, port : Int) {
 		var h = new Host(host);
 		var failMsg = function(msg:String) {
@@ -235,7 +230,6 @@ class TcpSocket implements chx.net.Socket {
 		#end
 	}
 
-	/** For event driven architectures like Flash, sets the listener class **/
 	public function removeEventListener( l : IEventDrivenSocketListener ) : Void {
 		while(listeners.remove(l)) {};
 	}

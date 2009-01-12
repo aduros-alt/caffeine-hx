@@ -32,6 +32,7 @@ class String : Dynamic
 		this.value = v;
 		return this;
 	}
+
 	String opCat(char[] v) {
 		this.isNull = false;
 		return new String(this.value ~ v);
@@ -56,6 +57,33 @@ class String : Dynamic
 		this.isNull = false;
 		this.value ~= FloatUtil.toString(v); return this;
 	}
+
+	String opAdd(char[] v) {
+		this.isNull = false;
+		return new String(this.value ~ v);
+	}
+	String opAdd(Dynamic v) {
+		this.isNull = false;
+		return new String(this.value ~ v.toString);
+	}
+	String opAdd(real v) {
+		this.isNull = false;
+		return new String(this.value ~ FloatUtil.toString(v));
+	}
+	String opAddAssign(char[] v) {
+		this.isNull = false;
+		this.value ~= v; return this;
+	}
+	String opAddAssign(Dynamic v) {
+		this.isNull = false;
+		this.value ~= v.toString; return this;
+	}
+	String opAddAssign(real v) {
+		this.isNull = false;
+		this.value ~= FloatUtil.toString(v); return this;
+	}
+
+
 
 	mixin Castable!(char[]);
 	mixin NullComparator!(typeof(this));

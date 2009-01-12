@@ -81,7 +81,7 @@ in
 let download() =
 	msg "*** Please hit enter on login (empty password) ***";
 	cvs motiontwin "login";
-(*	cvs motiontwin "co haxe"; *)
+	cvs motiontwin "co haxe";
 	download_libs();
 in
 
@@ -130,22 +130,38 @@ let compile() =
 	(* HAXE *)
 	Sys.chdir "haxe";
 	command "ocamllex lexer.mll";
-	ocamlc "-I ../ocaml plugin.ml ast.ml lexer.ml";
-	ocamlc "-I ../ocaml -pp camlp4o parser.ml";
-	ocamlc "-I ../ocaml -I ../ocaml/swflib -I ../ocaml/xml-light type.ml plugin.ml transform.ml typer.ml genswf9.ml genswf8.ml genswf.ml genxml.ml genhllua.ml genjs.ml genas3.ml genphp.ml";
-	ocamlc "-I ../ocaml -I ../neko/libs/include/ocaml ../neko/libs/include/ocaml/nast.ml ../neko/libs/include/ocaml/nxml.ml ../neko/libs/include/ocaml/binast.ml genneko.ml";
-	ocamlc "-I ../ocaml -I ../ocaml/extc main.ml";
-	let mlist = ["plugin";"ast";"lexer";"parser";"type";"transform";"typer";"genswf9";"genswf8";"genswf";"../neko/libs/include/ocaml/nast";"../neko/libs/include/ocaml/nxml";"../neko/libs/include/ocaml/binast";"genneko";"genxml";"genhllua";"genjs";"genas3";"genphp";"main"] in
-	let libs = ["../ocaml/extLib";"../ocaml/extc/extc";"../ocaml/swflib/swflib";"../ocaml/xml-light/xml-light";"unix"] in
-	let makelibs ext = " " ^ String.concat " " (List.map (fun l -> l ^ ext) libs) ^ " " in
-	if bytecode then command ("ocamlc -custom -o ../bin/haxe-byte" ^ exe_ext ^ makelibs ".cma" ^ modules mlist ".cmo");
-	if native then command ("ocamlopt -o ../bin/haxe" ^ exe_ext ^ makelibs ".cmxa" ^ modules mlist ".cmx");
+	let libs = [
+		"../ocaml/extLib";
+		"../ocaml/extc/extc";
+		"../ocaml/swflib/swflib";
+		"../ocaml/xml-light/xml-light";
+		"unix"
+	] in
+	let neko = "../neko/libs/include/ocaml" in
+	let paths = [
+		"../ocaml";
+		"../ocaml/swflib";
+		"../ocaml/xml-light";
+		"../ocaml/extc";
+		neko
+	] in
+	let mlist = [
+		"ast";"lexer";"type";"common";"parser";"typecore";
+		"genxml";"typeload";"codegen";"typer";
+		neko^"/nast";neko^"/binast";neko^"/nxml";
+		"genneko";"genas3";"genjs";"genswf8";"genswf9";"genswf";"genphp";"gendmd";
+		"main";
+	] in
+	let path_str = String.concat " " (List.map (fun s -> "-I " ^ s) paths) in
+	let libs_str ext = " " ^ String.concat " " (List.map (fun l -> l ^ ext) libs) ^ " " in
+	ocamlc (path_str ^ " -pp camlp4o " ^ modules mlist ".ml");
+	if bytecode then command ("ocamlc -custom -o ../bin/haxe-byte" ^ exe_ext ^ libs_str ".cma" ^ modules mlist ".cmo");
+	if native then command ("ocamlopt -o ../bin/haxe" ^ exe_ext ^ libs_str ".cmxa" ^ modules mlist ".cmx");
 
 in
 let startdir = Sys.getcwd() in
 try
-(*	download(); *)
-(* 	download_libs(); *)
+(* 	download(); *)
 	compile();
 	Sys.chdir startdir;
 with

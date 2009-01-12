@@ -18,6 +18,7 @@ public {
 	import haxe.HaxeDate;
 	import haxe.Enum;
 	import haxe.String;
+	import haxe.FunctionBase;
 }
 
 public enum HaxeType
@@ -38,12 +39,6 @@ public enum HaxeType
 	TFunction
 }
 
-/**
-	A function takes a Class c to be used as "this", an array of
-	parameters, and an object that contains context information, which
-	can have fields set as a sort of closure.
-**/
-alias Dynamic function(HaxeClass c, Dynamic[] params, HaxeObject context) Function;
 /**
 	The base class for all Haxe types
 **/
@@ -81,20 +76,23 @@ class Dynamic
 {
 	public bool isNull = true;
 	this() { }
-	public HaxeType type() { return HaxeType.TNull; }
+	this(FunctionBase b) {
+		if(b !is null) {
+			this.__func = b;
+			this.isNull = false;
+		}
+	}
+
+	public HaxeType type() {
+		if(__func !is null)
+			return HaxeType.TFunction;
+		return HaxeType.TNull;
+	}
 	public char[] toString() { return isNull ? "(null)" : "Dynamic"; }
 
 	HaxeClass __objPtr;
 	HaxeObject __context;
-	union {
-		Function __func;
-	}
-
-	Dynamic opCall(Dynamic[] params) {
-		if(this.type != HaxeType.TFunction)
-			throw new Exception("Not a function");
-		return __func(__objPtr, params, __context);
-	}
+	public FunctionBase __func;
 
 	Dynamic clone() {
 		try {
@@ -132,31 +130,59 @@ class Dynamic
 	mixin(CantCast!("Enum"));
 	mixin(CantCast!("HaxeObject"));
 	mixin(CantCast!("HaxeClass"));
-	mixin(CantCast!("Function"));
-}
+// 	mixin(CantCast!("Function"));
 
-class DynamicFunction : Dynamic {
-	public HaxeType type() { return HaxeType.TFunction; }
-	this(HaxeClass obj, Function f, HaxeObject context) {
-		this.__objPtr = obj;
-		this.__func = f;
-		this.__context = context;
+	private alias Dynamic DYN;
+// 	Dynamic opCall(Dynamic[] params) {
+// 		if(this.type != HaxeType.TFunction)
+// 			throw new Exception("Not a function");
+// 		return __func(__objPtr, params, __context);
+// 	}
+
+	private template CheckFunc() {
+		const char[] CheckFunc =
+		"if(__func is null) {
+			Cout(\"Dynamic.opCall\").newline;
+			throw new Exception(\"Not a function\");
+		}";
 	}
-}
 
-/**
-	Template for creating Dynamic methods from static functions.
-	mixin(Method!("alias", "realfunction", context));
-**/
-template Method(char[] name, char[] func, char[] context) {
-	const char[] Method =
-			"__fields[\""
-			~ name ~
-			"\"] = new DynamicFunction(this, &"
-			~func~
-			", "
-			~context~
-			");";
+	Dynamic opCall(Dynamic[] params) {
+		mixin(CheckFunc!());
+		return __func(params);
+	}
+	Dynamic opCall() {
+		mixin(CheckFunc!());
+		return __func();
+	};
+	Dynamic opCall(DYN a) {
+		mixin(CheckFunc!());
+		return __func(a);
+	};
+	Dynamic opCall(DYN a,DYN b) {
+		mixin(CheckFunc!());
+		return __func(a,b);
+	};
+	Dynamic opCall(DYN a,DYN b,DYN c) {
+		mixin(CheckFunc!());
+		return __func(a,b,c);
+	};
+	Dynamic opCall(DYN a,DYN b,DYN c,DYN d) {
+		mixin(CheckFunc!());
+		return __func(a,b,c,d);
+	};
+	Dynamic opCall(DYN a,DYN b,DYN c,DYN d,DYN e) {
+		mixin(CheckFunc!());
+		return __func(a,b,c,d,e);
+	};
+	Dynamic opCall(DYN a,DYN b,DYN c,DYN d,DYN e,DYN f) {
+		mixin(CheckFunc!());
+		return __func(a,b,c,d,e,f);
+	};
+	Dynamic opCall(DYN a,DYN b,DYN c,DYN d,DYN e,DYN f,DYN g) {
+		mixin(CheckFunc!());
+		return __func(a,b,c,d,e,f,g);
+	};
 }
 
 /**
@@ -614,6 +640,8 @@ Dynamic toDynamic(T)(T val) {
 		return new String(val);
 //     else static if(is(T : Time))
 // 		return new HaxeDate();
+	else static if(is(T : FunctionBase))
+		return new Dynamic(val);
     else
         static assert(false, "Can not translate variable of type " ~ T.stringof);
 }

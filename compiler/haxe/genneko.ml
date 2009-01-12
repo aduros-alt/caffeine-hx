@@ -20,9 +20,10 @@ open Ast
 open Type
 open Nast
 open Nxml
+open Common
 
 type context = {
-	methods : bool;
+	com : Common.context;	
 	mutable curclass : string;
 	mutable curmethod : string;
 	mutable locals : (string , bool) PMap.t;
@@ -30,23 +31,21 @@ type context = {
 	mutable inits : texpr list;
 }
 
-let error msg p =
-	raise (Typer.Error (Typer.Custom msg,p))
-
 let files = Hashtbl.create 0
 
 let pos ctx p =
-	let file = (match ctx.methods with
+	let file = (match ctx.com.debug with
 		| true -> ctx.curclass ^ "::" ^ ctx.curmethod
 		| false ->
 			try
 				Hashtbl.find files p.pfile
 			with Not_found -> try
+				(* lookup relative path *)
 				let len = String.length p.pfile in
 				let base = List.find (fun path ->
 					let l = String.length path in
-					len > l  && String.sub p.pfile 0 l = path
-				) (!Plugin.class_path) in
+					len > l && String.sub p.pfile 0 l = path
+				) ctx.com.Common.class_path in
 				let l = String.length base in
 				let path = String.sub p.pfile l (len - l) in
 				Hashtbl.add files p.pfile path;
@@ -57,7 +56,7 @@ let pos ctx p =
 	) in
 	{
 		psource = file;
-		pline = Lexer.get_error_line p;
+		pline = Lexer.find_line_index ctx.com.lines p;
 	}
 
 let add_local ctx v p =
@@ -189,7 +188,7 @@ let rec gen_big_string ctx p s =
 let gen_constant ctx pe c =
 	let p = pos ctx pe in
 	match c with
-	| TInt i -> (try int p (Int32.to_int i) with _ -> Typer.error "This integer is too big to be compiled to a Neko 31-bit integer. Please use a Float instead" pe)
+	| TInt i -> (try int p (Int32.to_int i) with _ -> error "This integer is too big to be compiled to a Neko 31-bit integer. Please use a Float instead" pe)
 	| TFloat f -> (EConst (Float f),p)
 	| TString s -> call p (field p (ident p "String") "new") [gen_big_string ctx p s]
 	| TBool b -> (EConst (if b then True else False),p)
@@ -198,13 +197,7 @@ let gen_constant ctx pe c =
 	| TSuper -> assert false
 
 let rec gen_binop ctx p op e1 e2 =
-	let gen_op str =
-		(EBinop (str,gen_expr ctx e1,gen_expr ctx e2),p)
-	in
-	match op with
-	| OpPhysEq -> (EBinop ("==", call p (builtin p "pcompare") [gen_expr ctx e1; gen_expr ctx e2], int p 0),p)
-	| OpPhysNotEq ->  (EBinop ("!=", call p (builtin p "pcompare") [gen_expr ctx e1; gen_expr ctx e2], int p 0),p)
-	| _ -> gen_op (Ast.s_binop op)
+	(EBinop (Ast.s_binop op,gen_expr ctx e1,gen_expr ctx e2),p)
 
 and gen_unop ctx p op flag e =
 	match op with
@@ -223,6 +216,10 @@ and gen_call ctx p e el =
 			this p;
 			array p (List.map (gen_expr ctx) el)
 		]
+	| TLocal "__resources__", [] ->
+		call p (builtin p "array") (Hashtbl.fold (fun name data acc -> 
+			(EObject [("name",gen_constant ctx e.epos (TString name));("data",gen_big_string ctx p data)],p) :: acc
+		) ctx.com.resources [])
 	| TField ({ eexpr = TConst TSuper; etype = t },f) , _ ->
 		let c = (match follow t with TInst (c,_) -> c | _ -> assert false) in
 		call p (builtin p "call") [
@@ -236,22 +233,15 @@ and gen_call ctx p e el =
 		let e = (match gen_expr ctx e with EFunction _, _ as e -> (EBlock [e],p) | e -> e) in
 		call p e (List.map (gen_expr ctx) el)
 
-and gen_closure p t e f =
+and gen_closure p ep t e f =
 	match follow t with
 	| TFun (args,_) ->
-		let n = ref 0 in
-		let args = List.map (fun _ -> incr n; "p" ^ string_of_int (!n)) args in
+		let n = List.length args in
+		if n > 5 then error "Cannot create closure with more than 5 arguments" ep;
 		let tmp = ident p "@tmp" in
-		let ifun = ident p "@fun" in
 		EBlock [
 			(EVars ["@tmp", Some e; "@fun", Some (field p tmp f)] , p);
-			(EIf ((EBinop ("==",ifun,null p),p),
-				null p,
-				Some (EFunction (args,(EBlock [
-					(EBinop ("=",this p,tmp),p);
-					(EReturn (Some (call p ifun (List.map (ident p) args))),p)
-				],p)),p)
-			),p)
+			call p (ident p ("@closure" ^ string_of_int n)) [tmp;ident p "@fun"]
 		] , p
 	| _ ->
 		field p e f
@@ -276,7 +266,7 @@ and gen_expr ctx e =
 	| TBinop (op,e1,e2) ->
 		gen_binop ctx p op e1 e2
 	| TField (e2,f) ->
-		gen_closure p e.etype (gen_expr ctx e2) f
+		gen_closure p e.epos e.etype (gen_expr ctx e2) f
 	| TTypeExpr t ->
 		gen_type_path p (t_path t)
 	| TParenthesis e ->
@@ -311,14 +301,18 @@ and gen_expr ctx e =
 		) vl),p)
 	| TFunction f ->
 		let b = block ctx [f.tf_expr] in
-		let inits = List.fold_left (fun acc (a,_,_) ->
+		let inits = List.fold_left (fun acc (a,c,t) ->
+			let acc = (match c with
+				| None | Some TNull -> acc
+				| Some c ->	gen_expr ctx (Codegen.set_default ctx.com a c t e.epos) :: acc
+			) in
 			if add_local ctx a p then
-				(a, Some (call p (builtin p "array") [ident p a])) :: acc
+				(EBinop ("=",ident p a,call p (builtin p "array") [ident p a]),p) :: acc
 			else
 				acc
 		) [] f.tf_args in
 		let e = gen_expr ctx f.tf_expr in
-		let e = (match inits with [] -> e | _ -> (EBlock [(EVars (List.rev inits),p);e],p)) in
+		let e = (match inits with [] -> e | _ -> EBlock (List.rev (e :: inits)),p) in
 		let e = (EFunction (List.map arg_name f.tf_args, with_return e),p) in
 		b();
 		e
@@ -495,8 +489,11 @@ let gen_method ctx p c acc =
 		if c.cf_get = ResolveAccess then acc else (c.cf_name, null p) :: acc
 	| Some e ->
 		match e.eexpr with
-		| TCall ({ eexpr = TField ({ eexpr = TTypeExpr (TClassDecl { cl_path = (["neko"],"Lib") }) }, "load")},[{ eexpr = TConst (TString m) };{ eexpr = TConst (TString f) };{ eexpr = TConst (TInt n) }]) ->
-			(c.cf_name, call (pos ctx e.epos) (EField (builtin p "loader","loadprim"),p) [(EBinop ("+",(EBinop ("+",str p m,str p "@"),p),str p f),p); (EConst (Int (Int32.to_int n)),p)]) :: acc
+		| TCall ({ eexpr = TField ({ eexpr = TTypeExpr (TClassDecl { cl_path = (["neko"],"Lib") }) }, load)},[{ eexpr = TConst (TString m) };{ eexpr = TConst (TString f) };{ eexpr = TConst (TInt n) }]) when load = "load" || load = "loadLazy" ->
+			let p = pos ctx e.epos in
+			let e = call p (EField (builtin p "loader","loadprim"),p) [(EBinop ("+",(EBinop ("+",str p m,str p "@"),p),str p f),p); (EConst (Int (Int32.to_int n)),p)] in
+			let e = (if load = "load" then e else (ETry (e,"@e",call p (ident p "@lazy_error") [ident p "@e"]),p)) in
+			(c.cf_name, e) :: acc
 		| TFunction _ -> ((if c.cf_name = "new" then "__construct__" else c.cf_name), gen_expr ctx e) :: acc
 		| _ -> (c.cf_name, null p) :: acc
 
@@ -673,13 +670,10 @@ let gen_package ctx h t =
 	in
 	loop [] (fst (t_path t))
 
-let gen_boot ctx hres =
-	let loop name data acc = (name , gen_constant ctx Ast.null_pos (TString data)) :: acc in
-	let objres = (EObject (Hashtbl.fold loop hres []),null_pos) in
+let gen_boot ctx =
 	(EBlock [
 		EBinop ("=",field null_pos (gen_type_path null_pos (["neko"],"Boot")) "__classes",ident null_pos "@classes"),null_pos;
 		call null_pos (field null_pos (gen_type_path null_pos (["neko"],"Boot")) "__init") [];
-		EBinop ("=",field null_pos (gen_type_path null_pos (["neko"],"Boot")) "__res",objres),null_pos;
 	],null_pos)
 
 let gen_name ctx acc t =
@@ -728,16 +722,16 @@ let generate_libs_init = function
 			acc ^ "$loader.path = $array(" ^ (if full_path then "" else "@b + ") ^ "\"" ^ Nast.escape l ^ "\" + @s,$loader.path);"
 		) boot libs
 
-let generate file types hres libs =
+let generate com libs =
 	let ctx = {
-		methods = Plugin.defined "debug";
+		com = com;		
 		curclass = "$boot";
 		curmethod = "$init";
 		inits = [];
 		curblock = [];
 		locals = PMap.empty;
 	} in
-	let t = Plugin.timer "neko ast" in
+	let t = Common.timer "neko compilation" in
 	let h = Hashtbl.create 0 in
 	let header = ENeko (
 		"@classes = $new(null);" ^
@@ -745,32 +739,37 @@ let generate file types hres libs =
 		"@enum_to_string = function() { return neko.Boot.__enum_str(this); };" ^
 		"@serialize = function() { return neko.Boot.__serialize(this); };" ^
 		"@tag_serialize = function() { return neko.Boot.__tagserialize(this); };" ^
+		"@lazy_error = function(e) return $varargs(function(_) $throw(e));" ^
+		"@closure0 = function(@this,@fun) if( @fun == null ) null else function() { this = @this; @fun(); };" ^
+		"@closure1 = function(@this,@fun) if( @fun == null ) null else function(a) { this = @this; @fun(a); };" ^
+		"@closure2 = function(@this,@fun) if( @fun == null ) null else function(a,b) { this = @this; @fun(a,b); };" ^
+		"@closure3 = function(@this,@fun) if( @fun == null ) null else function(a,b,c) { this = @this; @fun(a,b,c); };" ^
+		"@closure4 = function(@this,@fun) if( @fun == null ) null else function(a,b,c,d) { this = @this; @fun(a,b,c,d); };" ^
+		"@closure5 = function(@this,@fun) if( @fun == null ) null else function(a,b,c,d,e) { this = @this; @fun(a,b,c,d,e); };" ^
 		generate_libs_init libs
 	) , { psource = "<header>"; pline = 1; } in
-	let packs = List.concat (List.map (gen_package ctx h) types) in
-	let names = List.fold_left (gen_name ctx) [] types in
-	let methods = List.rev (List.fold_left (fun acc t -> gen_type ctx t acc) [] types) in
-	let boot = gen_boot ctx hres in
+	let packs = List.concat (List.map (gen_package ctx h) com.types) in
+	let names = List.fold_left (gen_name ctx) [] com.types in
+	let methods = List.rev (List.fold_left (fun acc t -> gen_type ctx t acc) [] com.types) in
+	let boot = gen_boot ctx in
 	let inits = List.map (gen_expr ctx) (List.rev ctx.inits) in
-	let vars = List.concat (List.map (gen_static_vars ctx) types) in
+	let vars = List.concat (List.map (gen_static_vars ctx) com.types) in
 	let e = (EBlock (header :: packs @ methods @ boot :: names @ inits @ vars), null_pos) in
-	t();
-	let neko_file = (try Filename.chop_extension file with _ -> file) ^ ".neko" in
-	let w = Plugin.timer "neko ast write" in
+	let neko_file = (try Filename.chop_extension com.file with _ -> com.file) ^ ".neko" in
 	let ch = IO.output_channel (open_out_bin neko_file) in
-	let source = Plugin.defined "neko_source" in
+	let source = Common.defined com "neko_source" in
 	if source then Nxml.write ch (Nxml.to_xml e) else Binast.write ch e;
 	IO.close_out ch;
 	let command cmd = try Sys.command cmd with _ -> -1 in
 	if source then begin
 		if command ("nekoc -p \"" ^ neko_file ^ "\"") <> 0 then failwith "Failed to print neko code";
 		Sys.remove neko_file;
-		Sys.rename ((try Filename.chop_extension file with _ -> file) ^ "2.neko") neko_file;
+		Sys.rename ((try Filename.chop_extension com.file with _ -> com.file) ^ "2.neko") neko_file;
 	end;
-	w();
-	let c = Plugin.timer "neko compilation" in
+	t();
+	let c = Common.timer "neko compilation" in
 	if command ("nekoc \"" ^ neko_file ^ "\"") <> 0 then failwith "Neko compilation failure";
 	c();
 	let output = Filename.chop_extension neko_file ^ ".n" in
-	if output <> file then Sys.rename output file;
+	if output <> com.file then Sys.rename output com.file;
 	if not source then Sys.remove neko_file

@@ -1,15 +1,127 @@
-TODO optimizer : optimizations and ast manipulation in a separate module
-TODO optimizer : when an object is only used localy, move its fields on the stack (allow inlined iterators)
-TODO optimizer : precompute constant expressions
-TODO optimizer : reduce expressions such as function()...() , [arr][0] or if(true) (for better inlining)
-TODO optimizer : move multiple statics access into local variables
-TODO inlining : allow inlined getter/setter
-TODO inlining : substitute class+function type parameters in order to have fully typed expressions
+2008-??-??: 2.02 CVS
+	Std.is(MyInterface, Class) now returns true (haXe/PHP)
+	php arrays are wrapped into _hx_array instances, fixes issues with references (array cast, access out of bounds ...)
+	removed untested php classes (php.DBase, php.IniHash)
+	added -D use_rtti_doc
+	flash.Lib.getTimer() now returns Int and is inlined
+	fixed php.FileSystem.stat
+	added memory related functions to php.Sys
+	added error when trying to extend Array, String, Date and Xml
+	fixed handling of implements ArrayAccess
+	fixed some minor things in flash10 api
+	switch/for/while/do/try/if are no longer using parse_next (parenthesises requ. instead)
+	fixed Type.typeof and Std.is in case of too much large integers for Flash6-8/JS
+	haxe.xml.Check : treat comments the same as PCDATA spaces
+	haxe.io.BytesData now uses strings instead of arrays for PHP
+	optimized line calculus from ast position
+	allow identifiers starting with _[0-9]
+	fixed access to flash.Vector methods : use AS3 namespace (faster)
 
-2008-??-??: 2.0
+2008-10-04: 2.01
+	fixed php.Sys
+	added neko.NativeString and neko.NativeArray
+	fixed php.Boot.__string_rec() when invoked from toString
+	fixed null references in class constructors for array arguments
+	fixed Type.enumParameters() and Type.typeOf() for PHP
+	fixed SPOD/MySql for PHP
+	fixed php.net.Socket.setTimeout(), php.io.Process
+	fixed php.Web.setCookie() for expire time
+	fixed php rethrow in catches and added the possibility to catch native exceptions
+	added runttime check for php.io.Socket.shutdown (uses fclose in php 5.1.x)
+	allowed optional Context in remoting connections
+	fixed extern classes for flash < 8
+	fixed inherited protected/private properties in as3 SWF library
+	fixed haxe.io float/double in Neko (when bigEndian was null)
+	added __FSCommand2__ support
+	optimized haxe.Unserializer (use faster buffer access)
+	use "Dynamic" instead of Dynamic->Void for flash9 IEventDispatcher
+	always use full classes paths for genAS3
+	prevent different get/set property accesses when implementing an interface
+	fixed assign of dynamicfunction references in PHP
+	haXe/PHP now generates code for extern classes __init__
+	added strings literal support in haxe.Template
+	fixed Process arguments and exitCode() in haXe/PHP
+	fixed hierarchy problem for classes with the name from different packages haXe/PHP
+	php.db.Mysql now throws an exception when tries to connect to an unexistant DB
+	fixed blocks in if statements for haXe/PHP
+	added php check on the full hierarchy for colliding names
+	added support for "g" modifier in EReg for PHP
+	PHP now generates __toString for classes that have toString defined
+	implemented php.Lib.getClasses()
+	fixed duplicate fields in Type.getInstanceFields on subclass
+	Enum is no longer defined inside Type but is standalone class
+	fixed Date.getDay on Neko/Windows (use %w instead of %u)
+	fixed memory leak with PHP closures
+	fixed wrong scope in PHP closures
+	fixed Array.reverse() in PHP
+	fixed Reflect.compareMethods in Neko (require Neko 1.8.0)
+	fixed flash7-8 register usage for __init__ and static variables initialization
+	moved StringTools.baseEncode/Decode to haxe.BaseCode
+	fixed binary resources for Flash, JS and PHP outputs
+	fixed compiler bug with inline + optional arguments
+	fixed Type.createInstance and createEmptyInstance with Array for flash6-8
+
+2008-07-28: 2.0
+	fixed current package bug in inherited constructor type
+	delayed type-parameter constraints check (allow mutual rec extends for SPOD)
+	improved unclosed macro error reporting
+	haXe/PHP integration
+	renamed NekoSocketConnection to SyncSocketConnection (php support)
+	fixes in genAs3
+	fix for flash9 : always coerce call return type
+	set all private+protected names from SWF lib to public (allow override+reflect)
+	flash9 : use findprop instead of findpropstrict for 'this' access (allow dynamic)
+	don't allow nullness changes in overrided/implemented
+	prevent typing hole with overriden polymorphic methods
+	added neko.vm.Mutex and neko.vm.Deque (included in neko 1.7.1)
+	added package remapping using --remap
+
+2008-07-17: 2.0-RC1
 	genneko : remove big array error (fixed in neko 1.7.1)
 	fixed neko.net.ThreadRemotingServer.onXML
 	genswf9 : fixed verify error with Null<Class> (was using dynamic access)
+	small patch for jsfl support
+	added .cca for faster string operations on Flash9/Flash/JS
+	bugfix with inlined local variables
+	upgraded flash9 api to flex3/player 9.0.115
+	override is now mandatory, no more --override
+	dynamic is now a keyword
+	f9dynamic is now dynamic and is mandatory on all platforms
+	public/private/dynamic are inherited by default when overriding a method
+	removed Reflect.empty() : use {} instead
+	changed #else by #elseif, added #else
+	flash9 : optimized Hash,IntHash,StringBuf (use typed value)
+	Reflect.field/setField/callMethod , Type.enumIndex and StringBuf methods are now inlined
+	optimized haxe.Md5 : don't use statics
+	allow up to 8 parameters in Reflect.createInstance
+	flash9 : some minor optimizations in haxe.Serializer
+	added haxe.io package (removed things from neko.io)
+	__resolve becomes resolve (and should be documented)
+	added haxe.Int32
+	removed neko.Int32
+	removed neko.io.Input/Output/Eof/Error/Logger/Multiple/StringInput/StringOutput
+	removed neko.net.RemotingServer
+	changed neko apis to use haxe.io and Bytes instead of String buffers
+	fixed big bug in js/flash8 debug stack handling
+	complete rewrite of haxe.remoting package
+	haxe.io.Bytes serialization support	(replace deprecated string support)
+	removed === and !==
+	removed Std.bool
+	fixed : Reflect.field(null) in flash9 doesn't throw an error anymore
+	removed Type.toClass and Type.toEnum
+	Dynamic type is now a class and not an enum
+	moved reflection support for core types from Boot to Std
+	fixed Type.getClassName/getEnumName/resolve for core flash9 types
+	renamed haxe.rtti.Type to haxe.rtti.CType (with changes in prefix)
+	added haxe.TimerQueue, added haxe.Timer.delay, remove haxe.Timer.delayed
+	flash9 : bugfix, generated interfaces were empty
+	fixed bug while writing block-vars in flash/js
+	added parameters default value (constants)
+	removed Std.resource, Std.ord, Std.chr
+	added haxe.Resource, allow binary data in resources
+	added Type.createEnum
+	check that local variables get correctly initialized before usage
+	haxe.Stack support for flash9
 
 2008-04-05: 1.19
 	fixed flash9 Array.toString
@@ -647,7 +759,7 @@ TODO inlining : substitute class+function type parameters in order to have fully
 
 2005-11-17: alpha 1b
 	fix some bugs
-	changed package syntax
+	changed package tests.lang
 
 2005-11-14: alpha 1
 	lexer

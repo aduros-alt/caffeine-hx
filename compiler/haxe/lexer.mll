@@ -56,7 +56,7 @@ let keywords =
 		Break;Return;Continue;Extends;Implements;Import;
 		Switch;Case;Default;Public;Private;Try;Untyped;
 		Catch;New;This;Throw;Extern;Enum;In;Interface;
-		Cast;Override;F9Dynamic;Typedef;Package;Callback;Inline];
+		Cast;Override;Dynamic;Typedef;Package;Callback;Inline];
 	h
 
 let init file =
@@ -87,12 +87,12 @@ let find_line p lines =
 		| (lp,line) :: l when lp > p -> line, p - delta
 		| (lp,line) :: l -> loop line lp l
 	in
-	loop 1 0 lines
+	loop 0 0 lines
 
 let get_error_line p =
 	let lines = List.rev (try Hashtbl.find all_lines p.pfile with Not_found -> []) in
 	let l, _ = find_line p.pmin lines in
-	l
+	l	
 
 let get_error_pos printer p =
 	if p.pmin = -1 then
@@ -126,9 +126,36 @@ let mk_ident lexbuf =
 let invalid_char lexbuf =
 	error (Invalid_character (lexeme_char lexbuf 0)) (lexeme_start lexbuf)
 
+type file_index = {
+	f_file : string;
+	f_lines : (int * int) list;
+	f_max_line : int;
 }
 
-let ident = ('_'* ['a'-'z'] ['_' 'a'-'z' 'A'-'Z' '0'-'9']* | '_')
+type line_index = (string, file_index) PMap.t
+
+let make_index f lines =
+	{
+		f_file = f;
+		f_lines = List.rev lines;
+		f_max_line = (match lines with (_,line) :: _ -> line + 1 | [] -> 1);
+	}
+
+let build_line_index() =
+	Hashtbl.fold (fun f l acc -> PMap.add f (make_index f l) acc) all_lines PMap.empty
+
+let find_line_index idx p =
+	let idx = (try PMap.find p.pfile idx with Not_found -> make_index p.pfile []) in
+	let ppos = p.pmin in
+	let rec loop = function
+		| [] -> idx.f_max_line
+		| (lp,line) :: l -> if lp > ppos then line else loop l
+	in
+	loop idx.f_lines
+
+}
+
+let ident = ('_'* ['a'-'z'] ['_' 'a'-'z' 'A'-'Z' '0'-'9']* | '_'+ | '_'+ ['0'-'9'] ['_' 'a'-'z' 'A'-'Z' '0'-'9']* )
 let idtype = '_'* ['A'-'Z'] ['_' 'a'-'z' 'A'-'Z' '0'-'9']*
 
 rule token = parse
@@ -165,8 +192,6 @@ rule token = parse
 	| "<<=" { mk lexbuf (Binop (OpAssignOp OpShl)) }
 (*//| ">>=" { mk lexbuf (Binop (OpAssignOp OpShr)) } *)
 (*//| ">>>=" { mk lexbuf (Binop (OpAssignOp OpUShr)) } *)
-	| "===" { mk lexbuf (Binop OpPhysEq) }
-	| "!==" { mk lexbuf (Binop OpPhysNotEq) }
 	| "==" { mk lexbuf (Binop OpEq) }
 	| "!=" { mk lexbuf (Binop OpNotEq) }
 	| "<=" { mk lexbuf (Binop OpLte) }

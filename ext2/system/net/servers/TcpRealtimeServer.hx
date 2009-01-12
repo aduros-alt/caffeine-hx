@@ -26,7 +26,6 @@
  */
 package system.net.servers;
 
-import haxe.io.Bytes;
 import system.net.servers.RealtimeServer;
 import system.net.servers.RealtimeServer.SocketInfos;
 import system.net.servers.RealtimeServer.ThreadMessage;

@@ -1,11 +1,15 @@
-class Base {
+class Base implements Dynamic {
 	static var guh : Int = 2;
+	var dynVar : Void -> Int;
 
 	public static function sguh() {
 		return Math.abs(1);
 	}
 
-	public function new() {}
+	public function new() {
+		dynVar = val;
+	}
+
 	public function val() : Int {
 		var v = 0;
 		try {
@@ -20,6 +24,10 @@ class Base {
 		catch(e:Dynamic) {
 		}
 		return guh;
+	}
+
+	public dynamic function dynFunc(j:Int) : Int {
+		return j;
 	}
 }
 
@@ -36,7 +44,24 @@ class Test extends Base {
 		var i = "abcdef".substr(0,3);
 		trace(i);
 		aClassField = Test.main;
+		var f = function(b:Int, c:Int) {
+			var j : Int = 0;
+			for(i in 0...b) j++;
+			return j;
+			b = v;
+			var s = i;
+		}
+		f(4,5);
 		return v;
+	}
+
+	public function callbackFunc() : Dynamic {
+		var f = function(b:Int, c:Int) {
+			var j : Int = 0;
+			for(i in 0...c) j++;
+			return b;
+		}
+		return callback(f, 2);
 	}
 
 	public static function main() {

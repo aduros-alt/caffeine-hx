@@ -25,7 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package system.net.servers;
+package chx.net.servers;
 
 import chx.net.Socket;
 import chx.net.packets.Packet;

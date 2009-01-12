@@ -18,7 +18,7 @@
  *)
 open Ast
 
-type module_path = string list * string
+type path = string list * string
 
 type field_access =
 	| NormalAccess
@@ -51,15 +51,15 @@ and tconstant =
 	| TSuper
 
 and tfunc = {
-	tf_args : (string * bool * t) list;
+	tf_args : (string * tconstant option * t) list;
 	tf_type : t;
 	tf_expr : texpr;
 }
 
 and anon_status =
-	| Closed (* default *)
-	| Opened (* used by type inference *)
-	| Const  (* for constant declarations like { x : 0, y : 0 } *)
+	| Closed
+	| Opened
+	| Const
 	| Statics of tclass
 	| EnumStatics of tenum
 
@@ -122,7 +122,7 @@ and tclass_kind =
 	| KGenericInstance of tclass * tparams
 
 and tclass = {
-	cl_path : module_path;
+	cl_path : path;
 	cl_pos : Ast.pos;
 	cl_doc : Ast.documentation;
 	cl_private : bool;
@@ -137,6 +137,7 @@ and tclass = {
 	mutable cl_ordered_statics : tclass_field list;
 	mutable cl_ordered_fields : tclass_field list;
 	mutable cl_dynamic : t option;
+	mutable cl_array_access : t option;
 	mutable cl_constructor : tclass_field option;
 	mutable cl_init : texpr option;
 	mutable cl_overrides : string list;
@@ -151,7 +152,7 @@ and tenum_field = {
 }
 
 and tenum = {
-	e_path : module_path;
+	e_path : path;
 	e_pos : Ast.pos;
 	e_doc : Ast.documentation;
 	e_private : bool;
@@ -162,7 +163,7 @@ and tenum = {
 }
 
 and tdef = {
-	t_path : module_path;
+	t_path : path;
 	t_pos : Ast.pos;
 	t_doc : Ast.documentation;
 	t_private : bool;
@@ -176,31 +177,27 @@ and module_type =
 	| TTypeDecl of tdef
 
 type module_def = {
-	mpath : module_path;
+	mpath : path;
 	mtypes : module_type list;
 	mutable mimports : (module_def * string option) list;
 }
 
 let mk e t p = { eexpr = e; etype = t; epos = p }
 
-let not_opened = ref Closed
-let is_closed a = !(a.a_status) <> Opened
-let mk_anon fl = TAnon { a_fields = fl; a_status = not_opened; }
+let mk_block e =
+	match e.eexpr with
+	| TBlock (_ :: _) -> e
+	| _ -> mk (TBlock [e]) e.etype e.epos
 
-let mk_field name t = {
-	cf_name = name;
-	cf_type = t;
-	cf_doc = None;
-	cf_public = true;
-	cf_get = NormalAccess;
-	cf_set = NormalAccess;
-	cf_expr = None;
-	cf_params = [];
-}
+let null t p = mk (TConst TNull) t p
 
 let mk_mono() = TMono (ref None)
 
 let rec t_dynamic = TDynamic t_dynamic
+
+let tfun pl r = TFun (List.map (fun t -> "",false,t) pl,r)
+
+let fun_args l = List.map (fun (a,c,t) -> a, c <> None, t) l
 
 let mk_class path pos doc priv =
 	{
@@ -219,6 +216,7 @@ let mk_class path pos doc priv =
 		cl_ordered_fields = [];
 		cl_statics = PMap.empty;
 		cl_dynamic = None;
+		cl_array_access = None;
 		cl_constructor = None;
 		cl_init = None;
 		cl_overrides = [];
@@ -239,6 +237,8 @@ let t_path = function
 	| TTypeDecl t -> t.t_path
 
 let print_context() = ref []
+
+let is_closed a = !(a.a_status) <> Opened
 
 let rec s_type ctx t =
 	match t with
@@ -275,6 +275,15 @@ and s_fun ctx t void =
 and s_type_params ctx = function
 	| [] -> ""
 	| l -> "<" ^ String.concat ", " (List.map (s_type ctx) l) ^ ">"
+
+let s_access = function
+	| NormalAccess -> "default"
+	| NoAccess -> "null"
+	| NeverAccess -> "never"
+	| MethodAccess m -> m
+	| MethodCantAccess -> "dynamic"
+	| ResolveAccess -> "resolve"
+	| InlineAccess -> "inline"
 
 let rec is_parent csup c =
 	if c == csup then
@@ -578,16 +587,16 @@ let field_type f =
 	| [] -> f.cf_type
 	| l -> monomorphs l f.cf_type
 
-let rec class_field c i =
+let rec raw_class_field build_type c i =
 	try
 		let f = PMap.find i c.cl_fields in
-		field_type f , f
+		build_type f , f
 	with Not_found -> try
 		match c.cl_super with
 		| None ->
 			raise Not_found
 		| Some (c,tl) ->
-			let t , f = class_field c i in
+			let t , f = raw_class_field build_type c i in
 			apply_params c.cl_types tl t , f
 	with Not_found ->
 		let rec loop = function
@@ -595,12 +604,14 @@ let rec class_field c i =
 				raise Not_found
 			| (c,tl) :: l ->
 				try
-					let t , f = class_field c i in
+					let t , f = raw_class_field build_type c i in
 					apply_params c.cl_types tl t, f
 				with
 					Not_found -> loop l
 		in
 		loop c.cl_implements
+
+let class_field = raw_class_field field_type
 
 let rec unify a b =
 	if a == b then
@@ -797,3 +808,53 @@ let rec iter f e =
 		List.iter (fun (_,_,e) -> f e) catches
 	| TReturn eo ->
 		(match eo with None -> () | Some e -> f e)
+
+let rec map_expr f e =
+	match e.eexpr with
+	| TConst _
+	| TLocal _
+	| TEnumField _
+	| TBreak
+	| TContinue
+	| TTypeExpr _ ->
+		e
+	| TArray (e1,e2) ->
+		{ e with eexpr = TArray (f e1,f e2) }
+	| TBinop (op,e1,e2) ->
+		{ e with eexpr = TBinop (op,f e1,f e2) }
+	| TFor (v,t,e1,e2) ->
+		{ e with eexpr = TFor (v,t,f e1,f e2) }
+	| TWhile (e1,e2,flag) ->
+		{ e with eexpr = TWhile (f e1,f e2,flag) }
+	| TThrow e1 ->
+		{ e with eexpr = TThrow (f e1) }
+	| TField (e1,v) ->
+		{ e with eexpr = TField (f e1,v) }
+	| TParenthesis e1 ->
+		{ e with eexpr = TParenthesis (f e1) }
+	| TUnop (op,pre,e1) ->
+		{ e with eexpr = TUnop (op,pre,f e1) }
+	| TArrayDecl el ->
+		{ e with eexpr = TArrayDecl (List.map f el) }
+	| TNew (t,pl,el) ->
+		{ e with eexpr = TNew (t,pl,List.map f el) }
+	| TBlock el ->
+		{ e with eexpr = TBlock (List.map f el) }
+	| TObjectDecl el ->
+		{ e with eexpr = TObjectDecl (List.map (fun (v,e) -> v, f e) el) }
+	| TCall (e1,el) ->
+		{ e with eexpr = TCall (f e1, List.map f el) }
+	| TVars vl ->
+		{ e with eexpr = TVars (List.map (fun (v,t,e) -> v , t , match e with None -> None | Some e -> Some (f e)) vl) }
+	| TFunction fu ->
+		{ e with eexpr = TFunction { fu with tf_expr = f fu.tf_expr } }
+	| TIf (ec,e1,e2) ->
+		{ e with eexpr = TIf (f ec,f e1,match e2 with None -> None | Some e -> Some (f e)) }
+	| TSwitch (e1,cases,def) ->
+		{ e with eexpr = TSwitch (f e1, List.map (fun (el,e2) -> List.map f el, f e2) cases, match def with None -> None | Some e -> Some (f e)) }
+	| TMatch (e1,t,cases,def) ->
+		{ e with eexpr = TMatch (f e1, t, List.map (fun (cl,params,e) -> cl, params, f e) cases, match def with None -> None | Some e -> Some (f e)) }
+	| TTry (e1,catches) ->
+		{ e with eexpr = TTry (f e1, List.map (fun (v,t,e) -> v, t, f e) catches) }
+	| TReturn eo ->
+		{ e with eexpr = TReturn (match eo with None -> None | Some e -> Some (f e)) }

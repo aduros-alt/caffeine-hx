@@ -1,4 +1,4 @@
 -main Test.hx
--hllua outdir
--cp ../../ext
+-d outdir
+-cp ../haxe/std
 

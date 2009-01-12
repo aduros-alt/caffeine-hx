@@ -17,18 +17,21 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *)
 open Type
+open Common
 
 type ctx = {
+	com : Common.context;
 	buf : Buffer.t;
 	packages : (string list,unit) Hashtbl.t;
+	stack : Codegen.stack_context;
 	mutable current : tclass;
 	mutable statics : (tclass * string * texpr) list;
 	mutable inits : texpr list;
 	mutable tabs : string;
 	mutable in_value : bool;
+	mutable in_loop : bool;
 	mutable handle_break : bool;
 	mutable id_counter : int;
-	debug : bool;
 	mutable curmethod : (string * bool);
 }
 
@@ -54,7 +57,7 @@ let ident s = if Hashtbl.mem kwds s then "$" ^ s else s
 let spr ctx s = Buffer.add_string ctx.buf s
 let print ctx = Printf.kprintf (fun s -> Buffer.add_string ctx.buf s)
 
-let unsupported = Typer.error "This expression cannot be compiled to Javascript"
+let unsupported p = error "This expression cannot be compiled to Javascript" p
 
 let newline ctx =
 	match Buffer.nth ctx.buf (Buffer.length ctx.buf - 1) with
@@ -69,13 +72,17 @@ let rec concat ctx s f = function
 		spr ctx s;
 		concat ctx s f l
 
-let block = Transform.block
-
-let fun_block ctx f =
-	if ctx.debug then
-		Transform.stack_block (ctx.current,fst ctx.curmethod) f.tf_expr
+let fun_block ctx f p =
+	let e = (match f.tf_expr with { eexpr = TBlock [{ eexpr = TBlock _ } as e] } -> e | e -> e) in
+	let e = List.fold_left (fun e (a,c,t) ->
+		match c with
+		| None | Some TNull -> e
+		| Some c -> Codegen.concat (Codegen.set_default ctx.com a c t p) e
+	) e f.tf_args in
+	if ctx.com.debug then
+		Codegen.stack_block ctx.stack ctx.current (fst ctx.curmethod) e
 	else
-		block f.tf_expr
+		mk_block e
 
 let parent e =
 	match e.eexpr with
@@ -95,11 +102,15 @@ let rec iter_switch_break in_switch e =
 	| _ -> iter (iter_switch_break in_switch) e
 
 let handle_break ctx e =
-	let old_handle = ctx.handle_break in
+	let old = ctx.in_loop, ctx.handle_break in
+	ctx.in_loop <- true;
 	try
 		iter_switch_break false e;
 		ctx.handle_break <- false;
-		(fun() -> ctx.handle_break <- old_handle)
+		(fun() ->
+			ctx.in_loop <- fst old;
+			ctx.handle_break <- snd old;
+		)
 	with
 		Exit ->
 			spr ctx "try {";
@@ -108,7 +119,8 @@ let handle_break ctx e =
 			ctx.handle_break <- true;
 			(fun() ->
 				b();
-				ctx.handle_break <- old_handle;
+				ctx.in_loop <- fst old;
+				ctx.handle_break <- snd old;
 				newline ctx;
 				spr ctx "} catch( e ) { if( e != \"__break__\" ) throw e; }";
 			)
@@ -119,7 +131,7 @@ let gen_constant ctx p = function
 	| TInt i -> print ctx "%ld" i
 	| TFloat s -> spr ctx s
 	| TString s ->
-		if String.contains s '\000' then Typer.error "A String cannot contain \\0 characters" p;
+		if String.contains s '\000' then error "A String cannot contain \\0 characters" p;
 		print ctx "\"%s\"" (Ast.s_escape s)
 	| TBool b -> spr ctx (if b then "true" else "false")
 	| TNull -> spr ctx "null"
@@ -168,7 +180,18 @@ let rec gen_call ctx e el =
 		concat ctx "," (gen_value ctx) params;
 		spr ctx ")";
 	| TLocal "__js__", [{ eexpr = TConst (TString code) }] ->
-		spr ctx code
+		spr ctx (String.concat "\n" (ExtString.String.nsplit code "\r\n"))
+	| TLocal "__resources__", [] ->
+		spr ctx "[";
+		concat ctx "," (fun (name,data) ->
+			spr ctx "{ ";
+			spr ctx "name : ";
+			gen_constant ctx e.epos (TString name);
+			spr ctx ", data : ";
+			gen_constant ctx e.epos (TString (Codegen.bytes_serialize data));
+			spr ctx "}"
+		) (Hashtbl.fold (fun name data acc -> (name,data) :: acc) ctx.com.resources []);
+		spr ctx "]";
 	| _ ->
 		gen_value ctx e;
 		spr ctx "(";
@@ -230,10 +253,10 @@ and gen_expr ctx e =
 			spr ctx "return ";
 			gen_value ctx e);
 	| TBreak ->
-		if ctx.in_value then unsupported e.epos;
+		if not ctx.in_loop then unsupported e.epos;
 		if ctx.handle_break then spr ctx "throw \"__break__\"" else spr ctx "break"
 	| TContinue ->
-		if ctx.in_value then unsupported e.epos;
+		if not ctx.in_loop then unsupported e.epos;
 		spr ctx "continue"
 	| TBlock [] ->
 		spr ctx "null"
@@ -245,17 +268,19 @@ and gen_expr ctx e =
 		newline ctx;
 		print ctx "}";
 	| TFunction f ->
-		let old = ctx.in_value in
+		let old = ctx.in_value, ctx.in_loop in
 		let old_meth = ctx.curmethod in
 		ctx.in_value <- false;
+		ctx.in_loop <- false;
 		if snd ctx.curmethod then
-			ctx.curmethod <- (fst ctx.curmethod ^ "@" ^ string_of_int (Lexer.get_error_line e.epos), true)
+			ctx.curmethod <- (fst ctx.curmethod ^ "@" ^ string_of_int (Lexer.find_line_index ctx.com.lines e.epos), true)
 		else
 			ctx.curmethod <- (fst ctx.curmethod, true);
 		print ctx "function(%s) " (String.concat "," (List.map ident (List.map arg_name f.tf_args)));
-		gen_expr ctx (fun_block ctx f);
+		gen_expr ctx (fun_block ctx f e.epos);
 		ctx.curmethod <- old_meth;
-		ctx.in_value <- old;
+		ctx.in_value <- fst old;
+		ctx.in_loop <- snd old;
 	| TCall (e,el) ->
 		gen_call ctx e el
 	| TArrayDecl el ->
@@ -331,7 +356,7 @@ and gen_expr ctx e =
 		handle_break();
 	| TTry (e,catchs) ->
 		spr ctx "try ";
-		gen_expr ctx (block e);
+		gen_expr ctx (mk_block e);
 		newline ctx;
 		let id = ctx.id_counter in
 		ctx.id_counter <- ctx.id_counter + 1;
@@ -406,7 +431,7 @@ and gen_expr ctx e =
 						print ctx "%s = $e[%d]" v n;
 					) l;
 					newline ctx);
-			gen_expr ctx (block e);
+			gen_expr ctx (mk_block e);
 			print ctx "break";
 			newline ctx
 		) cases;
@@ -414,7 +439,7 @@ and gen_expr ctx e =
 		| None -> ()
 		| Some e ->
 			spr ctx "default:";
-			gen_expr ctx (block e);
+			gen_expr ctx (mk_block e);
 			print ctx "break";
 			newline ctx;
 		);
@@ -430,7 +455,7 @@ and gen_expr ctx e =
 				gen_value ctx e;
 				spr ctx ":";
 			) el;
-			gen_expr ctx (block e2);
+			gen_expr ctx (mk_block e2);
 			print ctx "break";
 			newline ctx;
 		) cases;
@@ -438,7 +463,7 @@ and gen_expr ctx e =
 		| None -> ()
 		| Some e ->
 			spr ctx "default:";
-			gen_expr ctx (block e);
+			gen_expr ctx (mk_block e);
 			print ctx "break";
 			newline ctx;
 		);
@@ -452,8 +477,9 @@ and gen_value ctx e =
 		)) e.etype e.epos
 	in
 	let value block =
-		let old = ctx.in_value in
+		let old = ctx.in_value, ctx.in_loop in
 		ctx.in_value <- true;
+		ctx.in_loop <- false;
 		spr ctx "function($this) ";
 		let b = if block then begin
 			spr ctx "{";
@@ -473,7 +499,8 @@ and gen_value ctx e =
 				newline ctx;
 				spr ctx "}";
 			end;
-			ctx.in_value <- old;
+			ctx.in_value <- fst old;
+			ctx.in_loop <- snd old;
 			print ctx "(%s)" (this ctx)
 		)
 	in
@@ -574,7 +601,6 @@ let gen_class_static_field ctx c f =
 		print ctx "%s%s = null" (s_path c.cl_path) (field f.cf_name);
 		newline ctx
 	| Some e ->
-		let e = Transform.block_vars e in
 		match e.eexpr with
 		| TFunction _ ->
 			ctx.curmethod <- (f.cf_name,false);
@@ -592,7 +618,7 @@ let gen_class_field ctx c f =
 		newline ctx
 	| Some e ->
 		ctx.curmethod <- (f.cf_name,false);
-		gen_value ctx (Transform.block_vars e);
+		gen_value ctx e;
 		newline ctx
 
 let generate_class ctx c =
@@ -603,12 +629,12 @@ let generate_class ctx c =
 	print ctx "%s = " p;
 	(match c.cl_constructor with
 	| Some { cf_expr = Some e } ->
-		(match Transform.block_vars e with
+		(match e with
 		| { eexpr = TFunction f } ->
 			let args  = List.map arg_name f.tf_args in
 			let a, args = (match args with [] -> "p" , ["p"] | x :: _ -> x, args) in
 			print ctx "function(%s) { if( %s === $_ ) return; " (String.concat "," (List.map ident args)) a;
-			gen_expr ctx (fun_block ctx f);
+			gen_expr ctx (fun_block ctx f e.epos);
 			print ctx "}";
 		| _ -> assert false)
 	| _ -> print ctx "function() { }");
@@ -665,15 +691,17 @@ let generate_type ctx = function
 	| TClassDecl c ->
 		(match c.cl_init with
 		| None -> ()
-		| Some e -> ctx.inits <- Transform.block_vars e :: ctx.inits);
+		| Some e -> ctx.inits <- e :: ctx.inits);
 		if not c.cl_extern then generate_class ctx c
 	| TEnumDecl e when e.e_extern ->
 		()
 	| TEnumDecl e -> generate_enum ctx e
 	| TTypeDecl _ -> ()
 
-let generate file types hres =
+let generate com =
 	let ctx = {
+		com = com;
+		stack = Codegen.stack_init com false;
 		buf = Buffer.create 16000;
 		packages = Hashtbl.create 0;
 		statics = [];
@@ -681,30 +709,25 @@ let generate file types hres =
 		current = null_class;
 		tabs = "";
 		in_value = false;
+		in_loop = false;
 		handle_break = false;
-		debug = Plugin.defined "debug";
 		id_counter = 0;
 		curmethod = ("",false);
 	} in
-	let t = Plugin.timer "generate js" in
+	let t = Common.timer "generate js" in
 	print ctx "$estr = function() { return js.Boot.__string_rec(this,''); }";
 	newline ctx;
-	List.iter (generate_type ctx) types;
+	List.iter (generate_type ctx) com.types;
 	print ctx "$_ = {}";
 	newline ctx;
 	print ctx "js.Boot.__res = {}";
 	newline ctx;
-	if ctx.debug then begin
-		print ctx "%s = []" Transform.stack_var;
+	if com.debug then begin
+		print ctx "%s = []" ctx.stack.Codegen.stack_var;
 		newline ctx;
-		print ctx "%s = []" Transform.exc_stack_var;
+		print ctx "%s = []" ctx.stack.Codegen.stack_exc_var;
 		newline ctx;
 	end;
-	Hashtbl.iter (fun name data ->
-		if String.contains data '\000' then failwith ("Resource " ^ name ^ " contains \\0 characters that can't be used in JavaScript");
-		print ctx "js.Boot.__res[\"%s\"] = \"%s\"" (Ast.s_escape name) (Ast.s_escape data);
-		newline ctx;
-	) hres;
 	print ctx "js.Boot.__init()";
 	newline ctx;
 	List.iter (fun e ->
@@ -712,7 +735,7 @@ let generate file types hres =
 		newline ctx;
 	) (List.rev ctx.inits);
 	List.iter (generate_static ctx) (List.rev ctx.statics);
-	let ch = open_out file in
+	let ch = open_out com.file in
 	output_string ch (Buffer.contents ctx.buf);
 	close_out ch;
 	t()

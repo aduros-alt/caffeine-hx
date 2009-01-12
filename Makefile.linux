@@ -12,7 +12,8 @@ clean-neko:
 	find . -name "*.n" -exec rm {} \;
 
 clean-docs:
-	cd ext/Doc && $(RM) index.html && cd content && find . -name "*.html" -exec rm {} \;
+# 	cd ext2/Doc && $(RM) index.html && cd html && find . -name "*.html" -exec rm {} \;
+	cd ext2 && $(RM) -Rf Doc && mkdir Doc
 
 clean-dllbuilds:
 	cd dll_src && find . -name "*.ndll" -exec rm {} \;
@@ -23,9 +24,10 @@ clean-exttests:
 distclean: clean clean-kate clean-neko clean-dllbuilds clean-docs
 
 docs: clean-docs
-	cd ext && haxe all.hxml
-	cd ext/Doc && haxedoc "../flash.xml;flash" "../neko.xml;neko" "../js.xml;js"
-	cd ext && $(RM) *.swf *.n *.js *.xml
+	cd ext2 && haxe chx.hxml
+	cd ext2 && ../projects/chxdoc/chxdoc -o Doc --tmpDir=__chxdoctmp --templateDir=../projects/chxdoc/new_templates --installTemplate=true --developer=true flash9.xml,flash9,flash neko.xml,neko js.xml,js
+# 	cd ext2 && $(RM) *.swf *.n *.js *.xml
+	cd ext2 && $(RM) -R __chxdoctmp
 
 tools: dummy
 	haxe tools.hxml

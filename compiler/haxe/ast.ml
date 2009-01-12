@@ -57,7 +57,7 @@ type keyword =
 	| Cast
 	| Override
 	| Typedef
-	| F9Dynamic
+	| Dynamic
 	| Package
 	| Callback
 	| Inline
@@ -69,9 +69,7 @@ type binop =
 	| OpSub
 	| OpAssign
 	| OpEq
-	| OpPhysEq
 	| OpNotEq
-	| OpPhysNotEq
 	| OpGt
 	| OpGte
 	| OpLt
@@ -157,7 +155,7 @@ and type_path =
 	| TPExtend of type_path_normal * (string * bool option * anonymous_field * pos) list
 
 type func = {
-	f_args : (string * bool * type_path option) list;
+	f_args : (string * bool * type_path option * expr option) list;
 	f_type : type_path option;
 	f_expr : expr;
 }
@@ -203,7 +201,7 @@ type access =
 	| APrivate
 	| AStatic
 	| AOverride
-	| AF9Dynamic
+	| ADynamic
 	| AInline
 
 type class_field =
@@ -320,7 +318,7 @@ let s_keyword = function
 	| Cast -> "cast"
 	| Override -> "override"
 	| Typedef -> "typedef"
-	| F9Dynamic -> "f9dynamic"
+	| Dynamic -> "dynamic"
 	| Package -> "package"
 	| Callback -> "callback"
 	| Inline -> "inline"
@@ -332,9 +330,7 @@ let rec s_binop = function
 	| OpSub -> "-"
 	| OpAssign -> "="
 	| OpEq -> "=="
-	| OpPhysEq -> "==="
 	| OpNotEq -> "!="
-	| OpPhysNotEq -> "!=="
 	| OpGte -> ">="
 	| OpLte -> "<="
 	| OpGt -> ">"

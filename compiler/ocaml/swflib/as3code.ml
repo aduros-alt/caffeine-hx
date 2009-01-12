@@ -121,6 +121,7 @@ let length = function
 	| A3CallStack n
 	| A3ConstructSuper n
 	| A3BreakPointLine n
+	| A3ApplyType n
 	| A3DebugLine n ->
 		1 + int_length n
 	| A3GetSlot s
@@ -128,6 +129,7 @@ let length = function
 		1 + int_length s
 	| A3ClassDef n ->
 		1 + int_length (int_index_nz n)
+	| A3DxNs f
 	| A3String f
 	| A3DebugFile f ->
 		1 + int_length (int_index f)
@@ -151,6 +153,7 @@ let length = function
 	| A3SetProp f
 	| A3Cast f
 	| A3GetSuper f
+	| A3GetDescendants f
 	| A3SetSuper f ->
 		1 + int_length (int_index f)
 	| A3Op _
@@ -192,6 +195,7 @@ let length = function
 	| A3HasNext
 	| A3SetThis
 	| A3Timestamp
+	| A3DxNsLate
 	| A3Unk _ -> 1
 	| A3AsType n | A3IsType n ->
 		1 + int_length (int_index n)
@@ -222,8 +226,8 @@ let opcode ch =
 	| 0x03 -> A3Throw
 	| 0x04 -> A3GetSuper (read_index ch)
 	| 0x05 -> A3SetSuper (read_index ch)
-	(* 0x06 -> E4X *)
-	(* 0x07 -> E4X *)
+	| 0x06 -> A3DxNs (read_index ch)
+	| 0x07 -> A3DxNsLate
 	| 0x08 -> A3RegKill (read_int ch)
 	| 0x09 -> A3Label
 	(* 0x0A -> NONE *)
@@ -321,12 +325,14 @@ let opcode ch =
 		let id = read_index ch in
 		let nargs = read_int ch in
 		A3CallPropVoid (id,nargs)
-	(* 0x50 - 0x54 -> NONE *)
+	(* 0x50 - 0x52 -> NONE *)
+	| 0x53 -> A3ApplyType (read_int ch)
+	(* 0x54 -> NONE *)
 	| 0x55 -> A3Object (read_int ch)
 	| 0x56 -> A3Array (read_int ch)
 	| 0x57 -> A3NewBlock
 	| 0x58 -> A3ClassDef (read_index_nz ch)
-	(* 0x59 -> E4X *)
+	| 0x59 -> A3GetDescendants (read_index ch)
 	| 0x5A -> A3Catch (read_int ch)
 	(* 0x5B -> NONE *)
 	(* 0x5C -> NONE *)
@@ -441,6 +447,11 @@ let write ch = function
 	| A3SetSuper f ->
 		write_byte ch 0x05;
 		write_index ch f
+	| A3DxNs i ->
+		write_byte ch 0x06;
+		write_index ch i
+	| A3DxNsLate ->
+		write_byte ch 0x07
 	| A3RegKill n ->
 		write_byte ch 0x08;
 		write_int ch n
@@ -571,6 +582,9 @@ let write ch = function
 		write_byte ch 0x4F;
 		write_index ch f;
 		write_int ch n
+	| A3ApplyType n ->
+		write_byte ch 0x53;
+		write_int ch n
 	| A3Object n ->
 		write_byte ch 0x55;
 		write_int ch n
@@ -582,6 +596,9 @@ let write ch = function
 	| A3ClassDef f ->
 		write_byte ch 0x58;
 		write_index_nz ch f
+	| A3GetDescendants f ->
+		write_byte ch 0x59;
+		write_index ch f
 	| A3Catch n ->
 		write_byte ch 0x5A;
 		write_int ch n
@@ -761,12 +778,13 @@ let dump_jump = function
 
 let dump ctx op =
 	let ident n = ctx.as3_idents.(int_index n - 1) in
-	let field n =
+	let rec field n =
 		let t = ctx.as3_names.(int_index n - 1) in
 		match t with
 		| A3MMultiName (Some ident,_) -> "[" ^ iget ctx.as3_idents ident ^ "]"
 		| A3MName (ident,_) -> iget ctx.as3_idents ident
 		| A3MMultiNameLate idx -> "~array"
+		| A3MParams (t,params) -> field t ^ "<" ^ String.concat "." (List.map field params) ^ ">"
 		| _ -> "???"
 	in
 	match op with
@@ -775,6 +793,8 @@ let dump ctx op =
 	| A3Throw -> "throw"
 	| A3GetSuper f -> s "getsuper %s" (field f)
 	| A3SetSuper f -> s "setsuper %s" (field f)
+	| A3DxNs i -> s "dxns %s" (ident i)
+	| A3DxNsLate -> "dxnslate"
 	| A3RegKill n -> s "kill %d" n
 	| A3Label -> "label"
 	| A3Jump (k,n) -> s "jump%s %d" (dump_jump k) n
@@ -815,10 +835,12 @@ let dump ctx op =
 	| A3CallPropLex (f,n) -> s "callproplex %s (%d)" (field f) n
 	| A3CallSuperVoid (f,n) -> s "callsupervoid %s (%d)" (field f) n
 	| A3CallPropVoid (f,n) -> s "callpropvoid %s (%d)" (field f) n
+	| A3ApplyType n -> s "applytype %d" n
 	| A3Object n -> s "object %d" n
 	| A3Array n -> s "array %d" n
 	| A3NewBlock -> "newblock"
 	| A3ClassDef n -> s "classdef %d" (int_index_nz n)
+	| A3GetDescendants f -> s "getdescendants %s" (field f)
 	| A3Catch n -> s "catch %d" n
 	| A3FindPropStrict f -> s "findpropstrict %s" (field f)
 	| A3FindProp f -> s "findprop %s" (field f)
