@@ -1,0 +1,66 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML>
+<HEAD>
+	::raw build.comment::
+	<TITLE>::name:: (::platform.title::)</TITLE>
+	<META NAME="date" CONTENT="::meta.date::" />
+	::foreach kw meta.keywords::
+	<META NAME="keywords" CONTENT="::kw::" />
+	::end::
+	<LINK REL ="stylesheet" TYPE="text/css" HREF="::meta.stylesheet::" TITLE="Style" />
+
+<SCRIPT type="text/javascript">
+function windowTitle()
+{
+    if (location.href.indexOf('is-external=true') == -1) {
+        parent.document.title="::name:: (::platform.title::)";
+    }
+}
+</SCRIPT>
+<NOSCRIPT>
+</NOSCRIPT>
+
+</HEAD>
+
+<BODY BGCOLOR="white" onload="windowTitle();">
+	<HR /><!-- ======== START OF CLASS DATA ======== -->
+	<H2>::name::<BR /><FONT SIZE="-1">::if isPrivate::private::end::typdef ::nameDots::::raw params::</FONT></H2>
+	::if module != null && module.length > 0::
+		<h3>import ::module::</h3>
+	::end::
+
+	::if platforms.length > 0::
+		<DL>
+		<DT>Available in</DT>
+		::foreach p platforms::
+			<DD>::p::</DD>
+		::end::
+		</DL>
+	::end::
+
+	<P>$$typeDocs()</P>
+	<HR />
+
+
+	::foreach ctx contexts::
+		::if ctx.alias != null::
+			$$showPlatforms(::ctx.platforms::) as an alias for ::raw ctx.alias::
+		::else::
+			::foreach f ctx.fields::
+			<P>
+				<A NAME="::f.name::"></A>
+				<H3>::f.name::</H3>
+				$$showPlatforms(::ctx.platforms::)
+				<PRE>var <B>::f.name::</B> : ::raw f.returns::</PRE>
+			</P>
+			::end::
+		::end::
+		<HR />
+	::end::
+
+
+<!-- ========= END OF TYPEDEF DATA ========= -->
+
+
+</BODY>
+</HTML>

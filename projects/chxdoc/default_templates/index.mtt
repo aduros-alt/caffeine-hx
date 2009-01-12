@@ -1,0 +1,14 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN" "http://www.w3.org/TR/html4/frameset.dtd">
+<HTML>
+	<HEAD>
+		<TITLE>::platform.title::</TITLE>
+	</HEAD>
+
+	<FRAMESET cols="20%,80%" title="">
+		<FRAMESET rows="30%,70%" title="">
+			<FRAME src="all_packages.html" name="packageListFrame" title="All Packages" />
+			<FRAME src="all_classes.html" name="packageFrame" title="All classes and interfaces" />
+		</FRAMESET>
+		<FRAME src="overview.html" name="classFrame" title="Package, class and interface descriptions" scrolling="yes" />
+	</FRAMESET>
+</HTML>
