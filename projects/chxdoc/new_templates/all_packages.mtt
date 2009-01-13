@@ -12,11 +12,11 @@
 	<body>
 		<div id="packages-frame">
 			<h1>::platform.title::</h1>
-			<h2>::platform.subtitle::</h2>			
+			<h2>::platform.subtitle::</h2>
 			<div id="packages-header">
 				<ul>
 					<li><a href="all_classes.html" target="packageFrame">All Types</a></li>
-					<li><a href="all_packages.html" target="packageFrame">Root Types</a></li>
+					<li><a href="packages/package.html" target="packageFrame">Root Types</a></li>
 				</ul>
 			</div>
 			<ul class="packages">
