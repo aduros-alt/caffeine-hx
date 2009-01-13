@@ -1,0 +1,127 @@
+package chx.sys;
+
+enum A {
+	Good;
+	/**
+		Doc for Things
+	**/
+	Things;
+	Happen;
+}
+
+private enum B {
+	You;
+	Cant;
+	See;
+	Me;
+}
+
+class C {
+	public function new() {
+	}
+}
+
+private class D {
+	public function new() {
+	}
+}
+
+class Base {
+	public var baseVar : Int;
+	public function baseFunc() : Void {
+	}
+
+	/**
+		This is the documentation from Base for baseOver1
+		@throws chx.sys.Layer1
+	**/
+	public function baseOver1() : Void {}
+
+	public function baseOver2() : Void {}
+}
+
+class Layer1 extends Base {
+	private static var privateStatic : Int;
+	private var privateMember	: Int;
+
+	public var layer1var : Int;
+
+	public function layer1Func() : Void {}
+
+	public function layer1Over() : Void {}
+
+	private function layer1OverPrivate() : Void {}
+
+	public override function baseOver1() : Void {}
+
+	private function privateMethod() : Void {}
+	private static function privateFunction() : Void {}
+
+	public dynamic function dynamicMethod() : Void {}
+}
+
+/**
+	This is the class documentation for TestDeleteMe
+**/
+class TestDeleteMe extends Layer1, implements Dynamic {
+	public static var sa : Int;
+	private static var sb : String;
+
+
+	static function iAmAPrivateStaticMethod(gg:Int) {
+	}
+
+	public static function iAmAPublicStaticMethod(gg:Int) : Array<String> {
+		return new Array();
+	}
+
+	public override function baseOver2() {}
+
+	public override function layer1Over() {}
+
+	private override function layer1OverPrivate() {}
+
+	/** This var is documented. Lucky you **/
+	public var a : Int;
+	public var b : String;
+
+	/**
+		Creates a new TestDeleteMe with int value
+		@param v An ignored value
+		@throws chx.lang.Exception When it feels like, just for fun!
+		@returns Nothing cause it's a constructor, fool&
+	**/
+	public function new(v:Int) {
+	}
+
+
+	/**
+		Does nothing of interest
+		@param a A TestDeleteMe instance
+		@param b A typeable nothing
+		@throws chx.lang.Exception Every single time
+		@returns Null always
+	**/
+	public function myTemplateMethod<T>(a: TestDeleteMe, b : T) : Int {
+		return null;
+	}
+
+	public function objectMethod(obj : { a: Int, b:Float}) :
+#if neko
+		{ a : Int, b : Float }
+#else
+		Null<Int>
+#end
+	{
+		return null;
+	}
+}
+
+class ClassWithPrivateConstructor {
+	private function new() {
+	}
+
+	public static function createInstance() : ClassWithPrivateConstructor {
+		return new ClassWithPrivateConstructor();
+	}
+}

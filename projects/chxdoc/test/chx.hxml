@@ -1,0 +1,22 @@
+-neko all.n
+-xml neko.xml
+-cp .
+--no-output
+ImportTest
+
+--next
+
+-swf9 all9.swf
+--no-output
+-xml flash9.xml
+ImportTest
+-D flash10
+
+--next
+
+-js all.js
+-xml js.xml
+-cp .
+--no-output
+ImportTest
+

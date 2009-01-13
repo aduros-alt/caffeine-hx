@@ -8,6 +8,9 @@
 			(in config.baseDirectory, look in ChxDocMain.pass4())
 		- Improve default template look for --developer
 			(Franco)
+		- Add @requires tag for required sys libs like neko ndll files
+		- Add --showSourceFilePath for hard link to source files
+		-
 
 0.5 2009-01-12
 	- Added --installTemplate switch to copy all images and stylesheet from template dir
