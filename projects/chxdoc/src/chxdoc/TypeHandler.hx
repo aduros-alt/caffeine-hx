@@ -172,6 +172,9 @@ class TypeHandler<T> {
 		// with flash only
 		var normalized =  Utils.normalizeTypeInfosPath(path).split(".");
 		var nameDots = normalized.join(".");
+		var relative = "";
+		for(i in 1...normalized.length)
+			relative += "../";
 		var name = normalized.pop();
 		var packageDots = normalized.join(".");
 		var parts = path.split(".");
@@ -181,6 +184,7 @@ class TypeHandler<T> {
 			nameDots	: nameDots,
 			packageDots : packageDots,
 			subdir		: Utils.addSubdirTrailingSlash(parts.join("/")),
+			rootRelative: relative,
 		}
 	}
 
@@ -210,7 +214,7 @@ class TypeHandler<T> {
 			path			: t.path,
 			packageDots		: fi.packageDots,
 			subdir			: fi.subdir,
-			rootRelative	: null,
+			rootRelative	: fi.rootRelative,
 
 			isAllPlatforms	: (t.platforms.length == ChxDocMain.platforms.length),
 			platforms		: cloneList(t.platforms),

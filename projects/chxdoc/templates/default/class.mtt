@@ -141,6 +141,9 @@ function windowTitle()
 	::end::
 	</div>
 <!-- ========= END OF class DATA ========= -->
+	<hr />
+		<a href="::rootRelative::../overview.html">Overview</a>
+	<hr />
 	::if platform.footerText != null::<div id="footer">::raw platform.footerText::</div>::end::
 </body>
 </html>

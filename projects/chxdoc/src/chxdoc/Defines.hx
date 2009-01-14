@@ -169,4 +169,5 @@ typedef FileInfo = {
 	var nameDots		: String; // Dotted filename 1) a.b.C 2) a.b._C.D 3) flash.MyClass
 	var packageDots		: String; // Dotted package name. 1) a.b 2) a.b._C 3) flash
 	var subdir			: String; // Relative subdir for html 1) a/b/ 2) a/b/_C/ 3) flash9
+	var rootRelative	: String; // Path to root
 }

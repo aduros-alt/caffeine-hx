@@ -33,7 +33,7 @@ import haxe.rtti.CType;
 
 class ChxDocMain {
 	static var proginfo = "ChxDoc Generator 0.6 - (c) 2009 Russell Weir";
-	static var buildNumber = 447;
+	static var buildNumber = 466;
 
 	public static var buildData : BuildData;
 	public static var platformData : PlatformData;
