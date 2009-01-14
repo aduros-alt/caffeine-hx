@@ -1,16 +1,22 @@
-0.6 ?
+0.7 ?
 	Targets:
-		- Improve tag detection in method/var/class documentation
-			(TypeHandler.hx processDoc method)
-		- Add @todo tag
-			(TypeHandler.hx processDoc method)
-		- Add --generateTodo flag for making /todo.html
-			(in config.baseDirectory, look in ChxDocMain.pass4())
-		- Improve default template look for --developer
-			(Franco)
-		- Add @requires tag for required sys libs like neko ndll files
+		- Inline tags eg. @deprecated As of some date, replaced by {@link #newMethod()}
+		- Improve default template look for --developer and typedefs
+			(check js.Checkbox fields, which are "available in all platforms")(Franco)
 		- Add --showSourceFilePath for hard link to source files
-		-
+
+0.6 ?
+	- ADDED: --footerText and --footerTextFile switches for adding raw html to Types pages
+	- ADDED: --generateTodo flag for making /todo.html
+	- ADDED: @author [raw]
+	- ADDED: @requires tag for Type or Function requirements (ie. specific neko ndll, etc)
+	- ADDED: @see [path]
+	- ADDED: @todo tag and todo.html file generation
+	- ADDED: @type [name] [description] for type params (ie function blah<T>)
+	- FIXED: Constructors not getting docs.
+	- CHANGE: Moved Root Types to top of packages in all_packages.mtt
+	- CHANGE: Improved tag detection in method/var/class documentation
+
 
 0.5 2009-01-12
 	- Added --installTemplate switch to copy all images and stylesheet from template dir

@@ -123,6 +123,7 @@ class TypedefHandler extends TypeHandler<TypedefCtx> {
 			context.fields.sort(TypeHandler.ctxFieldSorter);
 		}
 
+		context.parent = origContext;
 		origContext.contexts.push(context);
 	}
 
@@ -130,17 +131,17 @@ class TypedefHandler extends TypeHandler<TypedefCtx> {
 	/**
 		<pre>Types -> create documentation</pre>
 	**/
-	public function pass2(context : TypedefCtx) {
-		if(context.originalDoc != null)
-			context.docs = processDoc(context.originalDoc);
+	public function pass2(pkg : PackageContext, ctx : TypedefCtx) {
+		if(ctx.originalDoc != null)
+			ctx.docs = DocProcessor.process(pkg, ctx, ctx.originalDoc);
 		else
-			context.docs = null;
+			ctx.docs = null;
 	}
 
 	/**
 		<pre>Types	-> Resolve all super classes, inheritance, subclasses</pre>
 	**/
-	public function pass3(context : TypedefCtx) {
+	public function pass3(pkg : PackageContext, context : TypedefCtx) {
 	}
 
 	public static function write(context : TypedefCtx) : String  {

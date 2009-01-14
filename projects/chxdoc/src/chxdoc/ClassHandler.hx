@@ -48,19 +48,21 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 	}
 
 
-	public function pass2(ctx : ClassCtx) {
-		ctx.docs = processDoc(ctx.originalDoc);
+	public function pass2(pkg : PackageContext, ctx : ClassCtx) {
+		ctx.docs = DocProcessor.process(pkg, ctx, ctx.originalDoc);
 
+		if(ctx.constructor != null)
+			ctx.constructor.docs = DocProcessor.process(pkg, ctx.constructor, ctx.constructor.originalDoc);
 		var me = this;
 		forAllFields(ctx,
 			function(f:FieldCtx) {
-				f.docs = me.processDoc(f.originalDoc);
+				f.docs = DocProcessor.process(pkg, f, f.originalDoc);
 			}
 		);
 	}
 
 	//Types	-> Resolve all super classes, inheritance, subclasses
-	public function pass3(ctx : ClassCtx) {
+	public function pass3(pkg : PackageContext, ctx : ClassCtx) {
 		var sc = ctx.scPathParams;
 		var first = true;
 		while(sc != null) {
@@ -126,6 +128,7 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 	**/
 	function createInheritedField(ownerCtx:ClassCtx, field : FieldCtx) : FieldCtx {
 		var f = createField(
+			ownerCtx,
 			field.name,
 			field.isPrivate,
 			field.platforms,
@@ -165,7 +168,7 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 		if(field.inheritance == null || field.inheritance.owner == null)
 			throw "Error creating inheritance field link for " + field;
 
-		field.inheritance.link = makeLink(
+		field.inheritance.link = Utils.makeLink(
 			makeBaseRelPath(ctx) +
 				field.inheritance.owner.subdir +
 				field.inheritance.owner.name +
@@ -295,7 +298,7 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 	function newClassFieldCtx(c : ClassCtx, f : ClassField, isStatic : Bool) : FieldCtx
 	{
 		var me = this;
-		var ctx : FieldCtx = createField(f.name, !f.isPublic, f.platforms, f.doc);
+		var ctx : FieldCtx = createField(c, f.name, !f.isPublic, f.platforms, f.doc);
 		ctx.isStatic = isStatic;
 
 		var oldParams = TypeHandler.typeParams;

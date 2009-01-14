@@ -33,11 +33,13 @@ import chxdoc.Types;
 typedef Html = String;
 
 typedef Config = {
+	var showAuthorTags		: Bool;
 	var showPrivateClasses	: Bool;
 	var showPrivateTypedefs	: Bool;
 	var showPrivateEnums	: Bool;
 	var showPrivateMethods	: Bool;
 	var showPrivateVars		: Bool;
+	var showTodoTags		: Bool;
 	var temploBaseDir		: String; // path
 	var temploTmpDir		: String; // path
 	var temploMacros		: String; // macros.mtt
@@ -51,6 +53,8 @@ typedef Config = {
 	var noPrompt			: Bool; // turn off prommpting (not implemented)
 	var installImagesDir	: Bool;
 	var installCssFile		: Bool;
+
+	var generateTodo		: Bool;
 };
 
 typedef BuildData = {
@@ -79,16 +83,31 @@ typedef PlatformData = {
 	var subtitle 	: String;
 	/** true if generating developer documentation (any of showPrivate* switches set) **/
 	var developer	: Bool;
+	/** A list of all platforms being generated for **/
 	var platforms	: List<String>;
+	/** text to add to the bottom of each Type page **/
+	var footerText	: Html;
+
+	var generateTodo: Bool;
+	var todoLines	: Array<{link: Link, message:String}>;
+	var todoFile	: String;
 };
 
 typedef DocsContext = {
-	var comments	: String;
-	var throws		: Array<{name:String, uri:String, desc : String}>;
-	var returns		: Array<String>;
-	var params		: Array<{ arg : String, desc : String }>;
-	var deprecated	: Bool;
-	var depMessage	: String; // deprecation text
+	/** Html block for everything not a tag **/
+	var comments			: Html;
+	var authors				: Array<Html>;
+	/** method/class/whatever is deprectated **/
+	var deprecated			: Bool;
+	/** Set to "" or a message if deprecated is true **/
+	var deprecatedMsg		: Html; // deprecation text
+	var params				: Array<{ arg : Html, desc : Html }>;
+	var requires			: Array<Html>;
+	var returns				: Array<Html>;
+	var see					: Array<Html>;
+	var throws				: Array<{ name : Html, uri : Html, desc : Html}>;
+	var todos				: Array<Html>;
+	var typeParams			: Array<{ arg : Html, desc : Html }>;
 };
 
 typedef PackageContext = {
@@ -130,6 +149,10 @@ typedef PackageOutputContext = {
 	var rootRelative	: String;
 }
 
+/**
+	This is the context passed to the template file for
+	index, overview, all_packages and all_classes generation.
+**/
 typedef IndexContext = {
 	var meta		: MetaData;
 	var platform	: PlatformData;

@@ -70,114 +70,6 @@ class TypeHandler<T> {
 		return metaData;
 	}
 
-	/**
-		From can be a ClassField, EnumField or TypeInfos type
-	**/
-	public function processDoc(doc : String) : DocsContext {
-		var context = {
-			comments : null,
-			throws : new Array(),
-			returns : new Array(),
-			params : new Array(),
-			deprecated : false,
-			depMessage : null,
-		};
-
-		if( doc == null || doc.length == 0)
-			return null;
-
-		// unixify line endings
-		doc = doc.split("\r\n").join("\n").split("\r").join("\n");
-		// trim stars
-		doc = ~/^([ \t]*)\*+/gm.replace(doc, "$1");
-		doc = ~/\**[ \t]*$/gm.replace(doc, "");
-
-		// process [] blocks
-		var rx = ~/\[/;
-		var tmp = new StringBuf();
-		var codes = new List();
-		while (rx.match(doc)) {
-			tmp.add( rx.matchedLeft() );
-
-			var code = rx.matchedRight();
-			var brackets = 1;
-			var i = 0;
-			while( i < code.length && brackets > 0 ) {
-				switch( code.charCodeAt(i++) ) {
-				case 91: brackets++;
-				case 93: brackets--;
-				}
-			}
-			doc = code.substr(i);
-			code = code.substr(0, i-1);
-			code = ~/&/g.replace(code, "&amp;");
-			code = ~/</g.replace(code, "&lt;");
-			code = ~/>/g.replace(code, "&gt;");
-			var tag = "##__code__"+codes.length+"##";
-			if( code.indexOf('\n') != -1 ) {
-				tmp.add("<pre>");
-				tmp.add(tag);
-				tmp.add("</pre>");
-				codes.add(code.split("\t").join("    "));
-			} else {
-				tmp.add("<code>");
-				tmp.add(tag);
-				tmp.add("</code>");
-				codes.add(code);
-			}
-		}
-		tmp.add(doc);
-
-		var parts = tmp.toString().split("\n");
-		var newParts = new Array<String>();
-		var i = 0;
-		for(i in 0...parts.length) {
-			var tagEreg = ~/[ \t]*@([A-Za-z]+)[ \t]*(.*)/;
-			if(!tagEreg.match(parts[i])) {
-				newParts.push(parts[i]);
-				continue;
-			}
-			switch(tagEreg.matched(1)) {
-			case "throw", "throws":
-				var p = tagEreg.matched(2).split(" ");
-				var e = p.shift();
-				context.throws.push( {
-					name : e,
-					uri : Utils.makeRelPath(StringTools.replace(e,".","/")),
-					desc : p.join(" "),
-				});
-			case "return", "returns":
-				context.returns.push(tagEreg.matched(2));
-			case "param":
-				var p = tagEreg.matched(2).split(" ");
-				context.params.push({ arg : p.shift(), desc : p.join(" ") });
-			case "deprecated":
-				context.deprecated = true;
-				try {
-					context.depMessage = tagEreg.matched(2);
-				} catch(e:Dynamic) {
-					context.depMessage = null;
-				}
-			default:
-				trace("Unrecognized tag " + parts[i]);
-			}
-		}
-
-		// separate into paragraphs
-		parts = ~/\n[ \t]*\n/g.split(newParts.join("\n"));
-		if( parts.length == 1 )
-			doc = parts[0];
-		else
-			doc = Lambda.map(parts,function(x) { return "<p>"+StringTools.trim(x)+"</p>"; }).join("\n");
-
-		// put back code parts
-		i = 0;
-		for( c in codes )
-			doc = doc.split("##__code__"+(i++)+"##").join(c);
-		context.comments = doc;
-		return context;
-	}
-
 	function processType( t : CType ) {
 		switch( t ) {
 		case CUnknown:
@@ -322,6 +214,7 @@ class TypeHandler<T> {
 
 			isAllPlatforms	: (t.platforms.length == ChxDocMain.platforms.length),
 			platforms		: cloneList(t.platforms),
+			parent			: null,
 			contexts		: new Array(),
 
 			params			: "",
@@ -353,7 +246,7 @@ class TypeHandler<T> {
 		return c;
 	}
 
-	function createField(name : String, isPrivate : Bool, platforms : List<String>, originalDoc : String) : FieldCtx {
+	function createField(parentCtx : Ctx, name : String, isPrivate : Bool, platforms : List<String>, originalDoc : String) : FieldCtx {
 		var c : FieldCtx = {
 			type			: "field",
 
@@ -366,6 +259,7 @@ class TypeHandler<T> {
 
 			isAllPlatforms	: (platforms.length == ChxDocMain.platforms.length),
 			platforms		: cloneList(platforms),
+			parent			: parentCtx,
 			contexts		: null,
 
 			params			: "",
@@ -448,37 +342,6 @@ class TypeHandler<T> {
 		return Utils.stringSorter(a.name, b.name);
 	}
 
-	/**
-		Makes an html encoded Link
-	**/
-	function makeLink(href : String, text : String, css:String) : Link {
-		if(href == null) href = "";
-		if(text == null) text = "";
-		if(css == null) css = "";
-		return {
-			href	: htmlSpecialChars(href),
-			text	: htmlSpecialChars(text),
-			css		: htmlSpecialChars(css),
-		};
-	}
 
-	/**
-	* Translates html special characters for links etc.
-	* <ul>
-    * <li>'&amp;' (ampersand) becomes '&amp;amp;'</li>
-    * <li>'&quot' (double quote) becomes '&amp;quot;'</li>
-    * <li>'&lt;' (less than) becomes '&amp;lt;'</li>
-    * <li>'&gt;' (greater than) becomes '&amp;gt;'</li>
-	* </ul>
-	* @returns reformatted string
-	*/
-	function htmlSpecialChars(s : String) : String {
-		s = StringTools.replace(s, "&", "&amp;");
-		s = StringTools.replace(s, "&amp;amp;", "&amp;");
-		s = StringTools.replace(s, "<", "&lt;");
-		s = StringTools.replace(s, ">", "&gt;");
-		s = StringTools.replace(s, "\\\"", "&quot;");
-		s = StringTools.replace(s, "\"", "&quot;");
-		return s;
-	}
+
 }

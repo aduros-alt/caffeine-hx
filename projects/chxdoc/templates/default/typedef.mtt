@@ -28,7 +28,7 @@ function windowTitle()
 			::set hasFields = hasFields + 1::
 		::end::
 	::end::
-	
+
 	<div id="class-frame" class="type-frame">
 	<!-- ======== START OF class DATA ======== -->
 	<h1 class="typedef">::nameDots::::raw params::</h1>
@@ -58,9 +58,9 @@ function windowTitle()
 		::end::::end::
 	::end::
 	</dl>
-	
+
 	<div class="doc">$$typeDocs()</div>
-	
+
 	::if hasFields > 0::
 	<!-- ============ FIELD field_detail =========== -->
 	<div class="members-panel">
@@ -79,6 +79,6 @@ function windowTitle()
 	</div>
 
 <!-- ========= END OF TYPEDEF DATA ========= -->
-	::if footerText != null::<div id="footer">::footerText::</div>::end::
+	::if platform.footerText != null::<div id="footer">::raw platform.footerText::</div>::end::
 </body>
 </html>

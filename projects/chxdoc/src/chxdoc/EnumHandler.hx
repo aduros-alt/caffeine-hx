@@ -45,7 +45,7 @@ class EnumHandler extends TypeHandler<EnumCtx> {
 		var ctx = newEnumCtx(e);
 
 		for(c in e.constructors)
-			ctx.constructorInfo.push(newEnumFieldCtx(c));
+			ctx.constructorInfo.push(newEnumFieldCtx(ctx, c));
 
 		ctx.constructorInfo.sort(TypeHandler.ctxFieldSorter);
 
@@ -55,23 +55,23 @@ class EnumHandler extends TypeHandler<EnumCtx> {
 	/**
 		<pre>Types -> create documentation</pre>
 	**/
-	public function pass2(ctx : EnumCtx) {
+	public function pass2(pkg : PackageContext, ctx : EnumCtx) {
 		if(ctx.originalDoc != null)
-			ctx.docs = processDoc(ctx.originalDoc);
+			ctx.docs = DocProcessor.process(pkg, ctx, ctx.originalDoc);
 		else
 			ctx.docs = null;
 		for(f in ctx.constructorInfo) {
 			if(f.originalDoc == null)
 				f.docs = null;
 			else
-				f.docs = processDoc(f.originalDoc);
+				f.docs = DocProcessor.process(pkg, f, f.originalDoc);
 		}
 	}
 
 	/**
 		<pre>Types	-> Resolve all super classes, inheritance, subclasses</pre>
 	**/
-	public function pass3(ctx : EnumCtx) {
+	public function pass3(pkg : PackageContext, ctx : EnumCtx) {
 	}
 
 	public static function write(ctx : EnumCtx) : String  {
@@ -91,8 +91,8 @@ class EnumHandler extends TypeHandler<EnumCtx> {
 		return cast c;
 	}
 
-	function newEnumFieldCtx(f : EnumField) : FieldCtx {
-		var ctx = createField(f.name, false, f.platforms, f.doc);
+	function newEnumFieldCtx(ctx : EnumCtx, f : EnumField) : FieldCtx {
+		var ctx = createField(ctx, f.name, false, f.platforms, f.doc);
 		if(f.args != null) {
 			var me = this;
 			ctx.args = doStringBlock( function() {

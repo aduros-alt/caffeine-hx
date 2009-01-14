@@ -55,6 +55,23 @@ using a command similar to
 
 chxdoc -o docs --tmpDir=_chxdoctmp --templateDir=../chxdoc/templates/default --installTemplate=true --developer=true flash9.xml,flash9,flash neko.xml,neko js.xml,js
 
+Options
+=======
+--developer=[true|false]
+------------------------
+	This tag is a shortcut to setting the following switches:
+	--showAuthorTags=bool;
+	--showPrivateClasses=bool;
+	--showPrivateTypedefs=bool;
+	--showPrivateEnums=bool;
+	--showPrivateMethods=bool;
+	--showPrivateVars=bool;
+	--showTodoTags=bool;
+	--generateTodoFile=bool;
+	Since arguments are parsed in order, you could selectively turn off showAuthorTags
+	in a developer build with:
+	--developer=true --showAuthorTags=false
+
 Using Tags
 ==========
 

@@ -16,10 +16,11 @@
 			<div id="packages-header">
 				<ul>
 					<li><a href="all_classes.html" target="packageFrame">All Types</a></li>
-					<li><a href="packages/package.html" target="packageFrame">Root Types</a></li>
+
 				</ul>
 			</div>
 			<ul class="packages">
+				<li><a href="packages/package.html" target="packageFrame">Root Types</a></li>
 ::foreach i packages::
 				<li><a href="::i.linkString::" target="packageFrame">::i.name::</a></li>
 ::end::

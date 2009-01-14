@@ -137,6 +137,6 @@ function windowTitle()
 	::end::
 	</div>
 <!-- ========= END OF class DATA ========= -->
-	::if footerText != null::<div id="footer">::footerText::</div>::end::
+	::if platform.footerText != null::<div id="footer">::raw platform.footerText::</div>::end::
 </body>
 </html>

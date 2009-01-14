@@ -3,7 +3,7 @@ tests: test-developer test-user
 
 test-developer:
 	cd test && haxe chx.hxml
-	cd test && ../chxdoc -o doc_developer --tmpDir=__chxdoctmp --templateDir=../templates/default --installTemplate=true --developer=true flash9.xml,flash9,flash neko.xml,neko js.xml,js
+	cd test && ../chxdoc -o doc_developer --footerText="This is the <a href=\"http://www.haxe.org\" target=\"new\">footer link to haxe.org</a>" --tmpDir=__chxdoctmp --templateDir=../templates/default --installTemplate=true --developer=true flash9.xml,flash9,flash neko.xml,neko js.xml,js
 	cd test && $(RM) *.swf *.n *.js *.xml
 	cd test && $(RM) -R __chxdoctmp
 

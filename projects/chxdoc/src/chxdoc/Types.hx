@@ -70,6 +70,9 @@ typedef Ctx = {
 	**/
 	var isAllPlatforms		: Bool;
 	var platforms			: List<String>;
+	/** used in fields and typedef definitions to point to the parent type **/
+	var parent				: Ctx;
+	/** used in typedefs to contain all the different definitions **/
 	var contexts			: Array<Ctx>;
 
 
@@ -140,3 +143,4 @@ typedef TypedefCtx = {
 	/** Uses only [name] and [returns] **/
 	var fields				: Array<FieldCtx>;
 };
+

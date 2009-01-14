@@ -32,7 +32,7 @@ import chxdoc.Types;
 import haxe.rtti.CType;
 
 class ChxDocMain {
-	static var proginfo = "ChxDoc Generator 0.5 - (c) 2009 Russell Weir";
+	static var proginfo = "ChxDoc Generator 0.6 - (c) 2009 Russell Weir";
 	static var buildNumber = 447;
 
 	public static var buildData : BuildData;
@@ -40,11 +40,13 @@ class ChxDocMain {
 
 	public static var config : Config =
 	{
+		showAuthorTags		: false,
 		showPrivateClasses	: false,
 		showPrivateTypedefs	: false,
 		showPrivateEnums	: false,
 		showPrivateMethods	: false,
 		showPrivateVars		: false,
+		showTodoTags		: false,
 		temploBaseDir		: "./templates/",
 		temploTmpDir		: "./tmp/",
 		temploMacros		: "macros.mtt",
@@ -59,11 +61,14 @@ class ChxDocMain {
 		noPrompt			: false, // not implemented
 		installImagesDir	: false,
 		installCssFile		: false,
+
+		generateTodo		: false,
 	};
 
 	static var classPaths : List<String>;
 
 	static var parser = new haxe.rtti.XmlParser();
+	//static var todoLines : Array<{link: Link, message:String}> = new Array();
 
 	/////////////////////
 	//      Dates      //
@@ -140,6 +145,8 @@ class ChxDocMain {
 		packageHandler.pass2(packageRoot);
 		for(i in packageContexts)
 			packageHandler.pass2(i);
+		// these were added in reverse order since DocProcessor does it that way
+		platformData.todoLines.reverse();
 	}
 
 
@@ -224,6 +231,38 @@ class ChxDocMain {
 		});
 	}
 
+	public static function registerTodo(pkg:PackageContext, ctx:Ctx, msg: String) {
+		if(!config.generateTodo)
+			return;
+		var parentCtx = CtxApi.getParent(ctx, true);
+		var childCtx = ctx;
+
+		if(parentCtx == null) {
+			parentCtx = ctx;
+			childCtx = null;
+		}
+
+		var dots = parentCtx.packageDots;
+		if(dots == null)
+			dots = pkg.full;
+
+		var href = "types/" +
+				Utils.addSubdirTrailingSlash(dots.split(".").join("/")) +
+				parentCtx.name +
+				config.htmlFileExtension +
+				CtxApi.makeAnchor(childCtx);
+
+		var linkText = parentCtx.nameDots;
+
+		platformData.todoLines.push({
+			link: Utils.makeLink(
+					href,
+					linkText,
+					"todoLine"
+				),
+			message: msg,
+		});
+	}
 
 	//////////////////////////////////////////////
 	//               Pass 4                     //
@@ -265,6 +304,11 @@ class ChxDocMain {
 		for(i in ["index", "overview", "all_packages", "all_classes"]) {
 			var t = new mtwin.templo.Loader(i+".mtt");
 			Utils.writeFileContents(config.baseDirectory + i + config.htmlFileExtension, t.execute(context));
+		}
+
+		if(config.generateTodo) {
+			var t = new mtwin.templo.Loader("todo.mtt");
+			Utils.writeFileContents(config.baseDirectory + "todo" + config.htmlFileExtension, t.execute(context));
 		}
 	}
 
@@ -328,11 +372,18 @@ class ChxDocMain {
 			subtitle : "http://www.haxe.org/",
 			developer : false,
 			platforms : new List(),
+			footerText : null,
+			generateTodo : false,
+			todoLines : new Array(),
+			todoFile	: "todo" + config.htmlFileExtension,
 		}
 		platforms = new List();
 
 		initDefaultPaths();
 		parseArgs();
+
+		platformData.todoFile = "todo" + config.htmlFileExtension;
+		platformData.generateTodo = config.generateTodo;
 
 		if(	config.showPrivateClasses ||
 			config.showPrivateTypedefs ||
@@ -413,7 +464,8 @@ class ChxDocMain {
 					neko.io.File.copy(p, targetImgDir + i);
 				}
 			} else {
-				neko.Lib.println("WARNING: Template " + config.temploBaseDir + " has no 'images' directory");
+				logWarning("Template " + config.temploBaseDir + " has no 'images' directory");
+
 			}
 		}
 
@@ -424,7 +476,7 @@ class ChxDocMain {
 				neko.Lib.println("Installing " + srcCssFile + " to " + targetCssFile);
 				neko.io.File.copy(srcCssFile, targetCssFile);
 			} else {
-				neko.Lib.println("WARNING: Template " + config.temploBaseDir + " has no stylesheet.css");
+				logWarning("Template " + config.temploBaseDir + " has no stylesheet.css");
 			}
 		}
 	}
@@ -483,28 +535,49 @@ class ChxDocMain {
 			}
 			else if( x.indexOf("=") > 0) {
 				var parts = x.split("=");
-				if(parts.length > 2)
-					usage(1);
+				if(parts.length < 2) {
+					fatal("Error with parameter " + x);
+				}
+				if(parts.length > 2) {
+					var zero = parts.shift();
+					var rest = parts.join("");
+					parts = [zero, rest];
+				}
 				switch(parts[0]) {
 				case "--title": platformData.title = parts[1];
 				case "--subtitle": platformData.subtitle = parts[1];
 				case "--developer":
 					var show = getBool(parts[1]);
+					config.showAuthorTags = show;
 					config.showPrivateClasses = show;
 					config.showPrivateTypedefs = show;
 					config.showPrivateEnums = show;
 					config.showPrivateMethods = show;
 					config.showPrivateVars = show;
+					config.showTodoTags = show;
+					config.generateTodo = show;
+				case "--footerText":
+					platformData.footerText = parts[1];
+				case "--footerTextFile":
+					try {
+						platformData.footerText = neko.io.File.getContent(parts[1]);
+					} catch(e : Dynamic) {
+						fatal("Unable to load footer file " + parts[1]);
+					}
+				case "--generateTodoFile":
+					config.generateTodo = getBool(parts[1]);
 				case "--installTemplate":
 					var i = getBool(parts[1]);
 					config.installImagesDir = i;
 					config.installCssFile = i;
 				case "--stylesheet": config.stylesheet = parts[1];
+				case "--showAuthorTags": config.showAuthorTags = getBool(parts[1]);
 				case "--showPrivateClasses": config.showPrivateClasses = getBool(parts[1]);
 				case "--showPrivateTypedefs": config.showPrivateTypedefs = getBool(parts[1]);
 				case "--showPrivateEnums": config.showPrivateEnums = getBool(parts[1]);
 				case "--showPrivateMethods": config.showPrivateMethods = getBool(parts[1]);
 				case "--showPrivateVars": config.showPrivateVars = getBool(parts[1]);
+				case "--showTodoTags": config.showTodoTags = getBool(parts[1]);
 				case "--templateDir": config.temploBaseDir = parts[1];
 				case "--tmpDir": config.temploTmpDir = parts[1];
 				case "--macroFile": config.temploMacros = parts[1];
@@ -541,6 +614,8 @@ class ChxDocMain {
 		print("\t--title=string Set the package title");
 		print("\t--subtitle=string Set the package subtitle");
 		print("\t--developer=[true|false] Shortcut to showing all privates, if true");
+		print("\t--footerText=\"text\" Text that will be added to footer of Type pages");
+		print("\t--footerTextFile=/path/to/file Type pages footer text from file");
 		print("\t--installTemplate=[true|false] Install stylesheet and images from template");
 		print("\t--showPrivateClasses=[true|false] Toggle private classes display");
 		print("\t--showPrivateTypedefs=[true|false] Toggle private typedef display");
@@ -568,7 +643,7 @@ class ChxDocMain {
 		try {
 			data = neko.io.File.getContent(neko.Sys.getCwd()+file);
 		} catch(e:Dynamic) {
-			usage(1);
+			fatal("Unable to load platform xml file " + file);
 		}
 		var x = Xml.parse(data).firstElement();
 		if( remap != null )
@@ -591,4 +666,24 @@ class ChxDocMain {
 		}
 	}
 
+	/**
+	@todo Ctx may be a function, so we need the parent ClassCtx. Requires adding
+			'parent' to Ctx typedef
+	**/
+	public static function logWarning(msg:String, ?pkg:PackageContext, ?ctx : Ctx) {
+		if(pkg != null) {
+			msg += " in package " + pkg.full;
+		}
+		if(ctx != null) {
+			msg += " in " + ctx.name;
+		}
+		neko.Lib.println("WARNING: " + msg);
+	}
+
+	public static function fatal(msg:String, ?exitVal) {
+		if(exitVal == null)
+			exitVal = 1;
+		neko.Lib.println("FATAL: " + msg);
+		neko.Sys.exit(exitVal);
+	}
 }

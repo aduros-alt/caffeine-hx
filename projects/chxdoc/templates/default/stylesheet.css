@@ -213,3 +213,7 @@ pre {
 div.inherited, div.overrides {
 	margin: 2px 0;
 }
+
+.deprecated {
+	color: #FF0000;
+}

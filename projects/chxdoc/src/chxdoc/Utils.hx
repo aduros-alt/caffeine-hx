@@ -213,4 +213,50 @@ class Utils {
 			throw "Package output path " + path + " is not a directory.";
 		}
 	}
+
+	/**
+	* Translates html special characters for links etc.
+	* <ul>
+    * <li>'&amp;' (ampersand) becomes '&amp;amp;'</li>
+    * <li>'&quot' (double quote) becomes '&amp;quot;' (if doQuotes is true)</li>
+    * <li>'&lt;' (less than) becomes '&amp;lt;'</li>
+    * <li>'&gt;' (greater than) becomes '&amp;gt;'</li>
+	* </ul>
+	* @returns reformatted string
+	*/
+	public static function htmlSpecialChars(s : String, doQuotes : Bool = false) : String {
+		#if neko
+			s = ~/&/g.replace(s, "&amp;");
+			s = ~/</g.replace(s, "&lt;");
+			s = ~/>/g.replace(s, "&gt;");
+			if(doQuotes) {
+				s = ~/\\\"/g.replace(s, "&quot;");
+				s = ~/\"/g.replace(s, "&quot;");
+			}
+		#else
+			s = StringTools.replace(s, "&", "&amp;");
+			s = StringTools.replace(s, "&amp;amp;", "&amp;");
+			s = StringTools.replace(s, "<", "&lt;");
+			s = StringTools.replace(s, ">", "&gt;");
+			if(doQuotes) {
+				s = StringTools.replace(s, "\\\"", "&quot;");
+				s = StringTools.replace(s, "\"", "&quot;");
+			}
+		#end
+		return s;
+	}
+
+	/**
+		Makes an html encoded Link
+	**/
+	public static function makeLink(href : String, text : String, css:String) : Link {
+		if(href == null) href = "";
+		if(text == null) text = "";
+		if(css == null) css = "";
+		return {
+			href	: htmlSpecialChars(href, true),
+			text	: htmlSpecialChars(text, true),
+			css		: htmlSpecialChars(css, true),
+		};
+	}
 }

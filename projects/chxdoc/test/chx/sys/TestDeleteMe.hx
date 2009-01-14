@@ -34,6 +34,9 @@ class Base {
 	/**
 		This is the documentation from Base for baseOver1
 		@throws chx.sys.Layer1
+never ever, this is just an
+		example of multiline
+  text
 	**/
 	public function baseOver1() : Void {}
 
@@ -62,6 +65,7 @@ class Layer1 extends Base {
 
 /**
 	This is the class documentation for TestDeleteMe
+	@author Russell Weir
 **/
 class TestDeleteMe extends Layer1, implements Dynamic {
 	public static var sa : Int;
@@ -90,6 +94,9 @@ class TestDeleteMe extends Layer1, implements Dynamic {
 		@param v An ignored value
 		@throws chx.lang.Exception When it feels like, just for fun!
 		@returns Nothing cause it's a constructor, fool&
+but this is an example of
+			a multiline tag that should
+				      format nicely.
 	**/
 	public function new(v:Int) {
 	}
@@ -114,6 +121,23 @@ class TestDeleteMe extends Layer1, implements Dynamic {
 #end
 	{
 		return null;
+	}
+
+	/**
+	@author Ian Fleming
+	@deprecated By a shot to the head
+	@type F Any female you want
+	@type M Any male you want
+	@param girl A sexy woman
+	@requires A fast car
+	@returns Always 007. Even in Octal it's the same
+	@see him and you're probably dead
+	@throws chx.lang.Exception never
+	@todo Learn more secret agent stuff
+	@todo Fix this method so it actually accomplishes something
+	**/
+	public function JamesBond<F,M>(girl:String) : Int {
+		return 7;
 	}
 }
 
