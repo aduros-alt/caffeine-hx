@@ -50,6 +50,7 @@ function windowTitle()
 			<div class="member">
 				<div class="header">$$enumConstructor(::c::)</div>
 				<div class="body">$$methodDocs(::c::)</div>
+				$$showPlatforms(::c.platforms::)
 			</div>
 			::end::
 		</div>

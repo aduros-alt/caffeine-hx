@@ -69,7 +69,6 @@ function windowTitle()
 			::foreach f ctx.fields::
 			<div class="member">
 				<div class="header"><span class="name">::f.name::</span> : ::raw f.returns::</div>
-				<div class="body">$$showPlatforms(::ctx.platforms::)</div>
 			</div>
 			::end::
 		</div>

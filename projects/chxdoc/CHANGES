@@ -6,6 +6,9 @@
 		- Add --showSourceFilePath for hard link to source files
 
 0.6 ?
+	- FIXED: Constructors not getting docs.
+	- FIXED: Template for typedefs showing wrong platforms
+	- FIXED: Templates not showing platforms for members
 	- ADDED: --footerText and --footerTextFile switches for adding raw html to Types pages
 	- ADDED: --generateTodo flag for making /todo.html
 	- ADDED: @author [raw]
@@ -13,9 +16,19 @@
 	- ADDED: @see [path]
 	- ADDED: @todo tag and todo.html file generation
 	- ADDED: @type [name] [description] for type params (ie function blah<T>)
-	- FIXED: Constructors not getting docs.
+
 	- CHANGE: Moved Root Types to top of packages in all_packages.mtt
 	- CHANGE: Improved tag detection in method/var/class documentation
+	- The current available tags are:
+	@author
+	@deprecated
+	@param
+	@requires
+	@return (or @returns)
+	@see
+	@throws
+	@todo
+	@type
 
 
 0.5 2009-01-12

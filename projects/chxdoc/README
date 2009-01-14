@@ -78,7 +78,6 @@ Using Tags
 Chxdoc adds support for @ tags in your source code comments. To use them, they
 must be the first non-whitespace character on a line.
 
-
 /**
 	This function does very little.
 	@param a An integer greater than 0
@@ -92,31 +91,48 @@ public function myFunc(a : Int, s : String) : Bool {
 	return (s == null);
 }
 
-@param [name] Description
-	Adds a notation about a method argument. Do not confuse this
-	with a haxe class or method type param (<T>).
+The current available tags, all of which except for @deprecated can be used multiple times
+@author
+@deprecated
+@param
+@requires
+@return (or @returns)
+@see
+@throws
+@todo
+@type
 
-@return [Description]
-	Adds literal description to html. @returns is also accepted.
-
-@throws [full class path] [Description]
-	Will link html documentation to the class path provided, so it
-	must be a fully qualified class path. (haxe.io.Eof)
+@author [text]
+	Adds an author field
 
 @deprecated [Description]
 	Prints a deprecation warning. This tag is not currently in the
 	provided template, but is parsed.
 
-Future tags
-===========
-The following tags will be added shortly
+@param [name] Description
+	Adds a notation about a method argument. Do not confuse this
+	with a haxe class or method type param (<T>).
 
 @requires [Description]
-	For documenting package requirements like neko ndll files.
+	Adds a description for requirements, like a required neko ndll file
+
+@return [Description]
+	Adds literal description to html. @returns is also accepted.
+
+@see [Description]
+	Adds description as a source to view
+
+@throws [full class path] [Description]
+	Will link html documentation to the class path provided, so it
+	must be a fully qualified class path. (haxe.io.Eof)
 
 @todo [Description]
 	For generating TODO files and html notes
 
+
+Planned
+=======
+embedded tags like {@link } for things like @see {@link haxe.io.Bytes}
 
 ===========
 

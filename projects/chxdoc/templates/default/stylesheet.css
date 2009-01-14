@@ -195,6 +195,15 @@ pre {
 	padding: 4px 16px;
 }
 
+.member .platforms {
+	padding: 4px 16px;
+}
+
+.member .platforms-list {
+	padding: 4px 16px;
+	font-weight: bold;
+}
+
 #packages-frame li, #types-frame li {
 	background-repeat: no-repeat;
 	min-height: 16px;
