@@ -17,3 +17,14 @@ clean:
 	cd test && $(RM) -R doc_developer
 	cd test && $(RM) -R doc_user
 	rm -R chxdoc_release
+
+windows:
+	wine haxe build.hxml
+	rm chxdoc.n
+
+linux:
+	haxe build.hxml
+
+release: windows linux
+	mv chxdoc.exe bin/Windows/
+	mv chxdoc bin/Linux/

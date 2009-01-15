@@ -544,8 +544,6 @@ class ChxDocMain {
 					parts = [zero, rest];
 				}
 				switch(parts[0]) {
-				case "--title": platformData.title = parts[1];
-				case "--subtitle": platformData.subtitle = parts[1];
 				case "--developer":
 					var show = getBool(parts[1]);
 					config.showAuthorTags = show;
@@ -570,7 +568,8 @@ class ChxDocMain {
 					var i = getBool(parts[1]);
 					config.installImagesDir = i;
 					config.installCssFile = i;
-				case "--stylesheet": config.stylesheet = parts[1];
+				case "--macroFile": config.temploMacros = parts[1];
+
 				case "--showAuthorTags": config.showAuthorTags = getBool(parts[1]);
 				case "--showPrivateClasses": config.showPrivateClasses = getBool(parts[1]);
 				case "--showPrivateTypedefs": config.showPrivateTypedefs = getBool(parts[1]);
@@ -578,9 +577,12 @@ class ChxDocMain {
 				case "--showPrivateMethods": config.showPrivateMethods = getBool(parts[1]);
 				case "--showPrivateVars": config.showPrivateVars = getBool(parts[1]);
 				case "--showTodoTags": config.showTodoTags = getBool(parts[1]);
+				case "--stylesheet": config.stylesheet = parts[1];
+				case "--subtitle": platformData.subtitle = parts[1];
 				case "--templateDir": config.temploBaseDir = parts[1];
+				case "--title": platformData.title = parts[1];
 				case "--tmpDir": config.temploTmpDir = parts[1];
-				case "--macroFile": config.temploMacros = parts[1];
+
 				}
 			}
 			else if( x == "--help" || x == "-help")
@@ -605,34 +607,37 @@ class ChxDocMain {
 
 	static function usage(exitVal : Int) {
 		var print = neko.Lib.println;
-		print(proginfo);
 		print(" Usage : chxdoc [options] [xml files]");
 		print(" Options:");
 		print("\t-f filter Add a package or class filter");
 		print("\t-o outputdir Sets the output directory (defaults to ./html)");
 // 		print("\t-cp classpath Add a source file class path"); // not implemented
-		print("\t--title=string Set the package title");
-		print("\t--subtitle=string Set the package subtitle");
 		print("\t--developer=[true|false] Shortcut to showing all privates, if true");
 		print("\t--footerText=\"text\" Text that will be added to footer of Type pages");
 		print("\t--footerTextFile=/path/to/file Type pages footer text from file");
+		print("\t--generateTodoFile=[true|false] Generate the todo.html file");
 		print("\t--installTemplate=[true|false] Install stylesheet and images from template");
+		print("\t--macroFile=file.mtt Temploc macro file. (default macros.mtt)");
+		print("\t--showAuthorTags=[true|false] Toggles showing @author contents");
 		print("\t--showPrivateClasses=[true|false] Toggle private classes display");
 		print("\t--showPrivateTypedefs=[true|false] Toggle private typedef display");
 		print("\t--showPrivateEnums=[true|false] Toggle private enum display");
 		print("\t--showPrivateMethods=[true|false] Toggle private method display");
 		print("\t--showPrivateVars=[true|false] Toggle private var display");
+		print("\t--showTodoTags=[true|false] Toggle showing @todo tags in type documentation");
 		print("\t--stylesheet=file Sets the stylesheet relative to the outputdir");
+		print("\t--subtitle=string Set the package subtitle");
 		print("\t--templateDir=path Path to template (.mtt) directory (default ./templates)");
+		print("\t--title=string Set the package title");
 		print("\t--tmpDir=path Path for tempory file generation (default ./tmp)");
-		print("\t--macroFile=file.mtt Temploc macro file. (default macros.mtt)");
+		print("");
 		print(" XML Files:");
 		print("\tinput.xml[,platform[,remap]");
 		print("\tXml files are generated using the -xml option when compiling haxe projects. ");
 		print("\tplatform - generate docs for a given platform" );
 		print("\tremap - change all references of 'remap' to 'package'");
 		print(" Sample usage:");
-		print("\tchxdoc flash9.xml,flash,flash9");
+		print("\tchxdoc flash9.xml,flash,flash9 php.xml,php");
 		print("\t\tWill transform all references to flash.* to flash9.*");
 		print("");
 		neko.Sys.exit(exitVal);
