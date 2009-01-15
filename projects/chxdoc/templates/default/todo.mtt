@@ -2,7 +2,7 @@
 <html>
 	<head>
 		::raw build.comment::
-		<title>TODO List ::platform.title::</title>
+		<title>TODO List ::config.title::</title>
 		<meta name="date" content="::meta.date::" />
 		::foreach kw meta.keywords::
 		<meta name="keywords" content="::kw::" />
@@ -11,10 +11,10 @@
 	</head>
 	<body>
 		<div id="todo-list">
-			<h1>::platform.title:: TODO</h1>
+			<h1>::config.title:: TODO</h1>
 			<hr />
 			<ul class="packages">
-::foreach i platform.todoLines::
+::foreach i config.todoLines::
 				<li><a href="::raw i.link.href::" target="classFrame">::raw i.link.text::</a> ::raw i.message::</li>
 ::end::
 			</ul>

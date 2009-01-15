@@ -74,16 +74,7 @@ class EnumHandler extends TypeHandler<EnumCtx> {
 	public function pass3(pkg : PackageContext, ctx : EnumCtx) {
 	}
 
-	public static function write(ctx : EnumCtx) : String  {
-		var t = new mtwin.templo.Loader("enum.mtt");
-		try {
-			var rv = t.execute(ctx);
-			return rv;
-		} catch(e : Dynamic) {
-			trace("ERROR generating doc for " + ctx.path + ". Check enum.mtt");
-			return neko.Lib.rethrow(e);
-		}
-	}
+
 
 	function newEnumCtx(t : Enumdef) : EnumCtx {
 		var c = createCommon(t, "enum");
@@ -98,9 +89,9 @@ class EnumHandler extends TypeHandler<EnumCtx> {
 			ctx.args = doStringBlock( function() {
 				me.display(f.args, function(a) {
 					if( a.opt )
-						me.print("?");
-					me.print(a.name);
-					me.print(" : ");
+						me.write("?");
+					me.write(a.name);
+					me.write(" : ");
 					me.processType(a.t);
 				},",");
 			});

@@ -29,10 +29,33 @@ package chxdoc;
 
 import chxdoc.Types;
 
-
+/** Output as raw **/
 typedef Html = String;
 
-typedef PlatformData = {
+/** a dotted class path **/
+typedef DotPath = String; // a.b.c
+
+/**
+	Links include the html escaped text and href, as well as the css type.
+**/
+typedef Link = {
+	var href		: Html;
+	var text		: Html;
+	var css			: String;
+};
+
+typedef Config = {
+	var versionMajor		: Int;
+	var versionMinor		: Int;
+	var versionRevision		: Int;
+	var buildNumber			: Int;
+	var verbose				: Bool;
+	var rootTypesPackage	: PackageContext;
+	var allPackages			: Array<PackageContext>;
+	var allTypes			: Array<Ctx>;
+	var docBuildDate		: Date;
+	var dateShort			: String; // YYYY-MM-DD
+	var dateLong			: String; // Web Feb 12 HH:MM:SS GMT 2008
 	var showAuthorTags		: Bool;
 	var showPrivateClasses	: Bool;
 	var showPrivateTypedefs	: Bool;
@@ -108,13 +131,15 @@ typedef DocsContext = {
 };
 
 typedef PackageContext = {
+	// meta
+	// build
+	// platform
 	var name				: String;	// short name
 	var full				: String;	// full dotted name
 
-	var rootRelative		: String;
-	var classes				: Array<ClassCtx>;
-	var enums				: Array<EnumCtx>;
-	var typedefs			: Array<TypedefCtx>;
+	var rootRelative		: String; // ../../ back to /packages
+	var packageUri			: String; // packages/pkg/path/package.html
+	var types				: Array<Ctx>;
 
 	// Filesystem paths.
 	/** Filesystem path to types **/
@@ -123,28 +148,13 @@ typedef PackageContext = {
 	var resolvedPackageDir	: String;
 };
 
-typedef PackageFileContext = {
-	var meta		: MetaData;
-	var build		: BuildData;
-	var platform	: PlatformData;
-	var name		: String;
-	var types		: Array<PackageFileTypesContext>;
-}
-
-typedef NameLinkStringContext = {
+/*
+typedef PackageFileTypesContext = {
 	var name			: String;
 	var linkString		: String;
-}
-
-typedef PackageFileTypesContext = {
-	> NameLinkStringContext,
 	var type			: String;
 }
-
-typedef PackageOutputContext = {
-	> NameLinkStringContext,
-	var rootRelative	: String;
-}
+*/
 
 /**
 	This is the context passed to the template file for
@@ -152,11 +162,8 @@ typedef PackageOutputContext = {
 **/
 typedef IndexContext = {
 	var meta		: MetaData;
-	var platform	: PlatformData;
+	var config		: Config;
 	var build		: BuildData;
-
-	var packages	: Array<PackageOutputContext>;
-	var types		: Array<PackageFileTypesContext>;
 }
 
 typedef FileInfo = {

@@ -30,27 +30,11 @@ package chxdoc;
 import haxe.rtti.CType;
 import chxdoc.Defines;
 
-// typedef Html = String; // output this as raw
-typedef DotPath = String; // a.b.c
 
 /**
 	A DefType is one of class, typedef, alias, field, enum, enumfield
 **/
 typedef DefType = String;
-
-/**
-	Links include the html escaped text and href, as well as the css type.
-**/
-typedef Link = {
-	var href		: Html;
-	var text		: Html;
-	var css			: String;
-};
-
-typedef PlatformCtx = {
-	var platforms		: Array<String>;
-	var data			: Ctx;
-}
 
 typedef Ctx = {
 	var type				: DefType; // type of the definition
@@ -59,8 +43,8 @@ typedef Ctx = {
 	// TypeInfos.path: 1) a.b.C 2) a.b._C.D
 	var name				: String; // Short name.  1) C 2) D 3) MyClass
 	var nameDots			: DotPath; // Dotted filename 1) a.b.C 2) a.b._C.D 3) flash.MyClass
-	var path				: String; // Dotted filename after remap
-	var packageDots			: String; // Dotted package name. 1) a.b 2) a.b._C 3) flash
+	var path				: DotPath; // Dotted filename after remap
+	var packageDots			: DotPath; // Dotted package name. 1) a.b 2) a.b._C 3) flash
 	var subdir				: String; // Relative subdir for html 1) a/b/ 2) a/b/_C/ 3) flash9/
 	var rootRelative		: Html;   // Relative subdir for root 1) ../../ etc.
 
@@ -84,7 +68,7 @@ typedef Ctx = {
 
 	var meta				: MetaData;
 	var build				: BuildData;
-	var platform			: PlatformData;
+	var config				: Config;
 
 	var setField			: String->Dynamic->Void;
 	var originalDoc			: String;

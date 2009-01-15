@@ -2,7 +2,7 @@
 <html>
 <head>
 	::raw build.comment::
-	<title>::name:: (::platform.title::)</title>
+	<title>::name:: (::config.title::)</title>
 	<meta name="date" content="::meta.date::" />
 	::foreach kw meta.keywords::
 	<meta name="keywords" content="::kw::" />
@@ -13,7 +13,7 @@
 function windowTitle()
 {
     if (location.href.indexOf('is-external=true') == -1) {
-        parent.document.title="::name:: (::platform.title::)";
+        parent.document.title="::name:: (::config.title::)";
     }
 }
 </script>
@@ -61,6 +61,6 @@ function windowTitle()
 	<hr />
 		<a href="::rootRelative::../overview.html">Overview</a>
 	<hr />
-	::if platform.footerText != null::<div id="footer">::raw platform.footerText::</div>::end::
+	::if config.footerText != null::<div id="footer">::raw config.footerText::</div>::end::
 </body>
 </html>

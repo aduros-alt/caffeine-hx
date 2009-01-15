@@ -14,7 +14,7 @@
 			<h1>::name::</h1>
 			<ul class="packages">
 ::foreach i types::
-				<li class="::i.type::"><a href="::i.linkString::" title="::i.name::" target="classFrame">::i.name::</a></li>
+				<li class="::i.type::"><a href="::rootRelative::../types/::i.subdir::::i.name::::config.htmlFileExtension::" title="::i.name::" target="classFrame">::i.name::</a></li>
 ::end::
 			</ul>
 		</div>

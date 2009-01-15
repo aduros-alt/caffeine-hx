@@ -32,16 +32,31 @@ import chxdoc.Defines;
 import chxdoc.Types;
 
 class TypeHandler<T> {
-	static var typeParams : TypeParams = new Array();
+	static var typeParams	: TypeParams = new Array();
+
+	var config				: Config;
+	var print				: Dynamic -> Void;
+	var println 			: Dynamic -> Void;
 
 	public function new() {
+		this.config = ChxDocMain.config;
+		if(config.verbose) {
+			this.println = ChxDocMain.println;
+			this.print = ChxDocMain.print;
+		} else {
+			this.println = nullPrinter;
+			this.print = nullPrinter;
+		}
+	}
+
+	function nullPrinter(v : Dynamic) : Void {
 	}
 
 	public dynamic function output(str) {
 		neko.Lib.print(str);
 	}
 
-	public function print(str, ?params : Dynamic ) {
+	public function write(str, ?params : Dynamic ) {
 		if( params != null )
 			for( f in Reflect.fields(params) )
 				str = StringTools.replace(str, "$"+f, Std.string(Reflect.field(params, f)));
@@ -60,9 +75,9 @@ class TypeHandler<T> {
 	/**
 		Creates a new metaData entry, with one empty entry in keywords
 	**/
-	function newMetaData() {
+	public static function newMetaData() {
 		var metaData = {
-			date : ChxDocMain.shortDate,
+			date : ChxDocMain.config.dateShort,
 			keywords : new Array<String>(),
 			stylesheet : ChxDocMain.baseRelPath + "../" + ChxDocMain.config.stylesheet,
 		};
@@ -73,7 +88,7 @@ class TypeHandler<T> {
 	function processType( t : CType ) {
 		switch( t ) {
 		case CUnknown:
-			print("Unknown");
+			write("Unknown");
 		case CEnum(path,params):
 			processPath(path,params);
 		case CClass(path,params):
@@ -83,25 +98,25 @@ class TypeHandler<T> {
 		case CFunction(args,ret):
 			if( args.isEmpty() ) {
 				processPath("Void");
-				print(" -> ");
+				write(" -> ");
 			}
 			for( a in args ) {
 				if( a.opt )
-					print("?");
+					write("?");
 				if( a.name != null && a.name != "" )
-					print(a.name+" : ");
+					write(a.name+" : ");
 				processTypeFun(a.t,true);
-				print(" -> ");
+				write(" -> ");
 			}
 			processTypeFun(ret,false);
 		case CAnonymous(fields):
-			print("{ ");
+			write("{ ");
 			var me = this;
 			display(fields,function(f) {
-				me.print(f.name+" : ");
+				me.write(f.name+" : ");
 				me.processType(f.t);
 			},", ");
-			print("}");
+			write("}");
 		case CDynamic(t):
 			if( t == null )
 				processPath("Dynamic");
@@ -120,10 +135,10 @@ class TypeHandler<T> {
 			default : false;
 		};
 		if( parent )
-			print("(");
+			write("(");
 		processType(t);
 		if( parent )
-			print(")");
+			write(")");
 	}
 
 	function display<T>( l : List<T>, f : T -> Void, sep : String ) {
@@ -132,19 +147,19 @@ class TypeHandler<T> {
 			if( first )
 				first = false;
 			else
-				print(sep);
+				write(sep);
 			f(x);
 		}
 	}
 
 
 	function processPath( path : Path, ?params : List<CType> ) {
-		print(makePathUrl(path,"type"));
+		write(makePathUrl(path,"type"));
 		if( params != null && !params.isEmpty() ) {
-			print("&lt;");
+			write("&lt;");
 			for( t in params )
 				processType(t);
-			print("&gt;");
+			write("&gt;");
 		}
 	}
 
@@ -229,7 +244,7 @@ class TypeHandler<T> {
 
 			meta			: newMetaData(),
 			build			: ChxDocMain.buildData,
-			platform		: ChxDocMain.config,
+			config			: ChxDocMain.config,
 
 			setField		: null,
 			originalDoc		: t.doc,
@@ -274,7 +289,7 @@ class TypeHandler<T> {
 
 			meta			: null,
 			build			: null,
-			platform		: null,
+			config			: null,
 
 			setField		: null,
 			originalDoc		: originalDoc,
@@ -346,4 +361,24 @@ class TypeHandler<T> {
 		return Utils.stringSorter(a.name, b.name);
 	}
 
+	/**
+		Takes any Ctx and returns the template output
+	**/
+	public static function execTemplate(ctx : Ctx) : String  {
+		var type = switch(ctx.type) {
+		case "typedef", "alias": "typedef";
+		case "class", "interface": "class";
+		case "enum": "enum";
+		default:
+			throw ChxDocMain.fatal("Could not determing template type for " + ctx.type);
+		}
+		var t = new mtwin.templo.Loader(type + ".mtt");
+		try {
+			var rv = t.execute(ctx);
+			return rv;
+		} catch(e : Dynamic) {
+			trace("ERROR generating doc for " + ctx.path + ". Check "+type+".mtt");
+			return neko.Lib.rethrow(e);
+		}
+	}
 }

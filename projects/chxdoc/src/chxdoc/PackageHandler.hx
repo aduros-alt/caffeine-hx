@@ -36,12 +36,16 @@ class PackageHandler extends TypeHandler<PackageContext> {
 	var enumHandler : EnumHandler;
 	var typedefHandler : TypedefHandler;
 
+
+
 	public function new() {
 		super();
 		this.classHandler = new ClassHandler();
 		this.enumHandler = new EnumHandler();
 		this.typedefHandler = new TypedefHandler();
 	}
+
+
 
 	public function pass1(name : String, full:String, subs : Array<TypeTree>) : PackageContext {
 		var pkg = {
@@ -50,10 +54,10 @@ class PackageHandler extends TypeHandler<PackageContext> {
 			resolvedTypeDir		: "",	// final output path for types
 			resolvedPackageDir	: "", // final output dir for package.html
 			rootRelative		: new String(ChxDocMain.baseRelPath),
-			classes				: new Array(),
-			enums				: new Array(),
-			typedefs			: new Array(),
+			packageUri			: null,
+			types				: new Array(),
 		};
+		pkg.packageUri = "packages/" + Utils.makeRelativePackageLink(pkg) + "package" + config.htmlFileExtension;
 
 		if(name == "root") {
 			name = "0";
@@ -65,8 +69,6 @@ class PackageHandler extends TypeHandler<PackageContext> {
 			pkg.resolvedTypeDir = ChxDocMain.config.typeDirectory + subdir;
 			pkg.resolvedPackageDir = ChxDocMain.config.packageDirectory + subdir;
 		}
-
-// 		trace("FOUND PACKAGE " + full + " named: "+name+" resolvedPath: " + pkg.resolvedPath);
 
 		var setTypeParams = function(t) : TypeInfos {
 			var info = TypeApi.typeInfos(t);
@@ -80,32 +82,31 @@ class PackageHandler extends TypeHandler<PackageContext> {
 				continue;
 			case TTypedecl(t):
 				var info = setTypeParams(entry);
-				var ctx = typedefHandler.pass1(t);
-				pkg.typedefs.push(ctx);
+				pkg.types.push(typedefHandler.pass1(t));
 			case TEnumdecl(e):
 				var info = setTypeParams(entry);
-				var ctx = enumHandler.pass1(e);
-				pkg.enums.push(ctx);
+				pkg.types.push(enumHandler.pass1(e));
 			case TClassdecl(c):
 				var info = setTypeParams(entry);
-				var ctx = classHandler.pass1(c);
-				pkg.classes.push(ctx);
+				pkg.types.push(classHandler.pass1(c));
 			}
 		}
 		return pkg;
 	}
 
 	public function pass2(pkg : PackageContext) {
-		if(!isFilteredPackage(pkg.full)) {
-			Utils.createOutputDirectory(pkg.resolvedTypeDir);
-			Utils.createOutputDirectory(pkg.resolvedPackageDir);
+		for(ctx in pkg.types) {
+			switch(ctx.type) {
+			case "class", "interface":
+				classHandler.pass2(pkg, cast ctx);
+			case "typedef", "alias":
+				typedefHandler.pass2(pkg, cast ctx);
+			case "enum":
+				enumHandler.pass2(pkg, cast ctx);
+			default:
+				throw "Bad type " + ctx.type + " " + ctx.path;
+			}
 		}
-		for(ctx in pkg.classes)
-			classHandler.pass2(pkg, ctx);
-		for(ctx in pkg.enums)
-			enumHandler.pass2(pkg, ctx);
-		for(ctx in pkg.typedefs)
-			typedefHandler.pass2(pkg, ctx);
 	}
 
 	/**
@@ -114,45 +115,52 @@ class PackageHandler extends TypeHandler<PackageContext> {
 				-> Add all types to main types
 		</pre>
 	**/
-
 	public function pass3(pkg : PackageContext) {
-		if(isFilteredPackage(pkg.full))
+		print("Package: " + pkg.full);
+		if(isFilteredPackage(pkg.full)) {
+			println(" -> filtered.");
 			return;
-		var hasTypes = false;
-		for(ctx in pkg.classes) {
-			classHandler.pass3(pkg, ctx);
-			if(!isFilteredCtx(ctx)) {
-				ChxDocMain.registerClass(ctx);
-				hasTypes = true;
-			}
 		}
-		for(ctx in pkg.enums) {
-			enumHandler.pass3(pkg, ctx);
-			if(!isFilteredCtx(ctx)) {
-				ChxDocMain.registerEnum(ctx);
-				hasTypes = true;
+		println("");
+
+		var newTypes = new Array<Ctx>();
+		for(ctx in pkg.types) {
+			print(ctx.nameDots);
+			switch(ctx.type) {
+			case "class", "interface":
+				classHandler.pass3(pkg, cast ctx);
+			case "typedef", "alias":
+				typedefHandler.pass3(pkg, cast ctx);
+			case "enum":
+				enumHandler.pass3(pkg, cast ctx);
+			default:
+				throw "Bad type " + ctx.type + " " + ctx.path;
 			}
-		}
-		for(ctx in pkg.typedefs) {
-			typedefHandler.pass3(pkg, ctx);
 			if(!isFilteredCtx(ctx)) {
-				ChxDocMain.registerTypedef(ctx);
-				hasTypes = true;
+				ChxDocMain.registerType(ctx);
+				newTypes.push(ctx);
+			} else {
+				print(" -> filtered.");
 			}
+			println("");
 		}
-		if(hasTypes) {
+		pkg.types = newTypes;
+
+		if(newTypes.length > 0)
 			ChxDocMain.registerPackage(pkg);
-			// write package html
-		}
 	}
 
 	/**
-		@todo Remove TypeInfos methods, check path correct
 	**/
 	public function pass4(pkg : PackageContext) {
-		var config = ChxDocMain.config;
-		if(isFilteredPackage(pkg.full))
+		if(isFilteredPackage(pkg.full)) {
+			throw "should not happen " + pkg.full;
 			return;
+		}
+
+		Utils.createOutputDirectory(pkg.resolvedTypeDir);
+		Utils.createOutputDirectory(pkg.resolvedPackageDir);
+
 		var me = this;
 
 		var makeCtxPath = function(ctx : Ctx) {
@@ -169,7 +177,8 @@ class PackageHandler extends TypeHandler<PackageContext> {
 			neko.Lib.print(".");
 		}
 
-		var types = new Array<PackageFileTypesContext>();
+// 		var types = new Array<PackageFileTypesContext>();
+		var newTypes = new Array<Ctx>();
 
 		var makeTypeLink = function(ctx : Ctx) {
 			return
@@ -180,66 +189,28 @@ class PackageHandler extends TypeHandler<PackageContext> {
 				ChxDocMain.config.htmlFileExtension;
 		}
 
-		for(ctx in pkg.classes) {
+		for(ctx in pkg.types) {
 			if(!isFilteredCtx(ctx)) {
-				writeCtxHtml(ctx, ClassHandler.write(ctx));
-				types.push(
-					{
-						type		: ctx.type,
-						name		: ctx.name,
-						linkString	: makeTypeLink(ctx),
-					}
-				);
-			}
-		}
-		for(ctx in pkg.enums) {
-			if(!isFilteredCtx(ctx)) {
-				writeCtxHtml(ctx, EnumHandler.write(ctx));
-				types.push(
-					{
-						type		: ctx.type,
-						name		: ctx.name,
-						linkString	: makeTypeLink(ctx),
-					}
-				);
-			}
-		}
-		for(ctx in pkg.typedefs) {
-			if(!isFilteredCtx(ctx)) {
-				writeCtxHtml(ctx, TypedefHandler.write(ctx));
-				types.push(
-					{
-						type		: ctx.type,
-						name		: ctx.name,
-						linkString	: makeTypeLink(ctx),
-					}
-				);
+				writeCtxHtml(ctx, TypeHandler.execTemplate(ctx));
+// 				types.push(
+// 					{
+// 						type		: ctx.type,
+// 						name		: ctx.name,
+// 						linkString	: makeTypeLink(ctx),
+// 					}
+// 				);
+			} else {
+				throw "should not happen " + ctx.path;
 			}
 		}
 
-		if(types.length == 0)
+		if(pkg.types.length == 0)
 			return;
 
-		types.sort(function(a, b) { return Utils.stringSorter(a.name, b.name); });
-		var t = new mtwin.templo.Loader("package.mtt");
-		var output : String = "";
-		try {
-			output = t.execute(
-				{
-					meta			: newMetaData(),
-					build			: ChxDocMain.buildData,
-					platform		: ChxDocMain.config,
-					name			: pkg.full,
-					types			: types,
-					rootRelative	: pkg.rootRelative,
-				});
-		} catch(e : Dynamic) {
-			trace("ERROR generating package file for " + pkg.full + ". Check package.mtt");
-			neko.Lib.rethrow(e);
-		}
+		pkg.types.sort(function(a, b) { return Utils.stringSorter(a.path, b.path); });
+		var output : String = execTemplate(pkg);
 
 		var p = pkg.resolvedPackageDir + "package" + ChxDocMain.config.htmlFileExtension;
-// 		trace("Writing " + p);
 		Utils.writeFileContents(p, output);
 	}
 
@@ -270,6 +241,25 @@ class PackageHandler extends TypeHandler<PackageContext> {
 
 	function isFilteredPackage(full : String) {
 		return Utils.isFiltered(full, true);
+	}
+
+	/**
+		Takes any Ctx and returns the template output
+	**/
+	public static function execTemplate(pkg : PackageContext) : String  {
+		var t = new mtwin.templo.Loader("package.mtt");
+		var output : String = "";
+
+		Reflect.setField(pkg, "meta", TypeHandler.newMetaData());
+		Reflect.setField(pkg, "build", ChxDocMain.buildData );
+		Reflect.setField(pkg, "config", ChxDocMain.config );
+		try {
+			output = t.execute(pkg);
+		} catch(e : Dynamic) {
+			trace("ERROR generating package file for " + pkg.full + ". Check package.mtt");
+			neko.Lib.rethrow(e);
+		}
+		return output;
 	}
 
 }

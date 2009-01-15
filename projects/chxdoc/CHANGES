@@ -1,6 +1,8 @@
 0.7 ?
-	- FIXED: Extensive work on sorting and displaying Typedefs
-	- FIXED: Improper handling of --footerText embedded =
+	-CHANGE (): platform global now called config in .mtt
+	- FIXED (): package and type filtering
+	- FIXED (474): Extensive work on sorting and displaying Typedefs
+	- FIXED (474): Improper handling of --footerText embedded =
 
 	Targets:
 		- Inline tags eg. @deprecated As of some date, replaced by {@link #newMethod()}

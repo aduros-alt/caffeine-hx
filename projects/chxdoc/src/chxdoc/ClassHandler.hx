@@ -98,17 +98,6 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 		return null;
 	}
 
-	public static function write(ctx : ClassCtx) : String  {
-		var t = new mtwin.templo.Loader("class.mtt");
-		try {
-			var rv = t.execute(ctx);
-			return rv;
-		} catch(e : Dynamic) {
-			trace("ERROR generating doc for " + ctx.path + ". Check class.mtt");
-			return neko.Lib.rethrow(e);
-		}
-	}
-
 	function addSubclass(superClass : ClassCtx, subClass : ClassCtx) : Void {
 		var link = makeBaseRelPath(superClass) +
 			subClass.subdir +
@@ -320,10 +309,10 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 				ctx.args = doStringBlock( function() {
 					me.display(args,function(a) {
 						if( a.opt )
-							me.print("?");
+							me.write("?");
 						if( a.name != null && a.name != "" ) {
-							me.print(a.name);
-							me.print(" : ");
+							me.write(a.name);
+							me.write(" : ");
 						}
 						me.processType(a.t);
 					},", ");

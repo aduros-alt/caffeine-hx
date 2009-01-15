@@ -165,8 +165,8 @@ class Utils {
 			return false;
 		for( x in filters )
 			if( StringTools.startsWith(path,x) )
-				return false;
-		return true;
+				return true;
+		return false;
 	}
 
 	public static function writeFileContents(filePath:String, contents: String) {

@@ -1,18 +1,18 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN" "http://www.w3.org/tr/html4/frameset.dtd">
 <html>
 	<head>
-		<title>::platform.title::</title>
+		<title>::config.title::</title>
 		<link rel="stylesheet" type="text/css" href="::meta.stylesheet::" />
 	</head>
 	<body>
-	This is the overview file for ::platform.title:: ::platform.subtitle::<br />
-::if platform.generateTodo::
-	::if platform.todoLines.length > 0::
+	This is the overview file for ::config.title:: ::config.subtitle::<br />
+::if config.generateTodo::
+	::if config.todoLines.length > 0::
 		There are TODO tasks to be done<br />
 	::else::
 		There are no pending TODO tasks<br />
 	::end::
-	<a href="::platform.todoFile::">View TODO file</a>
+	<a href="::config.todoFile::">View TODO file</a>
 ::end::
 
 	</body>

@@ -44,14 +44,7 @@ class TypedefHandler extends TypeHandler<TypedefCtx> {
 		var ctx = newTypedefCtx(t);
 
 		ctx.platforms = cloneList(t.platforms);
-#if BUILD_DEBUG
-	if(t.path == "Bytes") {
-		trace(t.platforms);
-// 		trace(t.types.keys());
-// 		trace(t.types.get("js"));
-		trace(ctx.platforms);
-	}
-#end
+
 		if( t.platforms.length == 0 ) {
 			processTypedefType(ctx, t.type, t.platforms, t.platforms);
 		}
@@ -109,13 +102,6 @@ class TypedefHandler extends TypeHandler<TypedefCtx> {
 		var me = this;
 		var context = newTypedefCtx(current);
 
-#if BUILD_DEBUG
-	if(origContext.nameDots == "Bytes") {
-		trace(context.platforms);
-		trace(all);
-		trace(platforms);
-	}
-#end
 		switch(t) {
 		case CAnonymous(fields): // fields == list<{t:CType, name:String}>
 			for( f in fields ) {
@@ -138,11 +124,7 @@ class TypedefHandler extends TypeHandler<TypedefCtx> {
 			context.type = "alias";
 			context.isAlias = true;
 		}
-#if BUILD_DEBUG
-	if(origContext.nameDots == "Bytes") {
-		trace(context.platforms);
-	}
-#end
+
 		if( platforms.length == ChxDocMain.config.platforms.length) {
 			context.isAllPlatforms = true;
 			context.platforms = cloneList(ChxDocMain.config.platforms);
@@ -157,12 +139,6 @@ class TypedefHandler extends TypeHandler<TypedefCtx> {
 
 		context.parent = origContext;
 		origContext.contexts.push(context);
-
-#if BUILD_DEBUG
-	if(origContext.nameDots == "Bytes") {
-		trace(context.platforms);
-	}
-#end
 	}
 
 
@@ -180,17 +156,6 @@ class TypedefHandler extends TypeHandler<TypedefCtx> {
 		<pre>Types	-> Resolve all super classes, inheritance, subclasses</pre>
 	**/
 	public function pass3(pkg : PackageContext, context : TypedefCtx) {
-	}
-
-	public static function write(context : TypedefCtx) : String  {
-		var t = new mtwin.templo.Loader("typedef.mtt");
-		try {
-			var rv = t.execute(context);
-			return rv;
-		} catch(e : Dynamic) {
-			trace("ERROR generating doc for " + context.path + ". Check typedef.mtt");
-			return neko.Lib.rethrow(e);
-		}
 	}
 
 	public function newTypedefCtx(t : Typedef) : TypedefCtx {

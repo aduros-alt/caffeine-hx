@@ -32,13 +32,23 @@ import chxdoc.Types;
 import haxe.rtti.CType;
 
 class ChxDocMain {
-	static var proginfo = "ChxDoc Generator 0.7 - (c) 2009 Russell Weir";
-	static var buildNumber = 466;
+	static var proginfo : String;
 
 	public static var buildData : BuildData;
 
-	public static var config : PlatformData =
+	public static var config : Config =
 	{
+		versionMajor		: 0,
+		versionMinor		: 7,
+		versionRevision		: 0,
+		buildNumber			: 466,
+		verbose				: false,
+		rootTypesPackage	: null,
+		allPackages			: new Array(),
+		allTypes			: new Array(),
+		docBuildDate		: Date.now(),
+		dateShort			: DateTools.format(Date.now(), "%Y-%m-%d"),
+		dateLong			: DateTools.format(Date.now(), "%a %b %d %H:%M:%S %Z %Y"),
 		showAuthorTags		: false,
 		showPrivateClasses	: false,
 		showPrivateTypedefs	: false,
@@ -72,17 +82,8 @@ class ChxDocMain {
 		todoFile			: "todo.html",
 	};
 
-	static var classPaths : List<String>;
-
 	static var parser = new haxe.rtti.XmlParser();
 	//static var todoLines : Array<{link: Link, message:String}> = new Array();
-
-	/////////////////////
-	//      Dates      //
-	/////////////////////
-	public static var now 			: Date;
-	public static var shortDate 	: String;
-	public static var longDate		: String;
 
 	/** the one instance of PackageHandler that crawls the TypeTree **/
 	static var packageHandler : PackageHandler;
@@ -99,6 +100,10 @@ class ChxDocMain {
 	public static var baseRelPath(default,null) : String;
 
 
+#if neko
+	public static var println = neko.Lib.println;
+	public static var print = neko.Lib.print;
+#end
 
 
 
@@ -157,16 +162,6 @@ class ChxDocMain {
 	//////////////////////////////////////////////
 	//               Pass 3                     //
 	//////////////////////////////////////////////
-
-	// these are initialized in pass3
-	// and contain all types that are not filtered
-	static var allClasses : Array<ClassCtx>;
-	static var allEnums : Array<EnumCtx>;
-	static var allTypedefs : Array<TypedefCtx>;
-	static var allTypes : Array<PackageFileTypesContext>;
-	// all packages that have types not filtered
-	static var allPackages : Array<PackageOutputContext>;
-
 	/**
 		<pre>
 		Types	-> Resolve all super classes, inheritance, subclasses
@@ -176,63 +171,29 @@ class ChxDocMain {
 		</pre>
 	**/
 	static function pass3() {
-		allClasses = new Array();
-		allEnums = new Array();
-		allTypedefs = new Array();
-		allTypes = new Array();
-		allPackages = new Array();
 		packageHandler.pass3(packageRoot);
 		for(i in packageContexts)
 			packageHandler.pass3(i);
 
-		allClasses.sort(TypeHandler.ctxSorter);
-		allEnums.sort(TypeHandler.ctxSorter);
-		allTypedefs.sort(TypeHandler.ctxSorter);
-		allTypes.sort(function(a,b) {
-			return Utils.stringSorter(a.name, b.name);
+		config.allTypes.sort(function(a,b) {
+			return Utils.stringSorter(a.path, b.path);
 		});
-		allPackages.sort(function(a,b) {
-			return Utils.stringSorter(a.name, b.name);
+		config.allPackages.sort(function(a,b) {
+			return Utils.stringSorter(a.full, b.full);
 		});
 	}
 
-	public static function registerClass(ctx : ClassCtx) : Void
+	public static function registerType(ctx : Ctx) : Void
 	{
-		allClasses.push(ctx);
-		allTypes.push({
-			name			: ctx.name,
-			linkString		: "types/" + Utils.makeRelativeSubdirLink(ctx) + ctx.name + config.htmlFileExtension,
-			type			: ctx.type,
-		});
+		config.allTypes.push(ctx);
 	}
 
-	public static function registerEnum(ctx : EnumCtx) : Void
+	public static function registerPackage(pkg : PackageContext) : Void
 	{
-		allEnums.push(ctx);
-		allTypes.push({
-			name			: ctx.name,
-			linkString		: "types/" + Utils.makeRelativeSubdirLink(ctx) + ctx.name + config.htmlFileExtension,
-			type			: ctx.type,
-		});
-	}
-
-	public static function registerTypedef(ctx : TypedefCtx) : Void
-	{
-		allTypedefs.push(ctx);
-		allTypes.push({
-			name			: ctx.name,
-			linkString		: "types/" + Utils.makeRelativeSubdirLink(ctx) + ctx.name + config.htmlFileExtension,
-			type			: ctx.type,
-		});
-	}
-
-	public static function registerPackage(context : PackageContext) : Void
-	{
-		allPackages.push({
-			name			: context.full,
-			linkString		: "packages/" + Utils.makeRelativePackageLink(context) + "package" + config.htmlFileExtension,
-			rootRelative	: context.rootRelative,
-		});
+		if(pkg.full == "root types")
+			config.rootTypesPackage = pkg;
+		else
+			config.allPackages.push(pkg);
 	}
 
 	public static function registerTodo(pkg:PackageContext, ctx:Ctx, msg: String) {
@@ -279,30 +240,16 @@ class ChxDocMain {
 		for(i in packageContexts)
 			packageHandler.pass4(i);
 
-		var e : PackageOutputContext = null;
-		for(i in allPackages) {
-			if(i.name == "root types") {
-				e = i;
-				break;
-			}
-		}
-		if(e != null)
-			allPackages.remove(e);
-
-
 		var metaData = {
-			date : DateTools.format(now, "%Y-%m-%d"),
+			date : config.dateShort,
 			keywords : new Array<String>(),
-			stylesheet : ChxDocMain.config.stylesheet,
+			stylesheet : config.stylesheet,
 		};
 		metaData.keywords.push("");
 		var context : IndexContext = {
 			meta		: metaData,
 			build 		: buildData,
-			platform 	: config,
-
-			packages	: allPackages,
-			types		: allTypes,
+			config		: config,
 		};
 
 		for(i in ["index", "overview", "all_packages", "all_classes"]) {
@@ -343,8 +290,8 @@ class ChxDocMain {
 		if(pkg == null)
 			throw "Unable to locate package " + pkgPath + " for "+ path;
 
-		for(ctx in pkg.classes) {
-			if(ctx.name == name)
+		for(ctx in pkg.types) {
+			if(ctx.path == path)
 				return ctx;
 		}
 		throw "Could not find type " + path;
@@ -359,18 +306,20 @@ class ChxDocMain {
 		#if BUILD_DEBUG
 			chx.Log.redirectTraces(true);
 		#end
-		var print = neko.Lib.print;
-		print(proginfo + "\n");
-		now = Date.now();
-		shortDate = DateTools.format(now, "%Y-%m-%d");
-		longDate = DateTools.format(now, "%a %b %d %H:%M:%S %Z %Y");
+
+		proginfo = "ChxDoc Generator "+
+			config.versionMajor+ "."+
+			config.versionMinor + "."+
+			config.versionRevision +
+			" - (c) 2009 Russell Weir";
 
 		buildData = {
-			date: shortDate,
-			number: Std.string(buildNumber),
-			comment: "<!-- Generated by chxdoc (build "+buildNumber+") on "+shortDate+" -->",
+			date: config.dateShort,
+			number: Std.string(config.buildNumber),
+			comment: "<!-- Generated by chxdoc (build "+config.buildNumber+") on "+config.dateShort+" -->",
 		};
 
+		print(proginfo + "\n");
 		initDefaultPaths();
 		parseArgs(neko.Sys.args());
 		checkAllPaths();
@@ -440,12 +389,13 @@ class ChxDocMain {
 					default:
 						continue;
 					}
-					neko.Lib.println("Installing " + p + " to " + targetImgDir);
+					if(config.verbose)
+						println("Installing " + p + " to " + targetImgDir);
 					neko.io.File.copy(p, targetImgDir + i);
 				}
 			} else {
-				logWarning("Template " + config.temploBaseDir + " has no 'images' directory");
-
+				if(config.verbose)
+					logWarning("Template " + config.temploBaseDir + " has no 'images' directory");
 			}
 		}
 
@@ -453,10 +403,12 @@ class ChxDocMain {
 			var srcCssFile = config.temploBaseDir + "stylesheet.css";
 			if(neko.FileSystem.exists(srcCssFile)) {
 				var targetCssFile = config.baseDirectory + config.stylesheet;
-				neko.Lib.println("Installing " + srcCssFile + " to " + targetCssFile);
+				if(config.verbose)
+					println("Installing " + srcCssFile + " to " + targetCssFile);
 				neko.io.File.copy(srcCssFile, targetCssFile);
 			} else {
-				logWarning("Template " + config.temploBaseDir + " has no stylesheet.css");
+				if(config.verbose)
+					logWarning("Template " + config.temploBaseDir + " has no stylesheet.css");
 			}
 		}
 	}
@@ -474,7 +426,7 @@ class ChxDocMain {
 
 		var tmf = config.temploBaseDir + config.temploMacros;
 		if(!neko.FileSystem.exists(tmf)) {
-			neko.Lib.println("The macro file " + tmf + " does not exist.");
+			println("The macro file " + tmf + " does not exist.");
 			neko.Sys.exit(1);
 		}
 
@@ -486,9 +438,6 @@ class ChxDocMain {
 
 		var expectOutputDir = false;
 		var expectFilter = false;
-		var expectClassPath = false;
-
-		classPaths = new List();
 
 		for( x in args ) {
 			if( x == "-f" )
@@ -507,12 +456,8 @@ class ChxDocMain {
 				}
 				expectOutputDir = false;
 			}
-			else if( x == "-cp")
-				expectClassPath = true;
-			else if(expectClassPath) {
-				classPaths.add(x);
-				expectClassPath = false;
-			}
+			else if( x == "-v")
+				config.verbose = true;
 			else if( x.indexOf("=") > 0) {
 				var parts = x.split("=");
 				if(parts.length < 2) {
@@ -594,40 +539,39 @@ class ChxDocMain {
 	}
 
 	static function usage(exitVal : Int) {
-		var print = neko.Lib.println;
-		print(" Usage : chxdoc [options] [xml files]");
-		print(" Options:");
-		print("\t-f filter Add a package or class filter");
-		print("\t-o outputdir Sets the output directory (defaults to ./html)");
-// 		print("\t-cp classpath Add a source file class path"); // not implemented
-		print("\t--developer=[true|false] Shortcut to showing all privates, if true");
-		print("\t--footerText=\"text\" Text that will be added to footer of Type pages");
-		print("\t--footerTextFile=/path/to/file Type pages footer text from file");
-		print("\t--generateTodoFile=[true|false] Generate the todo.html file");
-		print("\t--installTemplate=[true|false] Install stylesheet and images from template");
-		print("\t--macroFile=file.mtt Temploc macro file. (default macros.mtt)");
-		print("\t--showAuthorTags=[true|false] Toggles showing @author contents");
-		print("\t--showPrivateClasses=[true|false] Toggle private classes display");
-		print("\t--showPrivateTypedefs=[true|false] Toggle private typedef display");
-		print("\t--showPrivateEnums=[true|false] Toggle private enum display");
-		print("\t--showPrivateMethods=[true|false] Toggle private method display");
-		print("\t--showPrivateVars=[true|false] Toggle private var display");
-		print("\t--showTodoTags=[true|false] Toggle showing @todo tags in type documentation");
-		print("\t--stylesheet=file Sets the stylesheet relative to the outputdir");
-		print("\t--subtitle=string Set the package subtitle");
-		print("\t--templateDir=path Path to template (.mtt) directory (default ./templates)");
-		print("\t--title=string Set the package title");
-		print("\t--tmpDir=path Path for tempory file generation (default ./tmp)");
-		print("");
-		print(" XML Files:");
-		print("\tinput.xml[,platform[,remap]");
-		print("\tXml files are generated using the -xml option when compiling haxe projects. ");
-		print("\tplatform - generate docs for a given platform" );
-		print("\tremap - change all references of 'remap' to 'package'");
-		print(" Sample usage:");
-		print("\tchxdoc flash9.xml,flash,flash9 php.xml,php");
-		print("\t\tWill transform all references to flash.* to flash9.*");
-		print("");
+		println(" Usage : chxdoc [options] [xml files]");
+		println(" Options:");
+		println("\t-f filter Add a package or class filter");
+		println("\t-o outputdir Sets the output directory (defaults to ./html)");
+		println("\t--developer=[true|false] Shortcut to showing all privates, if true");
+		println("\t--footerText=\"text\" Text that will be added to footer of Type pages");
+		println("\t--footerTextFile=/path/to/file Type pages footer text from file");
+		println("\t--generateTodoFile=[true|false] Generate the todo.html file");
+		println("\t--installTemplate=[true|false] Install stylesheet and images from template");
+		println("\t--macroFile=file.mtt Temploc macro file. (default macros.mtt)");
+		println("\t--showAuthorTags=[true|false] Toggles showing @author contents");
+		println("\t--showPrivateClasses=[true|false] Toggle private classes display");
+		println("\t--showPrivateTypedefs=[true|false] Toggle private typedef display");
+		println("\t--showPrivateEnums=[true|false] Toggle private enum display");
+		println("\t--showPrivateMethods=[true|false] Toggle private method display");
+		println("\t--showPrivateVars=[true|false] Toggle private var display");
+		println("\t--showTodoTags=[true|false] Toggle showing @todo tags in type documentation");
+		println("\t--stylesheet=file Sets the stylesheet relative to the outputdir");
+		println("\t--subtitle=string Set the package subtitle");
+		println("\t--templateDir=path Path to template (.mtt) directory (default ./templates)");
+		println("\t--title=string Set the package title");
+		println("\t--tmpDir=path Path for tempory file generation (default ./tmp)");
+		println("\t-v Turns on verbose mode");
+		println("");
+		println(" XML Files:");
+		println("\tinput.xml[,platform[,remap]");
+		println("\tXml files are generated using the -xml option when compiling haxe projects. ");
+		println("\tplatform - generate docs for a given platform" );
+		println("\tremap - change all references of 'remap' to 'package'");
+		println(" Sample usage:");
+		println("\tchxdoc flash9.xml,flash,flash9 php.xml,php");
+		println("\t\tWill transform all references to flash.* to flash9.*");
+		println("");
 		neko.Sys.exit(exitVal);
 	}
 
@@ -670,13 +614,13 @@ class ChxDocMain {
 		if(ctx != null) {
 			msg += " in " + ctx.name;
 		}
-		neko.Lib.println("WARNING: " + msg);
+		println("WARNING: " + msg);
 	}
 
 	public static function fatal(msg:String, ?exitVal) {
 		if(exitVal == null)
 			exitVal = 1;
-		neko.Lib.println("FATAL: " + msg);
+		println("FATAL: " + msg);
 		neko.Sys.exit(exitVal);
 	}
 }

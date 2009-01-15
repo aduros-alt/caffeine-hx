@@ -125,7 +125,7 @@
 
 
 	<macro name="showAccess(f)">
-		::if platform.developer::
+		::if config.developer::
 		<span class="::f.access::">::f.access::</span>
 		::end::
 	</macro>

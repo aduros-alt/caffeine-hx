@@ -2,7 +2,7 @@
 <html>
 	<head>
 		::raw build.comment::
-		<title>Packages List ::platform.title::</title>
+		<title>Packages List ::config.title::</title>
 		<meta name="date" content="::meta.date::" />
 		::foreach kw meta.keywords::
 		<meta name="keywords" content="::kw::" />
@@ -11,8 +11,8 @@
 	</head>
 	<body>
 		<div id="packages-frame">
-			<h1>::platform.title::</h1>
-			<h2>::platform.subtitle::</h2>
+			<h1>::config.title::</h1>
+			<h2>::config.subtitle::</h2>
 			<div id="packages-header">
 				<ul>
 					<li><a href="all_classes.html" target="packageFrame">All Types</a></li>
@@ -20,10 +20,12 @@
 				</ul>
 			</div>
 			<ul class="packages">
+				::if config.rootTypesPackage != null::
 				<li><a href="packages/package.html" target="packageFrame">Root Types</a></li>
-::foreach i packages::
-				<li><a href="::i.linkString::" target="packageFrame">::i.name::</a></li>
-::end::
+				::end::
+				::foreach p config.allPackages::
+				<li><a href="::p.packageUri::" target="packageFrame">::p.full::</a></li>
+				::end::
 			</ul>
 		</div>
 	</body>

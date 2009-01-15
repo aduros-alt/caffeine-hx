@@ -2,7 +2,7 @@
 <html>
 	<head>
 		::raw build.comment::
-		<title>All Types ::platform.title::</title>
+		<title>All Types ::config.title::</title>
 		<meta name="date" content="::meta.date::" />
 		::foreach kw meta.keywords::
 		<meta name="keywords" content="::kw::" />
@@ -18,9 +18,9 @@
 					 Those that are typedefs to existing classes are
 					 called "alias", otherwise it is a "typedef"
 				-->
-::foreach i types::
-				<li class="::i.type::"><a href="::i.linkString::" title="::i.name::" target="classFrame">::i.name::</a></li>
-::end::
+				::foreach i config.allTypes::
+				<li class="::i.type::"><a href="types/::i.subdir::::i.name::::config.htmlFileExtension::" title="::i.name::" target="classFrame">::i.name::</a></li>
+				::end::
 			</ul>
 		</div>
 	</body>
