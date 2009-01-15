@@ -28,6 +28,8 @@ fi;
 
 prompt_continue "Building release for $DIR"
 
+make linux
+make windows
 
 mkdir -p chxdoc_release/Windows/$DIR
 mkdir -p chxdoc_release/Linux/$DIR

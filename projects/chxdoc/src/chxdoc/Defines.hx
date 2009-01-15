@@ -32,7 +32,7 @@ import chxdoc.Types;
 
 typedef Html = String;
 
-typedef Config = {
+typedef PlatformData = {
 	var showAuthorTags		: Bool;
 	var showPrivateClasses	: Bool;
 	var showPrivateTypedefs	: Bool;
@@ -54,7 +54,19 @@ typedef Config = {
 	var installImagesDir	: Bool;
 	var installCssFile		: Bool;
 
+	var title 				: String;
+	var subtitle 			: String;
+	/** true if generating developer documentation (any of showPrivate* switches set) **/
+	var developer			: Bool;
+	/** A list of all platforms being generated for **/
+	var platforms			: List<String>;
+	/** text to add to the bottom of each Type page **/
+	var footerText			: Html;
+
+	/** generate todo file? **/
 	var generateTodo		: Bool;
+	var todoLines			: Array<{link: Link, message:String}>;
+	var todoFile			: String;
 };
 
 typedef BuildData = {
@@ -76,21 +88,6 @@ typedef MetaData = {
 		Relative path to the stylesheet. <LINK REL ="stylesheet" TYPE="text/css" HREF="../../stylesheet" TITLE="Style">
 	**/
 	var stylesheet		: String;
-};
-
-typedef PlatformData = {
-	var title 		: String;
-	var subtitle 	: String;
-	/** true if generating developer documentation (any of showPrivate* switches set) **/
-	var developer	: Bool;
-	/** A list of all platforms being generated for **/
-	var platforms	: List<String>;
-	/** text to add to the bottom of each Type page **/
-	var footerText	: Html;
-
-	var generateTodo: Bool;
-	var todoLines	: Array<{link: Link, message:String}>;
-	var todoFile	: String;
 };
 
 typedef DocsContext = {

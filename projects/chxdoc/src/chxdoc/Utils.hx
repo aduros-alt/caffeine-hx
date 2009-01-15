@@ -259,4 +259,18 @@ class Utils {
 			css		: htmlSpecialChars(css, true),
 		};
 	}
+
+	/**
+		Sorts a string list.
+	**/
+	public static function listSorter(list : List<String>) : List<String> {
+		var a = new Array();
+		for(p in list)
+			a.push(p);
+		a.sort(stringSorter);
+		var nl = new List<String>();
+		for(p in a)
+			nl.add(p);
+		return nl;
+	}
 }

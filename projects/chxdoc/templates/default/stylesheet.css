@@ -226,3 +226,7 @@ div.inherited, div.overrides {
 .deprecated {
 	color: #FF0000;
 }
+
+.keyword {
+	color: #50C2FF;
+}

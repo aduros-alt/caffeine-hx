@@ -228,7 +228,7 @@ class PackageHandler extends TypeHandler<PackageContext> {
 				{
 					meta			: newMetaData(),
 					build			: ChxDocMain.buildData,
-					platform		: ChxDocMain.platformData,
+					platform		: ChxDocMain.config,
 					name			: pkg.full,
 					types			: types,
 					rootRelative	: pkg.rootRelative,

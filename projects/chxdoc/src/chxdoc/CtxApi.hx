@@ -47,4 +47,22 @@ class CtxApi {
 		trace("Error in makeAnchor for type " + ctx.type + " Please report.");
 		return "";
 	}
+
+	/**
+		Returns true if the two fields provided could be conceptually called 'equal'.
+		This does not check the containing context, however, so two fields in
+		different contexts could be considered equal.
+	**/
+	public static function fieldEqual(f1 : FieldCtx, f2 : FieldCtx) {
+		return (
+				f1.name == f2.name &&
+				f1.args == f2.args &&
+				f1.returns == f2.returns &&
+				f1.isMethod == f2.isMethod &&
+				f1.isStatic == f2.isStatic &&
+				f1.isDynamic == f2.isDynamic &&
+				f1.rights == f2.rights &&
+				f1.originalDoc == f2.originalDoc
+		);
+	}
 }

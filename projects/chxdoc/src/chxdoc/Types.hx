@@ -138,6 +138,8 @@ typedef EnumCtx = {
 **/
 typedef TypedefCtx = {
 	>Ctx,
+	/** true if an alias, false if typedef **/
+	var isAlias				: Bool;
 	/** Html content for aliases, or null if child is a typedef **/
 	var alias				: Html;
 	/** Uses only [name] and [returns] **/

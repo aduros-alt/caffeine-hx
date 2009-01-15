@@ -1,11 +1,14 @@
 0.7 ?
+	- FIXED: Extensive work on sorting and displaying Typedefs
+	- FIXED: Improper handling of --footerText embedded =
+
 	Targets:
 		- Inline tags eg. @deprecated As of some date, replaced by {@link #newMethod()}
 		- Improve default template look for --developer and typedefs
 			(check js.Checkbox fields, which are "available in all platforms")(Franco)
 		- Add --showSourceFilePath for hard link to source files
 
-0.6 ?
+0.6 2009-01-14
 	- FIXED: Constructors not getting docs.
 	- FIXED: Template for typedefs showing wrong platforms
 	- FIXED: Templates not showing platforms for members

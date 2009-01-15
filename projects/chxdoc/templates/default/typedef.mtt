@@ -47,39 +47,35 @@ function windowTitle()
 		<dd>::p::</dd>
 		::end::
 	::end::
-	::if typeHtml != null::
-		<dt>alias for</dt>
-		<dd>::raw typeHtml::</dd>
-	::end::
-	::if hasAlias > 0::
-		<dt>alias for</dt>
-		::foreach ctx contexts::::if ctx.alias != null::
-		<dd>::raw ctx.alias:: $$showPlatforms(::ctx.platforms::)</dd>
-		::end::::end::
-	::end::
+
 	</dl>
 
 	<div class="doc">$$typeDocs()</div>
 
-	::if hasFields > 0::
-	<!-- ============ FIELD field_detail =========== -->
-	<div class="members-panel">
-		<h2><a name="field_detail"></a>Fields</h2>
-		<div class="members">
-			::foreach f ctx.fields::
-			<div class="member">
-				<div class="header"><span class="name">::f.name::</span> : ::raw f.returns::</div>
+	::foreach ctx contexts::
+		<div class="members-panel">
+		::if ctx.isAlias::
+			<h2><a name="field_detail"></a>Alias for ::raw ctx.alias:: in $$dumpPlatformsOrAll(::platforms::, ::ctx.platforms::)</h2>
+		::else::
+			<h2><a name="static_var_detail"></a>Fields in $$dumpPlatformsOrAll(::platforms::, ::ctx.platforms::)</h2>
+			<div class="members">
+				::foreach f ctx.fields::
+				<div class="member">
+					<div class="header">$$typedefVarHeader(::f::)</div>
+					<div class="body">$$varDocs(::f::)</div>
+					$$displayPlatformsIfDifferent(::f.platforms::, ::ctx.platforms::)
+				</div>
+				::end::
 			</div>
-			::end::
+		::end::
 		</div>
-	</div>
 	::end::
 
 	</div>
 
 <!-- ========= END OF TYPEDEF DATA ========= -->
 	<hr />
-		<a href="::rootRelative::../overview.html">Overview</a>
+		<a href="::rootRelative::../overview::platform.htmlFileExtension::">Overview</a>
 	<hr />
 	::if platform.footerText != null::<div id="footer">::raw platform.footerText::</div>::end::
 </body>

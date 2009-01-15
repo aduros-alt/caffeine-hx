@@ -216,7 +216,7 @@ class TypeHandler<T> {
 			subdir			: fi.subdir,
 			rootRelative	: fi.rootRelative,
 
-			isAllPlatforms	: (t.platforms.length == ChxDocMain.platforms.length),
+			isAllPlatforms	: (t.platforms.length == ChxDocMain.config.platforms.length),
 			platforms		: cloneList(t.platforms),
 			parent			: null,
 			contexts		: new Array(),
@@ -229,7 +229,7 @@ class TypeHandler<T> {
 
 			meta			: newMetaData(),
 			build			: ChxDocMain.buildData,
-			platform		: ChxDocMain.platformData,
+			platform		: ChxDocMain.config,
 
 			setField		: null,
 			originalDoc		: t.doc,
@@ -239,7 +239,7 @@ class TypeHandler<T> {
 			c.params = "<"+t.params.join(", ")+">";
 
 		if(c.platforms.length == 0) {
-			c.platforms = cloneList(ChxDocMain.platforms);
+			c.platforms = cloneList(ChxDocMain.config.platforms);
 			c.isAllPlatforms = true;
 		}
 
@@ -261,7 +261,7 @@ class TypeHandler<T> {
 			subdir			: null,
 			rootRelative	: null,
 
-			isAllPlatforms	: (platforms.length == ChxDocMain.platforms.length),
+			isAllPlatforms	: (platforms.length == ChxDocMain.config.platforms.length),
 			platforms		: cloneList(platforms),
 			parent			: parentCtx,
 			contexts		: null,
@@ -291,7 +291,7 @@ class TypeHandler<T> {
 		}
 
 		if(c.platforms.length == 0) {
-			c.platforms = cloneList(ChxDocMain.platforms);
+			c.platforms = cloneList(ChxDocMain.config.platforms);
 			c.isAllPlatforms = true;
 		}
 
@@ -345,7 +345,5 @@ class TypeHandler<T> {
 	public static function ctxFieldSorter(a : FieldCtx, b : FieldCtx) : Int {
 		return Utils.stringSorter(a.name, b.name);
 	}
-
-
 
 }

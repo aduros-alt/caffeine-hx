@@ -43,6 +43,15 @@ class TypedefHandler extends TypeHandler<TypedefCtx> {
 		current = t;
 		var ctx = newTypedefCtx(t);
 
+		ctx.platforms = cloneList(t.platforms);
+#if BUILD_DEBUG
+	if(t.path == "Bytes") {
+		trace(t.platforms);
+// 		trace(t.types.keys());
+// 		trace(t.types.get("js"));
+		trace(ctx.platforms);
+	}
+#end
 		if( t.platforms.length == 0 ) {
 			processTypedefType(ctx, t.type, t.platforms, t.platforms);
 		}
@@ -69,19 +78,30 @@ class TypedefHandler extends TypeHandler<TypedefCtx> {
 		for(i in ctx.contexts) {
 			switch(i.type) {
 			case "alias":
-				aliases++;
+				if(i.platforms.length == 0)
+					aliases++;
+				else
+					aliases += i.platforms.length;
 			case "typedef":
-				typedefs++;
+				if(i.platforms.length == 0)
+					typedefs++;
+				else
+					typedefs += i.platforms.length;
 			default:
 				throw "error";
 			}
 		}
-		if(aliases >= typedefs)
+		if(aliases >= typedefs) {
 			ctx.type = "alias";
-
+			ctx.isAlias = true;
+		} else {
+			ctx.type = "typedef";
+			ctx.isAlias = false;
+		}
 		// may have changed from "typedef" to "alias"
 		resetMetaKeywords(ctx);
 
+		mergeContexts(ctx);
 		return ctx;
 	}
 
@@ -89,20 +109,26 @@ class TypedefHandler extends TypeHandler<TypedefCtx> {
 		var me = this;
 		var context = newTypedefCtx(current);
 
+#if BUILD_DEBUG
+	if(origContext.nameDots == "Bytes") {
+		trace(context.platforms);
+		trace(all);
+		trace(platforms);
+	}
+#end
 		switch(t) {
 		case CAnonymous(fields): // fields == list<{t:CType, name:String}>
 			for( f in fields ) {
-				var field = {
-					name : f.name,
-					returns : doStringBlock(
+				var field = createField(context, f.name, false, platforms, "");
+				field.returns =  doStringBlock(
 						function() {
 							me.processType(f.t);
 						}
-					)
-				};
-				context.fields.push(untyped field);
+				);
+				context.fields.push(field);
 			}
 			context.type = "typedef";
+			context.isAlias = false;
 		default:
 			context.alias = doStringBlock(
 				function() {
@@ -110,10 +136,16 @@ class TypedefHandler extends TypeHandler<TypedefCtx> {
 				}
 			);
 			context.type = "alias";
+			context.isAlias = true;
 		}
-		if( all.length == platforms.length || platforms.length == ChxDocMain.platforms.length) {
+#if BUILD_DEBUG
+	if(origContext.nameDots == "Bytes") {
+		trace(context.platforms);
+	}
+#end
+		if( platforms.length == ChxDocMain.config.platforms.length) {
 			context.isAllPlatforms = true;
-			context.platforms = cloneList(ChxDocMain.platforms);
+			context.platforms = cloneList(ChxDocMain.config.platforms);
 		} else {
 			context.isAllPlatforms = false;
 			context.platforms = cloneList(platforms);
@@ -125,6 +157,12 @@ class TypedefHandler extends TypeHandler<TypedefCtx> {
 
 		context.parent = origContext;
 		origContext.contexts.push(context);
+
+#if BUILD_DEBUG
+	if(origContext.nameDots == "Bytes") {
+		trace(context.platforms);
+	}
+#end
 	}
 
 
@@ -157,10 +195,90 @@ class TypedefHandler extends TypeHandler<TypedefCtx> {
 
 	public function newTypedefCtx(t : Typedef) : TypedefCtx {
 		var c = createCommon(t, "typedef");
+		c.setField("isAlias", false);
 		c.setField("alias",null);
 		c.setField("fields", new Array<FieldCtx>());
 		return cast c;
 	}
 
+	function mergeContexts(ctx : TypedefCtx) {
+		var newCtxs = new Array<TypedefCtx>();
+		for(ce in ctx.contexts) {
+			var current : TypedefCtx = cast ce;
+			if(current.type == "alias") {
+				var found = false;
+				for(e in newCtxs) {
+					if(e.alias == current.alias) {
+						for(p in current.platforms)
+							e.platforms.add(p);
+						found = true;
+						break;
+					}
+				}
+				if(!found)
+					newCtxs.push(current);
+			}
+			else {
+				var found = false;
+				for(e in newCtxs) {
+					if(e.type != "typedef")
+						continue;
+					for(p in current.platforms)
+						e.platforms.add(p);
+					for(f in current.fields) {
+						var foundField : FieldCtx = null;
+						for(f2 in e.fields) {
+							if(CtxApi.fieldEqual(f, f2)) {
+								foundField = f2;
+								break;
+							}
+						}
+						if(foundField == null) {
+							e.fields.push(f);
+						} else {
+							for(p in f.platforms)
+								foundField.platforms.add(p);
+						}
+					}
+					found = true;
+					break;
+				}
+				if(!found)
+					newCtxs.push(current);
+			}
+		}
+
+		// Sort platforms for each context
+		// Sort fields in typedefs
+		for(current in newCtxs) {
+			current.platforms = Utils.listSorter(current.platforms);
+			if(current.type != "alias")
+				current.fields.sort(TypeHandler.ctxFieldSorter);
+		}
+
+		// Sort all the contexts so aliases come first
+		// After that, types with more platforms come first
+		newCtxs.sort(
+			function(a, b){
+				if(a.type == "alias") {
+					if(b.type == "typedef")
+						return -1;
+					if(a.platforms.length > b.platforms.length)
+						return -1;
+					if(a.platforms.length < b.platforms.length)
+						return 1;
+					return 0;
+				}
+				if(b.type == "alias")
+					return 1;
+				if(a.platforms.length > b.platforms.length)
+					return -1;
+				if(a.platforms.length < b.platforms.length)
+					return 1;
+				return 0;
+			}
+		);
+		ctx.contexts = untyped newCtxs;
+	}
 
 }
