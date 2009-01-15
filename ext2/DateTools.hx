@@ -35,7 +35,8 @@ class DateTools {
 	public static var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 	public static var MONTHS_ABBREV = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-	#if neko
+	#if php
+	#elseif neko
 	static var date_format = neko.Lib.load("std","date_format",2);
 	#else
 	private static function __format_get( d : Date, e : String ) : String {
@@ -91,13 +92,15 @@ class DateTools {
 			case "Y":
 				untyped Std.string(d.getFullYear());
 			case "z":
-#if js
-				var o : Float = untyped __js__("d.getTimezoneOffset()");
-#elseif flash9
-				var o : Float = untyped d.timezoneOffset;
-#elseif flash
-				var o : Float = untyped d.getTimezoneOffset();
-#end
+				#if js
+					var o : Float = untyped __js__("d.getTimezoneOffset()");
+				#elseif flash9
+					var o : Float = untyped d.timezoneOffset;
+				#elseif flash
+					var o : Float = untyped d.getTimezoneOffset();
+				#else
+				#error
+				#end
 				var i : String = Std.string(Std.int(Math.abs(Math.floor(o / 60 * 100))));
 				var neg : Bool = if(o < 0) true else false;
 				var s : String = StringTools.lpad(i,"0",4);
@@ -138,6 +141,8 @@ class DateTools {
 	public static function format( d : Date, f : String ) : String {
 		#if neko
 			untyped return new String(date_format(d.__t, f.__s));
+		#elseif php
+			return untyped __call__("strftime",f,d.__t);
 		#else
 			return __format(d,f);
 		#end
