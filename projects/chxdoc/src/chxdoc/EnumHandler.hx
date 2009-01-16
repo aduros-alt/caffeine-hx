@@ -78,7 +78,7 @@ class EnumHandler extends TypeHandler<EnumCtx> {
 
 	function newEnumCtx(t : Enumdef) : EnumCtx {
 		var c = createCommon(t, "enum");
-		c.setField("constructorInfo", new Array<FieldCtx>());
+		Reflect.setField(c, "constructorInfo", new Array<FieldCtx>());
 		return cast c;
 	}
 

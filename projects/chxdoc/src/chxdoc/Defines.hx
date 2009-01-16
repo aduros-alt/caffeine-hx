@@ -90,6 +90,11 @@ typedef Config = {
 	var generateTodo		: Bool;
 	var todoLines			: Array<{link: Link, message:String}>;
 	var todoFile			: String;
+
+	/** Base path to the xml files in files **/
+	var xmlBasePath			: String;
+	/** files to load **/
+	var files				: Array<{name:String, platform:String, remap:String}>;
 };
 
 typedef BuildData = {
@@ -131,9 +136,13 @@ typedef DocsContext = {
 };
 
 typedef PackageContext = {
-	// meta
-	// build
-	// platform
+	/**
+		These 3 exist only at the point the structure is passed to the
+		template generator
+	var meta				: MetaData;
+	var build				: BuildData;
+	var config			: Config;
+	**/
 	var name				: String;	// short name
 	var full				: String;	// full dotted name
 
@@ -147,14 +156,6 @@ typedef PackageContext = {
 	/** filesystem path to package files **/
 	var resolvedPackageDir	: String;
 };
-
-/*
-typedef PackageFileTypesContext = {
-	var name			: String;
-	var linkString		: String;
-	var type			: String;
-}
-*/
 
 /**
 	This is the context passed to the template file for

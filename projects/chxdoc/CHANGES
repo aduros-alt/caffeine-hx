@@ -1,6 +1,8 @@
 0.7 ?
-	-CHANGE (): platform global now called config in .mtt
-	- FIXED (): package and type filtering
+Finish --xmlBasePath and --writeWebConfig
+	- ADDED (476): -v verbose flag for output
+	-CHANGE (476): 'platform' global now called config in .mtt
+	- FIXED (476): package and type filtering
 	- FIXED (474): Extensive work on sorting and displaying Typedefs
 	- FIXED (474): Improper handling of --footerText embedded =
 

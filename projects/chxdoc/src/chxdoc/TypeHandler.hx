@@ -243,10 +243,6 @@ class TypeHandler<T> {
 			docs			: null,
 
 			meta			: newMetaData(),
-			build			: ChxDocMain.buildData,
-			config			: ChxDocMain.config,
-
-			setField		: null,
 			originalDoc		: t.doc,
 		}
 
@@ -260,8 +256,6 @@ class TypeHandler<T> {
 
 		resetMetaKeywords(c);
 
-		// creates a function field [setField] which
-		setField(c, "setField", callback(setField, c));
 		return c;
 	}
 
@@ -288,10 +282,7 @@ class TypeHandler<T> {
 			docs			: null,
 
 			meta			: null,
-			build			: null,
-			config			: null,
 
-			setField		: null,
 			originalDoc		: originalDoc,
 
 			args			: "",
@@ -372,6 +363,9 @@ class TypeHandler<T> {
 		default:
 			throw ChxDocMain.fatal("Could not determing template type for " + ctx.type);
 		}
+// 		Reflect.setField(ctx, "meta", TypeHandler.newMetaData());
+		Reflect.setField(ctx, "build", ChxDocMain.buildData );
+		Reflect.setField(ctx, "config", ChxDocMain.config );
 		var t = new mtwin.templo.Loader(type + ".mtt");
 		try {
 			var rv = t.execute(ctx);

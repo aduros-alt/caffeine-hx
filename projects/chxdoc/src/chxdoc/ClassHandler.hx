@@ -217,17 +217,17 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 		else
 			ctx = cast createCommon(c, "class");
 
-		ctx.setField("scPathParams", c.superClass);
-		ctx.setField("superClassHtml", null);
-		ctx.setField("superClasses", new Array<ClassCtx>());
-		ctx.setField("interfacesHtml", new Array<Html>());
-		ctx.setField("isDynamic", (c.tdynamic != null));
-		ctx.setField("constructor", null);
-		ctx.setField("vars", new Array<FieldCtx>());
-		ctx.setField("staticVars", new Array<FieldCtx>());
-		ctx.setField("methods", new Array<FieldCtx>());
-		ctx.setField("staticMethods", new Array<FieldCtx>());
-		ctx.setField("subclasses", new Array<Link>());
+		Reflect.setField(ctx, "scPathParams", c.superClass);
+		Reflect.setField(ctx, "superClassHtml", null);
+		Reflect.setField(ctx, "superClasses", new Array<ClassCtx>());
+		Reflect.setField(ctx, "interfacesHtml", new Array<Html>());
+		Reflect.setField(ctx, "isDynamic", (c.tdynamic != null));
+		Reflect.setField(ctx, "constructor", null);
+		Reflect.setField(ctx, "vars", new Array<FieldCtx>());
+		Reflect.setField(ctx, "staticVars", new Array<FieldCtx>());
+		Reflect.setField(ctx, "methods", new Array<FieldCtx>());
+		Reflect.setField(ctx, "staticMethods", new Array<FieldCtx>());
+		Reflect.setField(ctx, "subclasses", new Array<Link>());
 
 		if( c.superClass != null ) {
 			ctx.superClassHtml = doStringBlock(

@@ -160,9 +160,9 @@ class TypedefHandler extends TypeHandler<TypedefCtx> {
 
 	public function newTypedefCtx(t : Typedef) : TypedefCtx {
 		var c = createCommon(t, "typedef");
-		c.setField("isAlias", false);
-		c.setField("alias",null);
-		c.setField("fields", new Array<FieldCtx>());
+		Reflect.setField(c, "isAlias", false);
+		Reflect.setField(c, "alias",null);
+		Reflect.setField(c, "fields", new Array<FieldCtx>());
 		return cast c;
 	}
 

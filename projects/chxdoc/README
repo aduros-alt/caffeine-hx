@@ -129,6 +129,20 @@ The current available tags, all of which except for @deprecated can be used mult
 @todo [Description]
 	For generating TODO files and html notes
 
+Package and Type filtering
+==========================
+Filtering classes and packages is done using the -f switch, which will prevent
+paths matching the argument from having documentation generated.
+
+A class, enum or typedef named my.pack.MyClass can be specifically filtered by using
+-f my.pack.MyClass
+To filter every class and subpackage in the package 'my.pack' use
+-f my.pack
+So, if you apply
+-f my
+All of my, including my.pack, and of course then my.pack.MyClass, will not show up in the
+generated documentation.
+
 
 Planned
 =======

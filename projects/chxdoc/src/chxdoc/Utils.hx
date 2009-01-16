@@ -195,9 +195,11 @@ class Utils {
 	}
 
 	/**
+		Tries to create an output directory, making all parent directories.
 		@todo Windows does not work correctly with [exists] and [createDirectory], so a wrapper in chx should consider this
 	**/
 	public static function createOutputDirectory(path:String) {
+		// trim off the trailing slash for windows
 		if(path.charAt(path.length-1) == "/")
 			path = path.substr(0, path.length-1);
 		if(path.length == 0)
@@ -206,11 +208,18 @@ class Utils {
 			try {
 				neko.FileSystem.createDirectory(path);
 			} catch(e : Dynamic) {
-				throw "Error while trying to make package output path " + path;
+				var parts = path.split("/");
+				if(parts.length < 2)
+					throw "Error while trying to make output path " + path;
+				var s = "";
+				for(i in 0...parts.length) {
+					s += "/" + parts[i];
+					createOutputDirectory(s);
+				}
 			}
 		}
 		if(!neko.FileSystem.isDirectory(path)) {
-			throw "Package output path " + path + " is not a directory.";
+			throw "Output path " + path + " is not a directory.";
 		}
 	}
 

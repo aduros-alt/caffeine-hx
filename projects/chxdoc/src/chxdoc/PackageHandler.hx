@@ -137,6 +137,9 @@ class PackageHandler extends TypeHandler<PackageContext> {
 				throw "Bad type " + ctx.type + " " + ctx.path;
 			}
 			if(!isFilteredCtx(ctx)) {
+				// not serializable, remove, no longer required.
+				if(Reflect.hasField(ctx,"setField"))
+					Reflect.deleteField(ctx, "setField");
 				ChxDocMain.registerType(ctx);
 				newTypes.push(ctx);
 			} else {
@@ -177,7 +180,6 @@ class PackageHandler extends TypeHandler<PackageContext> {
 			neko.Lib.print(".");
 		}
 
-// 		var types = new Array<PackageFileTypesContext>();
 		var newTypes = new Array<Ctx>();
 
 		var makeTypeLink = function(ctx : Ctx) {
@@ -192,13 +194,6 @@ class PackageHandler extends TypeHandler<PackageContext> {
 		for(ctx in pkg.types) {
 			if(!isFilteredCtx(ctx)) {
 				writeCtxHtml(ctx, TypeHandler.execTemplate(ctx));
-// 				types.push(
-// 					{
-// 						type		: ctx.type,
-// 						name		: ctx.name,
-// 						linkString	: makeTypeLink(ctx),
-// 					}
-// 				);
 			} else {
 				throw "should not happen " + ctx.path;
 			}

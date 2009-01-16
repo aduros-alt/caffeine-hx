@@ -13,6 +13,12 @@ test-user:
 	cd test && $(RM) *.swf *.n *.js
 	cd test && $(RM) -R __chxdoctmp
 
+test-web:
+	cd test && haxe chx.hxml
+	cd test && ../chxdoc -o doc_web --tmpDir=__chxdoctmp --templateDir=../templates/default --installTemplate=true --developer=false flash9.xml,flash9,flash neko.xml,neko js.xml,js --writeWebConfig
+	cd test && $(RM) *.swf *.n *.js
+	cd test && $(RM) -R __chxdoctmp
+
 clean:
 	cd test && $(RM) -R doc_developer
 	cd test && $(RM) -R doc_user

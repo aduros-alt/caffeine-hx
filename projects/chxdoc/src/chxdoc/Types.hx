@@ -67,10 +67,13 @@ typedef Ctx = {
 	var docs				: DocsContext;
 
 	var meta				: MetaData;
+	/**
+		These 2 exist only at the point the structure is passed to the
+		template generator
 	var build				: BuildData;
-	var config				: Config;
+	var config			: Config;
+	**/
 
-	var setField			: String->Dynamic->Void;
 	var originalDoc			: String;
 }
 
