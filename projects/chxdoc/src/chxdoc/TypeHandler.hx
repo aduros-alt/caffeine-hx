@@ -256,6 +256,7 @@ class TypeHandler<T> {
 
 		resetMetaKeywords(c);
 
+		Reflect.setField(c, "__serializeHash", callback(serializeHash, c));
 		return c;
 	}
 
@@ -301,6 +302,7 @@ class TypeHandler<T> {
 			c.isAllPlatforms = true;
 		}
 
+		Reflect.setField(c, "__serializeHash", callback(serializeHash, c));
 		return c;
 	}
 
@@ -317,6 +319,16 @@ class TypeHandler<T> {
 	**/
 	function setField(c : Ctx, field : String, value : Dynamic) {
 		Reflect.setField(c, field, value);
+	}
+
+	static function serializeHash(c : Ctx) : String {
+		var s = c.type + c.name;
+		if(c.parent != null)
+			s += c.parent.type + c.parent.path;
+		else
+			s += c.nameDots + c.path;
+		Reflect.setField(c, "__serializeHash", new String(s));
+		return s;
 	}
 
 	/**

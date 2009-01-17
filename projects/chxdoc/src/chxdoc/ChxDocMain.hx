@@ -343,9 +343,7 @@ class ChxDocMain {
 	//              Main                        //
 	//////////////////////////////////////////////
 	public static function main() {
-		#if BUILD_DEBUG
-			chx.Log.redirectTraces(true);
-		#end
+		chx.Log.redirectTraces(true);
 
 		if( neko.Web.isModNeko )
 			setNullPrinter();
@@ -416,8 +414,7 @@ class ChxDocMain {
 			pass4();
 		if(writeWebConfig) {
 			haxe.Serializer.USE_CACHE = true;
-			var ser = new haxe.Serializer();
-// 			ser.useCache = true;
+			var ser = new chx.CachedSerializer();
 			ser.serialize(config);
 			var f = neko.io.File.write(webConfigFile,false);
 			f.writeString(ser.toString());

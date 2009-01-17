@@ -1,4 +1,5 @@
 -neko chxdoc.n
 -main chxdoc/ChxDocMain.hx
 -cp src
+-cp ../../ext2
 -cmd nekotools boot chxdoc.n
