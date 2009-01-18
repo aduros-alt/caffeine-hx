@@ -1,0 +1,27 @@
+-cp ../../
+-neko test.n
+-main ChxTest
+
+--next
+
+-cp ../../
+-js test.js
+-main ChxTest
+
+
+--next
+
+-cp ../../
+-main ChxTest
+-swf-version 8
+-swf test8.swf
+-debug
+
+--next
+
+-cp ../../
+-main ChxTest
+-swf-version 9
+-swf9 test9.swf
+-debug
+
