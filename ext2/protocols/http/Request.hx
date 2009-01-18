@@ -400,9 +400,9 @@ class Request {
 		}
 		try {
 			if( Request.PROXY != null )
-				 sock.connect(new neko.net.Host(Request.PROXY.host),Request.PROXY.port);
+				 sock.connect(new Host(Request.PROXY.host),Request.PROXY.port);
 			else
-				 sock.connect(new neko.net.Host(host),port);
+				 sock.connect(new Host(host),port);
 			sock.write(b.toString());
 			this.requestText = b.toString();
 			if( multipart ) {
