@@ -78,6 +78,40 @@ class Std {
 		#end
 	}
 
+	/**
+		Convert a character code into the corresponding single-char String.
+	**/
+	public static function chr( x : Int ) : String {
+		return String.fromCharCode(x);
+	}
+
+	/**
+		Return the character code of the first character of the String, or null if the String is empty.
+	**/
+	public static function ord( x : String ) : Null<Int> {
+		#if (flash || php)
+		if( x == "" )
+			return null;
+		else
+			return x.charCodeAt(0);
+		#elseif neko
+		untyped {
+			var s = __dollar__ssize(x.__s);
+			if( s == 0 )
+				return null;
+			else
+				return __dollar__sget(x.__s,0);
+		}
+		#elseif js
+		if( x == "" )
+			return null;
+		else
+			return x.charCodeAt(0);
+		#else true
+		return null;
+		#end
+	}
+
 //BEGINPR/rw01/2008-02-28//Russell Weir/Changed docs and base handling for flash 8,9 and neko. This is to make parseInt actually work the same on all 3 platforms. Removes any potential Octal processing and ensures + and - prefixes work on all platforms.
 	/**
 		Convert a String to an Int, parsing different possible representations.
