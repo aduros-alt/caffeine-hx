@@ -27,6 +27,10 @@
 
 package hash;
 
+#if neko
+import haxe.Int32;
+#end
+
 class Util {
 	/**
 	**/
@@ -37,12 +41,11 @@ class Util {
 		return (msw << 16) | (lsw & 0xFFFF);
 #else
 		var mask = Int32.ofInt(0xFFFF);
-		var st = Int32.ofInt(16);
 		var lsw = Int32.add(Int32.and(x, mask), Int32.and(y, mask));
 		var msw = Int32.add(
-				Int32.add(Int32.shr(x, st), Int32.shr(y, 16)),
-				Int32.shr(lsw, st));
-		return Int32.or(Int32.shl(msw, st), Int32.and(lsw, mask));
+				Int32.add(Int32.shr(x, 16), Int32.shr(y, 16)),
+				Int32.shr(lsw, 16));
+		return Int32.or(Int32.shl(msw, 16), Int32.and(lsw, mask));
 #end
 	}
 
