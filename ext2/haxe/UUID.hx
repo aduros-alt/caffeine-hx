@@ -165,7 +165,7 @@ private class Rule30
 		var cells = this.cells;
 		var newCells = new StringBuf();
 		var C = newCells.addChar;
-		var newCell : Int;
+		var newCell : Int = 0;
 		var section : Int =	(cells.charCodeAt( cellsLength - 1 ) << 8) | cells.charCodeAt( 0 );
 
 		for( pos in 0 ... cellsLength )
