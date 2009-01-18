@@ -1,3 +1,30 @@
+/*
+ * Copyright (c) 2008-2009, The Caffeine-hx project contributors
+ * Original author : Russell Weir
+ * Contributors:
+ * All rights reserved.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *   - Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   - Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE CAFFEINE-HX PROJECT CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE CAFFEINE-HX PROJECT CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 package chx;
 
 /**
@@ -7,13 +34,65 @@ class Log {
 	static var useFirebug : Bool = false;
 	static var haxeLogTrace : Dynamic = haxe.Log.trace;
 
+	#if flash
+	static var defTextFont		: String = "_sans"; // "Times New Roman"
+	static var defTextFontSize	: Float = 8;
+	#end
+
 	public static function clear() : Void {
 		haxe.Log.clear();
+		#if flash
+		setDefaultFont();
+		setDefaultFontSize();
+		#end
+	}
+
+	/**
+		Sets the trace color. Currently has no effect except in flash
+	**/
+	public static dynamic function setColor( rgb : Int ) {
+		#if flash
+		haxe.Log.setColor(rgb);
+		#end
+	}
+
+	/**
+		Set the trace font to the font name supplied, or if null
+		uses the current default. Only works in flash.
+	**/
+	public static function setDefaultFont(?font : String) {
+		#if flash
+			if(font == null)
+				font = defTextFont;
+			var tf = untyped getTraceField();
+			var format = tf.getTextFormat();
+			format.font = font;
+			tf.defaultTextFormat = format;
+			defTextFont = font;
+		#end
+	}
+
+	/**
+		Sets the font size for traces. Only works in flash.
+	**/
+	public static function setDefaultFontSize(? pts : Float) {
+		#if flash
+			if(Math.isNaN(pts))
+				pts = defTextFontSize;
+			var tf = untyped getTraceField();
+			var format = tf.getTextFormat();
+			format.size = pts;
+			defTextFontSize = pts;
+		#end
 	}
 
 	#if flash
-	public static dynamic function setColor( rgb : Int ) {
-		haxe.Log.setColor(rgb);
+	/**
+		Returns the flash textfield currently being used for traces. Invalidated
+		by a call to {@link #clear() clear()}.
+	**/
+	public static function getTraceField() {
+		return untyped flash.Boot.getTrace();
 	}
 	#end
 
@@ -23,17 +102,22 @@ class Log {
 	**/
 	public static function redirectTraces(?useFirebug : Bool = false) {
 		#if (flash || flash9 || js)
-			if(haxe.Firebug.detect())
-				Log.useFirebug = true;
-			else
-				Log.useFirebug = false;
+			Log.useFirebug = false;
+			if(useFirebug)
+				if(haxe.Firebug.detect())
+					Log.useFirebug = true;
+		#end
+		#if flash
+			setDefaultFont();
+			setDefaultFontSize();
+			setColor(0x222222);
 		#end
 		haxe.Log.trace = trace;
 	}
 
 	public static function trace(v : Dynamic, ?inf : haxe.PosInfos ) {
 		var s = prettyFormat(v, "");
-		#if (flash || flash9 || js)
+		#if (flash || js)
 			if(Log.useFirebug) {
 				haxe.Firebug.trace(s, inf);
 				return;
