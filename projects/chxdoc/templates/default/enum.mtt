@@ -59,7 +59,7 @@ function windowTitle()
 	</div>
 <!-- ========= END OF ENUM DATA ========= -->
 	<hr />
-		<a href="::rootRelative::../overview.html">Overview</a>
+		<a href="::rootRelative::../overview::config.htmlFileExtension::">Overview</a>
 	<hr />
 	::if config.footerText != null::<div id="footer">::raw config.footerText::</div>::end::
 </body>
