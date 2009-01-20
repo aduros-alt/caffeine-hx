@@ -430,9 +430,9 @@ class Serializer {
 			buf.writeString(":");
 			var pl : Array<Dynamic> = v.params;
 			if( pl == null )
-				buf.writeString(0);
+				buf.writeString("0");
 			else {
-				buf.writeString(pl.length);
+				buf.writeString(Std.string(pl.length));
 				for( p in pl )
 					serialize(p);
 			}
@@ -445,9 +445,9 @@ class Serializer {
 			buf.writeString(":");
 			var l : Int = untyped __call__("count", v.params);
 			if( l == 0 || v.params == null)
-				buf.writeString(0);
+				buf.writeString("0");
 			else {
-				buf.writeString(l);
+				buf.writeString(Std.string(l));
 				for( i in 0...l )
 					serialize(untyped __field__(v, __php__("params"), i));
 			}
@@ -459,7 +459,7 @@ class Serializer {
 				serializeString(v[0]);
 			buf.writeString(":");
 			var l = v[untyped "length"];
-			buf.writeString(l - 2);
+			buf.writeString(Std.string(l - 2));
 			for( i in 2...l )
 				serialize(v[i]);
 			#end
