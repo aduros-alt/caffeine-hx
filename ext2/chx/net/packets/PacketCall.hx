@@ -29,7 +29,7 @@ package chx.net.packets;
 
 /**
 **/
-class PacketCall extends chx.net.Packet {
+class PacketCall extends chx.net.packets.Packet {
 
 	inline static var VALUE : Int = 0xF0;
 
@@ -52,13 +52,13 @@ class PacketCall extends chx.net.Packet {
 
 	override function toBytes(buf:chx.io.Output) : Void {
 		buf.writeInt31(id);
-		buf.writeString(path.join("."));
-		buf.writeString(haxe.Serializer.run(params));
+		buf.writeUTF(path.join("."));
+		buf.writeUTF(haxe.Serializer.run(params));
 	}
 
 	override function fromBytes(buf : chx.io.Input) : Void {
 		id = buf.readInt31();
-		path = buf.readString().split(".");
-		params = haxe.Unserializer.run(buf.readString());
+		path = buf.readUTF().split(".");
+		params = haxe.Unserializer.run(buf.readUTF());
 	}
 }

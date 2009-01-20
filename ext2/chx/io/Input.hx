@@ -308,6 +308,15 @@ class Input {
 		#end
 	}
 
+	/**
+		Reads a 16 bit unsigned int length value, then the string.
+		@return String encoded with length from stream
+	**/
+	public function readUTF() : String {
+		var len = readUInt16();
+		return readString(len);
+	}
+
 #if neko
 	static var _float_of_bytes = neko.Lib.load("std","float_of_bytes",2);
 	static var _double_of_bytes = neko.Lib.load("std","double_of_bytes",2);

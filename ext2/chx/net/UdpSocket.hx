@@ -25,12 +25,12 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+package chx.net;
+
 #if neko
 class UdpSocket extends TcpSocket, implements Socket {
 	public function new(?s:UdpSocket) {
-		__s = if( s == null ) socket_new(true) else s;
-		input = new SocketInput(__s);
-		output = new SocketOutput(__s);
+		super(s, true);
 	}
 }
 #else

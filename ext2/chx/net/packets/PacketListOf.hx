@@ -101,6 +101,7 @@ class PacketListOf<T:Packet> extends Packet {
 
 	override function fromBytes(buf : chx.io.Input) : Void {
 		var count = buf.readUInt30();
+
 		var ipr = new chx.net.io.InputPacketReader(buf);
 
 		while(count > 0) {

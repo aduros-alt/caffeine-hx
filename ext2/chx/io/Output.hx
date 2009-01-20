@@ -253,6 +253,18 @@ class Output {
 		writeFullBytes(b,0,b.length);
 	}
 
+	/**
+		Writes a 16 bit unsigned int, then the string.
+		@param s The string to be written to the stream
+		@throws chx.lang.OverflowException if string length exceeds 65535 bytes
+	**/
+	public function writeUTF( s : String ) : Void {
+		if(s.length > 0xFFFF)
+			throw new chx.lang.OverflowException();
+		writeUInt16(s.length);
+		writeString(s);
+	}
+
 #if neko
 	static var _float_bytes = neko.Lib.load("std","float_bytes",2);
 	static var _double_bytes = neko.Lib.load("std","double_bytes",2);

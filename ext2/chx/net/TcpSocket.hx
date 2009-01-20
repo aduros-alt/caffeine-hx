@@ -82,12 +82,16 @@ class TcpSocket implements chx.net.Socket {
 	var remote_host : { host : Host, port : Int };
 	#end
 
-	public function new( ?s ) {
+	/**
+	@param s Optional existing socket to clone
+	@param asUdp set true if s is a udp socket. Only used for chx.net.UdpSocket
+	**/
+	public function new( ?s, ?asUdp ) {
 		listeners = new Array();
 		__handle =
 			if( s == null ) {
 				#if neko
-					socket_new(false);
+					socket_new(asUdp);
 				#elseif flash9
 					new flash.net.Socket();
 				#else

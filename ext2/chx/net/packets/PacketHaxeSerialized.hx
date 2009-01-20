@@ -43,12 +43,12 @@ class PacketHaxeSerialized extends Packet {
 
 	override function toBytes(buf:chx.io.Output) : Void {
 		buf.writeUInt16(this.flag);
-		buf.writeString(this.data);
+		buf.writeUTF(this.data);
 	}
 
 	override function fromBytes(buf : chx.io.Input) : Void {
 		this.flag = buf.readUInt16();
-		this.data = buf.readString();
+		this.data = buf.readUTF();
 	}
 
 	/**

@@ -33,9 +33,9 @@ import chx.io.BufferedInput;
 import chx.io.BytesOutput;
 import chx.io.BytesInput;
 
-#if flash9
 /**
-	Reads packets directly from a flash TcpSocket
+	Reads chx.net.packets directly from an Input. If the supplied chx.io.Input is
+	not buffered, it will be buffered by the constructor.
 **/
 class InputPacketReader {
 	var input : BufferedInput;
@@ -124,4 +124,3 @@ class InputPacketReader {
 		return input.readInt31();
 	}
 }
-#end
