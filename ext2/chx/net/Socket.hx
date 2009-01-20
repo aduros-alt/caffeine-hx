@@ -36,6 +36,7 @@ interface Socket {
 
 	/**
 	 * Accept an incoming connection
+	 * @throws chx.lang.BlockedException if the socket is non-blocking and there is no connection to accept
 	 */
 	function accept() : Socket;
 
@@ -47,6 +48,7 @@ interface Socket {
 
 	/**
 	 * Bind to a host/port to accept incoming connections
+	 * @throws chx.lang.IOException if unable to bind to host/port combination
 	 */
 	function bind(host : String, port : Int) : Void;
 
@@ -76,6 +78,11 @@ interface Socket {
 	 **/
 	function peer() : { host : Host, port : Int };
 
+	/**
+		Read whatever data is available on the socket.
+		@throws chx.lang.EOFException if socket is closed
+		@throws chx.lang.BlockedException if socket would block
+	**/
 	function read() : Bytes;
 
 	/**

@@ -25,7 +25,8 @@ import chx.lang.OverflowException;
 import chx.net.Host;
 import chx.net.IEventDrivenSocketListener;
 import chx.net.Socket;
-#if (flash9 || neko)
+import chx.net.InternalSocket;
+#if (flash9 || neko || cpp)
 import chx.net.TcpSocket;
 #if neko
 import chx.net.UdpSocket;

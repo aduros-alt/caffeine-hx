@@ -90,7 +90,7 @@ class TcpSocket implements chx.net.Socket {
 		listeners = new Array();
 		__handle =
 			if( s == null ) {
-				#if neko
+				#if (neko || cpp)
 					socket_new(asUdp);
 				#elseif flash9
 					new flash.net.Socket();
@@ -119,8 +119,12 @@ class TcpSocket implements chx.net.Socket {
 	}
 
 	public function accept() : Socket {
-		#if neko
-			return new TcpSocket(socket_accept(__handle));
+		#if (neko || cpp)
+			try {
+				return new TcpSocket(socket_accept(__handle));
+			} catch(e : Dynamic) {
+				throw new chx.lang.BlockedException();
+			}
 		#elseif flash9
 			throw new FatalException("not implemented");
 			return null;
@@ -134,15 +138,19 @@ class TcpSocket implements chx.net.Socket {
 
 	public function bind(host : String, port : Int) {
 		var h = new Host(host);
-		#if neko
-			socket_bind(__handle, h.ip, port);
+		#if (neko || cpp)
+			try {
+				socket_bind(__handle, h.ip, port);
+			} catch(e : Dynamic) {
+				throw new chx.lang.IOException("unable to bind to " + h.ip + ":" + port);
+			}
 		#elseif flash9
 			throw new FatalException("not implemented");
 		#end
 	}
 
 	public function close() : Void {
-		#if neko
+		#if (neko || cpp)
 			socket_close(__handle);
 		#elseif flash9
 			try __handle.close() catch(e:Dynamic) {}
@@ -165,7 +173,7 @@ class TcpSocket implements chx.net.Socket {
 				s += " : " + msg;
 			return new IOException(s);
 		}
-		#if neko
+		#if (neko || cpp)
 			try {
 				socket_connect(__handle, h.ip, port);
 			} catch( s : String ) {
@@ -192,7 +200,7 @@ class TcpSocket implements chx.net.Socket {
 	}
 
 	public function host() : { host : Host, port : Int } {
-		#if neko
+		#if (neko || cpp)
 			var a : Dynamic = socket_host(__handle);
 			var h = new Host("127.0.0.1");
 			untyped h.ip = a[0];
@@ -206,7 +214,7 @@ class TcpSocket implements chx.net.Socket {
 	}
 
 	public function listen(connections : Int) {
-		#if neko
+		#if (neko || cpp)
 			socket_listen(__handle, connections);
 		#elseif flash9
 			throw new FatalException("not implemented");
@@ -214,7 +222,7 @@ class TcpSocket implements chx.net.Socket {
 	}
 
 	public function peer() : { host : Host, port : Int } {
-		#if neko
+		#if (neko || cpp)
 			var a : Dynamic = socket_peer(__handle);
 			var h = new Host("127.0.0.1");
 			untyped h.ip = a[0];
@@ -224,8 +232,11 @@ class TcpSocket implements chx.net.Socket {
 		#end
 	}
 
+	/**
+	@todo Test neko for exceptions on closed and blocked sockets. Catch and throw chx.lang.*
+	**/
 	public function read() : Bytes {
-		#if neko
+		#if (neko || cpp)
 			return Bytes.ofData(socket_read(__handle));
 		#elseif flash9
 			var ba = new flash.utils.ByteArray();
@@ -243,7 +254,7 @@ class TcpSocket implements chx.net.Socket {
 	}
 
 	public function setBlocking( b : Bool ) {
-		#if neko
+		#if (neko || cpp)
 			socket_set_blocking(__handle,b);
 		#elseif flash9
 			if(b)
@@ -262,13 +273,13 @@ class TcpSocket implements chx.net.Socket {
 	}
 
 	public function setTimeout( timeout : Float ) {
-		#if neko
+		#if (neko || cpp)
 			socket_set_timeout(__handle, timeout);
 		#end
 	}
 
 	public function shutdown( read : Bool, write : Bool ) {
-		#if neko
+		#if (neko || cpp)
 			socket_shutdown(__handle,read,write);
 		#else
 			throw new FatalException("not implemented");
@@ -280,7 +291,7 @@ class TcpSocket implements chx.net.Socket {
 	}
 
 	public function write( content : Bytes ) {
-		#if neko
+		#if (neko || cpp)
 			try {
 				socket_write(__handle, content.getData());
 			}
@@ -303,7 +314,7 @@ class TcpSocket implements chx.net.Socket {
 
 	// STATICS
 	public static function select(read : Array<TcpSocket>, write : Array<TcpSocket>, others : Array<TcpSocket>, timeout : Float) : {read: Array<TcpSocket>,write: Array<TcpSocket>,others: Array<TcpSocket>} {
-		#if neko
+		#if (neko || cpp)
 			var c = untyped __dollar__hnew( 1 );
 			var f = function( a : Array<TcpSocket> ){
 				if( a == null ) return null;
@@ -396,7 +407,7 @@ class TcpSocket implements chx.net.Socket {
 	}
 #end
 
-#if neko
+#if (neko || cpp)
 	private static var socket_new = neko.Lib.load("std","socket_new",1);
 	private static var socket_close = neko.Lib.load("std","socket_close",1);
 	private static var socket_write = neko.Lib.load("std","socket_write",2);
