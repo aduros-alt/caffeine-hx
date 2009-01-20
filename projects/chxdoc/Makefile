@@ -1,5 +1,8 @@
+CHX_FILES=../../ext2/chx/Serializer.hx \
+			../../ext2/chx/Unserializer.hx \
+			../../ext2/chx/Log.hx
 
-chxdoc: dummy
+all: dependencies dummy
 	haxe build.hxml
 
 tests: test-developer test-user
@@ -30,19 +33,22 @@ clean:
 	rm -Rf chxdoc_release
 	rm -f chxdoc.n
 
-windows:
+windows: dependencies dummy
 	wine haxe build.hxml
 
-linux:
+linux: dependencies dummy
 	haxe build.hxml
 
-release: make_release
+release: dependencies make_release
 	@if [ "${VER}" = "" ]; then exit 1; fi;
 	@./make_release $(VER)
 	mv chxdoc.exe bin/Windows/
 	mv chxdoc bin/Linux/
 
 make_release: make_release.sh
+
+dependencies: $(CHX_FILES)
+	cp $(CHX_FILES) src/chx/
 
 dummy:
 
