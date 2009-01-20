@@ -1,16 +1,19 @@
-0.7 ?
-Finish --xmlBasePath and --writeWebConfig
-	- ADDED (476): -v verbose flag for output
-	-CHANGE (476): 'platform' global now called config in .mtt
-	- FIXED (476): package and type filtering
-	- FIXED (474): Extensive work on sorting and displaying Typedefs
-	- FIXED (474): Improper handling of --footerText embedded =
-
+0.8
 	Targets:
 		- Inline tags eg. @deprecated As of some date, replaced by {@link #newMethod()}
 		- Improve default template look for --developer and typedefs
 			(check js.Checkbox fields, which are "available in all platforms")(Franco)
 		- Add --showSourceFilePath for hard link to source files
+
+0.7 2009-01-19
+	- ADDED MOD_NEKO support.
+	-CHANGE Now requires caffeine-hx /ext2 in classpath
+	- ADDED --xmlBasePath and --writeWebConfig
+	- ADDED (476): -v verbose flag for output
+	-CHANGE (476): 'platform' global now called config in .mtt
+	- FIXED (476): package and type filtering
+	- FIXED (474): Extensive work on sorting and displaying Typedefs
+	- FIXED (474): Improper handling of --footerText embedded =
 
 0.6 2009-01-14
 	- FIXED: Constructors not getting docs.

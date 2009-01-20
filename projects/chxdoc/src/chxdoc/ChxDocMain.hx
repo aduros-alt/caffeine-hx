@@ -41,7 +41,7 @@ class ChxDocMain {
 		versionMajor		: 0,
 		versionMinor		: 7,
 		versionRevision		: 0,
-		buildNumber			: 466,
+		buildNumber			: 492,
 		verbose				: false,
 		rootTypesPackage	: null,
 		allPackages			: new Array(),
@@ -83,6 +83,7 @@ class ChxDocMain {
 
 		xmlBasePath			: "",
 		files				: new Array(),
+		webPassword			: null,
 	};
 
 	static var parser = new haxe.rtti.XmlParser();
@@ -103,13 +104,13 @@ class ChxDocMain {
 	/** Current package being processed, dotted form **/
 	public static var currentPackageDots : String;
 	/** Path to ascend to base index directory **/
-	public static var baseRelPath(default,null) : String;
+	public static var baseRelPath		: String;
 
 
 	public static var println 			: Dynamic->Void;
 	public static var print				: Dynamic->Void;
 
-	static var webConfigFile			: String	= ".chxdoc.nsd";
+	static var webConfigFile			: String	= ".chxdoc.hsd";
 	public static var writeWebConfig	: Bool		= false;
 
 
@@ -263,9 +264,12 @@ class ChxDocMain {
 		}
 	}
 
-	static function execBaseTemplate(s : String) : String {
+	static function execBaseTemplate(s : String, ?cfg:Dynamic) : String {
 		if(!isBaseTemplate(s))
 			fatal(s + " is not a valid file");
+		var c : Dynamic = config;
+		if(cfg != null)
+			c = cfg;
 		var t = new mtwin.templo.Loader(s+".mtt");
 		var metaData = {
 			date : config.dateShort,
@@ -276,7 +280,7 @@ class ChxDocMain {
 		var context : IndexContext = {
 			meta		: metaData,
 			build 		: buildData,
-			config		: config,
+			config		: c,
 		};
 		return t.execute(context);
 	}
@@ -294,6 +298,7 @@ class ChxDocMain {
 		case "all_packages":
 		case "all_classes":
 		case "todo":
+		case "config":
 		default:
 			return false;
 		}
@@ -307,6 +312,7 @@ class ChxDocMain {
 	/**
 		Locate a type context from it's full path in all
 		packages. Can not be used until after pass 1.
+		@throws String when type not found
 	**/
 	public static function findType( path : String ) : Ctx {
 		var parts = path.split(".");
@@ -324,6 +330,11 @@ class ChxDocMain {
 		throw "Could not find type " + path;
 	}
 
+	/**
+		Find a package by it's full path. Do not include a Type name.
+		@param path Package path
+		@returns null or PackageContext
+	**/
 	public static function findPackage(path : String) : PackageContext {
 		if(path == "" || path == "root types")
 			return config.rootTypesPackage;
@@ -331,7 +342,9 @@ class ChxDocMain {
 		// before stage3, we have to look in unfiltered packages
 		if(packageContexts != null && packageContexts.length > 0)
 			p = packageContexts;
-		for(i in packageContexts) {
+		if(p == null)
+			return null;
+		for(i in p) {
 			if(i.full == path)
 				return i;
 		}
@@ -351,9 +364,7 @@ class ChxDocMain {
 			setDefaultPrinter();
 
 		proginfo = "ChxDoc Generator "+
-			config.versionMajor+ "."+
-			config.versionMinor + "."+
-			config.versionRevision +
+			makeVersion() +
 			" - (c) 2009 Russell Weir";
 
 		buildData = {
@@ -370,29 +381,8 @@ class ChxDocMain {
 		checkAllPaths();
 
 		if( neko.Web.isModNeko ) {
-			var params = neko.Web.getParams();
-			if( params.get("reload") != null ) {
-				loadXmlFiles();
-				writeWebConfig = true;
-				generate();
-			}
-			setDefaultPrinter();
-
-			var base = params.get("base");
-			// index, overview etc.
-			if(isBaseTemplate(base)) {
-				print(execBaseTemplate(base));
-			}
-			else {
-				var path = params.get("path").split("/").join(".");
-			 	if(base == "types") {
-					var ctx : Ctx = findType(path);
-					throw "Type not found : " + path;
-					print(TypeHandler.execTemplate(ctx));
-				}
-				else if(base == "packages") {
-				}
-			}
+			neko.Web.cacheModule(webHandler);
+			webHandler();
 		}
 		else {
 			loadXmlFiles();
@@ -400,9 +390,100 @@ class ChxDocMain {
 		}
 	}
 
+	static function webHandler() : Void {
+		if(config == null)
+			fatal("Config is not set");
+
+		var modPath = function(s) {
+			if(s == null)
+				s = "";
+			if(s.charAt(0) != "/")
+				return neko.Web.getCwd() + s;
+			return s;
+		}
+		var updatePaths = function() {
+			config.temploBaseDir = modPath(config.temploBaseDir);
+			config.temploTmpDir = modPath(config.temploTmpDir);
+			initTemplo();
+		}
+		var updateXmlPaths = function() {
+			config.xmlBasePath = null;
+			for(i in config.files)
+				i.name = modPath(i.name);
+		}
+
+		var params = neko.Web.getParams();
+		if( params.get("showconfig") != null) {
+			setDefaultPrinter();
+			if(config.webPassword != params.get("password")) {
+				logError("Not authorized");
+				return;
+			}
+			var cfg = makeViewableConfig();
+			updatePaths();
+			print(execBaseTemplate("config", cfg));
+			return;
+		}
+
+		updatePaths();
+		if( params.get("reload") != null ) {
+			if(config.webPassword != params.get("password")) {
+				logError("Not authorized");
+				return;
+			}
+			updateXmlPaths();
+			loadXmlFiles();
+			writeWebConfig = true;
+			generate();
+		}
+		setDefaultPrinter();
+
+		var base = params.get("base");
+		if(base == null || base == "")
+			base = "index";
+		// index, overview etc.
+		if(isBaseTemplate(base)) {
+			print(execBaseTemplate(base));
+		}
+		else {
+			if(base == "types") {
+				var path = params.get("path").split("/").join(".");
+				try {
+					var ctx : Ctx = findType(path);
+					print(TypeHandler.execTemplate(ctx));
+				} catch(e:String) {
+					print("Unable to find type " + path);
+				}
+			}
+			else if(base == "packages") {
+				var parts = params.get("path").split("/");
+				if(parts[parts.length-1] == "package")
+					parts.pop();
+				var path = parts.join(".");
+				var pkg = findPackage(path);
+				if(pkg != null)
+					print(PackageHandler.execTemplate(pkg));
+				else
+					print("Could not find package " + path);
+			}
+			else
+				print("File not found : " + base);
+		}
+	}
+
 	static function generate() {
 		packageHandler = new PackageHandler();
 		packageContexts = new Array<PackageContext>();
+
+		// These need to be reset for web regeneration
+		config.rootTypesPackage = null;
+		config.allPackages = new Array();
+		config.allTypes = new Array();
+		config.docBuildDate = Date.now();
+		config.dateShort = DateTools.format(Date.now(), "%Y-%m-%d");
+		config.dateLong = DateTools.format(Date.now(), "%a %b %d %H:%M:%S %Z %Y");
+		config.todoLines = new Array();
+
 		baseRelPath = "";
 		pass1([TPackage("root", "root types", parser.root)]);
 		print(".");
@@ -413,11 +494,17 @@ class ChxDocMain {
 		if( !neko.Web.isModNeko && !writeWebConfig)
 			pass4();
 		if(writeWebConfig) {
-			haxe.Serializer.USE_CACHE = true;
-			var ser = new chx.CachedSerializer();
+			var p = webConfigFile;
+			if(neko.Web.isModNeko)
+				p = neko.Web.getCwd() + webConfigFile;
+			var f = neko.io.File.write(p,false);
+			var ser = new chx.Serializer(f);
+			ser.preSerializeObject = function(o) {
+				if(Reflect.hasField(o, "originalDoc")) {
+					untyped o.originalDoc = null;
+				}
+			}
 			ser.serialize(config);
-			var f = neko.io.File.write(webConfigFile,false);
-			f.writeString(ser.toString());
 			f.close();
 		}
 		print("\nComplete.\n");
@@ -508,24 +595,31 @@ class ChxDocMain {
 		mtwin.templo.Loader.TMP_DIR = config.temploTmpDir;
 		mtwin.templo.Loader.MACROS = config.temploMacros;
 
-		var tmf = config.temploBaseDir + config.temploMacros;
-		if(!neko.FileSystem.exists(tmf)) {
-			println("The macro file " + tmf + " does not exist.");
-			neko.Sys.exit(1);
+		if(! neko.Web.isModNeko ) {
+			var tmf = config.temploBaseDir + config.temploMacros;
+			if(!neko.FileSystem.exists(tmf))
+				fatal("The macro file " + tmf + " does not exist.");
+			Utils.createOutputDirectory(config.temploTmpDir);
 		}
-
-		Utils.createOutputDirectory(config.temploTmpDir);
 	}
 
 	static function parseArgs() {
 		if( neko.Web.isModNeko ) {
-			var data : Dynamic = try
-				neko.Lib.unserialize(
+			var data : String =
+				try
 					neko.io.File.getContent(neko.Web.getCwd()+webConfigFile)
-				)
-				catch( e : Dynamic ) null;
-			if(data == null)
-				fatal("There is no configuration data. Please create one with --writeWebConfig");
+				catch(e:Dynamic) {
+					fatal("There is no configuration data. Please create one with --writeWebConfig");
+					null;
+				}
+			var cfg : Dynamic =
+				try
+					chx.Unserializer.run ( data )
+				catch( e : Dynamic ) {
+					fatal("Error unserializing config data: " + Std.string(e));
+					null;
+				}
+			config = cfg;
 			return;
 		}
 		var expectOutputDir = false;
@@ -600,6 +694,7 @@ class ChxDocMain {
 				case "--templateDir": config.temploBaseDir = parts[1];
 				case "--title": config.title = parts[1];
 				case "--tmpDir": config.temploTmpDir = parts[1];
+				case "--webPassword": config.webPassword = parts[1];
 				case "--writeWebConfig": writeWebConfig = getBool(parts[1]);
 				case "--xmlBasePath": config.xmlBasePath = parts[1];
 				}
@@ -613,8 +708,13 @@ class ChxDocMain {
 		}
 
 		if(writeWebConfig && config.htmlFileExtension != "") {
-			logWarning("Html file extension ignored for web configurations");
-			config.htmlFileExtension = "";
+			if(config.htmlFileExtension != "") {
+				logWarning("Html file extension ignored for web configurations");
+				config.htmlFileExtension = "";
+			}
+			if(config.installImagesDir || config.installCssFile) {
+				logWarning("Install templates manually for web configurations");
+			}
 		}
 
 		config.todoFile = "todo" + config.htmlFileExtension;
@@ -659,6 +759,7 @@ class ChxDocMain {
 		println("\t--title=string Set the package title");
 		println("\t--tmpDir=path Path for tempory file generation (default ./tmp)");
 		println("\t-v Turns on verbose mode");
+		println("\t--webPassword=[pass] Sets a web password for ?reload and ?showconfig");
 		println("\t--writeWebConfig Parses everything, serializes and outputs "+ webConfigFile);
 		println("\t--xmlBasePath=path Set a default path to xml files");
 		println("");
@@ -671,10 +772,14 @@ class ChxDocMain {
 		println("\tchxdoc flash9.xml,flash,flash9 php.xml,php");
 		println("\t\tWill transform all references to flash.* to flash9.*");
 		println("");
-		neko.Sys.exit(exitVal);
+		if(! neko.Web.isModNeko )
+			neko.Sys.exit(exitVal);
+		else
+			throw("");
 	}
 
 	static function loadXmlFiles() {
+		config.platforms = new List();
 		if(config.xmlBasePath == null)
 			config.xmlBasePath = "";
 		for(i in config.files) {
@@ -728,14 +833,27 @@ class ChxDocMain {
 		println("WARNING: " + msg);
 	}
 
+	public static function logError(msg:String, ?pkg:PackageContext, ?ctx : Ctx) {
+		setDefaultPrinter();
+		if(pkg != null) {
+			msg += " in package " + pkg.full;
+		}
+		if(ctx != null) {
+			msg += " in " + ctx.name;
+		}
+		println("ERROR: " + msg);
+	}
+
 	public static function fatal(msg:String, ?exitVal) {
 		setDefaultPrinter();
 		if(exitVal == null)
 			exitVal = 1;
 		println("FATAL: " + msg);
-		neko.Sys.exit(exitVal);
+		if(! neko.Web.isModNeko )
+			neko.Sys.exit(exitVal);
+		else
+			throw "";
 	}
-
 
 	/**
 		Sets default print and println functions by platform
@@ -758,5 +876,37 @@ class ChxDocMain {
 	static function setNullPrinter() {
 		print = function (v) {};
 		println = function (v) {};
+	}
+
+	static function makeViewableConfig() : Array<{name:String, value: String}> {
+		var rv = new Array();
+		var addCfg = function(s:String) {
+			rv.push({ name:s, value : Std.string(Reflect.field(config, s)) });
+		}
+		rv.push({ name: "ChxDoc", value: makeVersion() });
+		rv.push({ name: "Generated", value: config.dateLong});
+		for(i in [
+			"stylesheet",
+			"temploBaseDir",
+			"temploTmpDir",
+			"temploMacros",
+			"xmlBasePath"
+			])
+			addCfg(i);
+		for(i in config.files) {
+			var s :String = i.name + "," + i.platform + "," + i.remap;
+			rv.push({ name: "XML file", value: s });
+		}
+		return rv;
+	}
+
+	/**
+		Dot formatted version string
+		@returns String formatted version number ie 1.3.1
+	**/
+	static function makeVersion() : String {
+		return config.versionMajor+ "."+
+			config.versionMinor + "."+
+			config.versionRevision;
 	}
 }

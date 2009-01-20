@@ -56,6 +56,7 @@ class PackageHandler extends TypeHandler<PackageContext> {
 			rootRelative		: new String(ChxDocMain.baseRelPath),
 			packageUri			: null,
 			types				: new Array(),
+			meta				: TypeHandler.newMetaData(),
 		};
 		pkg.packageUri = "packages/" + Utils.makeRelativePackageLink(pkg) + "package" + config.htmlFileExtension;
 
@@ -245,7 +246,6 @@ class PackageHandler extends TypeHandler<PackageContext> {
 		var t = new mtwin.templo.Loader("package.mtt");
 		var output : String = "";
 
-		Reflect.setField(pkg, "meta", TypeHandler.newMetaData());
 		Reflect.setField(pkg, "build", ChxDocMain.buildData );
 		Reflect.setField(pkg, "config", ChxDocMain.config );
 		try {

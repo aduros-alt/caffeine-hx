@@ -91,10 +91,15 @@ typedef Config = {
 	var todoLines			: Array<{link: Link, message:String}>;
 	var todoFile			: String;
 
+	////////////////////////////////////////
+	//// used primarily for web config /////
 	/** Base path to the xml files in files **/
 	var xmlBasePath			: String;
 	/** files to load **/
 	var files				: Array<{name:String, platform:String, remap:String}>;
+// 	var rendered			: Hash<String>; // rendered html by path
+	/** password for ?reload and ?showconfig **/
+	var webPassword			: String;
 };
 
 typedef BuildData = {
@@ -136,13 +141,6 @@ typedef DocsContext = {
 };
 
 typedef PackageContext = {
-	/**
-		These 3 exist only at the point the structure is passed to the
-		template generator
-	var meta				: MetaData;
-	var build				: BuildData;
-	var config			: Config;
-	**/
 	var name				: String;	// short name
 	var full				: String;	// full dotted name
 
@@ -155,6 +153,14 @@ typedef PackageContext = {
 	var resolvedTypeDir		: String;
 	/** filesystem path to package files **/
 	var resolvedPackageDir	: String;
+
+	var meta				: MetaData;
+	/**
+		These 2 exist only at the point the structure is passed to the
+		template generator
+	var build				: BuildData;
+	var config				: Config;
+	**/
 };
 
 /**

@@ -43,7 +43,7 @@ class TypedefHandler extends TypeHandler<TypedefCtx> {
 		current = t;
 		var ctx = newTypedefCtx(t);
 
-		ctx.platforms = cloneList(t.platforms);
+		ctx.platforms = t.platforms;
 
 		if( t.platforms.length == 0 ) {
 			processTypedefType(ctx, t.type, t.platforms, t.platforms);
@@ -127,10 +127,10 @@ class TypedefHandler extends TypeHandler<TypedefCtx> {
 
 		if( platforms.length == ChxDocMain.config.platforms.length) {
 			context.isAllPlatforms = true;
-			context.platforms = cloneList(ChxDocMain.config.platforms);
+			context.platforms = ChxDocMain.config.platforms;
 		} else {
 			context.isAllPlatforms = false;
-			context.platforms = cloneList(platforms);
+			context.platforms = platforms;
 		}
 
 		if(context.type == "typedef") {

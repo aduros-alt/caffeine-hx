@@ -183,7 +183,7 @@ class DocProcessor {
 				var e = p.shift();
 				docCtx.throws.push( {
 					name : e,
-					uri : Utils.makeRelPath(StringTools.replace(e,".","/")),
+					uri : pkg.rootRelative + (StringTools.replace(e,".","/")) + ChxDocMain.config.htmlFileExtension,
 					desc : doEmbeddedTags(p.join(" ")),
 				});
 			case "todo":

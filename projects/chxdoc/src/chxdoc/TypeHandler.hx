@@ -232,7 +232,7 @@ class TypeHandler<T> {
 			rootRelative	: fi.rootRelative,
 
 			isAllPlatforms	: (t.platforms.length == ChxDocMain.config.platforms.length),
-			platforms		: cloneList(t.platforms),
+			platforms		: t.platforms,
 			parent			: null,
 			contexts		: new Array(),
 
@@ -250,7 +250,7 @@ class TypeHandler<T> {
 			c.params = "<"+t.params.join(", ")+">";
 
 		if(c.platforms.length == 0) {
-			c.platforms = cloneList(ChxDocMain.config.platforms);
+			c.platforms = ChxDocMain.config.platforms;
 			c.isAllPlatforms = true;
 		}
 
@@ -272,7 +272,7 @@ class TypeHandler<T> {
 			rootRelative	: null,
 
 			isAllPlatforms	: (platforms.length == ChxDocMain.config.platforms.length),
-			platforms		: cloneList(platforms),
+			platforms		: platforms,
 			parent			: parentCtx,
 			contexts		: null,
 
@@ -298,7 +298,7 @@ class TypeHandler<T> {
 		}
 
 		if(c.platforms.length == 0) {
-			c.platforms = cloneList(ChxDocMain.config.platforms);
+			c.platforms = ChxDocMain.config.platforms;
 			c.isAllPlatforms = true;
 		}
 
@@ -327,7 +327,7 @@ class TypeHandler<T> {
 			s += c.parent.type + c.parent.path;
 		else
 			s += c.nameDots + c.path;
-		Reflect.setField(c, "__serializeHash", new String(s));
+		//Reflect.setField(c, "__serializeHash", new String(s));
 		return s;
 	}
 
