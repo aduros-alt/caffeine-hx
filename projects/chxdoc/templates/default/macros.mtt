@@ -116,7 +116,7 @@
 
 	<macro name="showPlatforms(l)">
 		::if l != null::
-			::if l.length > 0 && (platforms == null || platforms.length != l.length) ::
+			::if l.length > 0 && (platforms == null || platforms.length > l.length) ::
 			<div class="platforms">available in <span class="platforms-list">::foreach i l::::i:: ::end::</span></div>
 			::end::
 		::end::
