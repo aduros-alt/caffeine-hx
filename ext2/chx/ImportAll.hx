@@ -47,12 +47,13 @@ import chx.net.packets.PacketNull;
 import chx.net.packets.PacketPing;
 import chx.net.packets.PacketPong;
 import chx.net.packets.PacketXmlData;
-
 #if neko
 import chx.net.servers.PacketServer;
 import chx.net.servers.TcpPacketServer;
 #end
 
+import chx.vm.Lock;
+import chx.vm.Mutex;
 
 import config.DotConfig;
 import config.XmlConfig;
