@@ -13,6 +13,7 @@ import chx.io.BytesOutput;
 import chx.io.FilteredInput;
 import chx.io.Input;
 import chx.io.Output;
+import chx.io.Seek;
 
 import chx.lang.BlockedException;
 import chx.lang.EofException;
@@ -28,14 +29,15 @@ import chx.net.Socket;
 import chx.net.InternalSocket;
 #if (flash9 || neko || cpp)
 import chx.net.TcpSocket;
-#if neko
+#end
+#if (neko || cpp)
 import chx.net.UdpSocket;
 #end
-#end
+import chx.net.URI;
 
 import chx.net.io.FlashPacketReader;
 import chx.net.io.InputPacketReader;
-#if (flash9 || neko)
+#if (flash9 || neko || cpp)
 import chx.net.io.TcpSocketInput;
 import chx.net.io.TcpSocketOutput;
 #end
@@ -48,10 +50,13 @@ import chx.net.packets.PacketNull;
 import chx.net.packets.PacketPing;
 import chx.net.packets.PacketPong;
 import chx.net.packets.PacketXmlData;
-#if neko
+#if (neko || cpp)
 import chx.net.servers.PacketServer;
 import chx.net.servers.TcpPacketServer;
 #end
+
+import chx.vfs.File;
+import chx.vfs.Path;
 
 import chx.vm.Lock;
 import chx.vm.Mutex;

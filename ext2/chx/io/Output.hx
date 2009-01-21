@@ -29,17 +29,23 @@ import chx.lang.BlockedException;
 import chx.lang.OverflowException;
 import chx.lang.OutsideBoundsException;
 import chx.lang.EofException;
+import chx.vm.Lock;
 
 /**
-	An Output is an abstract write. A specific output implementation will only
+	An Output is an abstract writer. A specific output implementation will only
 	have to override the [writeChar] and maybe the [write], [flush] and [close]
-	methods. See [File.write] and [String.write] for two ways of creating an
-	Output.
+	methods.
 **/
 class Output {
 
 	public var bigEndian(default,setEndian) : Bool;
+	/** A chx.vm.Lock may be added to the Output and available for use **/
+	public var lock : Lock;
 
+	/**
+		Write a single byte (Unsigned Int 8) to the output
+		@throws chx.lang.IOException on error
+	**/
 	public function writeByte( c : Int ) : Void {
 		throw new chx.lang.FatalException("Not implemented");
 	}
@@ -78,11 +84,15 @@ class Output {
 
 	/* ------------------ API ------------------ */
 
-	public function write( s : Bytes ) : Void {
-		var l = s.length;
+	/**
+		Write the content of a Bytes to the output stream.
+		@throws chx.lang.BlockedException when output blocks.
+	**/
+	public function write( b : Bytes ) : Void {
+		var l = b.length;
 		var p = 0;
 		while( l > 0 ) {
-			var k = writeBytes(s,p,l);
+			var k = writeBytes(b, p, l);
 			if( k == 0 ) throw new BlockedException();
 			p += k;
 			l -= k;
@@ -97,7 +107,10 @@ class Output {
 		}
 	}
 
-	public function writeFloat( x : Float ) {
+	/**
+		Writes an 8 digit precision Float to the output
+	**/
+	public function writeFloat( x : Float ) : Void {
 		#if neko
 		write(untyped new Bytes(4,_float_bytes(x,bigEndian)));
 		#elseif php
@@ -112,6 +125,9 @@ class Output {
 		#end
 	}
 
+	/**
+		Write a 16 digit precision Float to the output
+	**/
 	public function writeDouble( x : Float ) {
 		#if neko
 		write(untyped new Bytes(8,_double_bytes(x,bigEndian)));
@@ -127,17 +143,29 @@ class Output {
 		#end
 	}
 
+	/**
+		Write a signed 8 bit integer
+		@throws chx.lang.OverflowException if value has too many bits.
+	**/
 	public function writeInt8( x : Int ) {
 		if( x < -0x80 || x >= 0x80 )
 			throw new OverflowException();
 		writeByte(x & 0xFF);
 	}
 
+	/**
+		Write a signed 16 bit integer
+		@throws chx.lang.OverflowException if value has too many bits.
+	**/
 	public function writeInt16( x : Int ) {
 		if( x < -0x8000 || x >= 0x8000 ) throw new OverflowException();
 		writeUInt16(x & 0xFFFF);
 	}
 
+	/**
+		Write an unsigned 16 bit integer
+		@throws chx.lang.OverflowException if value has too many bits.
+	**/
 	public function writeUInt16( x : Int ) {
 		if( x < 0 || x >= 0x10000 ) throw new OverflowException();
 		if( bigEndian ) {
@@ -149,11 +177,19 @@ class Output {
 		}
 	}
 
+	/**
+		Write a signed 24 bit integer
+		@throws chx.lang.OverflowException if value has too many bits.
+	**/
 	public function writeInt24( x : Int ) {
 		if( x < -0x800000 || x >= 0x800000 ) throw new OverflowException();
 		writeUInt24(x & 0xFFFFFF);
 	}
 
+	/**
+		Write an unsigned 24 bit integer
+		@throws chx.lang.OverflowException if value has too many bits.
+	**/
 	public function writeUInt24( x : Int ) {
 		if( x < 0 || x >= 0x1000000 ) throw new OverflowException();
 		if( bigEndian ) {
@@ -167,6 +203,10 @@ class Output {
 		}
 	}
 
+	/**
+		Write a signed 31 bit integer in 4 bytes
+		@throws chx.lang.OverflowException if value has too many bits.
+	**/
 	public function writeInt31( x : Int ) {
 		#if !neko
 		if( x < -0x40000000 || x >= 0x40000000 ) throw new OverflowException();
@@ -184,6 +224,10 @@ class Output {
 		}
 	}
 
+	/**
+		Write an unsigned 30 bit integer in 4 bytes
+		@throws chx.lang.OverflowException if value has too many bits.
+	**/
 	public function writeUInt30( x : Int ) {
 		if( x < 0 #if !neko || x >= 0x40000000 #end ) throw new OverflowException();
 		if( bigEndian ) {
@@ -199,6 +243,10 @@ class Output {
 		}
 	}
 
+	/**
+		Write a signed 32 bit integer in 4 bytes
+		@throws chx.lang.OverflowException if value has too many bits.
+	**/
 	public function writeInt32( x : haxe.Int32 ) {
 		if( bigEndian ) {
 			writeByte( haxe.Int32.toInt(haxe.Int32.ushr(x,24)) );
@@ -222,6 +270,14 @@ class Output {
 	public function prepare( nbytes : Int ) {
 	}
 
+	/**
+		Reads bytes directly from the specified Input until an
+		EofException is encountered, writing untranslated
+		bytes to this output.
+		@param i An input stream
+		@param bufsize A default buffer chunk size
+		@throws chx.lang.BlockedException if the input blocks
+	**/
 	public function writeInput( i : Input, ?bufsize : Int ) {
 		if( bufsize == null )
 			bufsize = 4096;
@@ -244,6 +300,12 @@ class Output {
 		}
 	}
 
+	/**
+		Write raw string data to the output. No length is added to the
+		output stream.
+		@param s String to write
+		@see writeUTF()
+	**/
 	public function writeString( s : String ) {
 		#if neko
 		var b = untyped new Bytes(s.length,s.__s);
