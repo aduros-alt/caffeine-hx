@@ -46,12 +46,16 @@ class Path {
 
 	/**
 		Create a new Path from the string provided. To represent a directory,
-		ensure the last character is a /
+		ensure the last character is a /. The unix style home directory
+		path is also supported, using the ~/ syntax.
 	**/
 	public function new( path : String ) {
-		var slash = path.lastIndexOf("/");
+		if(path == null)
+			path = "";
 
+		path = StringTools.replace(path, "//", "/");
 		directory = null;
+		var slash = path.lastIndexOf("/");
 		if(slash >= 0) {
 			directory = path.substr(0, slash);
 			name = path.substr(slash + 1);
@@ -73,10 +77,17 @@ class Path {
 		}
 		if(s.charAt(s.length-1) == "/")
 			s = s.substr(0, s.length-1);
+		if(s.charAt(0) == "~" && s.charAt(1) == "/")
+			s = Vfs.homeDirectory.toString() + s.substr(1);
 		return directory = s;
 	}
 
 	function setName(n : String) : String {
+		if(n == null || n.length == 0) {
+			extension = null;
+			name = null;
+			return n;
+		}
 		var period = n.lastIndexOf(".");
 		if( period >= 0 ) {
 			extension = n.substr(period + 1);

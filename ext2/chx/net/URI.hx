@@ -38,8 +38,8 @@ class URI {
 	public var authority(default, null)			: String;
 	public var userInfo(default, null)			: String;
  	public var host(default, null)				: String;
-	/** Will be -1 if not a valid port **/
-	public var port(default, null)				: Int;
+	/** Will be null if not a valid port **/
+	public var port(default, null)				: Null<Int>;
 	public var path(default, null)				: String;
 	public var query(default, null)				: String;
 	public var fragment(default, null)			: String;
@@ -48,7 +48,7 @@ class URI {
 	public var schemeSpecific(default, null)	: String;
 
 	private function new() {
-		port = -1;
+		port = null;
 		// all others undefined as null
 	}
 

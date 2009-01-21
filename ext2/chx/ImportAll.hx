@@ -2,8 +2,10 @@ package chx;
 
 import haxe.ImportAll;
 
+import chx.Lib;
 import chx.Log;
 import chx.Serializer;
+import chx.Sys;
 import chx.Unserializer;
 
 import chx.io.BufferedInput;
@@ -57,6 +59,7 @@ import chx.net.servers.TcpPacketServer;
 
 import chx.vfs.File;
 import chx.vfs.Path;
+import chx.vfs.Vfs;
 
 import chx.vm.Lock;
 import chx.vm.Mutex;
