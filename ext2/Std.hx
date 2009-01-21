@@ -306,12 +306,11 @@ class Std {
 			Class = { __name__ : ["Class"] };
 			Enum = {};
 			Void = { __ename__ : ["Void"] };
-		#elseif as3gen
-			null;
 		#elseif flash9
-			Bool = __global__["Boolean"];
-			Int = __global__["int"];
-			Float = __global__["Number"];
+// 			Bool = __global__["Boolean"];
+// 			Int = __global__["int"];
+// 			Float = __global__["Number"];
+			null;
 		#elseif flash
 			var g : Dynamic = _global;
 			g["Int"] = { __name__ : ["Int"] };

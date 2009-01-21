@@ -1,0 +1,55 @@
+-neko all.n
+-xml neko.xml
+-cp .
+--no-output
+chx.ImportAll
+
+--next
+
+-swf all.swf
+-xml flash.xml
+-D flash9doc
+-D flash_lite
+-D flash_v9
+-cp .
+--no-output
+chx.ImportAll
+
+--next
+
+-js all.js
+-xml js.xml
+-cp .
+--no-output
+chx.ImportAll
+
+--next
+
+-swf all_strict.swf
+-D flash_strict
+-D flash_lite
+-D flash9doc
+-xml flash_strict.xml
+-cp .
+--no-output
+chx.ImportAll
+
+
+--next
+
+-swf9 all9.swf
+-D flash_strict
+-xml flash9.xml
+-swf-version 9
+-cp .
+--no-output
+chx.ImportAll
+
+--next
+
+-php all_php
+--no-output
+-xml php.xml
+chx.ImportAll
+
+

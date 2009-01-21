@@ -87,7 +87,7 @@ class XmlConfig {
 			throw AlreadyLoaded;
 #if neko
 		var i : neko.io.FileInput = null;
-		var b : neko.io.Bytes = null;
+		var b : Bytes = null;
 		try i = neko.io.File.read( path, false )
 		catch(e:Dynamic) {
 			onLoadError(FileOpenError);

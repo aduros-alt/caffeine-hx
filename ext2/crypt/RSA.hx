@@ -162,7 +162,7 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 	/**
 		Sign a certificate
 	**/
-	public function sign( content : ByteString ) : String {
+	public function sign( content : Bytes ) : String {
 		return doEncrypt(content.toString(), doPrivate, new PadPkcs1Type1(blockSize));
 	}
 
@@ -175,13 +175,19 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 		}
 		// the encrypted block is a BigInteger, so any leading
 		// 0's will have been truncated. Push them back in.
-		var ba = m.toByteArray();
-		while(ba.length < blockSize)
-			ba.unshift(0);
-		while(ba.length > blockSize) {
-			var i = ba.shift();
-			if(i != 0)
-				throw "decryptBlock length error";
+		var ba = m.toBytes();
+		if(ba.length < blockSize) {
+			var b2 = Bytes.alloc(blockSize);
+			b2.blit(ba.length - blockSize, ba, 0, ba.length);
+		}
+		else {
+			while(ba.length > blockSize) {
+				var cnt = ba.length - blockSize;
+				for(i in 0...cnt)
+					if(ba.get(i) != 0)
+						throw "decryptBlock length error";
+				ba = ba.sub(cnt, blockSize);
+			}
 		}
 		return ByteString.ofIntArray(ba).toString();
 	}
