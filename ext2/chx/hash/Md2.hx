@@ -25,9 +25,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package hash;
+package chx.hash;
 
-import haxe.io.Bytes;
 import haxe.io.BytesUtil;
 import haxe.HexUtil;
 

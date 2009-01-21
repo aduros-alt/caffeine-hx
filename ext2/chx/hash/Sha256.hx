@@ -34,9 +34,8 @@
  * Some bits taken from Paul Johnston's SHA-1 implementation
  */
 
-package hash;
+package chx.hash;
 
-import haxe.io.Bytes;
 import haxe.io.BytesUtil;
 import haxe.Int32Util;
 import haxe.HexUtil;

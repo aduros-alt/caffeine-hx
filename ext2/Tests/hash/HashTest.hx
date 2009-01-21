@@ -1,7 +1,7 @@
-import hash.Md2;
-import hash.Md5;
-import hash.Sha1;
-import hash.Sha256;
+import chx.hash.Md2;
+import chx.hash.Md5;
+import chx.hash.Sha1;
+import chx.hash.Sha256;
 
 import haxe.HexUtil;
 import haxe.io.Bytes;

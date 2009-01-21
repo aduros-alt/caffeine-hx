@@ -25,7 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package hash;
+package chx.hash;
 
 /**
 	Keyed Hash Message Authentication Codes<br />

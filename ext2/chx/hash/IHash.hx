@@ -25,9 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package hash;
-
-import haxe.io.Bytes;
+package chx.hash;
 
 interface IHash {
 	/**

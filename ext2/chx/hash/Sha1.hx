@@ -33,10 +33,8 @@
  * Alternative BSD implementation: http://pajhome.org.uk/crypt/md5/sha1src.html
 */
 
-package hash;
+package chx.hash;
 
-import haxe.io.Bytes;
-import haxe.io.BytesBuffer;
 import haxe.io.BytesUtil;
 import haxe.Int32Util;
 import haxe.HexUtil;
