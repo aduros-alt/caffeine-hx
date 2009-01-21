@@ -2,11 +2,19 @@ package chx;
 
 import haxe.ImportAll;
 
+import as3.WeakReference;
+
 import chx.Lib;
 import chx.Log;
 import chx.Serializer;
 import chx.Sys;
 import chx.Unserializer;
+
+//import chx.hash.HMAC;
+import chx.hash.Md5;
+import chx.hash.Sha1;
+import chx.hash.Sha256;
+import chx.hash.Util;
 
 import chx.io.BufferedInput;
 import chx.io.BytesData;
@@ -29,20 +37,15 @@ import chx.net.Host;
 import chx.net.IEventDrivenSocketListener;
 import chx.net.Socket;
 import chx.net.InternalSocket;
-#if (flash9 || neko || cpp)
 import chx.net.TcpSocket;
-#end
-#if (neko || cpp)
 import chx.net.UdpSocket;
-#end
 import chx.net.URI;
 
 import chx.net.io.FlashPacketReader;
 import chx.net.io.InputPacketReader;
-#if (flash9 || neko || cpp)
 import chx.net.io.TcpSocketInput;
 import chx.net.io.TcpSocketOutput;
-#end
+
 
 import chx.net.packets.PacketCall;
 import chx.net.packets.PacketHaxeSerialized;
@@ -52,10 +55,8 @@ import chx.net.packets.PacketNull;
 import chx.net.packets.PacketPing;
 import chx.net.packets.PacketPong;
 import chx.net.packets.PacketXmlData;
-#if (neko || cpp)
 import chx.net.servers.PacketServer;
 import chx.net.servers.TcpPacketServer;
-#end
 
 import chx.vfs.File;
 import chx.vfs.Path;
@@ -101,11 +102,7 @@ import formats.json.JsonException;
 import formats.json.JSON;
 import formats.json.JsonObject;
 
-// import hash.HMAC;
-import hash.Md5;
-import hash.Sha1;
-import hash.Sha256;
-import hash.Util;
+
 
 import haxe.UUID;
 

@@ -3,7 +3,8 @@ package chx.net.io;
 import chx.lang.BlockedException;
 import chx.lang.IOException;
 
-#if neko
+#if (neko || cpp)
+
 class TcpSocketOutput extends chx.io.Output {
 
 	var __handle : Void;
@@ -89,6 +90,4 @@ class TcpSocketOutput extends chx.io.Output {
 	}
 }
 
-#else
-#error
 #end

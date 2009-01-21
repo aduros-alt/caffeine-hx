@@ -34,7 +34,7 @@ import chx.lang.OutsideBoundsException;
 import chx.lang.OverflowException;
 
 
-#if neko
+#if (neko || cpp)
 class TcpSocketInput extends chx.io.Input {
 
 	var __handle : Void;
@@ -259,6 +259,4 @@ class TcpSocketInput extends chx.io.Input {
 	}
 }
 
-#else
-#error
 #end

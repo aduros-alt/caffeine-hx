@@ -26,11 +26,12 @@
  */
 package chx.net.servers;
 
+#if (neko || cpp)
+
 import chx.net.TcpSocket;
 import chx.net.servers.PacketServer;
 import chx.net.servers.PacketServer.SocketInfo;
 import chx.net.servers.PacketServer.ThreadMessage;
-
 
 class TcpPacketServer<Client> extends PacketServer<Client> {
 
@@ -62,3 +63,5 @@ class TcpPacketServer<Client> extends PacketServer<Client> {
 	private static var socket_send  = neko.Lib.load("std","socket_send",4);
 #end
 }
+
+#end

@@ -54,6 +54,8 @@
 
 package chx.net;
 
+#if (flash9 || neko || cpp)
+
 #if flash9
 	import flash.events.Event;
 	import flash.events.IOErrorEvent;
@@ -70,6 +72,7 @@ import chx.lang.FatalException;
 import chx.lang.IOException;
 import chx.net.io.TcpSocketInput;
 import chx.net.io.TcpSocketOutput;
+
 
 class TcpSocket implements chx.net.Socket {
 	public var __handle(default, null) : Dynamic;
@@ -430,3 +433,4 @@ class TcpSocket implements chx.net.Socket {
 #end
 
 }
+#end

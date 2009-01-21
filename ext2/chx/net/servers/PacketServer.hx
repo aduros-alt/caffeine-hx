@@ -27,9 +27,10 @@
 
 package chx.net.servers;
 
+#if (neko || cpp)
+
 import chx.net.Socket;
 import chx.net.packets.Packet;
-
 
 private typedef ThreadInfo = {
 	var t : neko.vm.Thread;
@@ -407,3 +408,5 @@ class PacketServer <Client> {
 	}
 
 }
+
+#end

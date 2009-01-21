@@ -27,12 +27,10 @@
 
 package chx.net;
 
-#if neko
+#if (neko || cpp)
 class UdpSocket extends TcpSocket, implements Socket {
 	public function new(?s:UdpSocket) {
 		super(s, true);
 	}
 }
-#else
-#error
 #end
