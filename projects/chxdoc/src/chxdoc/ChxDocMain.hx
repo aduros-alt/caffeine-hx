@@ -40,7 +40,7 @@ class ChxDocMain {
 	{
 		versionMajor		: 0,
 		versionMinor		: 7,
-		versionRevision		: 0,
+		versionRevision		: 2,
 		buildNumber			: 492,
 		verbose				: false,
 		rootTypesPackage	: null,

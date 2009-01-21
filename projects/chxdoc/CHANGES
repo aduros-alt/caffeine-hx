@@ -4,6 +4,12 @@
 		- Improve default template look for --developer and typedefs
 			(check js.Checkbox fields, which are "available in all platforms")(Franco)
 		- Add --showSourceFilePath for hard link to source files
+		- Import docs for methods etc. in classes if they implement an interface
+			 and have no docs
+0.7.2
+	- FIXED : Tag detection EReg in DocProcessor
+0.7.1
+	-CHANGE: Copying required files to src/chx for
 
 0.7 2009-01-19
 	- ADDED MOD_NEKO support.

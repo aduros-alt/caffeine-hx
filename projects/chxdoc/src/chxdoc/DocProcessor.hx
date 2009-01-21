@@ -140,7 +140,7 @@ class DocProcessor {
 
 		var i = parts.length;
 		while(--i >= 0) {
-			var tagEreg = ~/[ \t]*@([A-Za-z]+)[ \t]*(.*)/;
+			var tagEreg = ~/^[ \t]*@([A-Za-z]+)[ \t]*(.*)/;
 			if(!tagEreg.match(parts[i])) {
 				accum.push(parts[i]);
 				continue;
