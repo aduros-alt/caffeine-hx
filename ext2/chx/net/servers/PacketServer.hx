@@ -71,7 +71,7 @@ class PacketServer <Client> {
 		threadsCount : Int,
 	};
 	public var shutdown : Bool;
-	public var eventLog : system.log.IEventLog;
+	public var eventLog : chx.log.IEventLog;
 
 	var sock : Socket;
 	var threads : Array<ThreadInfo>;
@@ -89,7 +89,7 @@ class PacketServer <Client> {
 			threadsCount : 10,
 		};
 		shutdown = false;
-		eventLog = new system.log.EventLog("PacketServer", system.log.LogLevel.ERROR);
+		eventLog = new chx.log.EventLog("PacketServer", chx.log.LogLevel.ERROR);
 	}
 
 	public dynamic function logError( e : Dynamic ) {
@@ -109,11 +109,11 @@ class PacketServer <Client> {
 		sock.listen(config.listenValue);
 
 		if(gid != null) {
-			if(!system.Posix.setgid(haxe.Int32.ofInt(gid)))
+			if(!chx.vm.Posix.setgid(haxe.Int32.ofInt(gid)))
 				throw "Unable to switch to group id " + Std.string(gid);
 		}
 		if(uid != null) {
-			if(!system.Posix.setuid(haxe.Int32.ofInt(uid)))
+			if(!chx.vm.Posix.setuid(haxe.Int32.ofInt(uid)))
 				throw "Unable to switch to user id " + Std.string(uid);
 		}
 	}

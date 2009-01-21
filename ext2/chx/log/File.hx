@@ -26,21 +26,19 @@
  */
 
 
-package system.log;
+package chx.log;
 
-import system.log.LogLevel;
+import chx.log.LogLevel;
 
 /**
 	Log to a text file. The class is started with a logging level
 **/
 
-#if neko
+#if (neko || cpp)
 
 class File extends EventLog, implements IEventLog {
 	var STDOUT 		: neko.io.FileOutput;
-#if neko
-	var mutex		: neko.vm.Mutex;
-#end
+	var mutex		: chx.vm.Mutex;
 
 	/**
 		Logs to the provided file handle. If the handle is null, logging will go
@@ -52,10 +50,8 @@ class File extends EventLog, implements IEventLog {
 			STDOUT = neko.io.File.stdout();
 		else
 			STDOUT = hndFile;
-		#if neko
-			mutex = new neko.vm.Mutex();
-			mutex.release();
-		#end
+		mutex = new chx.vm.Mutex();
+		mutex.release();
 	}
 
 	override public function _log(s : String, ?lvl : LogLevel) {

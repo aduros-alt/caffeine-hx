@@ -25,11 +25,11 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package system;
+package chx.vm;
 
 import haxe.Int32;
 
-#if (neko || php)
+#if (neko || cpp || php)
 class Posix {
 	public static function ctermid() : String {
 #if neko
@@ -133,7 +133,7 @@ class Posix {
 #end
 	}
 
-#if neko
+#if (neko || cpp)
 	private static var posix_ctermid = neko.Lib.load("sys_posix","posix_ctermid",0);
 	private static var posix_getegid = neko.Lib.load("sys_posix","posix_getegid",0);
 	private static var posix_geteuid = neko.Lib.load("sys_posix","posix_geteuid",0);

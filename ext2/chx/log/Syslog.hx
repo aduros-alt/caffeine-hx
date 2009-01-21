@@ -26,11 +26,12 @@
  */
 
 
-package system.log;
+package chx.log;
 
-import system.log.LogLevel;
+import chx.log.LogLevel;
 
-#if neko
+#if (neko || cpp)
+
 class Syslog extends EventLog, implements IEventLog {
 	/** the system command needed to add entries to the syslog service **/
 	public static var loggerCmd : String = "logger";

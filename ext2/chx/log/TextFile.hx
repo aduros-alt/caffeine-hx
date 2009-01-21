@@ -26,11 +26,11 @@
  */
 
 
-package system.log;
+package chx.log;
 
-import system.log.LogLevel;
+import chx.log.LogLevel;
 
-#if neko
+#if (neko || cpp)
 
 /**
 	Log to a provided FileHandle

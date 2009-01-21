@@ -25,9 +25,9 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package system.log;
+package chx.log;
 
-import system.log.LogLevel;
+import chx.log.LogLevel;
 
 /**
 	This is the base EventLog class. If a default logger is not created,

@@ -25,7 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package system.log;
+package chx.log;
 
 enum LogLevel {
 	DEBUG;

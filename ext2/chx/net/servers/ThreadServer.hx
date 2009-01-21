@@ -22,7 +22,9 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
-package neko.net;
+package chx.net.servers;
+
+#if (neko || cpp)
 
 private typedef ThreadInfos = {
 	var id : Int;
@@ -39,6 +41,9 @@ private typedef ClientInfos<Client> = {
 	var bufpos : Int;
 }
 
+/**
+	@todo Port to chx.net.Socket
+**/
 class ThreadServer<Client,Message> {
 
 	var threads : Array<ThreadInfos>;
@@ -207,16 +212,23 @@ class ThreadServer<Client,Message> {
 		work(callback(addClient,s));
 	}
 
-	public function run( host, port, ?uid : Null<Int>, ?gid : Null<Int> ) {
+	/**
+		Start the server.
+		@param host Hostname, ip or name
+		@param port Port to bind to
+		@param uid User id to switch to for dropping priviledges
+		@param gid Group id to switch to for dropping priviledges
+	**/
+	public function run( host : String, port : Int, ?uid : Null<Int>, ?gid : Null<Int> ) {
 		sock = new neko.net.Socket();
 		sock.bind(new neko.net.Host(host),port);
 		sock.listen(listen);
 		if(gid != null) {
-			if(!system.Posix.setgid(haxe.Int32.ofInt(gid)))
+			if(!chx.vm.Posix.setgid(haxe.Int32.ofInt(gid)))
 				throw "Unable to switch to group id " + Std.string(gid);
 		}
 		if(uid != null) {
-			if(!system.Posix.setuid(haxe.Int32.ofInt(uid)))
+			if(!chx.vm.Posix.setuid(haxe.Int32.ofInt(uid)))
 				throw "Unable to switch to group id " + Std.string(uid);
 		}
 		init();
@@ -275,3 +287,5 @@ class ThreadServer<Client,Message> {
 	}
 
 }
+
+#end

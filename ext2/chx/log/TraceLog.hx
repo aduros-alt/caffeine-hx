@@ -26,9 +26,9 @@
  */
 
 
-package system.log;
+package chx.log;
 
-import system.log.LogLevel;
+import chx.log.LogLevel;
 
 /**
 	Log to haxe trace
