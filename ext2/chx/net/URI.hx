@@ -25,9 +25,11 @@
 
 package chx.net;
 
+import chx.lang.UriFormatException;
+
 /**
 	http://www.ietf.org/rfc/rfc2396.txt
-	@todo Write parser
+	@todo Test parser
 	@todo No IPv6 support yet
 	@see {@link http://www.ietf.org/rfc/rfc2396.txt rfc2396}
 	@author rweir
@@ -48,18 +50,66 @@ class URI {
 	public var schemeSpecific(default, null)	: String;
 
 	private function new() {
-		port = null;
-		// all others undefined as null
+		port = null; // all others undefined as null
 	}
 
 	/**
 		Parses a full uri string and returns a Uri instance
 		@param uri Full uri string (ex. mailto:john@foo.com or http://foo.com/index.html)
 		@returns new Uri instance
+		@todo rfc2396 3.2.1 authority
+		@throws chx.lang.UriFormatException if the uri is invalid
 	**/
 	public static function parse(uri : String) : URI {
-		return throw new chx.lang.FatalException("not written");
-		// note that a uri with no leading scheme or / is possible
+		var u = new URI();
+
+		try {
+			var e= ~/^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/;
+			if(!e.match(uri))
+				throw "uri invalid";
+			/*
+			trace("scheme: " + e.matched(2));
+			trace(": " + e.matched(3));
+			trace("authority: " + e.matched(4));
+			trace("path: " + e.matched(5));
+			trace(": " + e.matched(6));
+			trace("query: " + e.matched(7));
+			trace(": " + e.matched(8));
+			trace("fragment: " + e.matched(9));
+			*/
+
+			u.scheme = e.matched(2);
+			u.authority = e.matched(4);
+			u.path = e.matched(5);
+			u.query = e.matched(7);
+			u.fragment = e.matched(9);
+		} catch(e : Dynamic) {
+			throw new UriFormatException(Std.string(e));
+		}
+
+		if(u.authority != null) {
+			try {
+				// todo 3.2.1 here
+
+				// 3.2.2 <userinfo>@<host>:<port>
+				var e = ~/^(([^\/\?@]+)@)?([A-Za-z\.0-9\-]*)?(:([0-9]+))?/;
+				if(!e.match(u.authority))
+					throw "authority invalid";
+				u.userInfo = e.matched(2);
+				u.host = e.matched(3);
+				if(u.host == null)
+					throw "invalid host";
+				if(e.matched(5) != null) {
+					u.port = Std.parseInt(e.matched(5));
+					if(u.port == null)
+						throw "invalid port";
+				}
+			} catch(e : Dynamic) {
+				throw new UriFormatException(Std.string(e));
+			}
+		}
+
+		return u;
 	}
 
 	/**
