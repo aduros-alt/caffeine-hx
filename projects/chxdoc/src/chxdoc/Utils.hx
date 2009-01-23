@@ -200,27 +200,22 @@ class Utils {
 	**/
 	public static function createOutputDirectory(path:String) {
 		// trim off the trailing slash for windows
-		if(path.charAt(path.length-1) == "/")
+		var s = path.charAt(path.length-1);
+		if(s == "/" || s == "\\")
 			path = path.substr(0, path.length-1);
-		if(path.length == 0)
-			return;
-		if(!neko.FileSystem.exists(path)) {
-			try {
-				neko.FileSystem.createDirectory(path);
-			} catch(e : Dynamic) {
-				var parts = path.split("/");
-				if(parts.length < 2)
-					throw "Error while trying to make output path " + path;
-				var s = "";
-				for(i in 0...parts.length) {
-					s += "/" + parts[i];
-					createOutputDirectory(s);
-				}
-			}
+		ensureDirectory(path);
+	}
+
+	private static function ensureDirectory(dir : String) {
+		try {
+			if(!neko.FileSystem.exists(dir)) 
+				neko.FileSystem.createDirectory(dir);
+		} catch( e : Dynamic) {
+			ensureDirectory(neko.io.Path.directory(dir));
+			neko.FileSystem.createDirectory(dir);
 		}
-		if(!neko.FileSystem.isDirectory(path)) {
-			throw "Output path " + path + " is not a directory.";
-		}
+		if(!neko.FileSystem.isDirectory(dir))
+			throw "Output path " + dir + " is not a directory.";
 	}
 
 	/**
