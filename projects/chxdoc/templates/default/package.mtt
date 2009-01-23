@@ -11,7 +11,7 @@
 	</head>
 	<body>
 		<div id="types-frame" class="onepackage">
-			<h1>::name::</h1>
+			<h1>::full::</h1>
 			<ul class="packages">
 ::foreach i types::
 				<li class="::i.type::"><a href="::rootRelative::../types/::i.subdir::::i.name::::config.htmlFileExtension::" title="::i.name::" target="classFrame">::i.name::</a></li>

@@ -2,7 +2,9 @@ CHX_FILES=../../ext2/chx/Serializer.hx \
 			../../ext2/chx/Unserializer.hx \
 			../../ext2/chx/Log.hx
 
-all: dependencies dummy
+all: dependencies chxdoc
+
+chxdoc: dummy
 	haxe build.hxml
 
 tests: test-developer test-user
@@ -21,7 +23,7 @@ test-user: chxdoc
 
 test-web: chxdoc
 	cd test && haxe chx.hxml
-	cd test && ../chxdoc -o doc_web --tmpDir=__chxdoctmp --templateDir=../templates/default --installTemplate=true --developer=false flash9.xml,flash9,flash neko.xml,neko js.xml,js --writeWebConfig
+	cd test && ../chxdoc -o doc_web --tmpDir=../../__chxdoctmp --templateDir=../../templates/default --developer=false flash9.xml,flash9,flash neko.xml,neko js.xml,js --writeWebConfig
 	cd test && $(RM) *.swf *.n *.js
 	cd test && $(RM) -R __chxdoctmp
 

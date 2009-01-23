@@ -6,6 +6,10 @@
 		- Add --showSourceFilePath for hard link to source files
 		- Import docs for methods etc. in classes if they implement an interface
 			 and have no docs
+0.7.3
+	- FIXED: Populating ClassCtx.superClasses
+	-CHANGE: Added show/hide inherited to member vars and member methods
+	- FIXED: --writeWebConfig requiring template macro file to exist
 0.7.2
 	- FIXED : Tag detection EReg in DocProcessor
 0.7.1

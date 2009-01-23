@@ -16,6 +16,7 @@ For this example, the base directory for mysite.com web is
 <IfModule mod_rewrite.c>
 	Options -Indexes
 	RewriteEngine on
+	RewriteRule ^chxdoc\.js$ - [S=6]
 	RewriteRule ^index\.n$ - [S=5]
 	RewriteRule ^stylesheet.css$ - [S=4]
 	RewriteRule ^images/.*$ - [S=3]
@@ -24,14 +25,14 @@ For this example, the base directory for mysite.com web is
 	RewriteRule ^([^/]+)$ index.n?base=$1&path= [NS,L]
 </IfModule>
 
-6) ChxDoc will not install the template when generating a web config. Copy template the full templates directory from ChxDoc to 
+6) ChxDoc will not install the template when generating a web config. Copy template the full templates directory from ChxDoc to
    /var/www/www.mysite.com/
 
 7) Since the stylesheet.css and the images directory will not be automatically installed, copy these into htdocs/api/
 
 8) Build your docs... from /var/www/www.mysite.com/ do
    cd htdocs/api && neko index.n -o api --tmpDir=../../__chxdoctmp --templateDir=../../templates/default --developer=false ../../platforms/flash9.xml,flash9,flash ../../platforms/neko.xml,neko ../../platforms/js.xml,js --writeWebConfig --webPassword=password
-   Be sure to replace the password with something better. If you forget the password, re-running this command from a shell will 
+   Be sure to replace the password with something better. If you forget the password, re-running this command from a shell will
    overwrite the config
 
 9) Check http://www.mysite.com/api

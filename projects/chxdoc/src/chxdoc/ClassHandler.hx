@@ -68,6 +68,7 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 		while(sc != null) {
 			var s : Ctx = ChxDocMain.findType(sc.path);
 			var source : ClassCtx = cast s;
+			ctx.superClasses.unshift(source);
 			if(first) {
 				first = false;
 				addSubclass(source, ctx);

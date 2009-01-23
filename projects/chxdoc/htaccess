@@ -1,6 +1,7 @@
 <IfModule mod_rewrite.c>
 	Options -Indexes
 	RewriteEngine on
+	RewriteRule ^chxdoc\.js$ - [S=6]
 	RewriteRule ^index\.n$ - [S=5]
 	RewriteRule ^stylesheet.css$ - [S=4]
 	RewriteRule ^images/.*$ - [S=3]

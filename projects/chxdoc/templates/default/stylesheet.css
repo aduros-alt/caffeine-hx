@@ -230,3 +230,17 @@ div.inherited, div.overrides {
 .keyword {
 	color: #50C2FF;
 }
+
+.hideInheritedVar {
+        display: none;
+}
+.showInheritedVar {
+        display: inline;
+}
+.hideInheritedMethod {
+        display: none;
+}
+.showInheritedMethod {
+        display: inline;
+}
+

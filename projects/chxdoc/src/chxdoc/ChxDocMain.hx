@@ -40,8 +40,8 @@ class ChxDocMain {
 	{
 		versionMajor		: 0,
 		versionMinor		: 7,
-		versionRevision		: 2,
-		buildNumber			: 492,
+		versionRevision		: 3,
+		buildNumber			: 511,
 		verbose				: false,
 		rootTypesPackage	: null,
 		allPackages			: new Array(),
@@ -581,6 +581,17 @@ class ChxDocMain {
 				if(config.verbose)
 					logWarning("Template " + config.temploBaseDir + " has no stylesheet.css");
 			}
+
+			var srcJsFile = config.temploBaseDir + "chxdoc.js";
+			if(neko.FileSystem.exists(srcJsFile)) {
+				var targetJsFile = config.baseDirectory + "chxdoc.js";
+				if(config.verbose)
+					println("Installing " + srcJsFile + " to " + targetJsFile);
+				neko.io.File.copy(srcJsFile, targetJsFile);
+			} else {
+				if(config.verbose)
+					logWarning("Template " + config.temploBaseDir + " has no chxdoc.js");
+			}
 		}
 	}
 
@@ -595,7 +606,7 @@ class ChxDocMain {
 		mtwin.templo.Loader.TMP_DIR = config.temploTmpDir;
 		mtwin.templo.Loader.MACROS = config.temploMacros;
 
-		if(! neko.Web.isModNeko ) {
+		if(! neko.Web.isModNeko && ! writeWebConfig ) {
 			var tmf = config.temploBaseDir + config.temploMacros;
 			if(!neko.FileSystem.exists(tmf))
 				fatal("The macro file " + tmf + " does not exist.");
