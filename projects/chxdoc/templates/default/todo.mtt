@@ -10,14 +10,15 @@
 		<link rel="stylesheet" type="text/css" href="::meta.stylesheet::" />
 	</head>
 	<body>
-		<div id="todo-list">
+		<div id="todo">
 			<h1>::config.title:: TODO</h1>
-			<hr />
-			<ul class="packages">
-::foreach i config.todoLines::
-				<li><a href="::raw i.link.href::" target="classFrame">::raw i.link.text::</a> ::raw i.message::</li>
-::end::
-			</ul>
+			<div id="main">
+				<ul class="todolist">
+		::foreach i config.todoLines::
+					<li><a href="::raw i.link.href::" target="classFrame">::raw i.link.text::</a>: ::raw i.message::</li>
+		::end::
+				</ul>
+			</div>
 		</div>
 	</body>
 </html>

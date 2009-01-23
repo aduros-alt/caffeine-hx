@@ -65,7 +65,7 @@ a, a:active, a:visited {
 }
 
 ul.types, ul.packages, #packages-header ul{
-	margin: 5px;
+	margin: 5px 5px 10px 5px;
 }
 
 #types-frame h1, #packages-frame h1 {
@@ -120,8 +120,20 @@ ul.types li {
 	background-image: url(images/enum.png);
 }
 
+.overview {
+	background-image: url(images/overview.png);
+}
+
+.todo {
+	background-image: url(images/todo.png);
+}
+
+.alltypes {
+	background-image: url(images/alltypes.png);
+}
+
 dl {
-	margin: 0.75em 0;
+	margin: 8px 0;
 }
 
 .doc {
@@ -140,6 +152,7 @@ dt {
 	border-bottom: 1px solid #dddddd;
 	background-color: #f0f0f0;
 	padding: 2px 2px 2px 4px;
+	line-height: 1.2em;
 }
 
 dd {
@@ -151,6 +164,7 @@ dd {
 	border-bottom: 1px solid #dddddd;
 	font-size: 85%;
 	background-color: #f9f9f9;
+	line-height: 1.2em;
 }
 
 pre {
@@ -224,7 +238,7 @@ div.inherited, div.overrides {
 }
 
 .deprecated {
-	color: #FF0000;
+	color: #CC0000;
 }
 
 .keyword {
@@ -244,3 +258,62 @@ div.inherited, div.overrides {
         display: inline;
 }
 
+#todo h1, #overview h1 {
+	font-size: 113%;
+	font-weight: bold;
+	padding: 2px;
+	color: #ffffff;
+	background-color: #666666;
+	text-align: center;
+}
+
+#todo h2, #overview h2 {
+	font-size: 100%;
+	padding: 2px;
+	border-bottom: 1px solid #666666;
+	text-align: center;
+	margin-bottom: 0.75em;
+}
+
+#main {
+	padding: 8px;
+}
+
+p {
+	margin-bottom: 0.5em;
+}
+
+ul.todolist {
+	margin: 0.5em 0;
+}
+
+ul.todolist li {
+	background-repeat: no-repeat;
+	min-height: 16px;
+	padding-left: 18px;
+	background-image: url(images/todobullet.png);
+}
+
+a.showHideLink {
+	margin-left: 8px;
+	font-size: 77%;
+	text-decoration: none;
+	border: 1px solid #cccccc;
+	background-color: #ffffff;
+	color: #666666;
+	padding: 1px 2px 0 13px;
+	background-repeat: no-repeat;
+	background-position: 2px 2px;
+}
+
+.hideInheritedVar a.showHideLink, .hideInheritedMethod a.showHideLink {
+	background-image: url(images/hide.png);
+}
+
+.showInheritedVar a.showHideLink, .showInheritedMethod a.showHideLink {
+	background-image: url(images/show.png);
+}
+
+.hideInheritedVar div.member, .hideInheritedMethod div.member {
+	background-image: url(images/bginherited.png);
+}

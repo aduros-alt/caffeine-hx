@@ -43,9 +43,7 @@ function windowTitle()
 	::end::
 	::if platforms.length > 0::
 		<dt>available in</dt>
-		::foreach p platforms::
-		<dd>::p::</dd>
-		::end::
+		<dd>::foreach p platforms::::if !repeat.p.first::, ::end::::p::::end::</dd>
 	::end::
 
 	</dl>
@@ -63,7 +61,6 @@ function windowTitle()
 				<div class="member">
 					<div class="header">$$typedefVarHeader(::f::)</div>
 					<div class="body">$$varDocs(::f::)</div>
-					$$displayPlatformsIfDifferent(::f.platforms::, ::ctx.platforms::)
 				</div>
 				::end::
 			</div>
@@ -74,9 +71,6 @@ function windowTitle()
 	</div>
 
 <!-- ========= END OF TYPEDEF DATA ========= -->
-	<hr />
-		<a href="::rootRelative::../overview::config.htmlFileExtension::">Overview</a>
-	<hr />
 	::if config.footerText != null::<div id="footer">::raw config.footerText::</div>::end::
 </body>
 </html>

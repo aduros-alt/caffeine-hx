@@ -20,74 +20,83 @@
 	</macro>
 
 	<macro name="methodDocs(m)">
-		::if m.docs != null::
+		::if m.docs != null || m.platforms != null::
 			<dl>
-			<!-- deprecated -->
-			::if m.docs.deprecated::
-				<dt><span class="deprecated">deprecated:</span></dt>
-				<dd>::raw m.docs.deprecatedMsg::</dd>
-			::end::
-			<!-- type params -->
-			::if m.docs.typeParams.length != 0::
-				<dt>types:</dt>
-				::foreach pd m.docs.typeParams::
-				<dd><code>::pd.arg::</code> ::raw pd.desc::</dd>
+			::if m.docs != null::
+				<!-- deprecated -->
+				::if m.docs.deprecated::
+					<dt><span class="deprecated">deprecated</span></dt>
+					<dd>::raw m.docs.deprecatedMsg::</dd>
+				::end::
+				<!-- type params -->
+				::if m.docs.typeParams.length != 0::
+					<dt>types</dt>
+					::foreach pd m.docs.typeParams::
+					<dd><code>::pd.arg::</code> ::raw pd.desc::</dd>
+					::end::
+				::end::
+				<!-- method call parameters -->
+				::if m.docs.params.length != 0::
+					<dt>parameters</dt>
+					::foreach pd m.docs.params::
+					<dd><code>::pd.arg::</code> ::raw pd.desc::</dd>
+					::end::
+				::end::
+				<!-- method return types comments -->
+				::if m.docs.returns.length != 0::
+					<dt>returns</dt>
+					::foreach s m.docs.returns::
+					<dd>::raw s::</dd>
+					::end::
+				::end::
+				<!-- method throws -->
+				::if m.docs.throws.length != 0::
+					<dt>throws</dt>
+					::foreach td m.docs.throws::
+					<dd><a href="::raw td.uri::"><code>::td.name::</code></a> ::raw td.desc::</dd>
+					::end::
+				::end::
+				<!-- requires -->
+				::if m.docs.requires.length != 0::
+					<dt>requires</dt>
+					::foreach i m.docs.requires::
+					<dd>::raw i::</dd>
+					::end::
+				::end::
+				<!-- see -->
+				::if m.docs.see.length != 0::
+					<dt>see</dt>
+					::foreach i m.docs.see::
+					<dd>::raw i::</dd>
+					::end::
+				::end::
+				<!-- todo -->
+				::if m.docs.todos.length != 0::
+					<dt>todo</dt>
+					::foreach i m.docs.todos::
+					<dd>::raw i::</dd>
+					::end::
+				::end::
+				<!-- authors -->
+				::if m.docs.authors.length != 0::
+					<dt>authors</dt>
+					::foreach i m.docs.authors::
+					<dd>::raw i::</dd>
+					::end::
 				::end::
 			::end::
-			<!-- method call parameters -->
-			::if m.docs.params.length != 0::
-				<dt>parameters:</dt>
-				::foreach pd m.docs.params::
-				<dd><code>::pd.arg::</code> ::raw pd.desc::</dd>
-				::end::
-			::end::
-			<!-- method return types comments -->
-			::if m.docs.returns.length != 0::
-				<dt>returns:</dt>
-				::foreach s m.docs.returns::
-				<dd>::raw s::</dd>
-				::end::
-			::end::
-			<!-- method throws -->
-			::if m.docs.throws.length != 0::
-				<dt>throws:</dt>
-				::foreach td m.docs.throws::
-				<dd><a href="::raw td.uri::"><code>::td.name::</code></a> ::raw td.desc::</dd>
-				::end::
-			::end::
-			<!-- requires -->
-			::if m.docs.requires.length != 0::
-				<dt>requires:</dt>
-				::foreach i m.docs.requires::
-				<dd>::raw i::</dd>
-				::end::
-			::end::
-			<!-- see -->
-			::if m.docs.see.length != 0::
-				<dt>see:</dt>
-				::foreach i m.docs.see::
-				<dd>::raw i::</dd>
-				::end::
-			::end::
-			<!-- todo -->
-			::if m.docs.todos.length != 0::
-				<dt>todo:</dt>
-				::foreach i m.docs.todos::
-				<dd>::raw i::</dd>
-				::end::
-			::end::
-			<!-- authors -->
-			::if m.docs.authors.length != 0::
-				<dt>authors:</dt>
-				::foreach i m.docs.authors::
-				<dd>::raw i::</dd>
+			<!-- platforms -->
+			::if m.platforms != null::
+				::if m.platforms.length != 0 && (platforms == null || platforms.length > m.platforms.length) ::
+					<dt>platforms</dt>
+					<dd>::foreach p m.platforms::::if !repeat.p.first::, ::end::::p::::end::</dd>
 				::end::
 			::end::
 			</dl>
-			<!-- Comment block -->
-			::if m.docs.comments != null::
-			<div class="comment">::raw m.docs.comments::</div>
-			::end::
+		::end::
+		<!-- Comment block -->
+		::if m.docs != null && m.docs.comments != null::
+		<div class="comment">::raw m.docs.comments::</div>
 		::end::
 	</macro>
 
@@ -102,11 +111,18 @@
 	</macro>
 
 	<macro name="varDocs(m)">
-		::if m.docs != null::
-		<!-- Comment block -->
-		::if m.docs.comments != null::
-		<div class="comment">::raw m.docs.comments::</div>
+		<!-- platforms -->
+		::if m.platforms != null::
+			<dl>
+			::if m.platforms.length != 0 && (platforms == null || platforms.length > m.platforms.length) ::
+				<dt>platforms</dt>
+				<dd>::foreach p m.platforms::::if !repeat.p.first::, ::end::::p::::end::</dd>
+			::end::
+			</dl>
 		::end::
+		<!-- Comment block -->
+		::if m.docs != null && m.docs.comments != null::
+		<div class="comment">::raw m.docs.comments::</div>
 		::end::
 	</macro>
 
