@@ -56,7 +56,7 @@ class Cleaner {
 		var a = neko.FileSystem.readDirectory(".");
 		var b : Array<String> = new Array();
 		for(d in a) {
-			var ereg = ~/^[test]/;
+			var ereg = ~/^test/;
 			if(!ereg.match(d)) {
 				var ereg = ~/\.n$/;
 				if(!ereg.match(d))
