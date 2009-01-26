@@ -1,0 +1,4 @@
+-main Couch
+-cp ../../../
+-debug
+-neko test.n

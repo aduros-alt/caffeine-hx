@@ -1,0 +1,22 @@
+-main CreateWordCount
+--override
+-cp ../../
+-debug
+-neko createwordcount.n
+
+--next
+
+-main AddBook
+--override
+-cp ../../
+-debug
+-neko addbook.n
+
+
+--next
+
+-main WordCountQuery
+--override
+-cp ../../
+-debug
+-neko wordquery.n
