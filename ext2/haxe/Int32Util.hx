@@ -39,9 +39,10 @@ class Int32Util {
 		Absolute value
 	**/
 	public static inline function abs(i : Int32) : Int32 {
-		return if(Int32.compare(ZERO, i) > 0)
-			Int32.neg(i);
-			else i;
+		var rv : Int32 = i;
+		if(lt(i, ZERO))
+			rv = Int32.sub(ZERO, i);
+		return rv;
 	}
 
 	/**
