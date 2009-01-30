@@ -17,11 +17,12 @@ enum ERegMatch {
 	MatchNoneOf(ch : IntHash<Bool>);
 	MatchWordBoundary;
 	NotMatchWordBoundary;
-	Or(a : ERegMatch, b : ERegMatch, lastResult : MatchResult);
+	Or(a : Array<ERegMatch>, b : Array<ERegMatch>);
 	Repeat(r : ERegMatch, min:Int, max:Null<Int>, notGreedy: Bool, possessive:Bool);
 	Capture(r : NativeEReg);
 	RangeMarker;
 	End;
+	Frame(srcpos : Int, r : ERegMatch, info : Dynamic);
 }
 
 /*
@@ -34,6 +35,7 @@ not done
 */
 
 class NativeEReg {
+	inline static var NULL_MATCH	: Int = -1;
 	static var alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 	static var numeric = "0123456789";
 	static var verticalTab = String.fromCharCode(0x0B);
@@ -100,97 +102,142 @@ class NativeEReg {
 		}
 	}
 
-	var pos : Int;
-	var startPos: Int;
+
 	var orChange : Bool;
+	var frameStack : Array<ERegMatch>;
+
 	public function match( s : String ) : Bool
 	{
-		this.matches = new Array();
+		if(s == null)
+			return false;
+		var me = this;
 		this.inputOrig = s;
 		this.input = ignoreCase ? s.toLowerCase() : s;
 
-		if(s == null)
-			return false;
-
-		var matchStart = false;
-		var matchEnd = false;
+// 		var matchStart = false;
+// 		var matchEnd = false;
 trace(here.methodName + " lastIndex:" + lastIndex + " global: " + global);
-		pos = (global ? 0 : lastIndex);
+		var pos = (global ? 0 : lastIndex);
+		var startPos = pos;
 trace(here.methodName + " pos: " + pos);
-		startPos = pos;
 
-		var result = newResult();
+		this.index = -1;
+		frameStack = new Array();
 		var i = - 1;
-		while(++i < rules.length && !result.fatal) {
- 			pos = startPos;
-			while(pos < input.length) {
-// 				if(pos >= result.position && result.position >= 0) {
-// 					trace("pos: " + pos + " result.position: " + result.position);
-// 					break;
-// 				}
-				var rv = run(rules[i]);
-// 				trace(rv);
-				this.index = rv.position;
-				if(rv.matchCount > 0 && rv.position >= result.position + result.length) {
-					trace(rv);
-					if(result.position < 0 || rv.position < result.position)
-						result.position = rv.position;
-					result.length = rv.length;
-					//pos = resultEndPos;
-					break;
-				}
-				else {
-					pos++;
-				}
-			}
+
+		var updatePosition = function(mr : MatchResult) {
+			if(me.index < 0)
+				me.index = mr.position;
+			pos = mr.position + mr.length;
+		}
+		var reset = function() {
+			me.matches = new Array();
+			me.index = -1;
+			me.frameStack = new Array();
+			i = -1;
 		}
 
-		if(result.position < 0 || result.fatal) {
+		reset();
+		while(++i < rules.length && pos < input.length) {
+			#if DEBUG_MATCH
+				trace("Current index: " + this.index);
+				trace("Current pos: "+pos);
+			#end
+			var mr = run(pos, [rules[i]]);
+			#if DEBUG_MATCH
+				trace("Rule : " + rules[i]);
+				trace("Result: " + mr);
+			#end
+
+			if(isValidMatch(pos, mr)) {
+				updatePosition(mr);
+				continue;
+			}
+			var found = false;
+			while(frameStack.length > 0) {
+				var rule = frameStack.pop();
+				switch(rule) {
+				case Frame(srcpos, rule, _):
+					pos = srcpos;
+					mr = run(pos, [rule]);
+					if(isValidMatch(pos, mr)) {
+						updatePosition(mr);
+						found = true;
+						break;
+					}
+				default:
+					throw "invalid item in frameStack";
+				}
+			}
+			if(found)
+				continue;
+			pos++;
+			reset();
+		}
+
+		if(this.index < 0) {
 			lastIndex = 0;
 			matches = new Array();
 			root.matches[this.groupNumber] = null;
 			return false;
 		}
 		lastIndex = pos;
-		index = result.position;
-		pos = result.position + result.length;
-		leftContext = inputOrig.substr(0, result.position);
+		leftContext = inputOrig.substr(0, index);
 		rightContext = inputOrig.substr(pos);
-		root.matches[groupNumber] = inputOrig.substr(result.position, result.length);
+		root.matches[groupNumber] = inputOrig.substr(index, pos - index);
 		return true;
 	}
 
-	function run(rule:ERegMatch, ?min : Int = 1, ?max:Null<Int> = null) : MatchResult {
-		trace(here.methodName + " " + rule + " group: "+groupNumber+" pos: " + pos);
+	function isValidMatch(pos : Int, mr : MatchResult) {
+		if(mr.matchCount == 0)
+			return false;
+		if(pos == mr.position)
+			return true;
+		if(global) {
+			if(this.index < 0)
+				return true;
+		}
+		return false;
+	}
+
+	function run(pos:Int, rules:Array<ERegMatch>, ?min : Int = 1, ?max:Null<Int> = null) : MatchResult {
+		trace(here.methodName + " " + rules + " group: "+groupNumber+" pos: " + pos);
 
 		// only here and set as a Null<Int> in case there may be a reason
 		// to have another default. todo: remove?
 		if(max == null)
 			max = 1;
 
-		var rsPos = pos;
+		var startPos = pos;
 		var count = 0;
-		var final = true;
 		var fatal = false;
-		var me = this;
-		var rv = function() {
+
+		var MATCH = function(count : Int) {
+			var len : Int = (count == NULL_MATCH ? 0 : pos - startPos);
 			return {
-				position	: rsPos,
+				position	: startPos,
 				matchCount	: count,
-				length		: me.pos - rsPos,
-				final		: final,
+				length		: len,
+				final		: true,
 				sideB		: false,
 				fatal		: fatal,
-			};
-		};
-		switch(rule) {
-		case Beginning:
-			if(pos == 0)
-				count++;
-		case MatchExact(s):
-			if(s.length == 0) {
-				count++;
-			} else {
+			}
+		}
+		var NOMATCH = function() {
+			var m = MATCH(0);
+			m.length = 0;
+			return m;
+		}
+
+		for(rule in rules) {
+			switch(rule) {
+			case Beginning:
+				if(pos == 0)
+					return MATCH(NULL_MATCH);
+				return NOMATCH();
+			case MatchExact(s):
+				if(s.length == 0)
+					return MATCH(NULL_MATCH);
 				if(max == null)
 					max = 1;
 				while(pos + s.length < input.length && count <= max) {
@@ -199,123 +246,148 @@ trace(here.methodName + " pos: " + pos);
 					count++;
 					pos += s.length;
 				}
-			}
-		case MatchCharCode(cc):
-			while(pos < input.length && count <= max) {
-				if(input.charCodeAt(pos) != cc)
-					break;
-				count++;
-				pos++;
-			}
-		case MatchAny:
-			while(pos < input.length && count <= max) {
-				if(input.substr(pos, 1) == "\n")
-					break;
-				count++;
-				pos++;
-			}
-		case MatchAnyOf(ch):
-			while(pos < input.length && count <= max) {
-				var cc = input.charCodeAt(pos);
-				if(ch.exists(cc)) {
+				return MATCH(count * s.length);
+			case MatchCharCode(cc):
+				while(pos < input.length && count <= max) {
+					if(input.charCodeAt(pos) != cc)
+						break;
 					count++;
 					pos++;
-				} else {
-					break;
 				}
-			}
-		case MatchNoneOf(ch):
-			while(pos < input.length && count <= max) {
-				var cc = input.charCodeAt(pos);
-				if(!ch.exists(cc)) {
+				return MATCH(count);
+			case MatchAny:
+				while(pos < input.length && count <= max) {
+					if(input.substr(pos, 1) == "\n")
+						break;
 					count++;
 					pos++;
-				} else {
-					break;
 				}
-			}
-		case MatchWordBoundary:
-			throw "Not complete";
-		case NotMatchWordBoundary:
-			throw "Not complete";
-		case Or(a, b, lastResult):
-			final = false;
-			var lr : MatchResult = null;
-			if(lastResult.position < 0) {
-				lr = run(a);
-				lr.sideB = false;
-				if(lr.matchCount != 0) {
-					count = lr.matchCount;
-					copyResult(lr, lastResult);
-					return rv();
+				return MATCH(count);
+			case MatchAnyOf(ch):
+				while(pos < input.length && count <= max) {
+					var cc = input.charCodeAt(pos);
+					if(!ch.exists(cc))
+						break;
+					count++;
+					pos++;
 				}
-				pos = rsPos;
-			} else {
-				lr = cloneResult(lastResult);
-			}
-			count = lr.matchCount;
-			var weChanged = false;
-			while(orChange) {
-				var newResult : MatchResult = null;
-				if(!lr.sideB) {
-					var cmp = 0;
-					while(cmp == 0 && !lr.final) {
-						newResult = run(a);
-						newResult.sideB = false;
-						cmp = compareResult(newResult, lr);
-						if(cmp != 0) {
-							orChange = false;
-							copyResult(newResult, lastResult);
-							lastResult.sideB = false;
-							return(lastResult);
-						}
+				return MATCH(count);
+			case MatchNoneOf(ch):
+				while(pos < input.length && count <= max) {
+					var cc = input.charCodeAt(pos);
+					if(ch.exists(cc))
+						break;
+					count++;
+					pos++;
+				}
+				return MATCH(count);
+			case MatchWordBoundary:
+				throw "Not complete";
+			case NotMatchWordBoundary:
+				throw "Not complete";
+			case Or(a, b):
+	/*
+				final = false;
+				var lr : MatchResult = null;
+				if(lastResult.position < 0) {
+					lr = run(a);
+					lr.sideB = false;
+					if(lr.matchCount != 0) {
+						count = lr.matchCount;
+						copyResult(lr, lastResult);
+						return rv();
 					}
-					// we have the same result as last time, try sideB
-					newResult = run(b);
-					newResult.sideB = true;
-					weChanged = true;
+					pos = startPos;
 				} else {
+					lr = cloneResult(lastResult);
 				}
-			}
-			if(lr.matchCount == 0)
-				lr = run(b);
-			copyResult(lr, lastResult);
-		case Repeat(e, min, max, notGreedy, possessive):
-			final = false;
-			var res = run(e, min, max);
-			if(res.matchCount != 0 || min < 1) {
-				count++;
-			}
-		case Capture(er):
-			trace("RUNNING CAPTURE at pos: " + pos);
-			er.lastIndex = pos;
-			if(er.match(inputOrig)) {
-				count++;
-				var len = matches[er.groupNumber].length;
-				rsPos = er.index;
-				pos = er.pos;
-				trace("CAPTURE MATCHED new pos:" + pos);
-				return rv();
-			}
-			trace("CAPTURE FAILED");
-		case RangeMarker: throw "Internal error";
-		case End:
-			final = true;
-			if(pos == input.length - 1)
-				count++;
-			if(count == 0 && multiline) {
-				if(input.charAt(pos) == "\r" && input.charAt(pos+1) == "\n") {
-					pos += 2;
-					count++;
-				} else if(input.charAt(pos) == "\n") {
-					pos ++;
-					count++;
+				count = lr.matchCount;
+				var weChanged = false;
+				while(orChange) {
+					var newResult : MatchResult = null;
+					if(!lr.sideB) {
+						var cmp = 0;
+						while(cmp == 0 && !lr.final) {
+							newResult = run(a);
+							newResult.sideB = false;
+							cmp = compareResult(newResult, lr);
+							if(cmp != 0) {
+								orChange = false;
+								copyResult(newResult, lastResult);
+								lastResult.sideB = false;
+								return(lastResult);
+							}
+						}
+						// we have the same result as last time, try sideB
+						newResult = run(b);
+						newResult.sideB = true;
+						weChanged = true;
+					} else {
+					}
 				}
+				if(lr.matchCount == 0)
+					lr = run(b);
+				copyResult(lr, lastResult);
+	*/
+			case Repeat(e, min, max, notGreedy, possessive):
+				var res = run(pos, [e], min, max);
+				if(res.matchCount != 0) {
+					return res;
+				}
+				if(min == 0)
+					return MATCH(-1);
+				return NOMATCH();
+			case Capture(er):
+				#if DEBUG_MATCH
+					trace("RUNNING CAPTURE at pos: " + pos);
+				#end
+				er.lastIndex = pos - 1;
+				if(er.match(inputOrig)) {
+					var len = matches[er.groupNumber].length;
+					var mr : MatchResult = {
+						position : er.index,
+						matchCount : len,
+						length : len,
+						final : true,
+						sideB : false,
+						fatal : false,
+					}
+					if(isValidMatch(pos,mr)) {
+						startPos = er.index;
+						pos = startPos + len;
+						#if DEBUG_MATCH
+							trace("CAPTURE MATCHED new pos:" + pos);
+						#end
+						return MATCH(len);
+					}
+				}
+				#if DEBUG_MATCH
+					trace("CAPTURE FAILED");
+				#end
+				return NOMATCH();
+			case RangeMarker: throw "Internal error";
+			case End:
+				if(pos == input.length - 1)
+					return MATCH(NULL_MATCH);
+				if(count == 0 && multiline) {
+					if(input.charAt(pos) == "\r" && input.charAt(pos+1) == "\n") {
+						pos += 2;
+						return MATCH(2);
+					} else if(input.charAt(pos) == "\n") {
+						pos ++;
+						count++;
+						return MATCH(1);
+					}
+				}
+				return NOMATCH();
+			case Frame(srcpos, r, info):
+				if(pos != srcpos)
+					throw "invalid use";
+				throw "not complete";
 			}
 		}
-		if(count == 0)
-			final = true;
-		return rv();
+		throw "Control should not arrive here.";
+		return null;
 	}
 
 	/**
@@ -496,7 +568,7 @@ trace(here.methodName + " pos: " + pos);
 						if(inClass)
 							MatchExact("\\R"); // http://perldoc.perl.org/perlre.html
 						else
-							Or(MatchExact("\r\n"), createMatchAnyOf(["\r\n"]), newResult());
+							Or([MatchExact("\r\n")], [createMatchAnyOf(["\r\n"])]);
 					case "s": // \s [ \t\r\n\v\f]Match a whitespace character
 						createMatchAnyOf([" \t\r\n", verticalTab, formFeed]);
 					case "S": // \S [^\s] Match a non-whitespace character
@@ -577,22 +649,26 @@ trace(here.methodName + " pos: " + pos);
 					else {
 						if(rules.length == 0)
 							throw unexpected("|");
-						var r = rules.pop();
-						switch(r) {
-						case Beginning, RangeMarker, End:
-							throw unexpected("|");
-						case Or(a, b, _):
-							if(a == null || b == null)
-								throw "Inconsitent Or " + Std.string(r);
-						default:
+						var orRules = new Array<ERegMatch>();
+						while(true && rules.length > 0) {
+							var r = rules.pop();
+							switch(r) {
+							case Beginning, RangeMarker, End:
+								throw unexpected("|");
+							case Or(a, b):
+								if(a == null || b == null)
+									throw "Inconsitent Or " + Std.string(r);
+								orRules.unshift(r);
+							default:
+								orRules.unshift(r);
+							}
 						}
+						orRules = compactRules(orRules, ignoreCase);
 						var rs = parse(inPattern, ++i, depth + 1);
 						i += rs.bytes - 1;
 						if(rs.rules.length == 0)
 							throw expected("Or condition");
-						if(rs.rules.length != 1)
-							throw unhandled("Or expected 1 rule " + Std.string(rs));
-						rules.push(Or(r, rs.rules[0], newResult()));
+						rules.push(Or(orRules, rs.rules));
 					}
 				case "(": // Grouping
 					if(inClass) {
@@ -1008,7 +1084,7 @@ trace(here.methodName + " pos: " + pos);
 		var h = new IntHash<Bool>();
 		for(x in 0...rules.length) {
 			switch(rules[x]) {
-			case Beginning, Or(_,_,_), Repeat(_,_,_,_,_), Capture(_), RangeMarker, End:
+			case Beginning, Or(_,_), Repeat(_,_,_,_,_), Capture(_), RangeMarker, End:
 				throw "internal error";
 			case MatchExact(s):
 				if(ignoreCase)
@@ -1027,7 +1103,7 @@ trace(here.methodName + " pos: " + pos);
 			case MatchNoneOf(ch):
 				for(k in ch.keys())
 					h.remove(modifyCase(k));
-			case MatchWordBoundary, NotMatchWordBoundary:
+			case MatchWordBoundary, NotMatchWordBoundary, Frame(_,_,_):
 				throw "internal error";
 			}
 		}
