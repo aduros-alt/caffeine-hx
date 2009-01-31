@@ -117,7 +117,7 @@ class EReg {
 				return (r.m != null);
 			}
 		#elseif flash9
-			result = untyped r.match(s);
+			result = untyped r.exec(s);
 			return (result != null);
 		#elseif flash
 			input = s;
