@@ -1,0 +1,24 @@
+-neko test.n
+-main Ereg
+-cp ../../
+-debug
+
+--next
+
+-cp ../../
+-main Ereg
+-swf-version 8
+-swf test8.swf
+-swf-header 800:600:1:FFFFFF
+-debug
+
+
+--next
+
+-cp ../../
+-main Ereg
+-swf-version 9
+-swf9 test9.swf
+-swf-header 800:600:1:FFFFFF
+-debug
+

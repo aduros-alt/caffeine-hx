@@ -1,3 +1,31 @@
+/*
+ * Copyright (c) 2008-2009, The Caffeine-hx project contributors
+ * Original author : Russell Weir
+ * Contributors:
+ * All rights reserved.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *   - Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   - Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE CAFFEINE-HX PROJECT CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE CAFFEINE-HX PROJECT CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package chx;
 
 private typedef State = {
 	var matches : Array<String>;
@@ -34,12 +62,12 @@ private enum ERegMatch {
 	NotMatchWordBoundary;
 	Or(a : Array<ERegMatch>, b : Array<ERegMatch>);
 	Repeat(r : ERegMatch, min:Int, max:Null<Int>, notGreedy: Bool, possessive:Bool);
-	Capture(e : NativeEReg);
+	Capture(e : RegEx);
 	BackRef(n : Int);
 	RangeMarker;
 	End;
 	Frame(srcpos : Int, r : ERegMatch, info : Dynamic);
-	ChildFrame(e:NativeEReg, eExecState : ExecState, pExecState : ExecState);
+	ChildFrame(e:RegEx, eExecState : ExecState, pExecState : ExecState);
 }
 
 // @todo
@@ -72,7 +100,7 @@ not done
 	in Perl, this matches at pos 4, len 3. To enable Perl compatible
 	results, compile with -D PERL_COMPATIBLE
 **/
-class NativeEReg {
+class RegEx {
 	inline static var NULL_MATCH	: Int = -1;
 	static var alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 	static var numeric = "0123456789";
@@ -130,8 +158,8 @@ class NativeEReg {
 	var global : Bool;
 
 	///////////// for Grouping ///////////////////////
-	var root(default, null)		: NativeEReg;
-	var parent(default, null)	: NativeEReg;
+	var root(default, null)		: RegEx;
+	var parent(default, null)	: RegEx;
 	var _groupCount 			: Int; // a 'static' accessed by sub groups
 
 	///////////// parser vars ////////////////////////
@@ -151,7 +179,7 @@ class NativeEReg {
 	var leftContext : String;
 	var rightContext : String;
 
-	public function new(pattern : String, opt : String, ?parent : NativeEReg = null) {
+	public function new(pattern : String, opt : String, ?parent : RegEx = null) {
 		this.pattern = pattern;
 		this.options = opt.toLowerCase();
 		this.ignoreCase = (options.indexOf("i") >= 0);
@@ -166,7 +194,7 @@ class NativeEReg {
 			this.capturesOpened = 0;
 			this.capturesClosed = 0;
 		} else {
-// 			As NativeEReg instances are created for each group, the
+// 			As RegEx instances are created for each group, the
 // 			'global static' _groupCount is incremented and the new
 // 			instance gets assigned the groupNumber.
 			this.root = parent.root;
@@ -181,7 +209,7 @@ class NativeEReg {
 		this.parsedPattern = pattern.substr(0, rv.bytes);
 		if(isRoot()) {
 			if(pattern.length != rv.bytes)
-				throw "NativeEReg::new : Unexpected characters at position " + rv.bytes;
+				throw "RegEx::new : Unexpected characters at position " + rv.bytes;
 			if(capturesOpened > capturesClosed)
 				throw "Unclosed capture. " + " opened: " + capturesOpened + " closed: " + capturesClosed;
 			if(capturesOpened < capturesClosed)
@@ -1118,7 +1146,7 @@ class NativeEReg {
 						#if DEBUG_PARSER
 							trace("+++ START CAPTURE " + this.root.capturesOpened);
 						#end
-						var er = new NativeEReg(inPattern.substr(++i), this.options, this);
+						var er = new RegEx(inPattern.substr(++i), this.options, this);
 						rules.push(Capture(er));
 
 						i += er.parsedPattern.length -1 ;
@@ -1600,7 +1628,7 @@ class NativeEReg {
 
 	public function toString() : String {
 		var sb = new StringBuf();
-		sb.add("NativeEReg { group: ");
+		sb.add("RegEx { group: ");
 		sb.add((groupNumber == 0 ? "root" : Std.string(groupNumber)));
 		sb.add(", ");
 		sb.add("rules: ");
