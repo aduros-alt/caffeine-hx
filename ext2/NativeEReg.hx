@@ -13,6 +13,16 @@ private typedef MatchResult = {
 	var conditional : Bool;
 };
 
+private typedef ExecState = {
+	var restoring		: Bool;
+	var matchAnywhere	: Bool;
+	var startPos		: Int;
+	var outerPos		: Int;
+	var iRuleIdx		: Int;
+	var iPos			: Int;
+	var conditional		: Bool;
+};
+
 private enum ERegMatch {
 	Beginning;
 	MatchExact(s : String);
@@ -29,6 +39,22 @@ private enum ERegMatch {
 	RangeMarker;
 	End;
 	Frame(srcpos : Int, r : ERegMatch, info : Dynamic);
+	ChildFrame(e:NativeEReg, eExecState : ExecState, pExecState : ExecState);
+}
+
+// @todo
+private enum ChildType {
+	Capture;
+	Comment; // (?#text)
+	//PatMatchModifier(?) (?pimsx-imsx)
+	NoBackref; // (?:pattern) Matches without creating backref
+	//BranchReset; // (?|pattern) not sure how to do this one yet
+	LookAhead; // (?=pattern) /\w+(?=\t)/ matches a word followed by a tab, without including the tab in $&
+	NegLookAhead; //(?!pattern)
+	LookBehind; // (?<=pattern) /(?<=\t)\w+/ matches a word that follows a tab, without including the tab in $&
+	NegLookBehind; //(?<!pattern) /(?<!bar)foo/ matches any occurrence of "foo" that does not follow "bar". Works only for fixed-width look-behind.
+	//Named; # (?'NAME'pattern) # (?<NAME>pattern) A regular capture, just named. Just register in root
+
 }
 
 /*
@@ -166,10 +192,6 @@ class NativeEReg {
 		}
 	}
 
-
-	var frameStack : Array<ERegMatch>;
-	var conditional : Bool;
-
 	public function match( s : String ) : Bool {
 		return (exec(s) != null);
 	}
@@ -178,37 +200,57 @@ class NativeEReg {
 		return this.root == this;
 	}
 
+	var frameStack : Array<ERegMatch>;
+	var es : ExecState;
+
 	/**
 		Executes the regular expression on string s.
+		@return null if no match
 	**/
-	public function exec( s : String, ?matchAnywhere : Bool = false, ?startRule : Int = 0 ) :
+	public function exec( s : String, ?matchAnywhere : Bool = false, ?lastExecState : ExecState ) :
 		{ index:Int,leftContext:String, rightContext:String, matches:Array<String> }
 	{
 		if(s == null)
 			return null;
+		var me = this;
 		this.inputOrig = s;
 		this.input = ignoreCase ? s.toLowerCase() : s;
-		var startPos = (global ? 0 : lastIndex);
 
-		var me = this;
-		var pos = startPos;
-		var i = startRule - 1;
-		var outerPos = startPos;
-		resetState();
+		var reEnterLoop = false;
+		if(lastExecState == null) {
+			es = {
+				restoring	: false,
+				matchAnywhere : matchAnywhere,
+				startPos 	: (global ? 0 : lastIndex),
+				outerPos 	: (global ? 0 : lastIndex),
+				iRuleIdx 	: -1,
+				iPos		: (global ? 0 : lastIndex),
+				conditional : true,
+			}
+			resetState();
+		} else {
+			es = lastExecState;
+			reEnterLoop = true;
+			es.restoring = true; // just to be sure
+			es.outerPos--;
+			es.iRuleIdx--;
+			root.matches[groupNumber] = null;
+			// no reset of match state, since it should exist.
+		}
+
 		var bestMatchState = saveState();
 		var mr : MatchResult = null;
-		conditional = true;
 
 		var updatePosition = function(mr : MatchResult) {
 			if(me.index < 0)
 				me.index = mr.position;
-			pos = mr.position + mr.length;
-			me.matches[0] = me.inputOrig.substr(me.index, pos - me.index);
-			me.conditional = me.conditional && mr.conditional;
+			me.es.iPos = mr.position + mr.length;
+			me.matches[0] = me.inputOrig.substr(me.index, me.es.iPos - me.index);
+			me.es.conditional = me.es.conditional && mr.conditional;
 		}
 		var reset = function() {
 			me.resetState();
-			i = startRule - 1;
+			me.es.iRuleIdx = - 1;
 			mr = null;
 		}
 
@@ -217,54 +259,78 @@ class NativeEReg {
 			ie. "black" ~= |e*| 'matches conditionally' on 0 e's, since
 			"black" ~= |e*lack| has to match
 		*/
-		while(outerPos++ < input.length && conditional) {
-			reset();
-			pos = outerPos - 1;
+		while(es.outerPos++ < input.length && (es.conditional || reEnterLoop)) {
+			if(!reEnterLoop) {
+				reset();
+				es.iPos = es.outerPos - 1;
+			}
+			else
+				reEnterLoop = false;
 			#if DEBUG_MATCH
-				trace("--- Outer loop " + pos);
+				trace("--- Outer loop " + es.iPos);
 			#end
-			while(++i < rules.length && pos <= input.length) {
-				#if DEBUG_MATCH
-					trace("--- start rule " + i);
-					trace("Current index: " + this.index);
-					trace("Current pos: "+pos);
-					trace("Rule : " + rules[i]);
-				#end
-				mr = run(pos, [rules[i]]);
-				#if DEBUG_MATCH
-					trace("Result: " + mr);
-				#end
 
-				if(isValidMatch(pos, mr)) {
+			while(++es.iRuleIdx < rules.length && es.iPos <= input.length) {
+				#if DEBUG_MATCH
+					trace("--- start rule " + es.iRuleIdx);
+					trace("Current index: " + this.index);
+					trace("Current pos: "+es.iPos);
+					trace("Rule : " + rules[es.iRuleIdx]);
+				#end
+				if(!es.restoring) {
+					mr = run(es.iPos, [rules[es.iRuleIdx]]);
+					#if DEBUG_MATCH trace("Result: " + mr);	#end
+				} else {
+					mr == null;
+					es.restoring = false;
+					if(frameStack.length == 0)
+						throw "internal error";
+					var cr : ERegMatch = frameStack.pop();
+					#if DEBUG_MATCH trace("Restoring at rule #"+es.iRuleIdx + " " + ruleToString(cr)); #end
+					mr = run(es.iPos, [cr]);
+				}
+
+				if(isValidMatch(es.iPos, mr)) {
 					updatePosition(mr);
 					continue;
 				}
 				var found = false;
-				//trace("Match not found. Stack: " + frameStack);
+
+				#if DEBUG_MATCH
+				trace("+++++++++++++++++++++ Match not found. Stack: " + frameStack);
+				#end
 				while(true) {
 					if(frameStack.length == 0)
 						break;
+					var isChild = false;
 					var rule = frameStack.pop();
 					switch(rule) {
 					case Frame(srcpos, _, _):
 						#if DEBUG_MATCH
-							trace("REWINDING TO " + srcpos + " FROM " + pos);
+							trace(traceName() + " REWINDING TO " + srcpos + " FROM " + es.iPos);
 						#end
-						pos = srcpos;
-						mr = run(pos, [rule]);
-						if(isValidMatch(pos, mr)) {
-							updatePosition(mr);
-							found = true;
-						}
+						es.iPos = srcpos;
+						isChild = false;
+					case ChildFrame(e, eExecState, pExecState):
+						restoreExecState(pExecState);
+						es.iRuleIdx++;
+						isChild = true;
 					default: throw "invalid item in frameStack";
+					}
+					mr = run(es.iPos, [rule]);
+					if(isValidMatch(es.iPos, mr)) {
+						updatePosition(mr);
+						found = true;
 					}
 					if(found) {
 						#if DEBUG_MATCH
-							trace("RERUNNING " + rules[i] + " at pos " + pos);
+							trace("RERUNNING " + rules[es.iRuleIdx] + " at pos " + es.iPos);
 						#end
-						mr = run(pos, [rules[i]]);
-						if(isValidMatch(pos, mr)) {
+						mr = run(es.iPos, [rules[es.iRuleIdx]]);
+						if(isValidMatch(es.iPos, mr)) {
 							updatePosition(mr);
+							if(isChild)
+								es.iRuleIdx++;
 							break;
 						} else {
 							found = false;
@@ -276,14 +342,14 @@ class NativeEReg {
 
 				// at this point, the match has failed at current position.
 				// move to next position, reset state, and reset to rule 0
-				pos++;
+				es.iPos++;
 				reset();
 			}
 			if(mr != null && mr.ok && this.index >= 0) {
 				if(		bestMatchState.index < 0 ||
 						bestMatchState.matches.length == 0 ||
 						this.matches[0].length > bestMatchState.matches[0].length ||
-						conditional == false
+						es.conditional == false
 				) {
 					bestMatchState = saveState();
 					#if DEBUG_MATCH
@@ -298,9 +364,9 @@ class NativeEReg {
 		restoreState(bestMatchState);
 
 		#if DEBUG_MATCH
-			trace(traceName() + " Final index: " + index + " length: " +  (pos - index) + " conditional: " + conditional);
+			trace(traceName() + " Final index: " + index + " length: " +  (es.iPos - index) + " conditional: " + es.conditional);
 		#end
-		if(this.index < 0 || this.matches.length == 0 || (matches[0].length == 0 && conditional)) {
+		if(this.index < 0 || this.matches.length == 0 || (matches[0].length == 0 && es.conditional)) {
 			lastIndex = 0;
 			root.matches[this.groupNumber] = "";
 			matches = new Array();
@@ -329,7 +395,7 @@ class NativeEReg {
 	}
 
 	function isValidMatch(pos : Int, mr : MatchResult) {
-		if(!mr.ok)
+		if(mr == null || !mr.ok)
 			return false;
 		if(pos == mr.position)
 			return true;
@@ -349,10 +415,13 @@ class NativeEReg {
 			switch(r) {
 			case Frame(srcpos, rule, info):
 				nfs.push(Frame(srcpos, rule, Reflect.copy(info)));
+			case ChildFrame(e, eExecState, pExecState):
+				nfs.push(ChildFrame(e, eExecState, pExecState));
 			default:
 				throw "internal error";
 			}
 		}
+
 		return {
 			matches : sm,
 			index : index,
@@ -370,6 +439,23 @@ class NativeEReg {
 		matches = new Array();
 		index = -1;
 		frameStack = new Array();
+	}
+
+	static function copyExecState(v : ExecState) : ExecState {
+		return {
+			restoring	: v.restoring,
+			matchAnywhere : v.matchAnywhere,
+			startPos 	: v.startPos,
+			outerPos 	: v.outerPos,
+			iRuleIdx 	: v.iRuleIdx,
+			iPos		: v.iPos,
+			conditional : v.conditional,
+		}
+	}
+
+	function restoreExecState(v : ExecState) : Void {
+		es = v;
+		es.restoring = false;
 	}
 
 	/**
@@ -508,8 +594,17 @@ class NativeEReg {
 					(info.resultA == null ? false : info.resultA.final) &&
 					(info.resultB == null ? false : info.resultB.final);
 
-				if(!final)
+				if(!final) {
+					if(!isRoot()) {
+						parent.frameStack.push(
+							ChildFrame(
+								this,
+								copyExecState(es),
+								copyExecState(parent.es)
+							));
+					}
 					frameStack.push(Frame(framePos, rule, info));
+				}
 				#if DEBUG_MATCH
 					trace("END Or: frameStack: " + frameStack);
 				#end
@@ -582,6 +677,14 @@ class NativeEReg {
 					#if DEBUG_MATCH
 						trace("******** "+rule+" NOT FINAL. PUSHING " + info);
 					#end
+					if(!isRoot()) {
+						parent.frameStack.push(
+							ChildFrame(
+								this,
+								copyExecState(es),
+								copyExecState(parent.es)
+							));
+					}
 					frameStack.push(Frame(framePos, rule, info));
 				}
 			case Capture(er):
@@ -596,13 +699,13 @@ class NativeEReg {
 					return NOMATCH();
 				}
 				var len = root.matches[er.groupNumber].length;
-				conditional = conditional && er.conditional;
+				conditional = conditional && er.es.conditional;
 				var mr : MatchResult = {
 					ok : true,
 					position : er.index,
 					length : len,
 					final : true,
-					conditional : er.conditional,
+					conditional : er.es.conditional,
 				}
 				if(!isValidMatch(pos, mr))
 					return NOMATCH();
@@ -638,6 +741,27 @@ class NativeEReg {
 				if(pos != srcpos)
 					throw "invalid use";
 				return run(pos, [r], inf);
+			case ChildFrame(er, eExecState, _):
+				var res = er.exec(inputOrig, es.matchAnywhere, eExecState);
+				trace(res);
+				if(res == null)
+					return NOMATCH();
+				var len = root.matches[er.groupNumber].length;
+				conditional = conditional && er.es.conditional;
+				var mr : MatchResult = {
+					ok : true,
+					position : er.index,
+					length : len,
+					final : true,
+					conditional : er.es.conditional,
+				}
+				if(!isValidMatch(pos, mr))
+					return NOMATCH();
+				origPos = er.index;
+				pos = er.index + len;
+				#if DEBUG_MATCH
+					trace("CAPTURE " + er.groupNumber +" MATCHED new pos:" + pos);
+				#end
 			}
 		}
 		return MATCH(1);
@@ -1445,6 +1569,8 @@ class NativeEReg {
 			switch(rules[x]) {
 			case Beginning, Or(_,_), Repeat(_,_,_,_,_), Capture(_), RangeMarker, End:
 				throw "internal error " + rules[x];
+			case Frame(_,_,_), ChildFrame(_,_,_):
+				throw "internal error " + rules[x];
 			case MatchExact(s):
 				if(ignoreCase)
 					s = s.toLowerCase();
@@ -1462,7 +1588,7 @@ class NativeEReg {
 			case MatchNoneOf(ch):
 				for(k in ch.keys())
 					h.remove(modifyCase(k));
-			case MatchWordBoundary, NotMatchWordBoundary, Frame(_,_,_), BackRef(_):
+			case MatchWordBoundary, NotMatchWordBoundary, BackRef(_):
 				throw "internal error";
 			}
 		}
