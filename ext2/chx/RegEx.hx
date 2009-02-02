@@ -833,10 +833,13 @@ class RegEx {
 		};
 	}
 
+	/**
+		@todo Not implemented yet.
+	**/
 	public function split(s : String) : Array<String> {
 		var oldGlobal = global;
 		var results = new Array<String>();
-
+		throw "not implemented";
 		global = oldGlobal;
 		return results;
 	}

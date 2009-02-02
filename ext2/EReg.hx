@@ -46,6 +46,9 @@ class EReg {
 	var input	: String;
 	var index	: Null<Int>;
 	var result	: Array<String>;
+	var useChxRegEx : Bool;
+	var chxRegEx : chx.RegEx;
+	var chxRegExOk : Bool;
 	#end
 	#if (neko || cpp || php)
 	var last : String;
@@ -57,6 +60,7 @@ class EReg {
 	var re : String;
 	var matches : ArrayAccess<Dynamic>;
 	#end
+
 
 	/**
 		Creates a new regular expression with pattern [r] and
@@ -78,11 +82,14 @@ class EReg {
 		#elseif flash
 			pattern = StringTools.urlEncode(r);
 			options = StringTools.urlEncode(opt);
-			if(!flash.external.ExternalInterface.available)
-				throw new chx.lang.UnsupportedException("ExternalInterface not available");
-			var v : Bool = untyped flash.external.ExternalInterface.call("haxeSupportTest", true);
-			if(v == null)
-				throw  new chx.lang.UnsupportedException("haxe_support library not installed");
+			useChxRegEx = true;
+			if(flash.external.ExternalInterface.available) {
+				var v : Bool = untyped flash.external.ExternalInterface.call("haxeSupportTest", true);
+				if(v != null)
+					useChxRegEx = false;
+			}
+			if(useChxRegEx)
+				chxRegEx = new chx.RegEx(r, opt);
 		#elseif php
 			this.pattern = r;
 			var a = opt.split("g");
@@ -121,13 +128,18 @@ class EReg {
 			return (result != null);
 		#elseif flash
 			input = s;
-			result = flash.external.ExternalInterface.call("haxeERegMatch", StringTools.urlEncode(s), pattern, options);
-			if(result == null)
-				return false;
-			index = untyped result.shift();
-			for(i in 0...result.length)
-				result[i] = StringTools.urlDecode(result[i]);
-			return true;
+			if(!useChxRegEx) {
+				result = flash.external.ExternalInterface.call("haxeERegMatch", StringTools.urlEncode(s), pattern, options);
+				if(result == null)
+					return false;
+				index = untyped result.shift();
+				for(i in 0...result.length)
+					result[i] = StringTools.urlDecode(result[i]);
+				return true;
+			} else {
+				chxRegExOk = chxRegEx.match(s);
+				return chxRegExOk;
+			}
 		#elseif php
 			var p : Int = untyped __php__("preg_match")(re, s, matches, __php__("PREG_OFFSET_CAPTURE"));
 			if(p > 0)
@@ -154,7 +166,11 @@ class EReg {
 		#elseif flash9
 			return untyped if( result != null && n >= 0 && n < result.length ) result[n] else throw "EReg::matched";
 		#elseif flash
-			return untyped if( result != null && n >= 0 && n < result.length ) StringTools.urlDecode(result[n]) else throw "EReg::matched";
+			if(!useChxRegEx) {
+				return untyped if( result != null && n >= 0 && n < result.length ) StringTools.urlDecode(result[n]) else throw "EReg::matched";
+			} else {
+				return chxRegEx.matched(n);
+			}
 		#elseif php
 			if( n < 0 ) throw "EReg::matched";
 			// we can't differenciate between optional groups at the end of a match
@@ -186,8 +202,14 @@ class EReg {
 			var s = result.input;
 			return s.substr(0,result.index);
 		#elseif flash
-			if( result == null ) throw "No string matched";
-			return input.substr(0, index);
+			if(!useChxRegEx) {
+				if( result == null ) throw "No string matched";
+				return input.substr(0, index);
+			} else {
+				if(chxRegExOk)
+					return chxRegEx.matchedLeft();
+				throw "No string matched";
+			}
 		#elseif php
 			if( untyped __call__("count", matches) == 0 ) throw "No string matched";
 			return last.substr(0, untyped __php__("$this->matches[0][1]"));
@@ -220,9 +242,15 @@ class EReg {
 			var s = result.input;
 			return s.substr(rl,s.length - rl);
 		#elseif flash
-			if( result == null ) throw "No string matched";
-			var rl = index + result[0].length;
-			return input.substr(rl, input.length - rl);
+			if(!useChxRegEx) {
+				if( result == null ) throw "No string matched";
+				var rl = index + result[0].length;
+				return input.substr(rl, input.length - rl);
+			} else {
+				if(chxRegExOk)
+					return chxRegEx.matchedRight();
+				throw "No string matched";
+			}
 		#elseif php
 			if( untyped __call__("count", matches) == 0 ) throw "No string matched";
 			return untyped last.substr(__php__("$this->matches[0][1]") + __php__("strlen")(__php__("$this->matches[0][0]")));
@@ -245,8 +273,13 @@ class EReg {
 			if( result == null ) throw "No string matched";
 			return { pos : result.index, len : result[0].length };
 		#elseif flash
-			if( result == null ) throw "No string matched";
-			return { pos : index, len : result[0].length };
+			if(!useChxRegEx) {
+				if( result == null ) throw "No string matched";
+				return { pos : index, len : result[0].length };
+			} else {
+				if( !chxRegExOk ) throw "No string matched";
+				return chxRegEx.matchedPos();
+			}
 		#elseif php
 			return untyped { pos : __php__("$this->matches[0][1]"), len : __php__("strlen")(__php__("$this->matches[0][0]")) };
 		#else

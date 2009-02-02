@@ -89,7 +89,7 @@ class Std {
 		Return the character code of the first character of the String, or null if the String is empty.
 	**/
 	public static function ord( x : String ) : Null<Int> {
-		#if (flash || php)
+		#if (flash || php || js)
 		if( x == "" )
 			return null;
 		else
@@ -102,12 +102,7 @@ class Std {
 			else
 				return __dollar__sget(x.__s,0);
 		}
-		#elseif js
-		if( x == "" )
-			return null;
-		else
-			return x.charCodeAt(0);
-		#else true
+		#else
 		return null;
 		#end
 	}
