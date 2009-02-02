@@ -1,6 +1,6 @@
 package chx;
 
-import haxe.ImportAll;
+// import haxe.ImportAll;
 
 import as3.WeakReference;
 
@@ -30,8 +30,10 @@ import chx.lang.EofException;
 import chx.lang.Exception;
 import chx.lang.FatalException;
 import chx.lang.IOException;
+import chx.lang.NullPointerException;
 import chx.lang.OutsideBoundsException;
 import chx.lang.OverflowException;
+import chx.lang.UriFormatException;
 
 import chx.log.EventLog;
 import chx.log.File;
@@ -66,9 +68,10 @@ import chx.net.servers.PacketServer;
 import chx.net.servers.TcpPacketServer;
 import chx.net.servers.ThreadServer;
 
-import chx.vfs.File;
-import chx.vfs.Path;
-import chx.vfs.Vfs;
+// import chx.vfs.File;
+// import chx.vfs.Path;
+// import chx.vfs.Vfs;
+// import chx.vfs.VfsRoot;
 
 import chx.vm.Lock;
 import chx.vm.Mutex;
@@ -150,4 +153,48 @@ import protocols.http.Request;
 
 #if neko
 import xdiff.Tools;
+#end
+
+#if flash9
+import hxwidgets.AlignHorizontal;
+import hxwidgets.AlignVertical;
+import hxwidgets.AlphaColor;
+import hxwidgets.AssetContainer;
+import hxwidgets.AssetLoader;
+import hxwidgets.BaseButton;
+import hxwidgets.BitmapAsset;
+import hxwidgets.Button;
+import hxwidgets.CardinalPoints;
+import hxwidgets.CheckBox;
+// import hxwidgets.ComboBox;
+import hxwidgets.Component;
+import hxwidgets.Config;
+import hxwidgets.Container;
+import hxwidgets.Dimension;
+// import hxwidgets.Dockbar;
+import hxwidgets.HWSprite;
+import hxwidgets.Icon;
+// import hxwidgets.ItemList;
+import hxwidgets.Label;
+// import hxwidgets.LabelIcon;
+import hxwidgets.LibraryAsset;
+import hxwidgets.LibraryLoader;
+import hxwidgets.Point;
+import hxwidgets.ProgressBar;
+import hxwidgets.RadioButton;
+import hxwidgets.Rectangle;
+import hxwidgets.Slider;
+// import hxwidgets.ToggleButton;
+import hxwidgets.UI;
+import hxwidgets.UISkin;
+// import hxwidgets.Window;
+// import hxwidgets.WindowManager;
+
+import hxwidgets.events.ButtonEvent;
+// import hxwidgets.events.ComboBoxEvent;
+import hxwidgets.events.Event;
+// import hxwidgets.events.ItemListEvent;
+import hxwidgets.events.SizeEvent;
+import hxwidgets.events.SliderEvent;
+// import hxwidgets.events.WindowEvent;
 #end
