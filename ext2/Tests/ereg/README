@@ -1,0 +1,13 @@
+There are four compiler flags available for testing the RegEx class
+
+DEBUG_PARSER
+	Turns on debugging for the input pattern parser
+DEBUG_PARSER_V
+	Extended input patter information
+
+DEBUG_MATCH
+	Turns on pattern matching tracing
+DEBUG_MATCH_V
+	Verbose pattern matching tracing including stack dumps
+
+
