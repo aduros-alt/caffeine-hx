@@ -1,0 +1,6 @@
+-neko retests.n
+-main ReTests
+-cp ../../
+--neko-source
+-debug
+

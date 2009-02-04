@@ -2,7 +2,7 @@ import chx.RegEx;
 
 class HaxeEregTest  extends haxe.unit.TestCase {
 	static var doTests :Array<String> = [];
-	//static var doTests :Array<String> = ["testOrMatch"];
+//	static var doTests :Array<String> = ["testFileUri"];
 
 	static var dog = "a dog went a runnin after the ball";
 	static var pool = "Go swim in the pool after school";
@@ -110,7 +110,7 @@ class HaxeEregTest  extends haxe.unit.TestCase {
 		assertMatch(1, "at");
 	}
 
-	function testMultiMatch() {
+	function testAnyMatch() {
 		if(!runTest(here.methodName)) {
 			assertTrue(true);
 			return;
@@ -122,12 +122,8 @@ class HaxeEregTest  extends haxe.unit.TestCase {
 
 		trace("--------------------- " + here.methodName + "---- " +pattern+ " ----------------------");
 
-		assertTrue(nativeVersion());
-		assertEquals("c", rn.matched(0));
-
-
-		assertTrue(haxeVersion());
-		
+		assertVersions();
+		assertMatch(0, "c");
 	}
 
 
@@ -269,6 +265,56 @@ class HaxeEregTest  extends haxe.unit.TestCase {
 		assertVersionsFalse();
 	}
 
+	function testWwwHaxeOrg() {
+		if(!runTest(here.methodName)) {
+			assertTrue(true);
+			return;
+		}
+
+		pattern = "^(([^:\\/?#]+):)?(\\/\\/([^\\/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?";
+		opts = "ig";
+		source = "http://www.haxe.org";
+		trace("--------------------- " + here.methodName + "---- " +pattern+ " ----------------------");
+
+		assertTrue(nativeVersion());
+		assertVersions();
+		assertMatch(0, "http://www.haxe.org");
+	
+	}
+
+	function testMailto() {
+		if(!runTest(here.methodName)) {
+			assertTrue(true);
+			return;
+		}
+
+		pattern = "^(([^:\\/?#]+):)?(\\/\\/([^\\/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?";
+		opts = "ig";
+		source = "mailto:me@there.com";
+		trace("--------------------- " + here.methodName + "---- " +pattern+ " ----------------------");
+
+		assertTrue(nativeVersion());
+		assertVersions();
+		assertMatch(0, "mailto:me@there.com");
+	
+	}
+
+	function testFileUri() {
+		if(!runTest(here.methodName)) {
+			assertTrue(true);
+			return;
+		}
+
+		pattern = "^(([^:\\/?#]+):)?(\\/\\/([^\\/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?";
+		opts = "ig";
+		source = "/usr/bin/haxe";
+		trace("--------------------- " + here.methodName + "---- " +pattern+ " ----------------------");
+
+		assertTrue(nativeVersion());
+		assertVersions();
+		assertMatch(0, "/usr/bin/haxe");
+	
+	}
 /*
 	public static function doTraces() {
 		var e = ~/^^a/;
