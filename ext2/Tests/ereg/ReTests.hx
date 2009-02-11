@@ -28,55 +28,232 @@ enum Outcome {
 }
 
 class ReTests {
-		var idx : Int;
+		static var runOnly : Null<Int> = null; //126;// 128ok; // 128, 129, 150
+		static var runBenchmarks : Bool = false;
+		static var chr = String.fromCharCode;
+		static var bugs : Array<Int> = new Array();
+		static var review : Array<Int> = new Array();
+
+		static var println : String->Void =
+			#if neko
+				neko.Lib.println;
+			#else
+				function(s) { trace(StringTools.trim(s)) };
+			#end
+		static var print : String->Void =
+			#if neko
+				neko.Lib.print;
+			#else
+				function(s) { trace(StringTools.trim(s)) };
+			#end
+
 		public static function main() {
 			var t = new ReTests();
-			t.run();
+			var err : Dynamic = null;
+			#if neko
+				if(neko.Sys.args().length > 0)
+					runOnly = Std.parseInt(neko.Sys.args()[0]);
+			#end
+			try {
+				t.run();
+			} catch(e : Dynamic) {
+				err = e;
+			}
+			println("\n\nComplete");
+			println("Passed " + Std.string(t.testsPassed + t.testsReview)+ "/" + t.testsTotal);
+			var notRun = t.testsTotal - t.testsPassed - t.testsFailed - t.testsReview;
+			if(notRun > 0)
+				println(" " + notRun + " tests not run");
+			if(t.testsReview > 0)
+				print(Std.string(t.testsReview) + " tests need to be reviewed");
+			if(review.length > 0) {
+				println("\nReview list");
+				println(Std.string(review));
+			}
+			if(bugs.length > 0) {
+				println("\nBug list");
+				println(Std.string(bugs));
+			}
+			println("\n");
+			if(err != null)
+				#if neko neko.Lib.rethrow(err) #else throw(err) #end;
 		}
 
+		var idx : Int;
+		var testsTotal 	: Int;
+		var testsFailed : Int;
+		var testsPassed : Int;
+		var testsReview : Int;
+
 		public function new() {
+			idx = 0;
+			testsTotal = 0;
+			testsFailed = 0;
+			testsPassed = 0;
+			testsReview = 0;
 		}
 
 		function run() {
 			idx = -1;
-			for(t in tests) {
-				idx++;
-				runTest(t);
+			if(runBenchmarks) {
+				testsTotal = benchmarks.length;
+				for(t in benchmarks) {
+					idx++;
+					runTest(t);
+				}
+			}
+			else {
+				testsTotal = tests.length;
+				if(runOnly != null) {
+					idx = runOnly - 1;
+					runTest(tests[idx]);
+				} else {
+					for(t in tests) {
+						idx++;
+						runTest(t);
+					}
+				}
 			}
 		}
 
 		function runTest(t) {
+			var nr : EReg = null;
+			var hr : RegEx = null;
 			var pattern : String = cast t[0];
 			var input : String = cast t[1];
 			var outcome : Outcome = cast t[2];
 			var evalExp : String = cast t[3];
 			var evalRes : String = cast t[4];
-			if(evalExp != null)
-				trace("Skipping benchmark test #" + idx + " evalExp: " + evalExp);
-			var r : RegEx = null;
-trace(t);
-			try {
-				r = new RegEx(pattern, "");
-			} catch(e : Dynamic) {
-				if(outcome == SYNTAX_ERROR)
-					return;
-				throw e;
+
+// if(evalExp != null)
+// 	trace(pattern + " " + input + " " + Std.string(outcome) + " " +evalExp + " result: " + evalRes);
+// return;
+
+			var eval = function(r: Dynamic) : String {
+				if(evalExp == null || evalRes == null)
+					return null;
+				var exp = StringTools.replace(evalExp, "+'-'+", "-");
+				var exp = StringTools.replace(exp, "\"", "");
+				var exp = StringTools.replace(exp, "'", "");
+				exp = StringTools.replace(exp, "found", "0");
+				exp = StringTools.replace(exp, "g","");
+				exp = StringTools.replace(exp, "+", "");
+				exp = exp.split("  ").join("").split(" ").join("");
+
+				var parts : Array<String> = exp.split("-");
+				for(i in 0...parts.length) {
+					var n = Std.parseInt(parts[i]);
+					if(n != null)
+						parts[i] = try untyped r.matched(n) catch(e:Dynamic) "None";
+					if(parts[i] == null) parts[i] = "None";
+					// hack, due to trouble with large array in neko?
+					if(parts[i] == "null") parts[i] = "None";
+				}
+				var actualResult : String = parts.join("-");
+				if(ReTests.runOnly != null) {
+					if(Std.is(r, EReg))
+						print("native ");
+					else
+						print("haxe ");
+					print("actualResult:");
+					print(actualResult);
+					print("...");
 			}
-			var res : Bool = false;
-			res = r.match(input);
-			if(outcome == SUCCEED && !res) {
-				trace(r.toString());
-				throw(pattern + " failed to match");
+				return actualResult;
 			}
-			else if(outcome == FAIL && res) {
-				trace(r.toString());
-				throw(pattern + " matched when it should have failed");
+
+			var getOutcomes = function() :
+					{	native: Outcome,
+						nativeOut: String,
+						chx:Outcome,
+						chxOut:String}
+			{
+				nr = null;
+				hr = null;
+				var rv = {
+					native : null,
+					nativeOut : null,
+					chx : null,
+					chxOut : null
+				}
+				try nr = new EReg(pattern, "") catch(e : Dynamic) rv.native = SYNTAX_ERROR;
+				try hr = new RegEx(pattern, "") catch(e : Dynamic) rv.chx = SYNTAX_ERROR;
+
+				var res : Bool = false;
+				if(rv.native != SYNTAX_ERROR) {
+					res = nr.match(input);
+					if(outcome == SUCCEED && !res)
+						rv.native = FAIL;
+					else if(outcome == FAIL && res)
+						rv.native = FAIL;
+					else
+						rv.native = SUCCEED;
+					rv.nativeOut = eval(nr);
+					if(rv.nativeOut != evalRes)
+						rv.native = FAIL;
+				}
+
+				if(rv.chx != SYNTAX_ERROR) {
+					res = hr.match(input);
+					if(outcome == SUCCEED && !res)
+						rv.chx = FAIL;
+					else if(outcome == FAIL && res)
+						rv.chx = FAIL;
+					else
+						rv.chx = SUCCEED;
+					rv.chxOut = eval(hr);
+					if(rv.chxOut != evalRes)
+						rv.chx = FAIL;
+				}
+				return rv;
 			}
+
+			var cleanInputForView = function(v : String) : String {
+				v = StringTools.replace(v, chr(7), "\\a");
+				v = StringTools.replace(v, chr(8), "\\b");
+				v = StringTools.replace(v, chr(9), "\\t");
+				v = StringTools.replace(v, chr(10), "\\n");
+				v = StringTools.replace(v, chr(11), "\\v");
+				v = StringTools.replace(v, chr(12), "\\f");
+				v = StringTools.replace(v, chr(13), "\\r");
+				return v;
+			}
+
+			print("Test " + Std.string(idx + 1) +" pattern:" + pattern + " on input:" + cleanInputForView(input) + "...");
+			var outcomes = getOutcomes();
+			var nativeAgree = outcomes.native == outcomes.chx && outcomes.nativeOut == outcomes.chxOut;
+			var haxeDifferent = false;
+			var msg = "SUCCESS";
+
+			if(nativeAgree) {
+				if(outcomes.chx != outcome) {
+					msg = "WARNING: Both versions. Expected "+outcome+" got "+outcomes.chx;
+					if(outcomes.chxOut != null)
+						msg += " Output is "+ outcomes.chxOut;
+					review.push(idx + 1);
+					testsReview++;
+				} else {
+					testsPassed++;
+				}
+			}
+			else { // no native agreement.
+				if(outcomes.chx == outcome) {
+					testsFailed++;
+					//bugs.push(idx + 1);
+					msg = "ERROR: chx is ok, native version differs";
+				}
+				else if(outcomes.native == outcome) {
+					testsFailed++;
+					bugs.push(idx + 1);
+					msg = "CRITICAL: chx version is incorrect. Expected "+outcome+" got "+outcomes.chx+" Rules: " + untyped hr.instanceRules;
+					#if BREAK_ON_ERROR
+						neko.Sys.exit(1);
+					#end
+				}
+			}
+			println(msg);
 		}
 
-		public static function chr(v:Int) : String {
-			return(String.fromCharCode(v));
-		}
 
 // Benchmark suite (needs expansion)
 //
@@ -89,20 +266,20 @@ trace(t);
 static var benchmarks : Array<Array<Dynamic>> = [
 
     /* test common prefix */
-    ["Python|Perl", "Perl"],    /* Alternation */
-    ["(Python|Perl)", "Perl"],  /* Grouped alternation */
+    ["Haxe|Perl", "Perl", SUCCEED],    /* Alternation */
+    ["(Haxe|Perl)", "Perl", SUCCEED],  /* Grouped alternation */
 
-    ["Python|Perl|Tcl", "Perl"],        /* Alternation */
-    ["(Python|Perl|Tcl)", "Perl"],      /* Grouped alternation */
+    ["Haxe|Perl|Tcl", "Perl", SUCCEED],        /* Alternation */
+    ["(Haxe|Perl|Tcl)", "Perl", SUCCEED],      /* Grouped alternation */
 
-    ["(Python)\\1", "PythonPython"],    /* Backreference */
-    ["([0a-z][a-z0-9]*,)+", "a5,b7,c9,"], /* Disable the fastmap optimization */
-    ["([a-z][a-z0-9]*,)+", "a5,b7,c9,"], /* A few sets */
+    ["(Haxe)\\1", "HaxeHaxe", SUCCEED],    /* Backreference */
+    ["([0a-z][a-z0-9]*,)+", "a5,b7,c9,", SUCCEED], /* Disable the fastmap optimization */
+    ["([a-z][a-z0-9]*,)+", "a5,b7,c9,", SUCCEED], /* A few sets */
 
-    ["Python", "Python"],               /* Simple text literal */
-    [".*Python", "Python"],             /* Bad text literal */
-    [".*Python.*", "Python"],           /* Worse text literal */
-    [".*(Python)", "Python"],           /* Bad text literal with grouping */
+    ["Haxe", "Haxe", SUCCEED],               /* Simple text literal */
+    [".*Haxe", "Haxe", SUCCEED],             /* Bad text literal */
+    [".*Haxe.*", "Haxe", SUCCEED],           /* Worse text literal */
+    [".*(Haxe)", "Haxe", SUCCEED],           /* Bad text literal with grouping */
 ];
 
 // Test suite (for verifying correctness)
@@ -127,13 +304,13 @@ static var tests : Array<Array<Dynamic>> = [
     ["[\\1]", chr(1), SUCCEED, "found", chr(1)],  /* Character */
     ["\\09", chr(0) + "9", SUCCEED, "found", chr(0) + "9"],
     ["\\141", "a", SUCCEED, "found", "a"],
-    ["(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)(k)(l)\\119", "abcdefghijklk9", SUCCEED, 'found+"-"+g11', "abcdefghijklk9-k"],
+    ["(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)(k)(l)\\119", "abcdefghijklk9", SUCCEED, "found+'-'+g11", "abcdefghijklk9-k"],
 
     /* Test \0 is handled everywhere */
-    ["\\0", Std.chr(0), SUCCEED, "found", Std.chr(0)],
-    ["[\\0a]", Std.chr(0), SUCCEED, "found", Std.chr(0)],
-    ["[a\\0]", Std.chr(0), SUCCEED, "found", Std.chr(0)],
-    ["[^a\\0]", Std.chr(0), FAIL],
+    ["\\0", chr(0), SUCCEED, "found", chr(0)],
+    ["[\\0a]", chr(0), SUCCEED, "found", chr(0)],
+    ["[a\\0]", chr(0), SUCCEED, "found", chr(0)],
+    ["[^a\\0]", chr(0), FAIL],
 
     /* Test various letter escapes */
     ["\\a[\\b]\\f\\n\\r\\t\\v", chr(7)+chr(8)+chr(12)+"\n\r\t"+chr(11), SUCCEED, "found", chr(7)+chr(8)+chr(12)+"\n\r\t"+chr(11)],
@@ -168,7 +345,7 @@ static var tests : Array<Array<Dynamic>> = [
 */
 
     [")", "", SYNTAX_ERROR],           /* Unmatched right bracket */
-/* todo    ["", "", SUCCEED, "found", ""],    / Empty pattern */
+    ["", "", SUCCEED, "found", ""],    /* Empty pattern */
     ["abc", "abc", SUCCEED, "found", "abc"],
     ["abc", "xbc", FAIL],
     ["abc", "axc", FAIL],
@@ -202,11 +379,11 @@ static var tests : Array<Array<Dynamic>> = [
     ["a[bc]d", "abd", SUCCEED, "found", "abd"],
     ["a[b-d]e", "abd", FAIL],
     ["a[b-d]e", "ace", SUCCEED, "found", "ace"],
-/*     ["a[b-d]", "aac", SUCCEED, "found", "ac"],  requires matchAnywhere */
+    ["a[b-d]", "aac", SUCCEED, "found", "ac"],
     ["a[-b]", "a-", SUCCEED, "found", "a-"],
     ["a[\\-b]", "a-", SUCCEED, "found", "a-"],
     /* NOTE: not an error under PCRE/PRE: */
-    /* ("a[b-]", "a-", SYNTAX_ERROR), */
+    ["a[b-]", "a-", SUCCEED, "found", "a-"],
     ["a[]b", "-", SYNTAX_ERROR],
     ["a[", "-", SYNTAX_ERROR],
     ["a\\", "-", SYNTAX_ERROR],
@@ -242,7 +419,7 @@ static var tests : Array<Array<Dynamic>> = [
     ["\\By\\B", "xyz", SUCCEED, "'-'", "-"],
     ["ab|cd", "abc", SUCCEED, "found", "ab"],
     ["ab|cd", "abcd", SUCCEED, "found", "ab"],
-/* todo    ["()ef", "def", SUCCEED, "found+'-'+g1", "ef-"], */
+    ["()ef", "def", SUCCEED, "found+'-'+g1", "ef-"],
     ["$b", "b", FAIL],
     ["a\\(b", "a(b", SUCCEED, "found+'-'+g1", "a(b-Error"],
     ["a\\(*b", "ab", SUCCEED, "found", "ab"],
@@ -643,16 +820,16 @@ static var tests : Array<Array<Dynamic>> = [
     ["([\\s]*)([\\S]*)([\\s]*)", " testing!1972", SUCCEED, "g3+g2+g1", "testing!1972 "],
     ["(\\s*)(\\S*)(\\s*)", " testing!1972", SUCCEED, "g3+g2+g1", "testing!1972 "],
 
-    ["\\xff", "\377", SUCCEED, "found", chr(255)],
+    ["\\xff", chr(255), SUCCEED, "found", chr(255)],
     /* new \x semantics */
-    ["\\x00ff", "\377", FAIL],
+    ["\\x00ff", chr(255), FAIL],
     /* (r"\x00ff", "\377", SUCCEED, "found", chr(255)), */
 	/*
 	@todo redo this
     ["\\t\\n\\v\\r\\f\\a\\g", "\\t\\n\\v\\r\\f\\ag", SUCCEED, "found", "\\t\\n\\v\\r\\f\\ag"],
     ["\t\n\v\r\f\a\g", "\t\n\v\r\f\ag", SUCCEED, "found", "\t\n\v\r\f\ag"],
 	*/
-    ["\\t\\n\\v\\r\\f\\a", "\t\n"+Std.chr(11)+"\r"+chr(12)+chr(7), SUCCEED, "found", chr(9)+chr(10)+chr(11)+chr(13)+chr(12)+chr(7)],
+    ["\\t\\n\\v\\r\\f\\a", "\t\n"+chr(11)+"\r"+chr(12)+chr(7), SUCCEED, "found", chr(9)+chr(10)+chr(11)+chr(13)+chr(12)+chr(7)],
 	/*
     ["[\\t][\\n][\\v][\\r][\\f][\\b]", "\t\n\v\r\f\b", SUCCEED, "found", "\t\n\v\r\f\b"],
 	*/

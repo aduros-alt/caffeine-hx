@@ -2,7 +2,6 @@ import chx.RegEx;
 
 class HaxeEregTest  extends haxe.unit.TestCase {
 	static var doTests :Array<String> = [];
-//	static var doTests :Array<String> = ["testFileUri"];
 
 	static var dog = "a dog went a runnin after the ball";
 	static var pool = "Go swim in the pool after school";
@@ -34,7 +33,7 @@ class HaxeEregTest  extends haxe.unit.TestCase {
 		pattern = "((a{0,5}){0,5})*[c]";
 		opts = "i";
 		source = "aaaaaaaaaaaa";
-		trace("--------------------- " + here.methodName + "---- " +pattern+ " ----------------------");
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
 
 		assertVersionsFalse();
 	}
@@ -48,7 +47,7 @@ class HaxeEregTest  extends haxe.unit.TestCase {
 		pattern = "[^e]*e*";
 		opts = "ig";
 		source = "abcdeeeeefghi";
-		trace("--------------------- " + here.methodName + "---- " +pattern+ " ----------------------");
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
 
 		assertVersions();
 		assertMatch(0, "abcdeeeee");
@@ -67,7 +66,7 @@ class HaxeEregTest  extends haxe.unit.TestCase {
 		pattern = "[^e]*e*?";
 		opts = "i";
 		source = "abcdeeeeefghi";
-		trace("--------------------- " + here.methodName + "---- " +pattern+ " ----------------------");
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
 
 		assertVersions();
 		assertMatch(0, "abcd");
@@ -78,7 +77,7 @@ class HaxeEregTest  extends haxe.unit.TestCase {
 		pattern = "[^e]*e*?f";
 		opts = "i";
 		source = "abcdeeeeefghi";
-		trace("--------------------- " + here.methodName + "---- " +pattern+ " ----------------------");
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
 
 		assertVersions();
 		assertMatch(0, "abcdeeeeef");
@@ -97,14 +96,14 @@ class HaxeEregTest  extends haxe.unit.TestCase {
 		opts = "i";
 		source = "foe fum";
 
-		trace("--------------------- " + here.methodName + "---- " +pattern+ " ----------------------");
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
 		assertVersions();
 		assertMatch(0, "foe");
 
 		pattern = "c(a|at)b$";
 		source = "catb";
 
-		trace("--------------------- " + here.methodName + "---- " +pattern+ " ----------------------");
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
 		assertVersions();
 		assertMatch(0, "catb");
 		assertMatch(1, "at");
@@ -120,7 +119,7 @@ class HaxeEregTest  extends haxe.unit.TestCase {
 		opts = "i";
 		source = "cat";
 
-		trace("--------------------- " + here.methodName + "---- " +pattern+ " ----------------------");
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
 
 		assertVersions();
 		assertMatch(0, "c");
@@ -136,7 +135,7 @@ class HaxeEregTest  extends haxe.unit.TestCase {
 		pattern = "c";
 		opts = "i";
 		source = "abcde";
-		trace("--------------------- " + here.methodName + "---- " +pattern+ " ----------------------");
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
 
 		assertVersions();
 		assertMatch(0, "c");
@@ -153,7 +152,7 @@ class HaxeEregTest  extends haxe.unit.TestCase {
 		pattern = "http://(www)";
 		opts = "i";
 		source = "http://www.Google.com";
-		trace("--------------------- " + here.methodName + "---- " +pattern+ " ----------------------");
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
 
 		assertVersions();
 
@@ -172,7 +171,7 @@ class HaxeEregTest  extends haxe.unit.TestCase {
 		pattern = "^a d(.{1,2}) ";
 		opts = "i";
 		source = dog;
-		trace("--------------------- " + here.methodName + "---- " +pattern+ " ----------------------");
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
 
 		assertVersions();
 		assertMatch(0, "a dog ");
@@ -188,6 +187,232 @@ class HaxeEregTest  extends haxe.unit.TestCase {
 		assertMatch(1, "..");
 	}
 
+	function testFour() {
+		if(!runTest(here.methodName)) {
+			assertTrue(true);
+			return;
+		}
+
+		pattern = "(bc+d$|ef*g.|h?i(j|k))";
+		opts = "i";
+		source = "ij";
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
+
+		assertVersions();
+		assertMatch(0, "ij");
+		assertMatch(1, "ij");
+		assertMatch(2, "j");
+		assertLeft("");
+		assertRight("");
+	}
+
+	function testFive() {
+		if(!runTest(here.methodName)) {
+			assertTrue(true);
+			return;
+		}
+
+		pattern = "(bc+d$|ef*g.|h?i(j|k))";
+		opts = "i";
+		source = "effgz";
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
+
+		assertVersions();
+		assertMatch(0, "effgz");
+		assertMatch(1, "effgz");
+		//assertMatch(2, "j");
+		assertLeft("");
+		assertRight("");
+	}
+
+	function testSix() {
+		if(!runTest(here.methodName)) {
+			assertTrue(true);
+			return;
+		}
+
+		pattern = "a[b-]";
+		opts = "i";
+		source = "A-";
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
+
+		assertVersions();
+		assertMatch(0, "A-");
+		assertLeft("");
+		assertRight("");
+	}
+
+	function testSeven() {
+		if(!runTest(here.methodName)) {
+			assertTrue(true);
+			return;
+		}
+
+		pattern = "\\xff";
+		opts = "i";
+		source = String.fromCharCode(0xFF);
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
+
+		assertVersions();
+		assertMatch(0, String.fromCharCode(0xFF));
+		assertLeft("");
+		assertRight("");
+	}
+
+	function testEight() {
+		if(!runTest(here.methodName)) {
+			assertTrue(true);
+			return;
+		}
+
+		pattern = "^*";
+		opts = "i";
+		source = "qweriu";
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
+
+		assertTrue(isSyntaxError());
+	}
+
+
+	function testNine() {
+		if(!runTest(here.methodName)) {
+			assertTrue(true);
+			return;
+		}
+
+		pattern = "(([a-z]+):)?([a-z]+)$";
+		opts = "i";
+		source = "smil";
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
+
+		assertVersions();
+		assertMatch(0, "smil");
+		assertMatch(3, "smil");
+	}
+
+	function testTen() {
+		if(!runTest(here.methodName)) {
+			assertTrue(true);
+			return;
+		}
+
+		pattern = "(?i)([a-c]*)\\1";
+		opts = "";
+		source = "ABCABC";
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
+
+		assertVersions();
+		assertMatch(0, "ABCABC");
+		assertMatch(1, "ABC");
+	}
+
+	function testEleven() {
+		if(!runTest(here.methodName)) {
+			assertTrue(true);
+			return;
+		}
+
+		pattern = "(x?)?";
+		opts = "";
+		source = "x";
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
+
+		assertVersions();
+		assertMatch(0, "x");
+		assertMatch(1, "x");
+	}
+
+	function testTwelve() {
+		if(!runTest(here.methodName)) {
+			assertTrue(true);
+			return;
+		}
+
+		pattern = "a*";
+		opts = "";
+		source = "";
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
+
+		assertVersions();
+		assertMatch(0, "");
+	}
+
+
+	function testThirteen() {
+		if(!runTest(here.methodName)) {
+			assertTrue(true);
+			return;
+		}
+
+		pattern = "(?P<foo_123>a)";
+		opts = "";
+		source = "a";
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
+
+		assertVersions();
+		assertMatch(0, "a");
+	}
+
+	function testFourteen() {
+		if(!runTest(here.methodName)) {
+			assertTrue(true);
+			return;
+		}
+
+		pattern = "(a+|b)*";
+		opts = "";
+		source = "ab";
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
+
+		assertVersions();
+		assertMatch(0, "ab");
+		assertMatch(1, "b");
+	}
+
+	function testFifteen() {
+		if(!runTest(here.methodName)) {
+			assertTrue(true);
+			return;
+		}
+
+		pattern = "a(?!b).";
+		opts = "";
+		source = "abad";
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
+
+		assertVersions();
+		assertMatch(0, "ad");
+	}
+
+	function testSixteen() {
+		if(!runTest(here.methodName)) {
+			assertTrue(true);
+			return;
+		}
+
+		pattern = "(?m)abc$";
+		opts = "";
+		source = "jkl\nxyzabc\n123";
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
+
+		assertVersions();
+		assertMatch(0, "abc");
+	}
+
+	function testWhitespace() {
+		if(!runTest(here.methodName)) {
+			assertTrue(true);
+			return;
+		}
+
+		pattern = "(?x)w# comment 1\n        x y\n        # comment 2\n        z";
+		opts = "";
+		source = "wxyz";
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
+
+		assertVersions();
+		assertMatch(0, "wxyz");
+	}
 
 	function testSingleOr() {
 		if(!runTest(here.methodName)) {
@@ -198,7 +423,7 @@ class HaxeEregTest  extends haxe.unit.TestCase {
 		pattern = "a|b";
 		opts = "ig";
 		source = "boy";
-		trace("--------------------- " + here.methodName + "---- " +pattern+ " ----------------------");
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
 
 		assertVersions();
 		assertMatch(0, "b");
@@ -214,7 +439,7 @@ class HaxeEregTest  extends haxe.unit.TestCase {
 		pattern = "a|b|c";
 		opts = "ig";
 		source = "cat";
-		trace("--------------------- " + here.methodName + "---- " +pattern+ " ----------------------");
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
 
 		assertVersions();
 		assertMatch(0, "c");
@@ -224,7 +449,7 @@ class HaxeEregTest  extends haxe.unit.TestCase {
 		pattern = "a|b|c";
 		opts = "ig";
 		source = "ercr";
-		trace("--------------------- " + here.methodName + "---- " +pattern+ " ----------------------");
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
 
 		assertVersions();
 		assertMatch(0, "c");
@@ -242,7 +467,7 @@ class HaxeEregTest  extends haxe.unit.TestCase {
 		pattern = "(a|b|c)at";
 		opts = "ig";
 		source = "  cat";
-		trace("--------------------- " + here.methodName + "---- " +pattern+ " ----------------------");
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
 
 		assertVersions();
 		assertMatch(0, "cat");
@@ -260,7 +485,7 @@ class HaxeEregTest  extends haxe.unit.TestCase {
 		pattern = "^[^a]";
 		opts = "ig";
 		source = dog;
-		trace("--------------------- " + here.methodName + "---- " +pattern+ " ----------------------");
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
 
 		assertVersionsFalse();
 	}
@@ -274,12 +499,12 @@ class HaxeEregTest  extends haxe.unit.TestCase {
 		pattern = "^(([^:\\/?#]+):)?(\\/\\/([^\\/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?";
 		opts = "ig";
 		source = "http://www.haxe.org";
-		trace("--------------------- " + here.methodName + "---- " +pattern+ " ----------------------");
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
 
 		assertTrue(nativeVersion());
 		assertVersions();
 		assertMatch(0, "http://www.haxe.org");
-	
+
 	}
 
 	function testMailto() {
@@ -291,12 +516,12 @@ class HaxeEregTest  extends haxe.unit.TestCase {
 		pattern = "^(([^:\\/?#]+):)?(\\/\\/([^\\/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?";
 		opts = "ig";
 		source = "mailto:me@there.com";
-		trace("--------------------- " + here.methodName + "---- " +pattern+ " ----------------------");
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
 
 		assertTrue(nativeVersion());
 		assertVersions();
 		assertMatch(0, "mailto:me@there.com");
-	
+
 	}
 
 	function testFileUri() {
@@ -308,12 +533,12 @@ class HaxeEregTest  extends haxe.unit.TestCase {
 		pattern = "^(([^:\\/?#]+):)?(\\/\\/([^\\/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?";
 		opts = "ig";
 		source = "/usr/bin/haxe";
-		trace("--------------------- " + here.methodName + "---- " +pattern+ " ----------------------");
+		trace("--------------------- " + here.methodName + " ---- " +pattern+ " ----- " +source+ " -----------------");
 
 		assertTrue(nativeVersion());
 		assertVersions();
 		assertMatch(0, "/usr/bin/haxe");
-	
+
 	}
 /*
 	public static function doTraces() {
@@ -367,6 +592,18 @@ class HaxeEregTest  extends haxe.unit.TestCase {
 		}
 	}
 
+	function isSyntaxError() {
+		try {
+			haxeVersion();
+			return false;
+		} catch(e:Dynamic) {}
+		try {
+			nativeVersion();
+			return false;
+		} catch(e:Dynamic) {}
+		return true;
+	}
+
 	function assertVersions() {
 		assertTrue(nativeVersion());
 		assertTrue(haxeVersion());
@@ -407,11 +644,19 @@ class HaxeEregTest  extends haxe.unit.TestCase {
 class Ereg {
         static function main()
         {
+		#if !neko
                 if(haxe.Firebug.detect()) {
                         haxe.Firebug.redirectTraces();
                	}
+		#end
+
+		#if neko
+			HaxeEregTest.doTests = neko.Sys.args();
+		#end
+
                 var r = new haxe.unit.TestRunner();
                 r.add(new HaxeEregTest());
+
                 r.run();
         }
 }
