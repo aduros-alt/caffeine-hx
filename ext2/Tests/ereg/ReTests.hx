@@ -30,6 +30,7 @@ enum Outcome {
 class ReTests {
 		static var runOnly : Null<Int> = null; //126;// 128ok; // 128, 129, 150
 		static var runBenchmarks : Bool = false;
+		static var timeStdTests : Bool = false;
 		static var chr = String.fromCharCode;
 		static var bugs : Array<Int> = new Array();
 		static var review : Array<Int> = new Array();
@@ -51,32 +52,41 @@ class ReTests {
 			var t = new ReTests();
 			var err : Dynamic = null;
 			#if neko
-				if(neko.Sys.args().length > 0)
-					runOnly = Std.parseInt(neko.Sys.args()[0]);
+				if(neko.Sys.args().length > 0) {
+					if(neko.Sys.args()[0] == "time")
+						timeStdTests = true;
+					else
+						runOnly = Std.parseInt(neko.Sys.args()[0]);
+				}
 			#end
 			try {
-				t.run();
+				if(timeStdTests)
+					t.benchStdTests()
+				else
+					t.run();
 			} catch(e : Dynamic) {
 				err = e;
 			}
-			println("\n\nComplete");
-			println("Passed " + Std.string(t.testsPassed + t.testsReview)+ "/" + t.testsTotal);
-			var notRun = t.testsTotal - t.testsPassed - t.testsFailed - t.testsReview;
-			if(notRun > 0)
-				println(" " + notRun + " tests not run");
-			if(t.testsReview > 0)
-				print(Std.string(t.testsReview) + " tests need to be reviewed");
-			if(review.length > 0) {
-				println("\nReview list");
-				println(Std.string(review));
+			if(!timeStdTests) {
+				println("\n\nComplete");
+				println("Passed " + Std.string(t.testsPassed + t.testsReview)+ "/" + t.testsTotal);
+				var notRun = t.testsTotal - t.testsPassed - t.testsFailed - t.testsReview;
+				if(notRun > 0)
+					println(" " + notRun + " tests not run");
+				if(t.testsReview > 0)
+					print(Std.string(t.testsReview) + " tests need to be reviewed");
+				if(review.length > 0) {
+					println("\nReview list");
+					println(Std.string(review));
+				}
+				if(bugs.length > 0) {
+					println("\nBug list");
+					println(Std.string(bugs));
+				}
+				println("\n");
+				if(err != null)
+					#if neko neko.Lib.rethrow(err) #else throw(err) #end;
 			}
-			if(bugs.length > 0) {
-				println("\nBug list");
-				println(Std.string(bugs));
-			}
-			println("\n");
-			if(err != null)
-				#if neko neko.Lib.rethrow(err) #else throw(err) #end;
 		}
 
 		var idx : Int;
@@ -115,6 +125,35 @@ class ReTests {
 				}
 			}
 		}
+
+		function benchStdTests() {
+			var start = neko.Sys.time();
+			for(x in 0...10) {
+				for(t in tests) {
+					try {
+						var nr = new EReg(cast t[0], "");
+						var res = nr.match(cast t[1]);
+					} catch(e : Dynamic) {};
+				}
+			}
+			var native = neko.Sys.time() - start;
+
+			start = neko.Sys.time();
+			for(x in 0...10) {
+				for(t in tests) {
+					try {
+						var nr = new RegEx(cast t[0], "");
+						var res = nr.match(cast t[1]);
+					} catch(e : Dynamic) {};
+				}
+			}
+			var haxe = neko.Sys.time() - start;
+
+			println("Native executed in " + Std.string(native));
+			println("RegEx executed in " + Std.string(haxe));
+			println("" + Std.string(haxe/native));
+		}
+
 
 		function runTest(t) {
 			var nr : EReg = null;
@@ -238,9 +277,10 @@ class ReTests {
 			}
 			else { // no native agreement.
 				if(outcomes.chx == outcome) {
-					testsFailed++;
+					review.push(idx + 1);
+					testsReview++;
 					//bugs.push(idx + 1);
-					msg = "ERROR: chx is ok, native version differs";
+					msg = "WARNING: chx is ok, native version differs";
 				}
 				else if(outcomes.native == outcome) {
 					testsFailed++;

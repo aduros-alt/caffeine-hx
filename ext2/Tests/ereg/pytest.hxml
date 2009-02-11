@@ -2,5 +2,5 @@
 -main ReTests
 -cp ../../
 --neko-source
--debug
+#-debug
 
