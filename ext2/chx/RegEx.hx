@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2008-2009, The Caffeine-hx project contributors
- * Original author : Russell Weir
+ * Copyright (c) 2009, Russell Weir
  * Contributors:
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without
@@ -27,79 +26,125 @@
 
 package chx;
 
-private typedef State = {
-	var matches : Array<String>;
-	var index : Int;
-	var frameStack : Array<ERegMatch>;
-	var parentState : State;
-}
-
 private typedef MatchResult = {
 	var ok : Bool;
 	var position : Int;
 	var length : Int;
-	var final : Bool;
+	var orMark : Bool;
 	var conditional : Bool;
+	var extra : Int; // extra # of chars consumed (for $)
+};
+
+private typedef ExecResult = {
+	var index:Int;
+	var leftContext:String;
+	var rightContext:String;
+	var matches:IntHash<String>;
 };
 
 private typedef ExecState = {
 	var restoring		: Bool;
-	var matchAnywhere	: Bool;
 	var startPos		: Int;
-	var outerPos		: Int;
 	var iRuleIdx		: Int;
 	var iPos			: Int;
 	var conditional		: Bool;
+	var matches			: IntHash<String>;
+	var index			: Int;
 };
 
+private typedef MatchState = {
+	var matches : IntHash<String>;
+	var index : Int;
+	var parentState : MatchState;
+}
+
 private enum ERegMatch {
-	Beginning;
+	BeginString; // \A which only matches start of input string
+	BeginLine; // ^ which matches line beginnings in multiline mode
 	MatchExact(s : String);
 	MatchCharCode(c : Int);
 	MatchAny;
 	MatchAnyOf(ch : IntHash<Bool>);
 	MatchNoneOf(ch : IntHash<Bool>);
+	CharClass(rules: Array<ERegMatch>);
+	MatchLineBreak;
 	MatchWordBoundary;
 	NotMatchWordBoundary;
-	Or(a : Array<ERegMatch>, b : Array<ERegMatch>);
+	OrMarker;
 	Repeat(r : ERegMatch, min:Int, max:Null<Int>, notGreedy: Bool, possessive:Bool);
 	Capture(e : RegEx);
 	BackRef(n : Int);
 	RangeMarker;
-	End;
-	Frame(id:Int, srcpos:Int, r:ERegMatch, info:Dynamic);
-	ChildFrame(frameId:Int, e:RegEx, eExecState:ExecState, pExecState:ExecState);
+	ModCaseInsensitive; // i (?i)
+	ModMultiline; // m (?m)
+	ModDotAll; // s  (?s)
+	ModAllowWhite; // x
+	ModCaseInsensitiveOff;
+	ModMultilineOff;
+	ModDotAllOff;
+	ModAllowWhiteOff; // -x
+	EndLine; // $ matches @ end of lines in multiline mode
+	EndData; //\Z	Match only at end of string, or before newline at the end
+	EndString; // \z Match only at end of string
+}
+
+
+private enum StackItem {
+	RepeatFrame(id:Int, r : ERegMatch, state:ExecState, info:Dynamic);
+	OrFrame(id : Int, state:ExecState);
+	ChildFrame(frameId:Int, state:ExecState, e:RegEx, eState:ExecState);
 }
 
 // @todo
 private enum ChildType {
-	Capture;
-	Comment; // (?#text)
-	//PatMatchModifier(?) (?pimsx-imsx)
-	NoBackref; // (?:pattern) Matches without creating backref
+	Normal;
 	//BranchReset; // (?|pattern) not sure how to do this one yet
+
+	// these should not create groups at all
+	PatMatchModifier; // (?s) or (?-s) (?pimsx-imsx)
+
+	// these ones create no capture in root.es.matches
+	Comment; // (?#text)
+	NoBackref; // (?:pattern) Matches without creating backref
 	LookAhead; // (?=pattern) /\w+(?=\t)/ matches a word followed by a tab, without including the tab in $&
 	NegLookAhead; //(?!pattern)
 	LookBehind; // (?<=pattern) /(?<=\t)\w+/ matches a word that follows a tab, without including the tab in $&
 	NegLookBehind; //(?<!pattern) /(?<!bar)foo/ matches any occurrence of "foo" that does not follow "bar". Works only for fixed-width look-behind.
-	//Named; # (?'NAME'pattern) # (?<NAME>pattern) A regular capture, just named. Just register in root
 
+	// require no special type
+	//Named; # (?'NAME'pattern) # (?<NAME>pattern) A regular capture, just named. Just register in root
 }
 
-/*
-not done
-    \A	Match only at beginning of string
-    \Z	Match only at end of string, or before newline at the end
-    \z	Match only at end of string
-    \G	Match only at pos() (e.g. at the end-of-match position
-        of prior m//g)
-*/
+
 
 /**
-	There is a discrepancy between what haxe returns for match() and what
-	is done in perl. In haxe, "abcdeeefghi" ~= |e*| is false, whereas
-	in Perl, this matches at pos 4, len 3. To enable Perl compatible
-	results, compile with -D PERL_COMPATIBLE
+	The following are not completed: [
+	Perl 5.10
+	\g1      Backreference to a specific or previous group,
+	\g{-1}   number may be negative indicating a previous buffer and may
+				optionally be wrapped in curly brackets for safer parsing.
+	\g{name} Named backreference
+	\k<name> Named backreference
+	\K       Keep the stuff left of the \K, don't include it in $&
+	\l		lowercase next char (think vi)
+	\u		uppercase next char (think vi)
+	\L		lowercase till \E (think vi)
+	\U		uppercase till \E (think vi)
+	\E		end case modification (think vi)
+	\Q		quote (disable) pattern metacharacters till \E
+	\N{name}	named Unicode character
+	\cK		control char          (example: VT)
+	\pP	     Match P, named property.  Use \p{Prop} for longer names.
+	\PP	     Match non-P
+	\X	     Match eXtended Unicode "combining character sequence",
+				equivalent to (?:\PM\pM*)
+	\C	     Match a single C char (octet) even under Unicode.
+			NOTE: breaks up characters into their UTF-8 bytes,
+			so you may end up with malformed pieces of UTF-8.
+			Unsupported in lookbehind.
+	]
+	@todo \G Match only at pos() (e.g. at the end-of-match position of prior m//g)
+
 **/
 class RegEx {
 	inline static var NULL_MATCH	: Int = -1;
@@ -152,11 +197,16 @@ class RegEx {
 	static var sSPACE		= " ";
 	static var sNEL			= String.fromCharCode(0x85);
 
+	var type	: ChildType;
 	var pattern : String;
 	var options : String;
+	// options //
 	var ignoreCase : Bool;
 	var multiline : Bool;
+	var dotall : Bool;
 	var global : Bool;
+	var allowWhite : Bool;
+	var noBacktrack : Bool;
 
 	///////////// for Grouping ///////////////////////
 	var root(default, null)		: RegEx;
@@ -165,31 +215,41 @@ class RegEx {
 	var namedGroups				: Hash<RegEx>;
 	var _groupCount 			: Int; // a 'static' accessed by sub groups
 	var _frameIdx				: Int; // a 'static' Frame index number
+	var children				: Array<RegEx>;
 
 	///////////// parser vars ////////////////////////
 	var groupNumber : Int; // (()) () group number
-	var rules : Array<ERegMatch>;
+	var instanceRules : Array<ERegMatch>;
 	var parsedPattern : String; // the piece that was extracted from pattern
 
 	var capturesOpened : Int; // count each (
 	var capturesClosed : Int; // count each )
+	var pass : Int; // (?x) PatMatchModifier requires reparse of rule
 
 	///////////// populate for match() ///////////////
-	var inputOrig : String; // the input string to match
-	var input : String; // modified input for case sensitivity
-	var index : Int; // position of match
-	var matches : Array<String>;
+	var input : String; // input string
+// 	var index : Int; // position of match
+// 	var matches : Array<String>;
 	var lastIndex: Int;
 	var leftContext : String;
 	var rightContext : String;
 
+	var stack : Array<StackItem>;
+	var es : ExecState;
+
 	public function new(pattern : String, opt : String, ?parent : RegEx = null) {
+		this.type = Normal;
 		this.pattern = pattern;
 		this.options = opt.toLowerCase();
 		this.ignoreCase = (options.indexOf("i") >= 0);
 		this.multiline = (options.indexOf("m") >= 0);
+		this.dotall = (options.indexOf("s") >= 0);
+		this.allowWhite =  (options.indexOf("x") >= 0);
+		this.noBacktrack = false;
 		this.global = (options.indexOf("g") >= 0);
 		this.lastIndex = 0;
+		this.children = new Array();
+		this.stack = new Array();
 		if(parent == null) {
 			_groupCount = 0;
 			_frameIdx = 0;
@@ -208,12 +268,28 @@ class RegEx {
 			this.parent = parent;
 			this.groupNumber = ++this.root._groupCount;
 			this.depth = parent.depth + 1;
+			parent.children.push(this);
 		}
-		this.rules = new Array();
+		pass = 1;
+		var ogn = groupNumber;
+		var oco = root.capturesOpened;
+		var occ = root.capturesClosed;
+		var rv = parse(pattern, 0, false);
+		// whitespaced patterns will need reparsing, according to Perl.
+		// not so according to common sense and PCRE
+		if(rv.reparse) {
+			#if DEBUG_PARSER trace("REPARSING " + traceName()); #end
+			pass = 2;
+			root.capturesOpened = oco;
+			root.capturesClosed = occ;
+			groupNumber = ogn;
+			if(groupNumber < 0)
+				groupNumber = 9999;
+			children = new Array();
+			rv = parse(pattern, 0, false);
+		}
+		this.instanceRules = rv.rules;
 
-		var rv = parse(pattern, 0, 0);
-		for(r in rv.rules)
-			this.rules.push(r);
 		this.parsedPattern = pattern.substr(0, rv.bytes);
 		if(isRoot()) {
 			if(pattern.length != rv.bytes)
@@ -226,576 +302,24 @@ class RegEx {
 			trace ("Top level consumed pattern " + parsedPattern);
 			#end
 		}
+		switch(type) {
+		// look behinds are passed the substring to current position.
+		case LookBehind, NegLookBehind:
+			instanceRules.push(EndLine);
+		default:
+		}
 	}
 
 	public function match( s : String ) : Bool {
-		return (exec(s) != null);
-	}
-
-	function isRoot() : Bool {
-		return this.root == this;
-	}
-
-	var frameStack : Array<ERegMatch>;
-	var es : ExecState;
-
-	/**
-		Executes the regular expression on string s.
-		@return null if no match
-	**/
-	public function exec( s : String, ?matchAnywhere : Bool = false, ?lastExecState : ExecState ) :
-		{ index:Int,leftContext:String, rightContext:String, matches:Array<String> }
-	{
-		if(s == null)
-			return null;
-		var me = this;
-		this.inputOrig = s;
-		this.input = ignoreCase ? s.toLowerCase() : s;
-
-		var reEnterLoop = false;
-		if(lastExecState == null) {
-			es = {
-				restoring	: false,
-				matchAnywhere : matchAnywhere,
-				startPos 	: (global ? lastIndex : 0),
-				outerPos 	: (global ? lastIndex : 0),
-				iRuleIdx 	: -1,
-				iPos		: (global ? lastIndex : 0),
-				conditional : true,
-			}
-			resetState();
-		} else {
-			es = lastExecState;
-			reEnterLoop = true;
-			es.restoring = true; // just to be sure
-			es.outerPos--;
-			es.iRuleIdx--;
-			root.matches[groupNumber] = null;
-			// no reset of match state, since it should exist.
-		}
-
-		var bestMatchState = saveState();
-		var mr : MatchResult = null;
-
-		var updatePosition = function(mr : MatchResult) {
-			if(me.index < 0)
-				me.index = mr.position;
-			me.es.iPos = mr.position + mr.length;
-			me.matches[0] = me.inputOrig.substr(me.index, me.es.iPos - me.index);
-			me.es.conditional = me.es.conditional && mr.conditional;
-		}
-		var reset = function() {
-			me.resetState();
-			me.es.iRuleIdx = - 1;
-			mr = null;
-		}
-
-		/*
-			Conditional matches are those that have 0 length possibilities.
-			ie. "black" ~= |e*| 'matches conditionally' on 0 e's, since
-			"black" ~= |e*lack| has to match
-		*/
-		while(es.outerPos++ < input.length && (es.conditional || reEnterLoop)) {
-			if(!reEnterLoop) {
-				reset();
-				es.iPos = es.outerPos - 1;
-			}
-			else
-				reEnterLoop = false;
-			#if DEBUG_MATCH
-				trace(traceName() + " --- Outer loop " + es.iPos);
-			#end
-
-			while(++es.iRuleIdx < rules.length && es.iPos <= input.length) {
-				#if DEBUG_MATCH
-					trace(traceName() + " --- start rule " + es.iRuleIdx);
-					trace(traceName() + " Current index: " + this.index);
-					trace(traceName() + " Current pos: "+es.iPos);
-					trace(traceName() + " Rule : " + rules[es.iRuleIdx]);
-				#end
-				if(!es.restoring) {
-					mr = run(es.iPos, [rules[es.iRuleIdx]]);
-					#if DEBUG_MATCH trace(traceName() + " Result: " + mr);	#end
-				} else {
-					mr == null;
-					es.restoring = false;
-					var cr : ERegMatch = popFrame();
-					if(cr == null)
-						throw "internal error";
-					#if DEBUG_MATCH trace(traceName() + " Restoring at rule #"+es.iRuleIdx + " " + ruleToString(cr)); #end
-					mr = run(es.iPos, [cr]);
-				}
-
-				if(isValidMatch(es.iPos, mr)) {
-					updatePosition(mr);
-					continue;
-				}
-				var found = false;
-
-				#if DEBUG_MATCH
-				trace(traceName() + " +++++++++++++++++++++ Match not found. Stack: " + frameStack);
-				#end
-				while(true) {
-					var isChild = false;
-					var rule = popFrame();
-					if(rule == null)
-						break;
-					switch(rule) {
-					case Frame(_, srcpos, _, _):
-						#if DEBUG_MATCH
-							trace(traceName() + " REWINDING TO " + srcpos + " FROM " + es.iPos);
-						#end
-						es.iPos = srcpos;
-						isChild = false;
-					case ChildFrame(_, e, eExecState, pExecState):
-						restoreExecState(pExecState);
-						es.iRuleIdx++;
-						isChild = true;
-					default: throw "invalid item in frameStack";
-					}
-					mr = run(es.iPos, [rule]);
-					if(isValidMatch(es.iPos, mr)) {
-						updatePosition(mr);
-						found = true;
-					}
-					if(found) {
-						#if DEBUG_MATCH
-							trace(traceName() + " RERUNNING " + rules[es.iRuleIdx] + " at pos " + es.iPos);
-						#end
-						mr = run(es.iPos, [rules[es.iRuleIdx]]);
-						if(isValidMatch(es.iPos, mr)) {
-							updatePosition(mr);
-							if(isChild)
-								es.iRuleIdx++;
-							break;
-						} else {
-							found = false;
-						}
-					}
-				}
-				if(found)
-					continue;
-
-				// at this point, the match has failed at current position.
-				// move to next position, reset state, and reset to rule 0
-				es.iPos++;
-				reset();
-			}
-			if(mr != null && mr.ok && this.index >= 0) {
-				if(		bestMatchState.index < 0 ||
-						bestMatchState.matches.length == 0 ||
-						this.matches[0].length > bestMatchState.matches[0].length ||
-						es.conditional == false
-				) {
-					bestMatchState = saveState();
-					#if DEBUG_MATCH
-						trace(traceName() + " UPDATE BEST MATCH TO " + matches[0]/*+ bestMatchState*/);
-					#end
-				}
-			}
-			if(!matchAnywhere || !isRoot())
+		var res = null;
+		for(i in 0...s.length + 1) {
+			res = exec(s,null,i);
+			if(res != null) {
+				lastIndex = i;
 				break;
-		}
-
-		restoreState(bestMatchState);
-
-		#if DEBUG_MATCH
-			trace(traceName() + " Final index: " + index + " length: " +  (es.iPos - index) + " conditional: " + es.conditional);
-		#end
-		if(this.index < 0 || this.matches.length == 0 || (matches[0].length == 0 && es.conditional)) {
-			lastIndex = 0;
-			root.matches[this.groupNumber] = "";
-			matches = new Array();
-			return null;
-		}
-
-		var len =  matches[0].length;
-		lastIndex = index;
-		// makes sure that the match in 0 is of the original string
-		// not the potentially modified 'input'
-		matches[0] = inputOrig.substr(index, len);
-		root.matches[groupNumber] = matches[0];
-
-		leftContext = inputOrig.substr(0, index);
-		rightContext = inputOrig.substr(index + len);
-
-		var ra = new Array<String>();
-		for(i in matches)
-			ra.push(new String(i));
-		return {
-			index: this.index,
-			leftContext: new String(this.leftContext),
-			rightContext: new String(this.rightContext),
-			matches: ra,
-		}
-	}
-
-	function isValidMatch(pos : Int, mr : MatchResult) {
-		if(mr == null || !mr.ok)
-			return false;
-		if(pos == mr.position)
-			return true;
-		if(global) {
-			if(this.index < 0)
-				return true;
-		}
-		return false;
-	}
-
-	function saveState() : State {
-		var sm = new Array<String>();
-		for(m in matches)
-			sm.push(new String(m));
-		var nfs = new Array<ERegMatch>();
-		for(r in frameStack) {
-			switch(r) {
-			case Frame(id,srcpos, rule, info):
-				nfs.push(Frame(id,srcpos, rule, Reflect.copy(info)));
-			case ChildFrame(id, e, eExecState, pExecState):
-				nfs.push(ChildFrame(id, e, eExecState, pExecState));
-			default:
-				throw "internal error";
 			}
 		}
-
-		var ps : State = parent != this ? parent.saveState() : null;
-
-		return {
-			matches : sm,
-			index : index,
-			frameStack : nfs,
-			parentState : ps,
-		}
-	}
-
-	function restoreState(state : State) : Void {
-		matches = state.matches;
-		index = state.index;
-		frameStack = state.frameStack;
-		if(state.parentState != null)
-			parent.restoreState(state.parentState);
-	}
-
-	function resetState() {
-		matches = new Array();
-		index = -1;
-		frameStack = new Array();
-	}
-
-	static function copyExecState(v : ExecState) : ExecState {
-		return {
-			restoring	: v.restoring,
-			matchAnywhere : v.matchAnywhere,
-			startPos 	: v.startPos,
-			outerPos 	: v.outerPos,
-			iRuleIdx 	: v.iRuleIdx,
-			iPos		: v.iPos,
-			conditional : v.conditional,
-		}
-	}
-
-	function restoreExecState(v : ExecState) : Void {
-		es = v;
-		es.restoring = false;
-	}
-
-	/**
-		http:/
-	**/
-	function run(pos:Int, rules:Array<ERegMatch>, ?info:Dynamic) : MatchResult {
-		#if DEBUG_MATCH
-		trace(">>> " + traceName() +" "+ here.methodName + " " + rulesToString(rules) + " group: "+groupNumber+" pos: " + pos);
-		#end
-		var me = this;
-		var origPos = pos;
-		var final = true;
-		var conditional = true;
-
-		var MATCH = function(count : Int) {
-			var len : Int = (count == NULL_MATCH ? 0 : pos - origPos);
-			return {
-				ok			: true,
-				position	: origPos,
-				length		: len,
-				final		: final,
-				conditional : conditional,
-			}
-		}
-		var NOMATCH = function() {
-			return {
-				ok			: false,
-				position	: origPos,
-				length		: 0,
-				final		: final,
-				conditional : false,
-			}
-		}
-
-		for(rule in rules) {
-			switch(rule) {
-			case Beginning:
-				conditional = false;
-				if(pos != 0)
-					return NOMATCH();
-			case MatchExact(s):
-				conditional = false;
-				if(pos>=input.length || input.substr(pos, s.length) != s)
-					return NOMATCH();
-				pos += s.length;
-			case MatchCharCode(cc):
-				conditional = false;
-				if(pos>=input.length ||input.charCodeAt(pos) != cc)
-					return NOMATCH();
-				pos++;
-			case MatchAny:
-				conditional = false;
-				if(pos>=input.length ||input.substr(pos, 1) == "\n")
-					return NOMATCH();
-				pos++;
-			case MatchAnyOf(ch):
-				conditional = false;
-				if(pos>=input.length || !ch.exists(input.charCodeAt(pos)))
-					return NOMATCH();
-				pos++;
-			case MatchNoneOf(ch):
-				conditional = false;
-				var exists = input.charCodeAt(pos) == null || ch.exists(input.charCodeAt(pos));
-				if(exists)
-					return NOMATCH();
-				pos++;
-				/* Past EOL version
-				if(pos<input.length && exists)
-					return NOMATCH();
-				if(pos < input.length)
-					pos++;
-				else
-					conditional = true;
-				*/
-			case MatchWordBoundary:
-				/*	A word boundary (\b ) is a spot between two characters that has a \w  on one side of it and a \W  on the other side of it (in either order), counting the imaginary characters off the beginning and end of the string as matching a \W */
-				conditional = false;
-				var prevIsWord = pos == 0 ? false : isWord(input.charCodeAt(pos-1));
-				var curIsWord = pos >= input.length ? false : isWord(input.charCodeAt(pos));
-				if(prevIsWord == curIsWord)
-					return NOMATCH();
-			case NotMatchWordBoundary:
-				conditional = false;
-				var prevIsWord = pos == 0 ? false : isWord(input.charCodeAt(pos-1));
-				var curIsWord = pos >= input.length ? false : isWord(input.charCodeAt(pos));
-				if(prevIsWord != curIsWord)
-					return NOMATCH();
-			case Or(a, b):
-				conditional = false;
-				if(info == null) {
-					info = {
-					pos : pos,
-					origPos : origPos,
-					state : saveState(),
-					resultA: null,
-					resultB: null,
-					};
-				}
-				restoreState(info.state);
-				origPos = info.origPos;
-				pos = info.pos;
-				var framePos = pos;
-				var ok = false;
-				var origStackLen = frameStack.length;
-
-				var doResultSide = function(rules) {
-					var mr = me.run(pos, rules, null);
-					var ok = false;
-					if(me.isValidMatch(pos, mr)) {
-						origPos = mr.position;
-						pos = origPos + mr.length;
-						ok = true;
-					} else {
-						while(me.frameStack.length > origStackLen) {
-							mr = me.run(pos, [me.popFrame()], null);
-							if(!mr.ok)
-								continue;
-							ok = true;
-							pos = mr.position + mr.length;
-							break;
-						}
-						me.rewindStackLength(origStackLen);
-					}
-					return { ok : ok, mr : mr }
-				}
-
-				if(info.resultA == null) {
-					var rv = doResultSide(a);
-					info.resultA = rv.mr;
-					ok = rv.ok;
-				}
-				if(!ok && info.resultB == null) {
-					var rv = doResultSide(b);
-					info.resultB = rv.mr;
-					ok = rv.ok;
-				}
-				if(!ok) {
-					final = true;
-					return NOMATCH();
-				}
-				final =
-					(info.resultA == null ? false : info.resultA.final) &&
-					(info.resultB == null ? false : info.resultB.final);
-
-				if(!final)
-					pushFrame(framePos, rule, info);
-				#if DEBUG_MATCH
-					trace("END Or: frameStack: " + frameStack);
-				#end
-			case Repeat(e, minCount, maxCount, notGreedy, possessive):
-				if(info == null) {
-					info = {
-					pos : pos,
-					origPos : origPos,
-					state : saveState(),
-					lastCount : 0,
-					min : minCount,
-					max : maxCount,
-					};
-				}
-				restoreState(info.state);
-				pos = info.pos;
-				origPos = info.origPos;
-				var framePos = pos;
-				var ok = false;
-				var origStackLen = frameStack.length;
-				var min = info.min;
-				var max = info.max;
-
-				var maxTest = function(c : Null<Int>) {
-					if(max == null)
-						return true;
-					return c < max;
-				}
-				var count = 0;
-				var mr : MatchResult = null;
-				while(pos < input.length && maxTest(count)) {
-					if(notGreedy && count >= min)
-						break;
-					mr = run(pos, [e]);
-					if(!mr.ok)
-						break;
-					if(mr.position != pos)
-						return NOMATCH();
-					if(mr.length == 0)
-						pos ++;
-					else
-						pos += mr.length;
-					count++;
-				}
-				info.lastCount = count;
-				if(count < min) {
-					final = true;
-					return NOMATCH();
-				}
-				if(max == null) {
-					if(count > 0)
-						conditional = false;
-					if(notGreedy && count == 0)
-						conditional = false;
-				}
-				if(notGreedy) {
-					info.min = count + 1;
-					if(info.max != null && info.min > info.max)
-						final = true;
-					else
-						final = false;
-				} else {
-					info.max = count - 1;
-					if(info.min > info.max)
-						final = true;
-					else
-						final = false;
-				}
-				if(!final) {
-					#if DEBUG_MATCH
-						//trace("******** "+rule+" NOT FINAL. PUSHING " + info);
-					#end
-					pushFrame(framePos, rule, info);
-				}
-			case Capture(er):
-				#if DEBUG_MATCH
-					trace(traceName() + " RUNNING CAPTURE "+ er.groupNumber+" at pos: " + pos);
-				#end
-				er.lastIndex = pos;
-				er.global = true;
-				if(!er.match(inputOrig)) {
-					#if DEBUG_MATCH
-						trace(traceName() + " CAPTURE FAILED");
-					#end
-					return NOMATCH();
-				}
-				var len = root.matches[er.groupNumber].length;
-				conditional = conditional && er.es.conditional;
-				var mr : MatchResult = {
-					ok : true,
-					position : er.index,
-					length : len,
-					final : true,
-					conditional : er.es.conditional,
-				}
-				if(!isValidMatch(pos, mr))
-					return NOMATCH();
-				origPos = er.index;
-				pos = er.index + len;
-				#if DEBUG_MATCH
-					trace(traceName() + " CAPTURE " + er.groupNumber +" MATCHED new pos:" + pos);
-				#end
-			case BackRef(n):
-				if(root.matches.length < n)
-					throw "Internal error";
-				var mr = run(pos, [MatchExact(root.matches[n])]);
-				if(!mr.ok)
-					return NOMATCH();
-				pos += mr.length;
-			case RangeMarker: throw "Internal error";
-			case End:
-				conditional = false;
-				if(pos != input.length) {
-					if(multiline) {
-						if(input.charAt(pos) == "\r" && input.charAt(pos+1) == "\n") {
-							pos += 2;
-						} else if(input.charAt(pos) == "\n") {
-							pos ++;
-						} else {
-							return NOMATCH();
-						}
-					} else {
-						return NOMATCH();
-					}
-				}
-			case Frame(_, srcpos, r, inf):
-				if(pos != srcpos)
-					throw "invalid use";
-				return run(pos, [r], inf);
-			case ChildFrame(_, er, eExecState, _):
-				var res = er.exec(inputOrig, es.matchAnywhere, eExecState);
-				//trace(res);
-				if(res == null)
-					return NOMATCH();
-				var len = root.matches[er.groupNumber].length;
-				conditional = conditional && er.es.conditional;
-				var mr : MatchResult = {
-					ok : true,
-					position : er.index,
-					length : len,
-					final : true,
-					conditional : er.es.conditional,
-				}
-				if(!isValidMatch(pos, mr))
-					return NOMATCH();
-				origPos = er.index;
-				pos = er.index + len;
-				#if DEBUG_MATCH
-					trace("CAPTURE " + er.groupNumber +" MATCHED new pos:" + pos);
-				#end
-			}
-		}
-		return MATCH(1);
+		return (res != null);
 	}
 
 	/**
@@ -804,9 +328,11 @@ class RegEx {
 		is returned.
 	**/
 	public function matched( n : Int) : String {
-		if(n >= matches.length || (n == 0 && matches[0].length == 0))
-			throw "EReg::matched "+ n;
-		return matches[n];
+		if(
+			n > root.capturesOpened ||
+			(n == 0 && root.es.conditional))
+				throw "EReg::matched "+ n;
+		return es.matches.get(n);
 	}
 
 	/**
@@ -831,8 +357,8 @@ class RegEx {
 	**/
 	public function matchedPos() : { pos : Int, len : Int } {
 		return {
-			pos : index,
-			len : matches[0].length,
+			pos : es.index,
+			len : es.matches.get(0).length,
 		};
 	}
 
@@ -847,21 +373,729 @@ class RegEx {
 		return results;
 	}
 
+
+
+	//-------------------- implementation -------------------------//
+	function isRoot() : Bool {
+		return this.root == this;
+	}
+
+	/**
+		Executes the regular expression on string s.
+		@return null if no match
+	**/
+	function exec( s : String, ?lastExecState : ExecState, ?startPos:Null<Int>=null) : ExecResult
+	{
+		if(s == null)
+			return null;
+		var me = this;
+		this.input = s;
+
+		if(lastExecState == null) {
+			initExecState(startPos);
+		} else {
+			es = lastExecState;
+			es.restoring = true; // just to be sure
+			es.iRuleIdx--;
+			root.es.matches.remove(groupNumber);
+			// no reset of match state, since it should exist.
+		}
+
+		var bestMatchState = saveMatchState();
+		var mr : MatchResult = null;
+
+		var updatePosition = function(mr : MatchResult) {
+			if(me.es.index < 0)
+				me.es.index = mr.position;
+			me.es.iPos = mr.position + mr.length;
+			me.es.matches.set(0, me.input.substr(me.es.index, me.es.iPos - me.es.index));
+			me.es.iPos += mr.extra;
+			me.es.conditional = me.es.conditional && mr.conditional;
+		}
+
+		/*
+			Conditional matches are those that have 0 length possibilities.
+			ie. "black" ~= |e*| 'matches conditionally' on 0 e's, since
+			"black" ~= |e*lack| has to match
+		*/
+
+		var popStack = false;
+		while(popStack || (++es.iRuleIdx < instanceRules.length && es.iPos <= input.length)) {
+			popStack = false;
+			if(!es.restoring) {
+				#if DEBUG_MATCH
+					trace(traceName() + " --- start rule #" + es.iRuleIdx + " " + ruleToString(instanceRules[es.iRuleIdx]));
+					trace(traceName() + " Current index: " + es.index);
+					trace(traceName() + " Current pos: "+es.iPos);
+				#end
+				mr = testRule(es.iPos, instanceRules[es.iRuleIdx]);
+				#if DEBUG_MATCH trace(traceName() + " Result: " + mr);	#end
+			} else {
+				mr == null;
+				es.restoring = false;
+				var cr : StackItem = popFrame();
+				if(cr == null) {
+					#if DEBUG_MATCH
+					trace(traceName() + " no more items in stack");
+					#end
+					break;
+				}
+				#if DEBUG_MATCH trace(traceName() + " Restoring at rule #"+es.iRuleIdx + " " + stackItemToString(cr));
+				root.traceFrames();
+				#end
+
+				switch(cr) {
+				case RepeatFrame(_, rule, state, info):
+					restoreExecState(state);
+					//mr = run(es.iPos, instanceRules[es.iRuleIdx], info);
+					mr = testRule(es.iPos, rule, info);
+				case OrFrame(_, state):
+					restoreExecState(state);
+					resetMatchState();
+					mr = testRule(es.iPos, instanceRules[es.iRuleIdx]);
+				case ChildFrame(id, state, er, eState):
+					restoreExecState(state);
+					eState.iPos = es.iPos;
+					#if DEBUG_MATCH_V
+					trace(" +++++ "+traceName() + " Popped child frame " + id + " Rewound to pos:" + es.iPos + " rule #" + es.iRuleIdx);
+					#end
+					var res = er.exec(input, eState);
+					//trace(res);
+					if(res == null) {
+						mr = {
+							ok : false,
+							position : er.es.index,
+							length : 0,
+							orMark : false,
+							conditional : false,
+							extra : 0,
+						}
+					}
+					else {
+						var len =
+							if(root.es.matches.get(er.groupNumber) != null)
+								root.es.matches.get(er.groupNumber).length
+							else
+								0;
+						es.conditional = es.conditional && er.es.conditional;
+						mr = {
+							ok : true,
+							position : er.es.index,
+							length : len,
+							orMark : false,
+							conditional : er.es.conditional,
+							extra : 0,
+						}
+						#if DEBUG_MATCH
+							trace("CHILD FRAME " + er.groupNumber + " MATCHED.");
+						#end
+					}
+				}
+			}
+
+			// everything has matched to this point,
+			if(mr.orMark) {
+				if(isRoot() && es.conditional) {
+					#if DEBUG_MATCH
+					trace("Root has reached an OrMarker, but has only conditional match. Continuing.");
+					#end
+					continue;
+				}
+				var id = root._frameIdx++;
+				var st = copyExecState(es);
+				st.iPos = es.startPos;
+				st.restoring = true;
+				st.iRuleIdx++; // skip the OrMarker
+				stack.push(OrFrame(id, st));
+				if(!isRoot())
+					parent.addChildFrame(id, this, st);
+				#if DEBUG_MATCH_V
+				neko.Lib.println("pushOrFrame dump:");
+				root.traceFrames();
+				#end
+				break;
+			}
+
+			if(isValidMatch(es.iPos, mr)) {
+				updatePosition(mr);
+				continue;
+			}
+			var found = false;
+
+			if(stack.length > 0) {
+				#if DEBUG_MATCH
+				trace(traceName() + " +++++++++++++++++++++ Match not found. Stack: ");
+				root.traceFrames();
+				#end
+				es.restoring = true;
+				popStack = true;
+				continue;
+			}
+
+			es.conditional = false;
+			// try to find the next OrMarker
+			while(++es.iRuleIdx < instanceRules.length) {
+				if(instanceRules[es.iRuleIdx] != OrMarker)
+					continue;
+				// if an end OrMarker
+// 					if(es.iRuleIdx == instanceRules.length - 1) {
+// 						es.conditional = true;
+// 					} else {
+					found = true;
+// 					}
+				break;
+			}
+			if(found) {
+				#if DEBUG_MATCH
+				trace(traceName() + " +++++++++++++++++++++ Match not found. Skipped to next OrMarker");
+				#end
+				if(es.iRuleIdx == instanceRules.length -1) {
+					//empty or
+					mr = {
+						ok : true,
+						position : es.iPos,
+						length : 0,
+						orMark : false,
+						conditional : false,
+						extra : 0,
+					};
+					es.matches.set(0, "");
+					es.index = es.iPos;
+					es.conditional = false;
+					root.es.matches.set(groupNumber, "");
+					break;
+				} else {
+					resetMatchState();
+					es.iPos = es.startPos;
+					continue;
+				}
+			}
+			#if DEBUG_MATCH
+			trace(traceName() + " +++++++++++++++++++++ Match not found. No remaining OrMarker");
+			trace(es);
+			#end
+		} // while(++es.iRuleIdx < instanceRules.length && es.iPos <= input.length)
+
+		if(instanceRules.length == 0) {
+			//empty rule set
+			mr = {
+				ok : true,
+				position : es.iPos,
+				length : 0,
+				orMark : false,
+				conditional : !isRoot(),
+				extra : 0,
+			};
+			es.matches.set(0, "");
+			es.index = es.iPos;
+			es.conditional = false;
+			root.es.matches.set(groupNumber, "");
+		}
+
+
+		if(mr != null && mr.ok && es.index >= 0) {
+			if(		bestMatchState.index < 0 ||
+					es.matches.get(0).length >= bestMatchState.matches.get(0).length ||
+					es.conditional == false
+			) {
+				bestMatchState = saveMatchState();
+				#if DEBUG_MATCH
+					trace(traceName() + " UPDATE BEST MATCH TO " + es.matches.get(0));
+				#end
+			}
+		}
+
+		restoreMatchState(bestMatchState);
+		#if DEBUG_MATCH
+			trace(traceName() + " Final index: " + es.index + " length: " +  (es.iPos - es.index) + " conditional: " + es.conditional);
+		#end
+		if(es.index < 0 || es.matches.get(0) == null || (es.matches.get(0).length == 0 && es.conditional)) {
+			lastIndex = 0;
+			root.es.matches.remove(this.groupNumber);
+			es.matches = new IntHash();
+			return null;
+		}
+
+		var len =  es.matches.get(0).length;
+		lastIndex = es.index;
+		// makes sure that the match in 0 is of the original string
+		// not the potentially modified 'input'
+		es.matches.set(0, input.substr(es.index, len));
+		root.es.matches.set(groupNumber, es.matches.get(0));
+
+		leftContext = input.substr(0, es.index);
+		rightContext = input.substr(es.index + len);
+
+		var ra = new IntHash<String>();
+		for(i in es.matches.keys())
+			ra.set(i, new String(es.matches.get(i)));
+		return {
+			index: es.index,
+			leftContext: new String(this.leftContext),
+			rightContext: new String(this.rightContext),
+			matches: ra,
+		}
+	}
+
+	function isValidMatch(pos : Int, mr : MatchResult) {
+		if(mr == null || !mr.ok)
+			return false;
+		if(pos == mr.position)
+			return true;
+		if(global) {
+			if(es.index < 0)
+				return true;
+		}
+		return false;
+	}
+
+
+	function saveMatchState() : MatchState {
+		var sm = new IntHash<String>();
+		for(i in es.matches.keys())
+			sm.set(i, new String(es.matches.get(i)));
+		var pms = parent != this ? parent.saveMatchState() : null;
+
+		return {
+			matches : sm,
+			index : es.index,
+			parentState : pms,
+		}
+	}
+
+	function restoreMatchState(state : MatchState) : Void {
+		es.matches = state.matches;
+		es.index = state.index;
+		if(state.parentState != null)
+			parent.restoreMatchState(state.parentState);
+	}
+
+	function resetMatchState() {
+		if(es == null)
+			initExecState(null);
+		es.matches = new IntHash();
+		es.index = -1;
+// 		#if DEBUG_MATCH
+// 		trace("resetMatchState killing stack... TODO?");
+// 		#end
+// 		stack = new Array();
+		for(c in children)
+			c.resetMatchState();
+	}
+
+	/**
+		@todo check noBacktrack inheritance ie. (?>) group types
+	**/
+	function initExecState(pos:Null<Int>) {
+		var p = pos == null ? (global ? lastIndex : 0) : pos;
+		es = {
+			restoring	: false,
+			startPos 	: p,
+			iRuleIdx 	: -1,
+			iPos		: p,
+			conditional : true,
+			matches		: new IntHash(),
+			index		: -1,
+		}
+		root.es.matches.remove(this.groupNumber);
+		ignoreCase = parent.ignoreCase;
+		multiline = parent.multiline;
+		dotall = parent.dotall;
+		//global does not inherit
+		//what about noBacktrack?
+		for(c in children)
+			c.initExecState(pos);
+	}
+
+	static function copyExecState(v : ExecState) : ExecState {
+		if(v == null) throw "internal error " + here.lineNumber;
+		var mcopy = new IntHash();
+		for(i in v.matches.keys())
+			mcopy.set(i, new String(v.matches.get(i)));
+		return {
+			restoring	: v.restoring,
+			startPos 	: v.startPos,
+			iRuleIdx 	: v.iRuleIdx,
+			iPos		: v.iPos,
+			conditional : v.conditional,
+			matches		: mcopy,
+			index		: v.index,
+		}
+	}
+
+	function restoreExecState(v : ExecState) : Void {
+		es = copyExecState(v);
+		es.restoring = false;
+	}
+
+	/**
+	**/
+	function testRule(pos:Int, rule:ERegMatch, ?info:Dynamic) : MatchResult {
+		if(rule == null) {
+			#if (DEBUG_PARSER || DEBUG_MATCH)
+				trace(this.toString());
+			#end
+			throw "internal error " + here.lineNumber;
+		}
+		#if DEBUG_MATCH
+		trace(">>> " + traceName() +" "+ here.methodName + " " + ruleToString(rule) + " group: "+groupNumber+" pos: " + pos);
+		#end
+		var me = this;
+		var origPos = pos;
+		var orMark = false;
+		var conditional = false;
+		var extra = 0;
+
+		var MATCH = function(count : Int) {
+			var len : Int = (count == NULL_MATCH ? 0 : pos - origPos);
+			return {
+				ok			: true,
+				position	: origPos,
+				length		: len,
+				orMark		: orMark,
+				conditional : conditional,
+				extra		: extra,
+			}
+		}
+		var NOMATCH = function() {
+			return {
+				ok			: false,
+				position	: origPos,
+				length		: 0,
+				orMark		: orMark,
+				conditional : false,
+				extra		: extra,
+			}
+		}
+
+		switch(rule) {
+		case BeginString:
+			if(pos != 0)
+				return NOMATCH();
+		case BeginLine:
+			if(multiline) {
+				if(pos != 0) {
+					switch(input.charCodeAt(pos - 1)) {
+					case LF,CR,NEL:
+					#if SUPPORT_UTF8
+					case UTF_LS,UTF_PS:
+					#end
+					default:
+						return NOMATCH();
+					}
+				}
+			}
+			else if(pos != 0)
+				return NOMATCH();
+		case EndLine:
+			if(pos < input.length) {
+				if(multiline) {
+					if(input.charAt(pos) == "\r" && input.charAt(pos+1) == "\n") {
+						extra = 2;
+					} else if(input.charAt(pos) == "\n") {
+						extra = 1;
+					} else {
+						return NOMATCH();
+					}
+				} else {
+					return NOMATCH();
+				}
+			}
+		case EndData: // \Z
+			if(pos < input.length) {
+				var mr = testRule(pos, MatchLineBreak);
+				if(!mr.ok)
+					return NOMATCH();
+				if(pos + mr.length + mr.extra < input.length)
+					return NOMATCH();
+			}
+		case EndString: // \z
+			if(pos < input.length)
+				return NOMATCH();
+		case MatchLineBreak: // \R
+			// (?>\x0D?\x0A|[\x0A-\x0C\x85\x{2028}\x{2029}])
+			if(input.charAt(pos) == "\r" && input.charAt(pos+1) == "\n") {
+				pos += 2;
+			} else {
+				switch(input.charCodeAt(pos)) {
+// 				case LF,CR,NEL: // PCRE version
+				case LF,VT,FF,NEL: // Perl version
+				#if SUPPORT_UTF8
+				case UTF_LS,UTF_PS:
+				#end
+				default:
+					return NOMATCH();
+				}
+				pos++;
+			}
+		case MatchExact(s):
+			if(s == null) {
+				if(pos < input.length)
+					conditional = true;
+			} else {
+				if(ignoreCase) {
+					if(pos>=input.length || input.substr(pos, s.length).toLowerCase() != s.toLowerCase())
+						return NOMATCH();
+				}
+				else if(pos>=input.length || input.substr(pos, s.length) != s)
+					return NOMATCH();
+				pos += s.length;
+			}
+		case MatchCharCode(cc):
+			if(pos>=input.length)
+				return NOMATCH();
+			var cur = input.charCodeAt(pos);
+			if(ignoreCase) {
+				cc = lowerCaseCode(cc);
+				cur = lowerCaseCode(cur);
+			}
+			if(cur != cc)
+				return NOMATCH();
+			pos++;
+		case MatchAny:
+			if(pos>=input.length || (input.substr(pos, 1) == "\n" && !dotall))
+				return NOMATCH();
+			pos++;
+		case MatchAnyOf(ch):
+			if(pos>=input.length)
+				return NOMATCH();
+			var cur = input.charCodeAt(pos);
+			if(!ch.exists(cur)) {
+				if(ignoreCase) {
+					if(!ch.exists(changeCodeCase(cur)))
+						return NOMATCH();
+				} else {
+					return NOMATCH();
+				}
+			}
+			pos++;
+		case MatchNoneOf(ch):
+			if(pos>=input.length)
+				return NOMATCH();
+			var cur = input.charCodeAt(pos);
+			if(
+				cur == null ||
+				ch.exists(cur) ||
+				(ignoreCase && ch.exists(changeCodeCase(cur)))
+			)
+				return NOMATCH();
+			pos++;
+		case CharClass(rules):
+			for(r in rules) {
+				var rv = testRule(pos, r, null);
+				if(!rv.ok)
+					return NOMATCH();
+			}
+			pos++;
+		case MatchWordBoundary:
+			/*	A word boundary (\b ) is a spot between two characters that has a \w  on one side of it and a \W  on the other side of it (in either order), counting the imaginary characters off the beginning and end of the string as matching a \W */
+			var prevIsWord = pos == 0 ? false : isWord(input.charCodeAt(pos-1));
+			var curIsWord = pos >= input.length ? false : isWord(input.charCodeAt(pos));
+			if(prevIsWord == curIsWord)
+				return NOMATCH();
+		case NotMatchWordBoundary:
+			var prevIsWord = pos == 0 ? false : isWord(input.charCodeAt(pos-1));
+			var curIsWord = pos >= input.length ? false : isWord(input.charCodeAt(pos));
+			if(prevIsWord != curIsWord)
+				return NOMATCH();
+		case OrMarker:
+			orMark = true;
+		case Repeat(e, minCount, maxCount, notGreedy, possessive):
+			if(info == null) {
+				info = {
+				pos : pos,
+				origPos : origPos,
+				matchState : saveMatchState(),
+				lastCount : 0,
+				min : minCount,
+				max : maxCount,
+				};
+			} else {
+				restoreMatchState(info.matchState);
+			}
+			pos = info.pos;
+			origPos = info.origPos;
+			var framePos = pos;
+			var ok = false;
+			var origStackLen = stack.length;
+			var min = info.min;
+			var max = info.max;
+
+			var cgroup : Int = 0;
+			var isCapture = switch(e)
+			{
+				case Capture(er): cgroup=er.groupNumber; true;
+				default: false;
+			}
+			var lastCaptureResult = root.es.matches.get(cgroup);
+
+			var count = 0;
+			var mr : MatchResult = null;
+			while(pos < input.length && (max == null || count < max)) {
+				if(notGreedy && count >= min)
+					break;
+				mr = testRule(pos, e);
+				if(mr == null || !mr.ok || pos != mr.position) {
+					if(isCapture) // rewind capture last match
+						root.es.matches.set(cgroup, lastCaptureResult);
+					break;
+				}
+				if(isCapture)
+					lastCaptureResult = root.es.matches.get(cgroup);
+				pos += mr.length + mr.extra;
+				count++;
+			}
+			// mr can be null when notGreedy and zero minimum count
+
+			#if DEBUG_MATCH
+			trace(traceName() + " end repeat. Count is " + count + " for rule " + ruleToString(rule));
+			#end
+			info.lastCount = count;
+			if(count < min) {
+				rewindStackLength(origStackLen);
+				return NOMATCH();
+			}
+
+			var push = false;
+			if(count == 0 && !notGreedy && minCount != 0)
+				conditional = true;
+			if(notGreedy) {
+				info.min = count + 1;
+				if(info.max == null || info.min <= info.max)
+					push = true;
+			} else {
+				info.max = count - 1;
+				if(info.min <= info.max)
+					push = true;
+			}
+			if(push && !noBacktrack) {
+				#if DEBUG_MATCH
+					//trace("******** "+rule+" NOT FINAL. PUSHING " + info);
+				#end
+				pushRepeatFrame(Repeat(e, info.min, info.max, notGreedy, possessive), framePos, info);
+			}
+		case Capture(er):
+			#if DEBUG_MATCH
+				trace(traceName() + " RUNNING CAPTURE "+ er.groupNumber+" at pos: " + pos + " char: " + input.charAt(pos));
+			#end
+			er.initExecState(pos);
+// 			#if debug
+// 				if(er.stack.length > 0) {
+// 					var s = Std.string(er.stack.length);
+// 					#if (DEBUG_MATCH || DEBUG_MATCH_V) traceFrames(); s = "above"; #end
+// 					throw "Group "+er.groupNumber+ " has "+s+" remaining stack items";
+// 				}
+// 			#end
+// 			er.stack = new Array();
+			er.clearStack();
+			er.lastIndex = pos;
+			er.global = true;
+
+			var ok = false;
+			var epos = pos;
+			var len = 0;
+			var econd = false;
+			var eextra = 0;
+			switch(er.type) {
+			case Normal,NoBackref:
+				var res = er.exec(input, null, pos);
+				ok = res != null;
+				if(ok) {
+					#if debug
+						if(res.index != er.es.index)
+							throw "internal error " + here.lineNumber;
+						if(res.matches.get(0) != er.es.matches.get(0))
+							throw "internal error " + here.lineNumber;
+					#end
+					epos = res.index;
+					len =  res.matches.exists(0) ? res.matches.get(0).length : 0;
+					econd = er.es.conditional;
+				}
+			case PatMatchModifier:
+				throw "internal error " + here.lineNumber;
+			case Comment:
+				ok = true;
+			case LookAhead, NegLookAhead:
+				var res = er.exec(input, null, pos);
+				ok = res != null;
+				if(er.type == NegLookAhead)
+					ok = !ok;
+				econd = er.es.conditional;
+				len = 0;
+			case LookBehind, NegLookBehind:
+				er.lastIndex = 0;
+				#if DEBUG_MATCH_V
+				trace("Running " + er.type + " with " + input.substr(0,pos));
+				#end
+				var res = er.exec(input.substr(0,pos), null, 0);
+				ok = res != null;
+				if(er.type == NegLookBehind)
+					ok = !ok;
+				econd = er.es.conditional;
+				len = 0;
+				eextra = 0;
+			}
+
+			var mr = {
+				ok : ok,
+				position : epos,
+				length : len,
+				orMark : false,
+				conditional : econd,
+				extra : eextra,
+			};
+
+			if(!mr.ok && !mr.conditional) {
+				#if DEBUG_MATCH trace(traceName() + " CAPTURE FAILED"); #end
+				return NOMATCH();
+			}
+			conditional = conditional && er.es.conditional;
+
+			if(!isValidMatch(pos, mr))
+				return NOMATCH();
+
+			origPos = mr.position;
+			pos = origPos + mr.length;
+			#if DEBUG_MATCH
+				trace(traceName() + " CAPTURE " + er.groupNumber +" MATCHED new pos:" + pos);
+			#end
+		case BackRef(n):
+			if(root.capturesOpened < n)
+				throw "Internal error";
+			var mr = testRule(pos, MatchExact(root.es.matches.get(n)));
+			if(!mr.ok)
+				return NOMATCH();
+			pos += mr.length;
+			extra = mr.extra;
+		case RangeMarker: throw "Internal error";
+
+		case ModCaseInsensitive: ignoreCase = true;
+		case ModMultiline: multiline = true;
+		case ModDotAll: dotall = true;
+		case ModCaseInsensitiveOff: ignoreCase = false;
+		case ModMultilineOff: multiline = false;
+		case ModDotAllOff: dotall = false;
+		case ModAllowWhite, ModAllowWhiteOff: // no effect in matching
+		}
+		return MATCH(1);
+	}
+
 	#if (DEBUG_PARSER || DEBUG_MATCH)
 	function traceName() {
-		return (groupNumber > 0 ? "capture " + Std.string(groupNumber) : "root");
+		return (groupNumber == 0 ? "root" : groupNumber > 0 ? "capture " + Std.string(groupNumber) : Std.string(type));
 	}
 	#end
 
-	function parse(inPattern: String, pos : Int, orLevel: Int, ? inClass : Bool = false) : { bytes: Int, rules : Array<ERegMatch> } {
+	function parse(inPattern: String, pos : Int, ? inClass : Bool = false) : { bytes: Int, rules : Array<ERegMatch>, reparse : Bool } {
 		var me = this;
 		var startPos = pos;
+		var orLevel = 0;
 		#if DEBUG_PARSER
-			trace("START PARSE "+ traceName() +" orLevel: "+orLevel+" pos: " + pos + (inClass ? " in CLASS" : ""));
+			trace("START PARSE "+ traceName() +" pos: " + pos + (inClass ? " in CLASS" : ""));
 		#end
 
 		var curchar : String = null;
-		var rules : Array<ERegMatch> = new Array();
+		var parsedRules : Array<ERegMatch> = new Array();
 		var expectRangeEnd = false;
 		var patternLen = inPattern.length;
 		var atEndMarker : Bool = false;
@@ -951,9 +1185,22 @@ class RegEx {
 		var checkQuantifier = function() {
 			var nextChar = peek();
 			if(!inClass && (nextChar == "*" || nextChar == "+" || nextChar == "?" || nextChar == "{")) {
-				if(rules.length < 1)
+				if(parsedRules.length < 1)
 					throw unexpected("quantifier");
-				var lastRule : ERegMatch = rules[rules.length-1];
+				else {
+					switch(parsedRules[parsedRules.length - 1]) {
+					case MatchExact(_), MatchCharCode(_), MatchAny:
+					case MatchAnyOf(_), MatchNoneOf(_):
+					case MatchLineBreak, MatchWordBoundary:
+					case Repeat(_,_,_,_,_):
+					case Capture(_):
+					case BackRef(_):
+					case CharClass(_):
+					default:
+						throw unexpected("quantifier");
+					}
+				}
+				var lastRule : ERegMatch = parsedRules[parsedRules.length-1];
 				var min : Null<Int> = 0;
 				var max : Null<Int> = null;
 				var qualifier : String = null;
@@ -1008,7 +1255,7 @@ class RegEx {
 				var rv = createRepeat(lastRule, min, max, qualifier);
 				if(rv.validQualifier)
 					pos++;
-				rules[rules.length-1] = rv.rule;
+				parsedRules[parsedRules.length-1] = rv.rule;
 			}
 		}
 
@@ -1016,8 +1263,18 @@ class RegEx {
 		while(pos < patternLen - 1 && !atEndMarker) {
 			curchar = tok();
 			#if DEBUG_PARSER
-				trace(traceName() + " pos: " + pos + " curchar: " +curchar + " orLevel: "+orLevel + " nextChar: " + peek());
+				trace(traceName() + " pos: " + pos + " curchar: " +curchar + " nextChar: " + peek());
 			#end
+			if(allowWhite && !inClass) {
+				if(curchar != null) {
+					if(isWhite(Std.ord(curchar)))
+						continue;
+					if(curchar == "#") {
+						while(curchar != "\n" && pos < patternLen - 1) tok();
+						continue;
+					}
+				}
+			}
 			if(curchar == "\\") { // '\'
 				curchar = tok();
 				// handle octal
@@ -1047,7 +1304,7 @@ class RegEx {
 						var n = Std.parseOctal(numStr);
 						if(n == null)
 							throw invalid("octal sequence");
-						rules.push(me.createMatchCharCode(n));
+						parsedRules.push(MatchCharCode(n));
 					}
 					if(inClass) { // no backreferences, must be octal
 						doOctal();
@@ -1059,10 +1316,10 @@ class RegEx {
 						else {
 							var n = Std.parseInt(numStr);
 							if(n == null)
-								throw "internal error";
+								throw "internal error " + here.lineNumber;
 							if(!isValidBackreference(n))
 								throw backrefNotDefined(numStr);
-							rules.push(BackRef(n));
+							parsedRules.push(BackRef(n));
 						}
 					}
 					else {
@@ -1077,9 +1334,9 @@ class RegEx {
 							var n : Int = 0;
 							while(brs != null && brs.length > 0) {
 								n = Std.parseInt(brs);
-								if(n == null) throw "internal error";
+								if(n == null) throw "internal error " + here.lineNumber;
 								if(isValidBackreference(n)) {
-									rules.push(BackRef(n));
+									parsedRules.push(BackRef(n));
 									pos = pos - numStr.length + brs.length - 1;
 									curchar = tok();
 									found = true;
@@ -1113,8 +1370,8 @@ class RegEx {
 					var n = Std.parseInt("0x" + hs);
 					if(n == null)
 						throw invalid("long hex sequence");
-					pos = endPos;
-					rules.push(createMatchCharCode(n));
+					pos = endPos - 1;
+					parsedRules.push(MatchCharCode(n));
 				}
 				else { // all other escaped chars
 					var rule =
@@ -1144,6 +1401,9 @@ class RegEx {
 					//case "0": // \033 octal char (ex ESC) (handled above)
 					case "a": // \a alarm (BEL)
 						MatchCharCode(BEL);
+					case "A": // \A Match beginning of string
+						if(inClass) throw invalid("escape sequence");
+						BeginString;
 					case "b": //\b	Match a word boundary, backspace in classes
 						if(inClass)
 							MatchCharCode(BS); // // http://perldoc.perl.org/perlre.html
@@ -1206,16 +1466,7 @@ class RegEx {
 						if(inClass)
 							MatchExact("\\R"); // http://perldoc.perl.org/perlre.html
 						else
-							Or(
-								[MatchExact("\r\n")],
-								[createMatchAnyOfCharCodes([
-								#if SUPPORT_UTF8
-									LF,CR,NEL,UTF_LS,UTF_PS
-								#else
-									LF,CR,NEL
-								#end
-								])]
-							);
+							MatchLineBreak;
 					case "s": // \s [ \t\r\n\v\f]Match a whitespace character
 						createMatchAnyOf([" \t\r\n", sVT, sFF]);
 					case "S": // \S [^\s] Match a non-whitespace character
@@ -1244,118 +1495,106 @@ class RegEx {
 						createMatchNoneOf([alpha, numeric, "_"]);
 					//case "x": Handled above // \x1B hex char (example: ESC)
 							// \x{263a} long hex char (example: Unicode SMILEY)
+					case "z": // \z Match only at end of string
+						EndString;
+					case "Z": // \Z	Match only at end of string, or before newline at the end
+						EndData;
 					default:
-//							Perl 5.10
-// 							\g1      Backreference to a specific or previous group,
-// 							\g{-1}   number may be negative indicating a previous buffer and may
-// 										optionally be wrapped in curly brackets for safer parsing.
-// 							\g{name} Named backreference
-// 							\k<name> Named backreference
-// 							\K       Keep the stuff left of the \K, don't include it in $&
-// 							\l		lowercase next char (think vi)
-// 							\u		uppercase next char (think vi)
-// 							\L		lowercase till \E (think vi)
-// 							\U		uppercase till \E (think vi)
-// 							\E		end case modification (think vi)
-// 							\Q		quote (disable) pattern metacharacters till \E
-// 							\N{name}	named Unicode character
-// 							\cK		control char          (example: VT)
-// 							\pP	     Match P, named property.  Use \p{Prop} for longer names.
-// 							\PP	     Match non-P
-// 							\X	     Match eXtended Unicode "combining character sequence",
-// 										equivalent to (?:\PM\pM*)
-// 							\C	     Match a single C char (octet) even under Unicode.
-// 									NOTE: breaks up characters into their UTF-8 bytes,
-// 									so you may end up with malformed pieces of UTF-8.
-// 									Unsupported in lookbehind.
 // 						throw unhandled("escape sequence char " + curchar);
-						createMatchCharCode(Std.ord(curchar));
+						MatchCharCode(Std.ord(curchar));
 					}
-					rules.push(rule);
+					parsedRules.push(rule);
 				}
 			} // end escaped portion
 			else {
 				switch(curchar) {
 				case "^": // Match the beginning of the line
-					if(inClass) {
-						rules.push(MatchCharCode(0x5E));
-					} else {
-						if(pos == 0 && orLevel == 0) {
-							rules.push(Beginning);
-							continue;
-						}
-						throw unexpected("^");
-					}
+					if(inClass)
+						parsedRules.push(MatchCharCode(0x5E));
+					else
+						parsedRules.push(BeginLine);
 				case ".": // Match any character (except newline)
 					if(inClass)
-						rules.push(MatchCharCode(0x2E));
+						parsedRules.push(MatchCharCode(0x2E));
 					else
-						rules.push(MatchAny);
+						parsedRules.push(MatchAny);
 				case "$": // Match the end of the line (or before newline at the end)
-					if(inClass) {
-						rules.push(MatchCharCode(0x24));
-					} else {
-						if(orLevel == 0 && isRoot()) {
-							atEndMarker = true;
-							rules.push(End);
-						}
-						else
-							throw unexpected("$");
-					}
+					if(inClass)
+						parsedRules.push(MatchCharCode(0x24));
+					else
+						parsedRules.push(EndLine);
 				case "|": // Alternation
 					if(inClass) {
-						rules.push(MatchCharCode(0x7C));
+						parsedRules.push(MatchCharCode(0x7C));
 					}
 					else {
-						if(rules.length == 0)
+						if(parsedRules.length == 0)
 							throw unexpected("|");
-						var orRules = new Array<ERegMatch>();
-						while(true && rules.length > 0) {
-							var r = rules.pop();
-							switch(r) {
-							case Beginning, RangeMarker, End:
-								throw unexpected("|");
-							case Or(a, b):
-								if(a == null || b == null)
-									throw "Inconsitent Or " + Std.string(r);
-								orRules.unshift(r);
-							default:
-								orRules.unshift(r);
-							}
-						}
-						orRules = compactRules(orRules, ignoreCase);
-						var rs = parse(inPattern, ++pos, orLevel + 1);
-						pos += rs.bytes - 1;
-						if(rs.rules.length == 0)
-							throw expected("Or condition");
-						rules.push(Or(orRules, rs.rules));
+						parsedRules.push(OrMarker);
+						orLevel++;
+						continue;
 					}
 				case "(": // Grouping
 					if(inClass) {
-						rules.push(MatchCharCode(0x28));
+						parsedRules.push(MatchCharCode(0x28));
 					} else {
-						if(orLevel != 0)
-							throw unexpected("(");
+						var ms = inPattern.substr(pos, 4);
+						var mm = inPattern.substr(pos, 5);
 						this.root.capturesOpened++;
 						#if DEBUG_PARSER
 							trace("+++ START CAPTURE " + this.root.capturesOpened);
 						#end
 						var er = new RegEx(inPattern.substr(++pos), this.options, this);
-						rules.push(Capture(er));
-						pos += er.parsedPattern.length -1 ;
-						checkQuantifier();
+						pos += er.parsedPattern.length -1;
+
+						var rewind = true;
+						switch(er.type) {
+						case Normal, NoBackref, LookAhead, NegLookAhead, LookBehind, NegLookBehind:
+							parsedRules.push(Capture(er));
+							if(er.type == Normal)
+								rewind = false;
+							checkQuantifier();
 						#if DEBUG_PARSER
-							trace("+++ END CAPTURE " + er.groupNumber + " child consumed "+ er.parsedPattern + (pos+1 >= inPattern.length ? " at EOL" : " next char is '" + peek() + "'") + " capturesClosed: " + this.root.capturesClosed + " capture: " + ruleToString(rules[rules.length-1]));
+							trace("+++ END CAPTURE " + er.groupNumber + " child consumed "+ er.parsedPattern + (pos+1 >= inPattern.length ? " at EOL" : " next char is '" + peek() + "'") + " capturesClosed: " + this.root.capturesClosed + " capture: " + ruleToString(parsedRules[parsedRules.length-1]));
 						#end
+						case PatMatchModifier:
+							for(r in er.instanceRules) {
+								switch(r) {
+								default:
+									parsedRules.push(r);
+								case ModAllowWhite:
+									if(pass == 1 && !allowWhite) {
+										allowWhite = true;
+										return {
+											bytes : 0,
+											rules : [],
+											reparse : true,
+										};
+									}
+								case ModAllowWhiteOff:
+									if(pass == 1 && allowWhite) {
+										allowWhite = false;
+										return {
+											bytes : 0,
+											rules : [],
+											reparse : true,
+										};
+									}
+								}
+							}
+						case Comment: // nothing to do
+						}
+						if(rewind) { // true by default
+							root.capturesOpened--;
+							root.capturesClosed--;
+						}
 					}
 				case ")": // Grouping End
 					if(inClass) {
-						rules.push(MatchCharCode(0x29));
+						parsedRules.push(MatchCharCode(0x29));
 					} else {
-						if(orLevel > 0) {
-							pos--;
-							break;
-						}
+						if(isRoot())
+							throw unexpected(")");
 						this.root.capturesClosed++;
 						if(!isRoot()) {
 							atEndMarker = true;
@@ -1368,73 +1607,111 @@ class RegEx {
 					// escape it with a backslash. "-" is also taken literally when it
 					// is at the end of the list, just before the closing "]".
 					if(inClass) {
-						rules.push(MatchCharCode(0x29));
+						parsedRules.push(MatchCharCode(0x29));
 					} else {
 						var not = false;
 						if(peek() == "^") {
 							not = true;
 							tok();
 						}
-						var extras = new Array<ERegMatch>();
+						var extras = new Array<Int>();
 						while(true) {
 							switch(peek()) {
 							case "-", "]":
-								extras.push(MatchCharCode(Std.ord(tok())));
+								var n = Std.ord(tok());
+								var have = false;
+								for(n2 in extras) {
+									if(n == n2) {
+										untok();
+										have = true;
+										break;
+									}
+								}
+								if(have) break;
+								extras.push(n);
 							default: break;
 							}
+							break;
 						}
 						tok();
+						var ccClosed = false;
+						for(i in pos...inPattern.length) {
+							if(inPattern.charAt(i) == "]") {
+								ccClosed = true;
+								break;
+							}
+						}
+						if(!ccClosed)
+							throw expected("character class definition");
+
 						#if DEBUG_PARSER
 							var sp = pos;
-							trace(">>> "+traceName()+" START CLASS FROM orLevel " + orLevel);
+							trace(">>> "+traceName()+" START CLASS");
 						#end
 
-						var rs = parse(inPattern, pos, orLevel, true);
+						var rs = parse(inPattern, pos, true);
 						pos += rs.bytes - 1;
 
 						#if DEBUG_PARSER
 							trace(">>> Next char is at "+(pos+1)+" char: " + peek());
 						#end
 
-						for(r in extras)
-							rs.rules.push(r);
-						rules.push(mergeClassRules(rs.rules, not));
+						for(n in extras)
+							rs.rules.push(MatchCharCode(n));
+						parsedRules.push(mergeClassRules(rs.rules, not));
 						checkQuantifier();
 
 						#if DEBUG_PARSER
-							trace(">>> "+traceName()+" END CLASS AT orLevel " + orLevel + " class consumed " + rs.bytes + " bytes: " + inPattern.substr(sp, rs.bytes) + " current rules: " + rulesToString(rules));
+							trace(">>> "+traceName()+" END CLASS consumed " + rs.bytes + " bytes: " + inPattern.substr(sp, rs.bytes) + " current rules: " + rulesToString(parsedRules));
 						#end
 					}
 				case "]": // Character class end
 					if(!inClass) {
-						rules.push(MatchCharCode(0x5D));
+						parsedRules.push(MatchCharCode(0x5D));
 					} else {
 						#if DEBUG_PARSER_V
-							trace("reached character class end at pos: "+pos+" orLevel: " + orLevel);
+							trace("reached character class end at pos: "+pos);
 						#end
-						if(expectRangeEnd)
-							throw expected("end of character range");
-						atEndMarker = true;
-						if(orLevel > 0) {
-							pos--;
-							break;
+						if(expectRangeEnd) {
+							// last char is -, which means it's
+							// meant to match "-"
+							var r = parsedRules.pop();
+							if(r != RangeMarker) throw "internal error " + here.lineNumber;
+							parsedRules.push(MatchCharCode("-".code));
+							expectRangeEnd = false;
 						}
+						atEndMarker = true;
 					}
 				case "-":
 					//@todo:
 					//Also, if you try to use the character classes \w , \W , \s, \S , \d ,
-					// or \D  as endpoints of a range, the "-" is understood literally.
+					// or \D as beginning or endpoints of a range,
+					// the "-" is understood literally.
 					if(inClass) {
-						expectRangeEnd = true;
-						rules.push(RangeMarker);
-						continue;
+						if(parsedRules.length == 0) {
+							parsedRules.push(MatchCharCode(0x2D));
+						} else {
+							switch(parsedRules[parsedRules.length-1]) {
+							case MatchCharCode(_):
+								expectRangeEnd = true;
+								parsedRules.push(RangeMarker);
+								continue;
+							case MatchAnyOf(_), MatchNoneOf(_):
+								parsedRules.push(MatchCharCode(0x2D));
+							default:
+								throw "internal error " + here.lineNumber;
+							}
+						}
 					} else {
-						rules.push(MatchCharCode(0x2D));
+						parsedRules.push(MatchCharCode(0x2D));
 					}
 				case "?":
-					if(!inClass && !isRoot() && pos == 0) {
+					var resetGroupCount = true;
+					if(!inClass && groupNumber > 0 && pos == 0) {
 						var c : String = tok();
 						switch(c) {
+						default:
+							throw unexpected("extended pattern");
 						case "P": // named pattern
 							c = tok();
 							switch(c) {
@@ -1442,15 +1719,16 @@ class RegEx {
 								var name = consumeAlNum(true, true);
 								try {
 									var er = findNamedGroup(name);
-									rules.push(BackRef(er.groupNumber));
+									parsedRules.push(BackRef(er.groupNumber));
 								} catch(e:Dynamic) {
 									throw error(Std.string(e));
 								}
-							case "<":
+							case "<", "'":
+								var endMarker = c == "<" ? ">" : "'";
 								var name = consumeAlNum(true, true);
 								c = tok();
-								if(c == null || c != ">")
-									throw expected("> to terminate named group");
+								if(c == null || c != endMarker)
+									throw expected(endMarker + " to terminate named group");
 								try {
 									registerNamedGroup(this, name);
 								} catch(e : Dynamic) {
@@ -1459,12 +1737,86 @@ class RegEx {
 							default:
 								throw unexpected("extended pattern identifier " + c);
 							}
+							resetGroupCount = false;
+						case ":": // no backreferences
+							type = NoBackref;
+						case ">": // no backtracking. Will not rewind on repeats
+							noBacktrack = true;
+						case "-", "i", "m", "s", "x": // PatMatchModifier or normal with different options
+							var off = false;
+							var expectType : Bool = c == "-";
+							while(true) {
+								switch(c) {
+								case "-":
+									if(expectType)
+										throw unexpected("-");
+									off = true;
+								case "i":
+									if(off)	parsedRules.push(ModCaseInsensitiveOff);
+									else parsedRules.push(ModCaseInsensitive);
+									expectType = false; off = false;
+								case "m":
+									if(off) parsedRules.push(ModMultilineOff);
+									else parsedRules.push(ModMultiline);
+									expectType = false; off = false;
+								case "s":
+									if(off) parsedRules.push(ModDotAllOff);
+									else parsedRules.push(ModDotAll);
+									expectType = false; off = false;
+								case "x":
+									if(off) {
+										parsedRules.push(ModAllowWhiteOff);
+										allowWhite = false;
+									}
+									else {
+										parsedRules.push(ModAllowWhite);
+										allowWhite = true;
+									}
+									expectType = false; off = false;
+								default: break;
+								}
+								c = tok();
+							}
+							if(c == ")") { // PatMatchModifier only
+								type = PatMatchModifier;
+							} else {
+								resetGroupCount = false;
+							}
+							untok();
+						case "#": // comment 'pattern'
+							while(pos < inPattern.length && c != ")")
+								c = tok();
+							type = Comment;
+							untok();
+						case "=": // positive lookahead (zero width)
+							type = LookAhead;
+						case "!": // negative lookahead (zero width)
+							type = NegLookAhead;
+						case "<":
+							c = tok();
+							switch(c) {
+							case "=": type = LookBehind;
+							case "!": type = NegLookBehind;
+							default: throw unexpected("look behind type "+ c);
+							}
 						}
 					} else {
-						rules.push(createMatchCharCode(Std.ord(curchar)));
+						if(inClass)
+							parsedRules.push(MatchCharCode("?".code));
+						else
+							throw unexpected("?");
 					}
+					if(resetGroupCount) {
+						this.groupNumber = -1;
+						--this.root._groupCount;
+					}
+				case "*":
+					if(inClass)
+						parsedRules.push(MatchCharCode("*".code));
+					else
+						throw unexpected("*");
 				default:
-					rules.push(createMatchCharCode(Std.ord(curchar)));
+					parsedRules.push(MatchCharCode(Std.ord(curchar)));
 				}
 			} // end unescaped char
 
@@ -1473,27 +1825,31 @@ class RegEx {
 				var startCode : Int = 0;
 				var endCode : Int = 0;
 
-				var tmp = rules.pop();
+				var tmp = parsedRules.pop();
 				switch(tmp) {
 				case MatchCharCode(cc):
 					endCode = cc;
 				default:
 					throw unexpected("item " + Std.string(tmp));
 				}
-				tmp = rules.pop();
+				tmp = parsedRules.pop();
 				switch(tmp) {
 				case RangeMarker:
 				default:
 					throw unexpected("item " + Std.string(tmp));
 				}
-				tmp = rules.pop();
+				tmp = parsedRules.pop();
 				switch(tmp) {
 				case MatchCharCode(cc):
 					startCode = cc;
 				default:
 					throw invalid("range");
 				}
-				rules.push(createMatchRange(startCode, endCode));
+				try {
+					parsedRules.push(createMatchRange(startCode, endCode));
+				} catch(e : String) {
+					throw error(e);
+				}
 				continue;
 			}
 
@@ -1501,19 +1857,18 @@ class RegEx {
 
 		} // while(pos < patternLen - 1 && !atEndMarker)
 
-		rules = compactRules(rules, ignoreCase);
+		parsedRules = compactRules(parsedRules);
 		#if DEBUG_PARSER
 		var msg =
-			orLevel > 0 ?
-				"RETURNING from orLevel " + Std.string(orLevel) + " @" + traceName():
 				inClass ?
 					"RETURNING from class parser in " + traceName() :
 					"RETURNING FROM " + traceName();
-		trace(msg + (orLevel > 0 ? "" : " rules: " + rulesToString(rules) + " captures opened:" + root.capturesOpened + " closed:" + root.capturesClosed));
+		trace(msg + " rules: " + rulesToString(parsedRules) + " captures opened:" + root.capturesOpened + " closed:" + root.capturesClosed + " bytes consumed: " + Std.string(pos - startPos + 1));
 		#end
 		return {
 			bytes : pos - startPos + 1,
-			rules : rules,
+			rules : parsedRules,
+			reparse : false,
 		};
 	}
 
@@ -1521,7 +1876,7 @@ class RegEx {
 		Parses a set of rules, compacting multiple MatchCharCode and MatchExact
 		rules to single MatchExacts.
 	**/
-	static function compactRules(rules : Array<ERegMatch>, ignoreCase) : Array<ERegMatch> {
+	static function compactRules(rules : Array<ERegMatch>) : Array<ERegMatch> {
 		// Compacts the rules
 		var newRules = new Array<ERegMatch>();
 		var len = rules.length;
@@ -1536,8 +1891,6 @@ class RegEx {
 			default:
 				var s = sb.toString();
 				if(s.length > 0) {
-					if(ignoreCase)
-						s = s.toLowerCase();
 					newRules.push(MatchExact(s));
 					sb = new StringBuf();
 				}
@@ -1546,8 +1899,6 @@ class RegEx {
 		}
 		if(sb.toString().length > 0) {
 			var s = sb.toString();
-			if(ignoreCase)
-				s = s.toLowerCase();
 			newRules.push(MatchExact(s));
 		}
 		return newRules;
@@ -1599,7 +1950,7 @@ class RegEx {
 		var h = new IntHash();
 		for(x in 0...a.length)
 			for(i in 0...a.length)
-				h.set(modifyCase(a[i]), true);
+				h.set(a[i], true);
 		return MatchAnyOf(h);
 	}
 
@@ -1635,42 +1986,39 @@ class RegEx {
 	}
 
 	/**
-		Creates a MatchCharCode entry, changing case if necessary
-		@param c Character code
-		@return MatchCharCode instance
-	**/
-	function createMatchCharCode(c: Int) {
-		return MatchCharCode(modifyCase(c));
-	}
-
-	/**
 		Creates a MatchAnyOf with the character codes from [start] to [end] inclusive
-		@param Starting
+		@param start Starting character
+		@param end End character
+		@throws String if error in param order or negative params
 	**/
 	function createMatchRange(start : Int, end:Int) {
 		var h = new IntHash<Bool>();
-		if(start > end) {
-			var tmp = start;
-			start = end;
-			end = tmp;
-		}
-		#if debug
+		if(start > end)
+			throw "character range order error";
 		if(start < 0 || end < 0)
-			throw "Negative param problem";
-		#end
-		for(i in start...end+1) {
-			h.set(modifyCase(i), true);
-		}
+			throw "Negative character range";
+		for(i in start...end+1)
+			h.set(i, true);
 		return MatchAnyOf(h);
 	}
 
 	/**
 		Modifies any supplied character code for case sensitivity
 	**/
-	function modifyCase(cc : Int) : Int {
+	function lowerCaseCode(cc : Int) : Int {
 		return
 			if(ignoreCase && (cc >= 65 && cc <= 90))
 				32 + cc;
+			else
+				cc;
+	}
+
+	function changeCodeCase(cc : Int) : Int {
+		return
+			if(cc >= 65 && cc <= 90)
+				32 + cc;
+			else if(cc >= 97 && cc <= 122)
+				cc - 32;
 			else
 				cc;
 	}
@@ -1740,153 +2088,155 @@ class RegEx {
 			switch(m) {
 			case MatchAnyOf(h):
 				wordHash = h;
-			default: throw "internal error";
+			default: throw "internal error " + here.lineNumber;
 			}
 		}
 		return wordHash.exists(c);
 	}
 
-	static function newResult() : MatchResult {
-		return {
-			ok : false,
-			position : -1,
-			length : 0,
-			final : false,
-			conditional : true,
-		};
-	}
-
-	static function cloneResult(v : MatchResult) : MatchResult {
-		return {
-			ok : v.ok,
-			position : v.position,
-			length : v.length,
-			final : v.final,
-			conditional : v.conditional,
-		};
-	}
-
-	static function copyResult(from: MatchResult, to:MatchResult) : Void {
-		to.ok = from.ok;
-		to.position = from.position;
-		to.length = from.length;
-		to.final = from.final;
-		to.conditional = from.conditional;
-	}
-
-	static function compareResult(a, b) : Int {
-		if(a.ok && !b.ok)
-			return 1;
-		if(!a.ok && b.ok)
-			return -1;
-		if(a.position > b.position)
-			return 1;
-		if(a.position < b.position)
-			return -1;
-		if(a.length > b.length)
-			return 1;
-		if(a.length < b.length)
-			return -1;
-		if(!a.final && b.final)
-			return 1;
-		if(a.final && !b.final)
-			return -1;
-		if(!a.conditional && b.conditional)
-			return 1;
-		if(a.conditional && !b.conditional)
-			return -1;
-		return 0;
-	}
-
 	function mergeClassRules(rules:Array<ERegMatch>, not:Bool) {
-		var h = new IntHash<Bool>();
+		var hpos = new IntHash<Bool>();
+		var hneg = new IntHash<Bool>();
+		var pl = false;
+		var nl = false;
+		var ma = false;
+
+		if(rules.length == 0)
+			return null;
 		for(x in 0...rules.length) {
 			switch(rules[x]) {
-			case Beginning, Or(_,_), Repeat(_,_,_,_,_), Capture(_), RangeMarker, End:
-				throw "internal error " + rules[x];
-			case Frame(_,_,_,_), ChildFrame(_,_,_,_):
-				throw "internal error " + rules[x];
 			case MatchExact(s):
-				if(ignoreCase)
-					s = s.toLowerCase();
+				if(s.length > 0) pl = true;
 				for(i in 0...s.length)
-					h.set(s.charCodeAt(i), true);
+					hpos.set(s.charCodeAt(i), true);
 			case MatchCharCode(c):
-				h.set(modifyCase(c), true);
+				pl = true;
+				hpos.set(c, true);
 			case MatchAny:
-				not = !not;
-				h = new IntHash<Bool>();
-				h.set(LF, true);
+				throw "internal error " + here.lineNumber;
 			case MatchAnyOf(ch):
 				for(k in ch.keys())
-					h.set(modifyCase(k), true);
+					hpos.set(k, true);
+				for(k in ch.keys()) { pl = true; break; }
 			case MatchNoneOf(ch):
 				for(k in ch.keys())
-					h.remove(modifyCase(k));
+					hneg.set(k, true);
+				for(k in ch.keys()) { nl = true; break; }
+			#if debug
+			case BeginString, BeginLine,OrMarker,RangeMarker:
+				throw "internal error " + rules[x];
+			case EndLine, EndString, EndData:
+				throw "internal error " + rules[x];
+			case Repeat(_,_,_,_,_),Capture(_):
+				throw "internal error " + rules[x];
+			case ModCaseInsensitive, ModMultiline, ModDotAll:
+				throw "internal error " + rules[x];
+			case ModCaseInsensitiveOff, ModMultilineOff, ModDotAllOff:
+				throw "internal error " + rules[x];
+			case ModAllowWhite, ModAllowWhiteOff:
+				throw "internal error " + rules[x];
 			case MatchWordBoundary, NotMatchWordBoundary, BackRef(_):
-				throw "internal error";
+				throw "internal error " + here.lineNumber;
+			case MatchLineBreak:
+				throw "internal error " + here.lineNumber;
+			case CharClass(_):
+				throw "internal error " + here.lineNumber;
+			#else
+			default:
+			#end
 			}
 		}
-		if(not)
-			return MatchNoneOf(h);
-		else
-			return MatchAnyOf(h);
+
+		var a = new Array<ERegMatch>();
+		if(pl) {
+			if(not) a.push(MatchNoneOf(hpos));
+			else a.push(MatchAnyOf(hpos));
+		}
+
+		if(nl) {
+			if(not) a.push(MatchAnyOf(hneg));
+			else a.push(MatchNoneOf(hneg));
+		}
+
+		if(ma) {
+			if(not) {
+				hneg = new IntHash();
+				hneg.set("\n".code, true);
+				a.push(MatchNoneOf(hneg));
+			}
+			a.push(MatchAny);
+		}
+		return CharClass(a);
 	}
 
 
+	#if OLD
 	function traceFrames() {
-	#if DEBUG_MATCH_V
+	#if (DEBUG_MATCH || DEBUG_MATCH_V)
 		var eregs = new Array<RegEx>();
 		var p = this;
 		while(p != root) {
 			eregs.push(p);
 			p = p.parent;
 		}
-		if(!isRoot())
-			eregs.push(root);
+		eregs.push(root);
 		eregs.reverse();
 		for(e in eregs)	{
 			neko.Lib.println(e.traceName());
-			for(i in e.frameStack)
-				neko.Lib.println("\t" + ruleToString(i));
+			for(i in e.stack)
+				neko.Lib.println("\t" + stackItemToString(i));
 		}
 	#end
 	}
+	#else
+
+	#if (DEBUG_MATCH || DEBUG_MATCH_V)
+	function traceFrames() {
+		neko.Lib.println(traceName());
+		for(i in stack)
+			neko.Lib.println("\t" + stackItemToString(i));
+		for(ch in children)
+			ch.traceFrames();
+	}
+	#end
+	#end
+
+
 
 	/**
 		Called from a child to add a ChildFrame marker to the stack
 	**/
-	function addChildFrame( id:Int, r : RegEx, childEs : ExecState) {
+	function addChildFrame( id:Int, r : RegEx, st : ExecState) {
 		// todo
 		// check if it would actually be a valid match at our position?
-		var curEs = copyExecState(es);
-		frameStack.push( ChildFrame(id, r, childEs, curEs) );
+		var myState = copyExecState(es);
+		stack.push( ChildFrame(id, myState, r, st) );
 		if(!isRoot())
-			parent.addChildFrame(id, this, curEs);
+			parent.addChildFrame(id, this, myState);
 	}
 
-	function pushFrame(pos : Int, rule : ERegMatch, info:Dynamic) : Void {
+	function pushRepeatFrame(rule:ERegMatch, pos:Int, info:Dynamic) : Void {
 		var id = root._frameIdx++;
-		frameStack.push(Frame(id, pos, rule, info));
+		var st = copyExecState(es);
+		st.iPos = pos;
+		stack.push(RepeatFrame(id, rule, st, info));
 		if(!isRoot())
-			parent.addChildFrame(id, this, copyExecState(es));
+			parent.addChildFrame(id, this, st);
 		#if DEBUG_MATCH_V
-		neko.Lib.println("pushFrame frame dump:");
-		traceFrames();
+		neko.Lib.println(traceName() + " pushRepeatFrame dump:");
+		root.traceFrames();
 		#end
 	}
 
-
-	function popFrame() : ERegMatch {
-		if(frameStack.length == 0)
+	function popFrame() : StackItem {
+		if(stack.length == 0)
 			return null;
-		var rv = frameStack.pop();
+		var rv = stack.pop();
 		if(!isRoot()) {
 			var id : Int = 0;
 			switch(rv) {
-			case Frame(iid,_,_,_), ChildFrame(iid,_,_,_):
+			case RepeatFrame(iid,_,_,_), ChildFrame(iid,_,_,_), OrFrame(iid,_):
 				id = iid;
-			default: throw "internal error";
 			}
 			parent.removeFrame(id);
 		}
@@ -1897,25 +2247,40 @@ class RegEx {
 		if(!isRoot())
 			parent.removeFrame(id);
 		// start from end since most likely to be near end of stack
-		var i = frameStack.length - 1;
+		var i = stack.length - 1;
 		while(i >= 0) {
 			var found = false;
-			switch(frameStack[i]) {
-			case Frame(iid,_,_,_), ChildFrame(iid,_,_,_):
+			switch(stack[i]) {
+			case RepeatFrame(iid,_,_,_), ChildFrame(iid,_,_,_), OrFrame(iid,_):
 				if(iid == id)
 					found = true;
-			default: throw "internal error";
 			}
 			if(found) {
-				frameStack.splice(i,1);
+				stack.splice(i,1);
 				break;
 			}
 			i--;
 		}
 	}
 
+	function clearStack() {
+		if(stack == null) {
+			stack = new Array();
+			return;
+		}
+		var c = popFrame();
+		while(null != c) {
+			switch(c) {
+			case ChildFrame(_, _, e, _):
+				e.clearStack();
+			default:
+			}
+			c = popFrame();
+		}
+	}
+
 	function rewindStackLength(len: Int) {
-		while(frameStack.length > len)
+		while(stack.length > len)
 			popFrame();
 	}
 
@@ -1945,13 +2310,18 @@ class RegEx {
 
 	public function toString() : String {
 		var sb = new StringBuf();
-		sb.add("RegEx { group: ");
-		sb.add((groupNumber == 0 ? "root" : Std.string(groupNumber)));
+		if(groupNumber >= 0) {
+			sb.add("RegEx { group: ");
+			sb.add((groupNumber == 0 ? "root" : Std.string(groupNumber)));
+		} else {
+			sb.add("RegEx { ");
+			sb.add(Std.string(type));
+		}
 		sb.add(", ");
 		sb.add("depth: ");
 		sb.add(depth);
-		sb.add(" rules: ");
-		sb.add(rulesToString(rules));
+		sb.add(" ");
+		sb.add(rulesToString(instanceRules));
 		sb.add(" }");
 		return sb.toString();
 	}
@@ -1963,11 +2333,11 @@ class RegEx {
 				sb.addChar(i);
 			return sb.toString();
 		}
+		if(r == null)
+			return "(null)";
 		return switch(r) {
 		case MatchCharCode(c):
 			"MatchCharCode(" + Std.chr(c) + ")";
-		case Or(a, b):
-			"Or(" + rulesToString(a) + ", " + rulesToString(b) + ")";
 		case Repeat(r, min, max, notGreedy, possessive):
 			if(notGreedy)
 				"Repeat(min:"+min+", max:"+max+" " + ruleToString(r) + ")";
@@ -1975,10 +2345,6 @@ class RegEx {
 				"RepeatGreedy(min:"+min+", max:"+max+" " + ruleToString(r) + ")";
 		case Capture(e):
 			"Capture("+e.toString()+")";
-		case Frame(id,srcpos, r, info):
-			"Frame(id:"+id+" srcpos:"+srcpos+" rule:" + ruleToString(r) + " info:[object])";
-		case ChildFrame(id, e, eExecState, pExecState):
-			"ChildFrame(id:"+id+", group:"+e.groupNumber+", groupPos: "+eExecState.iPos+", myPos:"+pExecState.iPos+")";
 		case MatchAnyOf(h):
 			"MatchAnyOf(" + ofToString(h) + ")";
 		case MatchNoneOf(h):
@@ -1998,6 +2364,30 @@ class RegEx {
 		}
 		sb.add("]");
 		return sb.toString();
+	}
+
+	public function stackItemToString(r : StackItem) : String {
+		return switch(r) {
+		case OrFrame(id, state):
+			"OrFrame(id:"+id+", pos:"+state.iPos+")";
+		case RepeatFrame(id, rule, state, info):
+			switch(rule) {
+			default:
+				throw "internal error " + here.lineNumber;
+			case Repeat(r, _, _, notGreedy, possessive):
+				ruleToString(Repeat(r, info.min, info.max, notGreedy, possessive));
+
+				if(notGreedy)
+					"Repeat(id:"+id+" min:"+info.min+", max:"+info.max+" "+ruleToString(r)+")";
+				else
+					"RepeatGreedy(id:"+id+" min:"+info.min+", max:"+info.max+" "+ruleToString(r)+")";
+
+			}
+		case ChildFrame(id, state, e, eState):
+			"ChildFrame(id:"+id+", group:"+e.groupNumber+
+			", groupPos: "+eState.iPos+", myPos:"+state.iPos+
+			", rule:"+ruleToString(e.instanceRules[eState.iRuleIdx])+")";
+		}
 	}
 
 /*
