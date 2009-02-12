@@ -146,8 +146,9 @@ private enum ChildType {
 	@todo \G Match only at pos() (e.g. at the end-of-match position of prior m//g)
 
 **/
-class RegEx {
+class RegEx #if !flash9 implements EReg #end {
 	inline static var NULL_MATCH	: Int = -1;
+	public static var chr : Int -> String = String.fromCharCode;
 	static var alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 	static var numeric = "0123456789";
 	static var wordHash : IntHash<Bool>;
@@ -160,7 +161,7 @@ class RegEx {
 	inline static var FF 			= 0x0C; // \f
 	inline static var CR 			= 0x0D; // \r
 	inline static var ESC			= 0x1B; // ESC
-	inline static var SPACE		= 0x20; // " "
+	inline static var SPACE			= 0x20; // " "
 	inline static var DEL			= 0x7F;
 	inline static var NEL			= 0x85; //
 	inline static var NBSP			= 0xa0; // NBSP
@@ -228,14 +229,34 @@ class RegEx {
 
 	///////////// populate for match() ///////////////
 	var input : String; // input string
-// 	var index : Int; // position of match
-// 	var matches : Array<String>;
 	var lastIndex: Int;
 	var leftContext : String;
 	var rightContext : String;
 
+	///////////// backtracking ///////////////////////
 	var stack : Array<StackItem>;
 	var es : ExecState;
+
+	//////// implements EReg  not used ///////////////
+	var r : Dynamic;
+	#if flash9
+	var result : {> Array<String>, index : Int, input : String };
+	#elseif flash
+	var index	: Null<Int>;
+	var result	: Array<String>;
+	var useChxRegEx : Bool;
+	var chxRegEx : chx.RegEx;
+	var chxRegExOk : Bool;
+	#end
+	#if (neko || cpp || php)
+	var last : String;
+	#end
+	#if php
+	var pattern : String;
+	var options : String;
+	var re : String;
+	var matches : ArrayAccess<Dynamic>;
+	#end
 
 	public function new(pattern : String, opt : String, ?parent : RegEx = null) {
 		this.type = Normal;
@@ -310,6 +331,30 @@ class RegEx {
 		}
 	}
 
+	/**
+		@todo: Test
+	**/
+	public function customReplace( s : String, f : EReg -> String ) : String {
+		var res = new StringBuf();
+		var g = global;
+		global = false;
+		while(s.length > 0) {
+			if(!match(s)) {
+				res.add(s);
+				break;
+			}
+			res.add(leftContext);
+			res.add(f(cast this));
+			s = rightContext;
+			if(!global) {
+				res.add(rightContext);
+				break;
+			}
+		}
+		global = g;
+		return res.toString();
+	}
+
 	public function match( s : String ) : Bool {
 		var res = null;
 		for(i in 0...s.length + 1) {
@@ -363,13 +408,36 @@ class RegEx {
 	}
 
 	/**
-		@todo Not implemented yet.
+		@todo: Test
+	**/
+	public function replace(s : String, by : String) {
+		return split(s).join(by);
+	}
+
+	/**
+		@todo Test
 	**/
 	public function split(s : String) : Array<String> {
-		var oldGlobal = global;
 		var results = new Array<String>();
-		throw "not implemented";
-		global = oldGlobal;
+		var g = global;
+		global = false;
+		while(s.length > 0) {
+			if(!match(s)) {
+				results.push(s);
+				break;
+			}
+			results.push(leftContext);
+			if(!global) {
+				results.push(rightContext);
+				break;
+			}
+			s = rightContext;
+			if(s == "") {
+				results.push("");
+				break;
+			}
+		}
+		global = g;
 		return results;
 	}
 
@@ -919,7 +987,7 @@ class RegEx {
 			var ok = false;
 			var origStackLen = stack.length;
 			var min = info.min;
-			var max = info.max;
+			var max : Null<Int> = info.max;
 
 			var cgroup : Int = 0;
 			var isCapture = switch(e)
@@ -979,14 +1047,6 @@ class RegEx {
 				trace(traceName() + " RUNNING CAPTURE "+ er.groupNumber+" at pos: " + pos + " char: " + input.charAt(pos));
 			#end
 			er.initExecState(pos);
-// 			#if debug
-// 				if(er.stack.length > 0) {
-// 					var s = Std.string(er.stack.length);
-// 					#if (DEBUG_MATCH || DEBUG_MATCH_V) traceFrames(); s = "above"; #end
-// 					throw "Group "+er.groupNumber+ " has "+s+" remaining stack items";
-// 				}
-// 			#end
-// 			er.stack = new Array();
 			er.clearStack();
 			er.lastIndex = pos;
 			er.global = true;
@@ -1094,7 +1154,7 @@ class RegEx {
 			trace("START PARSE "+ traceName() +" pos: " + pos + (inClass ? " in CLASS" : ""));
 		#end
 
-		var curchar : String = null;
+		var curchar : Null<Int> = null;
 		var parsedRules : Array<ERegMatch> = new Array();
 		var expectRangeEnd = false;
 		var patternLen = inPattern.length;
@@ -1123,41 +1183,42 @@ class RegEx {
 		var backrefNotDefined = function(n:Dynamic, ?p : Null<Int> = null) : String {
 			return msg("Backreference " + Std.string(n), "is not a defined group yet", p);
 		}
-		var peek = function() : String {
-			return inPattern.charAt(pos+1);
+		var peek = function() : Null<Int> {
+			return inPattern.charCodeAt(pos+1);
 		}
-		var tok = function() : String {
-			return curchar = inPattern.charAt(++pos);
+		var tok = function() : Null<Int> {
+			return curchar = inPattern.charCodeAt(++pos);
 		}
-		var untok = function() : String {
-			return curchar = inPattern.charAt(--pos);
+		var untok = function() : Null<Int> {
+			return curchar = inPattern.charCodeAt(--pos);
 		}
 		var consumeAlNum = function(allowUnderscore : Bool, reqAlphaStart:Bool) : String {
 			curchar = tok();
-			if(reqAlphaStart && !isAlpha(Std.ord(curchar)))
+			if(reqAlphaStart && !isAlpha(curchar))
 				throw invalid("string must begin with alpha character");
-			var s : String = curchar;
+			var s = new StringBuf();
+			s.addChar(curchar);
 			curchar = tok();
-			while(pos < inPattern.length && (isAlNum(Std.ord(curchar)) || curchar == "_") ) {
-				s += curchar;
+			while(pos < inPattern.length && (isAlNum(curchar) || curchar == "_".code) ) {
+				s.addChar(curchar);
 				curchar = tok();
 			}
 			curchar = untok();
-			return s;
+			return s.toString();
 		}
-		var consumeNumeric = function(?max:Int=-1) {
-			var s = "";
+		var consumeNumeric = function(?max:Int=-1) : String {
+			var s = new StringBuf();
 			var count = 0;
 			curchar = tok();
 			while(pos < inPattern.length &&
-					isNumeric(Std.ord(curchar)) &&
+					isNumeric(curchar) &&
 					(max < 0 || count++ <= max))
 			{
-				s += curchar;
+				s.addChar(curchar);
 				curchar = tok();
 			}
 			curchar = untok();
-			return s;
+			return s.toString();
 		}
 		var assert = function(v : Bool, ?msg : String = "") {
 			#if debug
@@ -1178,13 +1239,13 @@ class RegEx {
 		}
 		var hasQuantifier = function() {
 			var nextChar = peek();
-			if(!inClass && (nextChar == "*" || nextChar == "+" || nextChar == "?" || nextChar == "{"))
+			if(!inClass && (nextChar == "*".code || nextChar == "+".code || nextChar == "?".code || nextChar == "{".code))
 				return true;
 			return false;
 		}
 		var checkQuantifier = function() {
 			var nextChar = peek();
-			if(!inClass && (nextChar == "*" || nextChar == "+" || nextChar == "?" || nextChar == "{")) {
+			if(!inClass && (nextChar == "*".code || nextChar == "+".code || nextChar == "?".code || nextChar == "{".code)) {
 				if(parsedRules.length < 1)
 					throw unexpected("quantifier");
 				else {
@@ -1203,7 +1264,7 @@ class RegEx {
 				var lastRule : ERegMatch = parsedRules[parsedRules.length-1];
 				var min : Null<Int> = 0;
 				var max : Null<Int> = null;
-				var qualifier : String = null;
+				var qualifier : Null<Int> = null;
 				switch(tok()) {
 // 				*	   Match 0 or more times
 // 				+	   Match 1 or more times
@@ -1215,21 +1276,21 @@ class RegEx {
 // 				the "*" quantifier is equivalent to {0,},
 // 				the "+" quantifier to {1,},
 // 				and the "?" quantifier to {0,1}
-				case "*":
+				case "*".code:
 					qualifier = peek();
-				case "+":
+				case "+".code:
 					min = 1;
 					qualifier = peek();
-				case "?":
+				case "?".code:
 					max = 1;
 					qualifier = peek();
-				case "{":
+				case "{".code:
 					pos++;
 					var cp = inPattern.indexOf(",", pos);
 					var bp = inPattern.indexOf("}", pos);
 					if(bp < 2)
 						throw expected("} to close count");
-					qualifier = inPattern.charAt(bp+1);
+					qualifier = inPattern.charCodeAt(bp+1);
 					var spec = StringTools.trim(inPattern.substr(pos, bp - pos));
 					for(y in 0...spec.length) {
 						var cc = spec.charCodeAt(y);
@@ -1237,7 +1298,7 @@ class RegEx {
 								throw unexpected("character", pos+y);
 					}
 					if(cp > bp) { // no comma
-						min = Std.parseInt(spec);
+						min = parseInt(spec);
 						if(min == null)
 							throw expected("number");
 						max = min;
@@ -1247,8 +1308,8 @@ class RegEx {
 							throw unexpected("comma");
 						for(x in 0...parts.length)
 							parts[x] = StringTools.trim(parts[x]);
-						min = Std.parseInt(parts[0]);
-						max = Std.parseInt(parts[1]);
+						min = parseInt(parts[0]);
+						max = parseInt(parts[1]);
 					}
 					pos += spec.length;
 				}
@@ -1263,27 +1324,30 @@ class RegEx {
 		while(pos < patternLen - 1 && !atEndMarker) {
 			curchar = tok();
 			#if DEBUG_PARSER
-				trace(traceName() + " pos: " + pos + " curchar: " +curchar + " nextChar: " + peek());
+				trace(
+					traceName() + " pos: " + pos +
+					" curchar: " +	(curchar != null ? chr(curchar) : "NULL") +
+					" nextChar: " + (peek() != null ? chr(peek()) : "EOL"));
 			#end
 			if(allowWhite && !inClass) {
 				if(curchar != null) {
-					if(isWhite(Std.ord(curchar)))
+					if(isWhite(curchar))
 						continue;
-					if(curchar == "#") {
-						while(curchar != "\n" && pos < patternLen - 1) tok();
+					if(curchar == "#".code) {
+						while(curchar != "\n".code && pos < patternLen - 1) tok();
 						continue;
 					}
 				}
 			}
-			if(curchar == "\\") { // '\'
+			if(curchar == "\\".code) { // '\'
 				curchar = tok();
 				// handle octal
-				if(isNumeric(Std.ord(curchar))) {
-					var numStr = curchar + consumeNumeric(2);
+				if(isNumeric(curchar)) {
+					var numStr : String = chr(curchar) + consumeNumeric(2);
 					var doOctal = function() {
 						var len = 0;
 						while(len < numStr.length) {
-							 if(!isOctalDigitChar(numStr.charCodeAt(len)))
+							 if(!isOctalDigit(numStr.charCodeAt(len)))
 								break;
 							len++;
 						}
@@ -1301,7 +1365,7 @@ class RegEx {
 
 						if(numStr.charAt(0) != "0" || numStr.length == 1)
 							numStr = "0" + numStr;
-						var n = Std.parseOctal(numStr);
+						var n = parseOctal(numStr);
 						if(n == null)
 							throw invalid("octal sequence");
 						parsedRules.push(MatchCharCode(n));
@@ -1314,7 +1378,7 @@ class RegEx {
 						if(numStr == "0")
 							doOctal();
 						else {
-							var n = Std.parseInt(numStr);
+							var n = parseInt(numStr);
 							if(n == null)
 								throw "internal error " + here.lineNumber;
 							if(!isValidBackreference(n))
@@ -1331,9 +1395,9 @@ class RegEx {
 						else {
 							var brs = numStr.substr(0);
 							var found = false;
-							var n : Int = 0;
+							var n : Null<Int> = 0;
 							while(brs != null && brs.length > 0) {
-								n = Std.parseInt(brs);
+								n = parseInt(brs);
 								if(n == null) throw "internal error " + here.lineNumber;
 								if(isValidBackreference(n)) {
 									parsedRules.push(BackRef(n));
@@ -1345,20 +1409,22 @@ class RegEx {
 								brs = brs.substr(0, brs.length - 1);
 							}
 							if(!found) {
-								if(!isOctalDigitChar(Std.ord(numStr)))
+								if(!isOctalDigit(numStr.charCodeAt(0)))
 									throw backrefNotDefined(numStr);
 								else
 									doOctal();
 							}
 						}
 					}
-					assertCallback(callback(isNumericChar,curchar), " curchar is " + curchar);
+					#if debug
+					assertCallback(callback(isNumeric,curchar), " curchar is " + chr(curchar));
+					#end
 				}
 				// handle hex
-				else if(curchar == "x") {
+				else if(curchar == "x".code) {
 					curchar = tok();
 					var endPos : Int = pos + 2;
-					if(curchar == "{") {
+					if(curchar == "{".code) {
 						var endPos = inPattern.indexOf("}", ++pos);
 						if(endPos < 0)
 							throw invalid("long hex sequence");
@@ -1367,7 +1433,7 @@ class RegEx {
 					for(x in 0...hs.length)
 						if(!isHexChar(hs.charCodeAt(x)))
 							throw invalid("long hex sequence");
-					var n = Std.parseInt("0x" + hs);
+					var n = parseInt("0x" + hs);
 					if(n == null)
 						throw invalid("long hex sequence");
 					pos = endPos - 1;
@@ -1376,48 +1442,47 @@ class RegEx {
 				else { // all other escaped chars
 					var rule =
 					switch(curchar) {
-					case "^": // Match the beginning of the line
+					case "^".code: // Match the beginning of the line
 						MatchCharCode(0x5E);
-					case ".": // Match any character (except newline)
+					case ".".code: // Match any character (except newline)
 						MatchCharCode(0x2E);
-					case "$": // Match the end of the line (or before newline at the end)
+					case "$".code: // Match the end of the line (or before newline at the end)
 						MatchCharCode(0x24);
-					case "|": // Alternation
+					case "|".code: // Alternation
 						MatchCharCode(0x7C);
-					case "(": // Grouping
+					case "(".code: // Grouping
 						MatchCharCode(0x28);
-					case ")": // Grouping End
+					case ")".code: // Grouping End
 						MatchCharCode(0x29);
-					case "[": // Character class
+					case "[".code: // Character class
 						MatchCharCode(0x5B);
-					case "]": // Character class end
+					case "]".code: // Character class end
 						MatchCharCode(0x5D);
-					case "\\":
+					case "\\".code:
 						MatchCharCode(0x5C);
-					case "/":
+					case "/".code:
 						MatchCharCode(0x2F);
-					case "?":
+					case "?".code:
 						MatchCharCode(0x3F);
 					//case "0": // \033 octal char (ex ESC) (handled above)
-					case "a": // \a alarm (BEL)
+					case "a".code: // \a alarm (BEL)
 						MatchCharCode(BEL);
-					case "A": // \A Match beginning of string
+					case "A".code: // \A Match beginning of string
 						if(inClass) throw invalid("escape sequence");
 						BeginString;
-					case "b": //\b	Match a word boundary, backspace in classes
+					case "b".code: //\b	Match a word boundary, backspace in classes
 						if(inClass)
 							MatchCharCode(BS); // // http://perldoc.perl.org/perlre.html
 						else
 							MatchWordBoundary;
-					case "B": // \B Match except at a word boundary
+					case "B".code: // \B Match except at a word boundary
 						if(inClass) throw invalid("escape sequence");
 						NotMatchWordBoundary;
-					case "c":
+					case "c".code:
 						//The expression \cx matches the character control-x.
 						//subtract 64 from ASCII code value in decimal of
 						//the uppercase letter, except DEL (127) which is Ctrl-?
-						var ctrlChar = peek();
-						var val = Std.ord(ctrlChar);
+						var val = peek();
 						if(val != null && ((val >= 0x40 && val < 0x5B) || val == 0x3F)) {
 							curchar = tok(); // consume it
 							if(val == 0x3F)
@@ -1427,15 +1492,15 @@ class RegEx {
 						}
 						else
 							MatchCharCode(0x63); // 'c'
-					case "d": // \d [0-9] Match a digit character
+					case "d".code: // \d [0-9] Match a digit character
 						createMatchAnyOf([numeric]);
-					case "D": // \D [^\d] Match a non-digit character
+					case "D".code: // \D [^\d] Match a non-digit character
 						createMatchNoneOf([numeric]);
-					case "e": // \e escape (ESC)
+					case "e".code: // \e escape (ESC)
 						MatchCharCode(ESC);
-					case "f": // \f form feed (FF)
+					case "f".code: // \f form feed (FF)
 						MatchCharCode(FF);
-					case "h": // \h Horizontal whitespace
+					case "h".code: // \h Horizontal whitespace
 						createMatchAnyOfCharCodes([
 						#if SUPPORT_UTF8
 							HT,SPACE,NBSP,UTF_OSM,UTF_MVS,UTF_ENQUAD,UTF_EMQUAD,
@@ -1446,7 +1511,7 @@ class RegEx {
 							HT,SPACE,NBSP
 						#end
 						]);
-					case "H": // \H Not horizontal whitespace
+					case "H".code: // \H Not horizontal whitespace
 						createMatchNoneOfCharCodes([
 						#if SUPPORT_UTF8
 							HT,SPACE,NBSP,UTF_OSM,UTF_MVS,UTF_ENQUAD,UTF_EMQUAD,
@@ -1457,23 +1522,23 @@ class RegEx {
 							HT,SPACE,NBSP
 						#end
 						]);
-					case "n": // \n newline (LF, NL)
+					case "n".code: // \n newline (LF, NL)
 						MatchCharCode(LF);
-					case "r": // \r return (CR)
+					case "r".code: // \r return (CR)
 						MatchCharCode(CR);
-					case "R": // \R [CR,LF,CRLF] Linebreak
+					case "R".code: // \R [CR,LF,CRLF] Linebreak
 						//  (?>\x0D\x0A?|[\x0A-\x0C\x85\x{2028}\x{2029}])
 						if(inClass)
 							MatchExact("\\R"); // http://perldoc.perl.org/perlre.html
 						else
 							MatchLineBreak;
-					case "s": // \s [ \t\r\n\v\f]Match a whitespace character
+					case "s".code: // \s [ \t\r\n\v\f]Match a whitespace character
 						createMatchAnyOf([" \t\r\n", sVT, sFF]);
-					case "S": // \S [^\s] Match a non-whitespace character
+					case "S".code: // \S [^\s] Match a non-whitespace character
 						createMatchNoneOf([" \t\r\n", sVT, sFF]);
-					case "t": // \t	tab (HT, TAB)
+					case "t".code: // \t	tab (HT, TAB)
 						MatchCharCode(0x09);
-					case "v": // \v Vertical whitespace [\r\n\v]
+					case "v".code: // \v Vertical whitespace [\r\n\v]
 						createMatchAnyOfCharCodes([
 						#if SUPPORT_UTF8
 							LF,VT,FF,CR,NEL,UTF_LS,UTF_PS
@@ -1481,7 +1546,7 @@ class RegEx {
 							LF,VT,FF,CR,NEL
 						#end
 						]);
-					case "V": // \V Not vertical whitespace
+					case "V".code: // \V Not vertical whitespace
 						createMatchNoneOfCharCodes([
 						#if SUPPORT_UTF8
 							LF,VT,FF,CR,NEL,UTF_LS,UTF_PS
@@ -1489,41 +1554,41 @@ class RegEx {
 							LF,VT,FF,CR,NEL
 						#end
 						]);
-					case "w": // \w [A-Za-z0-9_] Match a "word" character (alphanumeric plus "_")
+					case "w".code: // \w [A-Za-z0-9_] Match a "word" character (alphanumeric plus "_")
 						createMatchAnyOf([alpha, numeric, "_"]);
-					case "W": // \W [^\w] Match a non-"word" character
+					case "W".code: // \W [^\w] Match a non-"word" character
 						createMatchNoneOf([alpha, numeric, "_"]);
 					//case "x": Handled above // \x1B hex char (example: ESC)
 							// \x{263a} long hex char (example: Unicode SMILEY)
-					case "z": // \z Match only at end of string
+					case "z".code: // \z Match only at end of string
 						EndString;
-					case "Z": // \Z	Match only at end of string, or before newline at the end
+					case "Z".code: // \Z	Match only at end of string, or before newline at the end
 						EndData;
 					default:
 // 						throw unhandled("escape sequence char " + curchar);
-						MatchCharCode(Std.ord(curchar));
+						MatchCharCode(curchar);
 					}
 					parsedRules.push(rule);
 				}
 			} // end escaped portion
 			else {
 				switch(curchar) {
-				case "^": // Match the beginning of the line
+				case "^".code: // Match the beginning of the line
 					if(inClass)
 						parsedRules.push(MatchCharCode(0x5E));
 					else
 						parsedRules.push(BeginLine);
-				case ".": // Match any character (except newline)
+				case ".".code: // Match any character (except newline)
 					if(inClass)
 						parsedRules.push(MatchCharCode(0x2E));
 					else
 						parsedRules.push(MatchAny);
-				case "$": // Match the end of the line (or before newline at the end)
+				case "$".code: // Match the end of the line (or before newline at the end)
 					if(inClass)
 						parsedRules.push(MatchCharCode(0x24));
 					else
 						parsedRules.push(EndLine);
-				case "|": // Alternation
+				case "|".code: // Alternation
 					if(inClass) {
 						parsedRules.push(MatchCharCode(0x7C));
 					}
@@ -1534,7 +1599,7 @@ class RegEx {
 						orLevel++;
 						continue;
 					}
-				case "(": // Grouping
+				case "(".code: // Grouping
 					if(inClass) {
 						parsedRules.push(MatchCharCode(0x28));
 					} else {
@@ -1555,7 +1620,7 @@ class RegEx {
 								rewind = false;
 							checkQuantifier();
 						#if DEBUG_PARSER
-							trace("+++ END CAPTURE " + er.groupNumber + " child consumed "+ er.parsedPattern + (pos+1 >= inPattern.length ? " at EOL" : " next char is '" + peek() + "'") + " capturesClosed: " + this.root.capturesClosed + " capture: " + ruleToString(parsedRules[parsedRules.length-1]));
+							trace("+++ END CAPTURE " + er.groupNumber + " child consumed "+ er.parsedPattern + (pos+1 >= inPattern.length ? " at EOL" : " next char is '" + chr(peek()) + "'") + " capturesClosed: " + this.root.capturesClosed + " capture: " + ruleToString(parsedRules[parsedRules.length-1]));
 						#end
 						case PatMatchModifier:
 							for(r in er.instanceRules) {
@@ -1589,7 +1654,7 @@ class RegEx {
 							root.capturesClosed--;
 						}
 					}
-				case ")": // Grouping End
+				case ")".code: // Grouping End
 					if(inClass) {
 						parsedRules.push(MatchCharCode(0x29));
 					} else {
@@ -1601,7 +1666,7 @@ class RegEx {
 							break;
 						}
 					}
-				case "[": // Character class @todo
+				case "[".code: // Character class @todo
 					//If you want either "-" or "]" itself to be a member of a class,
 					// put it at the start of the list (possibly after a "^"), or
 					// escape it with a backslash. "-" is also taken literally when it
@@ -1610,15 +1675,15 @@ class RegEx {
 						parsedRules.push(MatchCharCode(0x29));
 					} else {
 						var not = false;
-						if(peek() == "^") {
+						if(peek() == "^".code) {
 							not = true;
 							tok();
 						}
 						var extras = new Array<Int>();
 						while(true) {
 							switch(peek()) {
-							case "-", "]":
-								var n = Std.ord(tok());
+							case "-".code, "]".code:
+								var n = tok();
 								var have = false;
 								for(n2 in extras) {
 									if(n == n2) {
@@ -1636,7 +1701,7 @@ class RegEx {
 						tok();
 						var ccClosed = false;
 						for(i in pos...inPattern.length) {
-							if(inPattern.charAt(i) == "]") {
+							if(inPattern.charCodeAt(i) == "]".code) {
 								ccClosed = true;
 								break;
 							}
@@ -1653,7 +1718,7 @@ class RegEx {
 						pos += rs.bytes - 1;
 
 						#if DEBUG_PARSER
-							trace(">>> Next char is at "+(pos+1)+" char: " + peek());
+							trace(">>> Next char is at "+(pos+1)+" char: " + chr(peek()));
 						#end
 
 						for(n in extras)
@@ -1665,7 +1730,7 @@ class RegEx {
 							trace(">>> "+traceName()+" END CLASS consumed " + rs.bytes + " bytes: " + inPattern.substr(sp, rs.bytes) + " current rules: " + rulesToString(parsedRules));
 						#end
 					}
-				case "]": // Character class end
+				case "]".code: // Character class end
 					if(!inClass) {
 						parsedRules.push(MatchCharCode(0x5D));
 					} else {
@@ -1682,7 +1747,7 @@ class RegEx {
 						}
 						atEndMarker = true;
 					}
-				case "-":
+				case "-".code:
 					//@todo:
 					//Also, if you try to use the character classes \w , \W , \s, \S , \d ,
 					// or \D as beginning or endpoints of a range,
@@ -1705,17 +1770,17 @@ class RegEx {
 					} else {
 						parsedRules.push(MatchCharCode(0x2D));
 					}
-				case "?":
+				case "?".code:
 					var resetGroupCount = true;
 					if(!inClass && groupNumber > 0 && pos == 0) {
-						var c : String = tok();
+						var c = tok();
 						switch(c) {
 						default:
 							throw unexpected("extended pattern");
-						case "P": // named pattern
+						case "P".code: // named pattern
 							c = tok();
 							switch(c) {
-							case "=":
+							case "=".code:
 								var name = consumeAlNum(true, true);
 								try {
 									var er = findNamedGroup(name);
@@ -1723,12 +1788,12 @@ class RegEx {
 								} catch(e:Dynamic) {
 									throw error(Std.string(e));
 								}
-							case "<", "'":
-								var endMarker = c == "<" ? ">" : "'";
+							case "<".code, "'".code:
+								var endMarker : Null<Int> = c == "<".code ? ">".code : "'".code;
 								var name = consumeAlNum(true, true);
 								c = tok();
 								if(c == null || c != endMarker)
-									throw expected(endMarker + " to terminate named group");
+									throw expected(chr(endMarker) + " to terminate named group");
 								try {
 									registerNamedGroup(this, name);
 								} catch(e : Dynamic) {
@@ -1738,32 +1803,32 @@ class RegEx {
 								throw unexpected("extended pattern identifier " + c);
 							}
 							resetGroupCount = false;
-						case ":": // no backreferences
+						case ":".code: // no backreferences
 							type = NoBackref;
-						case ">": // no backtracking. Will not rewind on repeats
+						case ">".code: // no backtracking. Will not rewind on repeats
 							noBacktrack = true;
-						case "-", "i", "m", "s", "x": // PatMatchModifier or normal with different options
+						case "-".code, "i".code, "m".code, "s".code, "x".code: // PatMatchModifier or normal with different options
 							var off = false;
-							var expectType : Bool = c == "-";
+							var expectType : Bool = c == "-".code;
 							while(true) {
 								switch(c) {
-								case "-":
+								case "-".code:
 									if(expectType)
 										throw unexpected("-");
 									off = true;
-								case "i":
+								case "i".code:
 									if(off)	parsedRules.push(ModCaseInsensitiveOff);
 									else parsedRules.push(ModCaseInsensitive);
 									expectType = false; off = false;
-								case "m":
+								case "m".code:
 									if(off) parsedRules.push(ModMultilineOff);
 									else parsedRules.push(ModMultiline);
 									expectType = false; off = false;
-								case "s":
+								case "s".code:
 									if(off) parsedRules.push(ModDotAllOff);
 									else parsedRules.push(ModDotAll);
 									expectType = false; off = false;
-								case "x":
+								case "x".code:
 									if(off) {
 										parsedRules.push(ModAllowWhiteOff);
 										allowWhite = false;
@@ -1777,27 +1842,27 @@ class RegEx {
 								}
 								c = tok();
 							}
-							if(c == ")") { // PatMatchModifier only
+							if(c == ")".code) { // PatMatchModifier only
 								type = PatMatchModifier;
 							} else {
 								resetGroupCount = false;
 							}
 							untok();
-						case "#": // comment 'pattern'
-							while(pos < inPattern.length && c != ")")
+						case "#".code: // comment 'pattern'
+							while(pos < inPattern.length && c != ")".code)
 								c = tok();
 							type = Comment;
 							untok();
-						case "=": // positive lookahead (zero width)
+						case "=".code: // positive lookahead (zero width)
 							type = LookAhead;
-						case "!": // negative lookahead (zero width)
+						case "!".code: // negative lookahead (zero width)
 							type = NegLookAhead;
-						case "<":
+						case "<".code:
 							c = tok();
 							switch(c) {
-							case "=": type = LookBehind;
-							case "!": type = NegLookBehind;
-							default: throw unexpected("look behind type "+ c);
+							case "=".code: type = LookBehind;
+							case "!".code: type = NegLookBehind;
+							default: throw unexpected("look behind type "+ chr(c));
 							}
 						}
 					} else {
@@ -1810,13 +1875,13 @@ class RegEx {
 						this.groupNumber = -1;
 						--this.root._groupCount;
 					}
-				case "*":
+				case "*".code:
 					if(inClass)
 						parsedRules.push(MatchCharCode("*".code));
 					else
 						throw unexpected("*");
 				default:
-					parsedRules.push(MatchCharCode(Std.ord(curchar)));
+					parsedRules.push(MatchCharCode(curchar));
 				}
 			} // end unescaped char
 
@@ -1904,15 +1969,15 @@ class RegEx {
 		return newRules;
 	}
 
-	static function createRepeat(rule : ERegMatch, min : Null<Int>, max : Null<Int>, qualifier : String)
+	static function createRepeat(rule : ERegMatch, min : Null<Int>, max : Null<Int>, qualifier : Null<Int>)
 		: { validQualifier: Bool, rule : ERegMatch}
 	{
 		var notGreedy = false;
 		var possessive = false;
 		var isValid = false;
 		switch(qualifier) {
-		case "+": possessive = true; isValid = true;
-		case "?": notGreedy = true; isValid = true;
+		case "+".code: possessive = true; isValid = true;
+		case "?".code: notGreedy = true; isValid = true;
 		}
 		var minval : Int = 0;
 		if(min != null)
@@ -2023,10 +2088,6 @@ class RegEx {
 				cc;
 	}
 
-// 	function createEscapeRule(c : String, pos : Int, inClass : Bool) {
-//
-// 	}
-
 	static inline function isNumeric(c : Null<Int>) {
 		return
 			if(c == null)
@@ -2035,14 +2096,11 @@ class RegEx {
 				(c >= 48 && c <= 57);
 	}
 
-	static inline function isNumericChar(s : String) {
+	static inline function getNumber( c : Null<Int> ) : Null<Int> {
 		return
-			if(s == null || s.length == 0)
-				throw "null number";
-			else {
-				var c = Std.ord(s);
-				(c >= 48 && c <= 57);
-			}
+		if(c == null)
+			null;
+		else (c >= 48 && c <= 57) ? c - 48 : null;
 	}
 
 	static inline function isAlpha(c : Null<Int>) {
@@ -2065,7 +2123,7 @@ class RegEx {
 				(isNumeric(c) || ((c >= 65 && c <= 70) || (c >= 97 && c <= 102)));
 	}
 
-	static inline function isOctalDigitChar(c : Null<Int>) : Bool {
+	static inline function isOctalDigit(c : Null<Int>) : Bool {
 		return
 			if(c == null)
 				throw "null octal char";
@@ -2169,27 +2227,6 @@ class RegEx {
 		return CharClass(a);
 	}
 
-
-	#if OLD
-	function traceFrames() {
-	#if (DEBUG_MATCH || DEBUG_MATCH_V)
-		var eregs = new Array<RegEx>();
-		var p = this;
-		while(p != root) {
-			eregs.push(p);
-			p = p.parent;
-		}
-		eregs.push(root);
-		eregs.reverse();
-		for(e in eregs)	{
-			neko.Lib.println(e.traceName());
-			for(i in e.stack)
-				neko.Lib.println("\t" + stackItemToString(i));
-		}
-	#end
-	}
-	#else
-
 	#if (DEBUG_MATCH || DEBUG_MATCH_V)
 	function traceFrames() {
 		neko.Lib.println(traceName());
@@ -2199,9 +2236,6 @@ class RegEx {
 			ch.traceFrames();
 	}
 	#end
-	#end
-
-
 
 	/**
 		Called from a child to add a ChildFrame marker to the stack
@@ -2301,13 +2335,142 @@ class RegEx {
 		return root.namedGroups.get(name);
 	}
 
-// 	function findNamedGroupMatch(name : String) {
-// 		var e = findNamedGroup(name);
-// 		if(root.matches[e.groupNumber] == null)
-// 			throw "group " + name + " (id: "+e.groupNumber+") has no match registered";
-// 		return root.matches[e.groupNumber];
-// 	}
+	//------------ support methods required -----------------------------//
+	/**
+		This version of parseInt ensures that octal is not processed
+	**/
+	public static function parseInt( x : String ) : Null<Int> {
+		// remove leading 0s
+		var preParse = function(ns:String) : { neg:Bool, str: String}
+		{
+			var neg = false;
+			var s = StringTools.ltrim(ns);
+			if(s.charAt(0) == "-") {
+				neg = true;
+				s = s.substr(1);
+			}
+			else if(s.charAt(0) == "+")
+				s = s.substr(1);
+			try {
+				if(!isNumeric(s.charCodeAt(0)))
+					return {str:null, neg:false};
+			} catch(e:Dynamic) {
+				return {str:null, neg:false};
+			}
 
+			if(!StringTools.startsWith(s,"0x")) {
+				var l = s.length;
+				var p : Int = -1;
+				var c : Null<Int> = 0;
+				while(c == 0 && p < l-1) {
+					p++;
+					c = getNumber(s.charCodeAt(p));
+					if(c == null)
+						return null;
+				}
+				s = s.substr(p);
+			}
+			return {str: s, neg:neg };
+		}
+
+		untyped {
+		#if flash9
+		var v = __global__["parseInt"](x);
+		if( __global__["isNaN"](v) )
+			return null;
+		return v;
+		#elseif flash
+		var res = preParse(x);
+		if(res.str == null) return null;
+		var v = _global["parseInt"](res.str);
+		if( Math.isNaN(v) )
+			return null;
+		if(res.neg)
+			return 0-v;
+		return v;
+		#elseif neko
+		var t = __dollar__typeof(x);
+		if( t == __dollar__tint )
+			return x;
+		if( t == __dollar__tfloat )
+			return __dollar__int(x);
+		if( t != __dollar__tobject )
+			return null;
+		var res = preParse(x);
+		if(res.str == null) return null;
+		var v = __dollar__int(res.str.__s);
+		if(res.neg)
+			return 0-v;
+		return v;
+		#elseif js
+		var res = preParse(x);
+		var v = __js__("parseInt")(res.str);
+		if( Math.isNaN(v) )
+			return null;
+		if(res.neg)
+			return 0-v;
+		return v;
+		#elseif php
+		if(!__php__("is_numeric")(x)) return null;
+		return x.substr(0, 2).toLowerCase() == "0x" ? __php__("intval(substr($x, 2), 16)") : __php__("intval($x)");
+		#else
+		return 0;
+		#end
+		}
+	}
+
+	/**
+		Convert an Octal String to an Int. Will return null if it can not be parsed.
+	**/
+	public static function parseOctal( x : String ) : Null<Int> {
+		#if flash9
+		untyped {
+		var v = __global__["parseInt"](x, 8);
+		if( __global__["isNaN"](v) )
+			return null;
+		return v;
+		}
+		#else
+		var neg = false;
+		var n : Int = 0;
+		var s = StringTools.ltrim(x);
+		var accum : Int = 0;
+		var l = s.length;
+
+		try {
+			if(!isNumeric(s.charCodeAt(0))) {
+				if(s.charAt(0) == "-")
+					neg = true;
+				else if(s.charAt(0) == "+")
+					neg = false;
+				else
+					return null;
+				n ++;
+				if(n == s.length || !isNumeric(s.charCodeAt(n)))
+					return null;
+			}
+		} catch(e:Dynamic) {
+			return null;
+		}
+
+		while(n < l) {
+			var c : Null<Int> = getNumber(s.charCodeAt(n));
+			if( c == null )
+				break;
+			if( c > 7 )
+				return null;
+			accum <<= 3;
+			accum += c;
+			n++;
+		}
+		if(neg)
+			return 0-accum;
+		return accum;
+		#end
+	}
+
+
+	//----------------- toString methods --------------------------------//
 	public function toString() : String {
 		var sb = new StringBuf();
 		if(groupNumber >= 0) {
@@ -2337,7 +2500,7 @@ class RegEx {
 			return "(null)";
 		return switch(r) {
 		case MatchCharCode(c):
-			"MatchCharCode(" + Std.chr(c) + ")";
+			"MatchCharCode(" + chr(c) + ")";
 		case Repeat(r, min, max, notGreedy, possessive):
 			if(notGreedy)
 				"Repeat(min:"+min+", max:"+max+" " + ruleToString(r) + ")";
