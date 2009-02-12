@@ -12,6 +12,12 @@
 -swf-header 800:600:1:FFFFFF
 -debug
 
+--next
+
+-cp ../../
+-js test.js
+-main Ereg
+-debug
 
 --next
 

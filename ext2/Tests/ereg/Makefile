@@ -3,4 +3,4 @@ all:
 	haxe pytest.hxml
 
 clean:
-	$(RM) *.neko *.n *.swf *~
+	$(RM) *.neko *.n *.swf *~ *.js
