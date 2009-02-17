@@ -62,7 +62,7 @@ class Output {
 	public function flush() {
 	}
 
-	public function close() {
+	dynamic public function close() {
 	}
 
 	function setEndian( b ) {

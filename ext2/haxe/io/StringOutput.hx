@@ -7,12 +7,16 @@ class StringOutput extends Output {
         b = new StringBuf();
     }
 
-    public override function writeChar(c) {
+    public function writeChar(c) {
         b.addChar(c);
     }
 
-    public override function writeBytes( buf, bpos, blen ) : Int {
-        b.addSub(buf,bpos,blen);
+    public override function writeBytes( buf : Bytes, bpos : Int, blen : Int ) : Int {
+#if neko
+        b.addSub( neko.Lib.stringReference( buf ), bpos, blen );
+#else
+        b.addSub( buf.toString(), bpos, blen );
+#end
         return blen;
     }
 

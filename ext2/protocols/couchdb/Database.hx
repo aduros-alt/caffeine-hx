@@ -238,7 +238,7 @@ class Database {
 				view = new NamedView(cast view);
 			}
 			var n = view.getPathEncoded();
-			var params;
+			var params = null;
 			// Provided filter overrides that in the DesignView
 			try {
 				if(filter != null)

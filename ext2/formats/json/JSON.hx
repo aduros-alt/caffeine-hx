@@ -123,7 +123,8 @@ private class Encode {
 			s.add(convertToString( a[i] ));
 			s.add(",");
 		}
-		return "[" + s.toString().substr(0,-1) + "]";
+		var l = s.toString();
+		return "[" + l.substr( 0, l.length - 1 ) + "]";
 	}
 
 	private static function objectToString( o:Dynamic):String {
@@ -143,7 +144,8 @@ private class Encode {
 				if (Reflect.isFunction(value))
 					continue;
 
-				s.add(escapeString( key ) + ":" + convertToString( value ));
+				//s.add(escapeString( key ) + ":" + convertToString( value ));
+				s.add(escapeString( key ) + ":" + convertToString( Reflect.fields(o) ));
 				s.add(",");
 			}
 		}
