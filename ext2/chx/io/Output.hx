@@ -128,7 +128,7 @@ class Output {
 	/**
 		Write a 16 digit precision Float to the output
 	**/
-	public function writeDouble( x : Float ) {
+	public function writeDouble( x : Float ) : Void {
 		#if neko
 		write(untyped new Bytes(8,_double_bytes(x,bigEndian)));
 		#elseif php
@@ -147,7 +147,7 @@ class Output {
 		Write a signed 8 bit integer
 		@throws chx.lang.OverflowException if value has too many bits.
 	**/
-	public function writeInt8( x : Int ) {
+	public function writeInt8( x : Int ) : Void {
 		if( x < -0x80 || x >= 0x80 )
 			throw new OverflowException();
 		writeByte(x & 0xFF);
@@ -157,7 +157,7 @@ class Output {
 		Write a signed 16 bit integer
 		@throws chx.lang.OverflowException if value has too many bits.
 	**/
-	public function writeInt16( x : Int ) {
+	public function writeInt16( x : Int ) : Void  {
 		if( x < -0x8000 || x >= 0x8000 ) throw new OverflowException();
 		writeUInt16(x & 0xFFFF);
 	}
@@ -166,7 +166,7 @@ class Output {
 		Write an unsigned 16 bit integer
 		@throws chx.lang.OverflowException if value has too many bits.
 	**/
-	public function writeUInt16( x : Int ) {
+	public function writeUInt16( x : Int ) : Void  {
 		if( x < 0 || x >= 0x10000 ) throw new OverflowException();
 		if( bigEndian ) {
 			writeByte(x >> 8);
@@ -181,7 +181,7 @@ class Output {
 		Write a signed 24 bit integer
 		@throws chx.lang.OverflowException if value has too many bits.
 	**/
-	public function writeInt24( x : Int ) {
+	public function writeInt24( x : Int ) : Void  {
 		if( x < -0x800000 || x >= 0x800000 ) throw new OverflowException();
 		writeUInt24(x & 0xFFFFFF);
 	}
@@ -190,7 +190,7 @@ class Output {
 		Write an unsigned 24 bit integer
 		@throws chx.lang.OverflowException if value has too many bits.
 	**/
-	public function writeUInt24( x : Int ) {
+	public function writeUInt24( x : Int ) : Void  {
 		if( x < 0 || x >= 0x1000000 ) throw new OverflowException();
 		if( bigEndian ) {
 			writeByte(x >> 16);
@@ -207,7 +207,7 @@ class Output {
 		Write a signed 31 bit integer in 4 bytes
 		@throws chx.lang.OverflowException if value has too many bits.
 	**/
-	public function writeInt31( x : Int ) {
+	public function writeInt31( x : Int ) : Void  {
 		#if !neko
 		if( x < -0x40000000 || x >= 0x40000000 ) throw new OverflowException();
 		#end
@@ -228,7 +228,7 @@ class Output {
 		Write an unsigned 30 bit integer in 4 bytes
 		@throws chx.lang.OverflowException if value has too many bits.
 	**/
-	public function writeUInt30( x : Int ) {
+	public function writeUInt30( x : Int ) : Void  {
 		if( x < 0 #if !neko || x >= 0x40000000 #end ) throw new OverflowException();
 		if( bigEndian ) {
 			writeByte(x >>> 24);
@@ -247,16 +247,16 @@ class Output {
 		Write a signed 32 bit integer in 4 bytes
 		@throws chx.lang.OverflowException if value has too many bits.
 	**/
-	public function writeInt32( x : haxe.Int32 ) {
+	public function writeInt32( x : haxe.Int32 ) : Void  {
 		if( bigEndian ) {
 			writeByte( haxe.Int32.toInt(haxe.Int32.ushr(x,24)) );
-			writeByte( haxe.Int32.toInt(haxe.Int32.shr(x,16)) & 0xFF );
-			writeByte( haxe.Int32.toInt(haxe.Int32.shr(x,8)) & 0xFF );
+			writeByte( haxe.Int32.toInt(haxe.Int32.ushr(x,16)) & 0xFF );
+			writeByte( haxe.Int32.toInt(haxe.Int32.ushr(x,8)) & 0xFF );
 			writeByte( haxe.Int32.toInt(haxe.Int32.and(x,haxe.Int32.ofInt(0xFF))) );
 		} else {
 			writeByte( haxe.Int32.toInt(haxe.Int32.and(x,haxe.Int32.ofInt(0xFF))) );
-			writeByte( haxe.Int32.toInt(haxe.Int32.shr(x,8)) & 0xFF );
-			writeByte( haxe.Int32.toInt(haxe.Int32.shr(x,16)) & 0xFF );
+			writeByte( haxe.Int32.toInt(haxe.Int32.ushr(x,8)) & 0xFF );
+			writeByte( haxe.Int32.toInt(haxe.Int32.ushr(x,16)) & 0xFF );
 			writeByte( haxe.Int32.toInt(haxe.Int32.ushr(x,24)) );
 		}
 	}
@@ -267,7 +267,7 @@ class Output {
 		on this information, or simply ignore it. This is not a mandatory call
 		but a tip and is only used in some specific cases.
 	**/
-	public function prepare( nbytes : Int ) {
+	public function prepare( nbytes : Int ) : Void  {
 	}
 
 	/**
@@ -278,7 +278,7 @@ class Output {
 		@param bufsize A default buffer chunk size
 		@throws chx.lang.BlockedException if the input blocks
 	**/
-	public function writeInput( i : Input, ?bufsize : Int ) {
+	public function writeInput( i : Input, ?bufsize : Int ) : Void  {
 		if( bufsize == null )
 			bufsize = 4096;
 		var buf = Bytes.alloc(bufsize);
@@ -306,7 +306,7 @@ class Output {
 		@param s String to write
 		@see writeUTF()
 	**/
-	public function writeString( s : String ) {
+	public function writeString( s : String ) : Void  {
 		#if neko
 		var b = untyped new Bytes(s.length,s.__s);
 		#else
