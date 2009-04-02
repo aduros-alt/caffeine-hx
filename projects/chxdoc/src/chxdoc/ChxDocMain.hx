@@ -84,6 +84,8 @@ class ChxDocMain {
 		xmlBasePath			: "",
 		files				: new Array(),
 		webPassword			: null,
+		exclude				: new Array(),
+		ignoreRoot			: false,
 	};
 
 	static var parser = new haxe.rtti.XmlParser();
@@ -178,9 +180,12 @@ class ChxDocMain {
 		</pre>
 	**/
 	static function pass3() {
-		packageHandler.pass3(config.rootTypesPackage);
+		if( !config.ignoreRoot )
+			packageHandler.pass3(config.rootTypesPackage);
+
 		for(i in packageContexts)
-			packageHandler.pass3(i);
+			if( !Lambda.exists( config.exclude, function (l) { return i.full.indexOf(l) == 0;} ) )
+				packageHandler.pass3(i);
 
 		config.allTypes.sort(function(a,b) {
 			return Utils.stringSorter(a.path, b.path);
@@ -204,6 +209,7 @@ class ChxDocMain {
 			return;
 		}
 		else
+			if( !Lambda.exists( config.exclude, function (l) { return pkg.full.indexOf(l) == 0;} ) )
 			config.allPackages.push(pkg);
 	}
 
@@ -247,7 +253,8 @@ class ChxDocMain {
 		Write everything
 	**/
 	static function pass4() {
-		packageHandler.pass4(config.rootTypesPackage);
+		if( !config.ignoreRoot )
+			packageHandler.pass4(config.rootTypesPackage);
 		for(i in config.allPackages)
 			packageHandler.pass4(i);
 
@@ -257,6 +264,7 @@ class ChxDocMain {
 			a.push("todo");
 
 		for(i in a) {
+			if( config.ignoreRoot ) config.rootTypesPackage = null;
 			Utils.writeFileContents(
 				config.baseDirectory + i + config.htmlFileExtension,
 				execBaseTemplate(i)
@@ -708,6 +716,8 @@ class ChxDocMain {
 				case "--webPassword": config.webPassword = parts[1];
 				case "--writeWebConfig": writeWebConfig = getBool(parts[1]);
 				case "--xmlBasePath": config.xmlBasePath = parts[1];
+				case "--exclude": config.exclude = parts[1].split( "," );
+				case "--ignoreRoot": config.ignoreRoot = getBool( parts[1] );
 				}
 			}
 			else if( x == "--help" || x == "-help")
@@ -773,6 +783,8 @@ class ChxDocMain {
 		println("\t--webPassword=[pass] Sets a web password for ?reload and ?showconfig");
 		println("\t--writeWebConfig Parses everything, serializes and outputs "+ webConfigFile);
 		println("\t--xmlBasePath=path Set a default path to xml files");
+		println("\t--exclude=[comma,delimited,pkgnames] Exclude packages from being generated");
+		println("\t--ignoreRoot=[true|false] Toggle display of root classes");
 		println("");
 		println(" XML Files:");
 		println("\tinput.xml[,platform[,remap]");
