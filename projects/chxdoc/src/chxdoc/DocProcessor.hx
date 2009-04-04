@@ -55,9 +55,11 @@ class DocProcessor {
 			requires		: new Array(),
 			returns 		: new Array(),
 			see				: new Array(),
+			since			: new Array(),
 			throws 			: new Array(),
 			todos			: new Array(),
 			typeParams		: new Array(),
+			version			: new Array(),
 		};
 		this.doc = doc.split("\r\n").join("\n").split("\r").join("\n");
 	}
@@ -179,6 +181,10 @@ class DocProcessor {
 				docCtx.see.push(
 					doEmbeddedTags(packAccum(tagEreg.matched(2)))
 				);
+			case "since":
+				docCtx.since.push(
+					doEmbeddedTags(packAccum(tagEreg.matched(2)))
+				);
 			case "throw", "throws":
 				var p = packAccum(tagEreg.matched(2)).split(" ");
 				var e = p.shift();
@@ -198,6 +204,10 @@ class DocProcessor {
 					arg : p.shift(),
 					desc : doEmbeddedTags(p.join(" "))
 				});
+			case "version":
+				docCtx.version.push(
+					doEmbeddedTags(packAccum(tagEreg.matched(2)))
+				);
 			default:
 				ChxDocMain.logWarning("Unrecognized tag " + parts[i]);
 				rej.add(parts[i]);

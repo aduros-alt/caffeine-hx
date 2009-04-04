@@ -137,9 +137,11 @@ typedef DocsContext = {
 	var requires			: Array<Html>;
 	var returns				: Array<Html>;
 	var see					: Array<Html>;
+	var since				: Array<Html>;
 	var throws				: Array<{ name : Html, uri : Html, desc : Html}>;
 	var todos				: Array<Html>;
 	var typeParams			: Array<{ arg : Html, desc : Html }>;
+	var version				: Array<Html>;
 };
 
 typedef PackageContext = {
