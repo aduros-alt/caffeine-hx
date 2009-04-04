@@ -847,6 +847,7 @@ class ChxDocMain {
 			'parent' to Ctx typedef
 	**/
 	public static function logWarning(msg:String, ?pkg:PackageContext, ?ctx : Ctx) {
+		if( !config.verbose ) return;
 		if(pkg != null) {
 			msg += " in package " + pkg.full;
 		}
