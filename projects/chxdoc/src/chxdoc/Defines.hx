@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2008-2009, The Caffeine-hx project contributors
  * Original author : Russell Weir
- * Contributors:
+ * Contributors: Niel Drummond
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -85,6 +85,7 @@ typedef Config = {
 	var platforms			: List<String>;
 	/** text to add to the bottom of each Type page **/
 	var footerText			: Html;
+	var headerText			: Html;
 
 	/** generate todo file? **/
 	var generateTodo		: Bool;

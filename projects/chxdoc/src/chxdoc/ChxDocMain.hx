@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2008-2009, The Caffeine-hx project contributors
  * Original author : Russell Weir
- * Contributors:
+ * Contributors: Niel Drummond
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -77,6 +77,7 @@ class ChxDocMain {
 		developer			: false,
 		platforms			: new List(),
 		footerText			: null,
+		headerText			: null,
 		generateTodo		: false,
 		todoLines			: new Array(),
 		todoFile			: "todo.html",
@@ -694,6 +695,14 @@ class ChxDocMain {
 					} catch(e : Dynamic) {
 						fatal("Unable to load footer file " + parts[1]);
 					}
+				case "--headerText":
+					config.headerText = parts[1];
+				case "--headerTextFile":
+					try {
+						config.headerText = neko.io.File.getContent(parts[1]);
+					} catch(e : Dynamic) {
+						fatal("Unable to load header file " + parts[1]);
+					}
 				case "--generateTodoFile":
 					config.generateTodo = getBool(parts[1]);
 				case "--installTemplate":
@@ -764,6 +773,8 @@ class ChxDocMain {
 		println("\t--developer=[true|false] Shortcut to showing all privates, if true");
 		println("\t--footerText=\"text\" Text that will be added to footer of Type pages");
 		println("\t--footerTextFile=/path/to/file Type pages footer text from file");
+		println("\t--headerText=\"text\" Text that will be added to header of Type pages");
+		println("\t--headerTextFile=/path/to/file Type pages header text from file");
 		println("\t--generateTodoFile=[true|false] Generate the todo.html file");
 		println("\t--installTemplate=[true|false] Install stylesheet and images from template");
 		println("\t--macroFile=file.mtt Temploc macro file. (default macros.mtt)");
