@@ -128,7 +128,6 @@ class DocProcessor {
 	**/
 	function doTags(parts : Array<String>) : Array<String> {
 		var accum : Array<String> = new Array();
-		var rej : List<String> = new List<String>();
 
 		/**
 			param cur must be the current text that is not yet in the accum
@@ -210,12 +209,10 @@ class DocProcessor {
 				);
 			default:
 				ChxDocMain.logWarning("Unrecognized tag " + parts[i]);
-				rej.add(parts[i]);
 			}
 			accum = new Array();
 		}
 		accum.reverse();
-		for( r in rej ) accum.push( r );
 		return accum;
 	}
 
