@@ -1,4 +1,6 @@
 0.8
+	- ADDED @since and @version
+	- FIXED Path bug in Utils.hx
 	Targets:
 		- Inline tags eg. @deprecated As of some date, replaced by {@link #newMethod()}
 		- Improve default template look for --developer and typedefs

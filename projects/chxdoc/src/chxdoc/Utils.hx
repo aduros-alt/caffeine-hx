@@ -199,16 +199,20 @@ class Utils {
 		@todo Windows does not work correctly with [exists] and [createDirectory], so a wrapper in chx should consider this
 	**/
 	public static function createOutputDirectory(path:String) {
+		if(path == null)
+			throw "Output directory is null";
 		// trim off the trailing slash for windows
-		var s = path.charAt(path.length-1);
-		if(s == "/" || s == "\\")
-			path = path.substr(0, path.length-1);
-		ensureDirectory(path);
+		if(path != "/" && path != "\\") {
+			var s = path.charAt(path.length-1);
+			if(s == "/" || s == "\\")
+				path = path.substr(0, path.length-1);
+			ensureDirectory(path);
+		}
 	}
 
 	private static function ensureDirectory(dir : String) {
 		try {
-			if(!neko.FileSystem.exists(dir)) 
+			if(!neko.FileSystem.exists(dir))
 				neko.FileSystem.createDirectory(dir);
 		} catch( e : Dynamic) {
 			ensureDirectory(neko.io.Path.directory(dir));
