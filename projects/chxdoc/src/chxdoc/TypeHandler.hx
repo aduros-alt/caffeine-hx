@@ -152,7 +152,6 @@ class TypeHandler<T> {
 		}
 	}
 
-
 	function processPath( path : Path, ?params : List<CType> ) {
 		write(makePathUrl(path,"type"));
 		if( params != null && !params.isEmpty() ) {
@@ -164,6 +163,8 @@ class TypeHandler<T> {
 	}
 
 	function makePathUrl( path : Path, css ) {
+		if(Utils.isFiltered(path, false))
+			return path;
 		var p = path.split(".");
 		var name = p.pop();
 		var local = (p.join(".") == ChxDocMain.currentPackageDots);

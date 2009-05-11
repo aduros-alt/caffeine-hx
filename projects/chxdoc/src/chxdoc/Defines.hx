@@ -101,7 +101,6 @@ typedef Config = {
 // 	var rendered			: Hash<String>; // rendered html by path
 	/** password for ?reload and ?showconfig **/
 	var webPassword			: String;
-	var exclude			: Array<String>;
 	var ignoreRoot			: Bool;
 };
 

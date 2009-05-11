@@ -39,8 +39,8 @@ class ChxDocMain {
 	public static var config : Config =
 	{
 		versionMajor		: 0,
-		versionMinor		: 7,
-		versionRevision		: 3,
+		versionMinor		: 8,
+		versionRevision		: 0,
 		buildNumber			: 511,
 		verbose				: false,
 		rootTypesPackage	: null,
@@ -85,7 +85,6 @@ class ChxDocMain {
 		xmlBasePath			: "",
 		files				: new Array(),
 		webPassword			: null,
-		exclude				: new Array(),
 		ignoreRoot			: false,
 	};
 
@@ -185,8 +184,7 @@ class ChxDocMain {
 			packageHandler.pass3(config.rootTypesPackage);
 
 		for(i in packageContexts)
-			if( !Lambda.exists( config.exclude, function (l) { return i.full.indexOf(l) == 0;} ) )
-				packageHandler.pass3(i);
+			packageHandler.pass3(i);
 
 		config.allTypes.sort(function(a,b) {
 			return Utils.stringSorter(a.path, b.path);
@@ -209,9 +207,9 @@ class ChxDocMain {
 			config.rootTypesPackage = pkg;
 			return;
 		}
-		else
-			if( !Lambda.exists( config.exclude, function (l) { return pkg.full.indexOf(l) == 0;} ) )
+		else {
 			config.allPackages.push(pkg);
+		}
 	}
 
 	public static function registerTodo(pkg:PackageContext, ctx:Ctx, msg: String) {
@@ -687,6 +685,12 @@ class ChxDocMain {
 					config.showPrivateVars = show;
 					config.showTodoTags = show;
 					config.generateTodo = show;
+				case "--exclude":
+					var opts = parts[1].split(",");
+					for(p in opts) {
+						p = StringTools.trim(p);
+						Utils.addFilter(p);
+					}
 				case "--footerText":
 					config.footerText = parts[1];
 				case "--footerTextFile":
@@ -705,6 +709,14 @@ class ChxDocMain {
 					}
 				case "--generateTodoFile":
 					config.generateTodo = getBool(parts[1]);
+				case "--ignoreRoot":
+					config.ignoreRoot = getBool( parts[1] );
+				case "--includeOnly":
+					var opts = parts[1].split(",");
+					for(p in opts) {
+						p = StringTools.trim(p);
+						Utils.addAllowOnly(p);
+					}
 				case "--installTemplate":
 					var i = getBool(parts[1]);
 					config.installImagesDir = i;
@@ -725,8 +737,6 @@ class ChxDocMain {
 				case "--webPassword": config.webPassword = parts[1];
 				case "--writeWebConfig": writeWebConfig = getBool(parts[1]);
 				case "--xmlBasePath": config.xmlBasePath = parts[1];
-				case "--exclude": config.exclude = parts[1].split( "," );
-				case "--ignoreRoot": config.ignoreRoot = getBool( parts[1] );
 				}
 			}
 			else if( x == "--help" || x == "-help")
@@ -777,6 +787,7 @@ class ChxDocMain {
 		println("\t--headerTextFile=/path/to/file Type pages header text from file");
 		println("\t--generateTodoFile=[true|false] Generate the todo.html file");
 		println("\t--installTemplate=[true|false] Install stylesheet and images from template");
+		println("\t--includeOnly=[comma delimited packages and classes] Output only for listed classes and packages");
 		println("\t--macroFile=file.mtt Temploc macro file. (default macros.mtt)");
 		println("\t--showAuthorTags=[true|false] Toggles showing @author contents");
 		println("\t--showPrivateClasses=[true|false] Toggle private classes display");

@@ -1,13 +1,19 @@
+Targets:
+	- Inline tags eg. @deprecated As of some date, replaced by {@link #newMethod()}
+	- Improve default template look for --developer and typedefs
+		(check js.Checkbox fields, which are "available in all platforms")(Franco)
+	- Add --showSourceFilePath for hard link to source files
+	- Import docs for methods etc. in classes if they implement an interface
+			and have no docs
+
 0.8
 	- ADDED @since and @version
 	- FIXED Path bug in Utils.hx
-	Targets:
-		- Inline tags eg. @deprecated As of some date, replaced by {@link #newMethod()}
-		- Improve default template look for --developer and typedefs
-			(check js.Checkbox fields, which are "available in all platforms")(Franco)
-		- Add --showSourceFilePath for hard link to source files
-		- Import docs for methods etc. in classes if they implement an interface
-			 and have no docs
+	- ADDED --includeOnly param, which takes packages as package.* or full
+		paths to classes (mypackage.MyClass). Once activated, all other
+		packages/classes are ignored
+	- ADDED --ignoreRoot to supress generation of [root types] html
+
 0.7.3
 	- FIXED: Populating ClassCtx.superClasses
 	-CHANGE: Added show/hide inherited to member vars and member methods

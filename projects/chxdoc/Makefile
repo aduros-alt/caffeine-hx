@@ -50,7 +50,10 @@ release: dependencies make_release
 make_release: make_release.sh
 
 dependencies: $(CHX_FILES)
-	cp $(CHX_FILES) src/chx/
+# 	cp $(CHX_FILES) src/chx/
+
+install: chxdoc
+	cp chxdoc ~/bin/
 
 dummy:
 

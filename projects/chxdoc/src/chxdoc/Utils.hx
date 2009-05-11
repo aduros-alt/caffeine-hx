@@ -33,6 +33,7 @@ import chxdoc.Types;
 
 class Utils {
 	static var filters : List<String> = new List<String>();
+	static var allowedOnly : List<String> = new List<String>();
 
 	/**
 		Takes all items in arr and prefixes them with the
@@ -154,18 +155,51 @@ class Utils {
 	}
 
 	/**
-		Checks if a package or class is filtered
+	* Sets a package or class name that may be allowed,
+	* filtering everything else
+	*
+	* @param s Class path (ie. mypackage.* or mypackage.MyClass)
+	*/
+	public static function addAllowOnly(s:String) : Void {
+		if(s==null || s.length == 0) return;
+		if(s.charAt(s.length-1) == "*")
+			s = s.substr(0, s.length-1);
+		if(s.indexOf(".") < 0) // a root type
+		{
+			allowedOnly.remove("root types.");
+			allowedOnly.add("root types.");
+		}
+		allowedOnly.add(s);
+	}
+
+	/**
+	* Checks if a package or class is filtered
 	**/
 	public static function isFiltered( path : Path, isPackage : Bool ) {
 		if( isPackage && path == "Remoting" )
 			return true;
 		if( StringTools.endsWith(path,"__") )
 			return true;
-		if( filters.isEmpty() )
-			return false;
 		for( x in filters )
 			if( StringTools.startsWith(path,x) )
 				return true;
+		var ao = false;
+		if(isPackage)
+			path += ".";
+		for( x in allowedOnly ) {
+			ao = true;
+			if( x.charAt(x.length-1) == "." ) {
+				if( StringTools.startsWith(path,x) )
+					return false;
+			}
+			if( path == x ) {
+				return false;
+			}
+		}
+		// if there were any allowedOnly entries, anything
+		// else is filtered.
+		if(ao) return true;
+
 		return false;
 	}
 

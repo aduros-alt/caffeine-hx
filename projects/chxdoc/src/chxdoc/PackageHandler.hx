@@ -117,7 +117,7 @@ class PackageHandler extends TypeHandler<PackageContext> {
 		</pre>
 	**/
 	public function pass3(pkg : PackageContext) {
-		print("Package: " + pkg.full);
+		print("Package " + pkg.full + " pass 3");
 		if(isFilteredPackage(pkg.full)) {
 			println(" -> filtered.");
 			return;
@@ -126,6 +126,8 @@ class PackageHandler extends TypeHandler<PackageContext> {
 
 		var newTypes = new Array<Ctx>();
 		for(ctx in pkg.types) {
+			if(Utils.isFiltered(ctx.path, false))
+				continue;
 			print(ctx.nameDots);
 			switch(ctx.type) {
 			case "class", "interface":
@@ -158,7 +160,9 @@ class PackageHandler extends TypeHandler<PackageContext> {
 	**/
 	public function pass4(pkg : PackageContext) {
 		if(isFilteredPackage(pkg.full)) {
-			throw "should not happen " + pkg.full;
+			if(pkg.full != "root types") {
+				throw "should not happen " + pkg.full;
+			}
 			return;
 		}
 
