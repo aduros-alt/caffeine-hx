@@ -813,9 +813,11 @@ class ChxDocMain {
 		println("\tXml files are generated using the -xml option when compiling haxe projects. ");
 		println("\tplatform - generate docs for a given platform" );
 		println("\tremap - change all references of 'remap' to 'package'");
-		println(" Sample usage:");
+		println("\n Sample usage:");
 		println("\tchxdoc flash9.xml,flash,flash9 php.xml,php");
 		println("\t\tWill transform all references to flash.* to flash9.*");
+		println("\tchxdoc -o Doc --includeOnly=mypackage.*,Int --developer=true --generateTodoFile=true --showTodoTags=true neko.xml,neko");
+		println("\t\tGenerates developer docs for mypackage.* and the Int class only, generating the TODO file as well as showing @todo\n\t\ttags in user docs. The output is built in the 'Doc' directory.");
 		println("");
 		if(! neko.Web.isModNeko )
 			neko.Sys.exit(exitVal);
