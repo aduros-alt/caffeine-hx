@@ -66,7 +66,7 @@ class ProgressBar extends Component {
 	}
 
 	override public function setSkin(obj:Dynamic) {
-		trace(here.methodName);
+// 		trace(here.methodName);
 		if(obj.classname != null) {
 			asAsset = new LibraryAsset(obj.classname);
 			//asAsset.visible = true;

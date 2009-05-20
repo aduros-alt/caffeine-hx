@@ -81,9 +81,7 @@ class Std {
 	/**
 		Convert a character code into the corresponding single-char String.
 	**/
-	public static function chr( x : Int ) : String {
-		return String.fromCharCode(x);
-	}
+	public static var chr : Int -> String = String.fromCharCode;
 
 	/**
 		Return the character code of the first character of the String, or null if the String is empty.

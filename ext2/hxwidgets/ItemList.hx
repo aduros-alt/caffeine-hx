@@ -25,7 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-pacakge hxwidgets;
+package hxwidgets;
 import hxwidgets.events.SizeEvent;
 import hxwidgets.events.ItemListEvent;
 

@@ -49,6 +49,25 @@ class EReg {
 	var useChxRegEx : Bool;
 	var chxRegEx : chx.RegEx;
 	var chxRegExOk : Bool;
+	/*
+		Flash is unable to receive a JS object, so when returned to flash, the
+		res.index and res.input are undefined, leaving only the array of matches.
+		@param s String to match
+		@param ereg Regular expression text
+		@param opt Regular expression options
+		@return Array with first element indicating the match index
+	*/
+	static var matchCode : String = "
+	haxeERegMatch = function(s, ereg, opt) {
+		var re = new RegExp(unescape(ereg), unescape(opt));
+		var res = re.exec(unescape(s));
+		if(res == null)
+			return null;
+		for(var i=0; i < res.length; i++)
+			res[i] = escape(res[i]);
+		res.unshift(res.index);
+		return res;
+	}";
 	#end
 	#if (neko || cpp || php)
 	var last : String;
@@ -82,11 +101,11 @@ class EReg {
 		#elseif flash
 			pattern = StringTools.urlEncode(r);
 			options = StringTools.urlEncode(opt);
-			useChxRegEx = true;
-			if(flash.external.ExternalInterface.available) {
-				var v : Bool = untyped flash.external.ExternalInterface.call("haxeSupportTest", true);
-				if(v != null)
-					useChxRegEx = false;
+			useChxRegEx = !flash.external.ExternalInterface.available;
+			if(!useChxRegEx) {
+				try {
+					flash.ExternalInterface.call("eval("+matchCode+")");
+				} catch(e:Dynamic) { useChxRegEx = true; }
 			}
 			if(useChxRegEx)
 				chxRegEx = new chx.RegEx(r, opt);

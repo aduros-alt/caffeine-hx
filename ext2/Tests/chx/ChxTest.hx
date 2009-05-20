@@ -13,8 +13,11 @@ typedef Ctx = {
 	var num : Num;
 }
 
+import chx.io.StringBufOutput;
+
 class ChxTests extends haxe.unit.TestCase {
-	function testCachedSerializer() {
+/*
+	function testSerializer() {
 		var a : Ctx = {
 			s: "This is a",
 			ctx : null,
@@ -29,7 +32,7 @@ class ChxTests extends haxe.unit.TestCase {
 
 		var ctxArray = [a, b];
 
-		var ser = chx.CachedSerializer.run(ctxArray);
+		var ser = chx.Serializer.run(ctxArray);
 		//trace(ser);
 		ctxArray = haxe.Unserializer.run(ser);
 
@@ -50,12 +53,52 @@ class ChxTests extends haxe.unit.TestCase {
 			}
 		}
 	}
+*/
+	function testStringOutput() {
+		var o = new StringBufOutput();
+		o.writeByte(65);
+		assertEquals("A", o.toString());
+
+		o = new StringBufOutput();
+		o.writeFloat(1.23);
+		assertEquals("1.23", o.toString().substr(0,4));
+
+		o = new StringBufOutput();
+		o.writeInt16(-32768);
+		assertEquals("-32768", o.toString());
+
+		o = new StringBufOutput();
+		o.writeUInt16(65535);
+		assertEquals("65535", o.toString());
+
+		var i32 = haxe.Int32.ofInt(123456789);
+		var ten = haxe.Int32.ofInt(10);
+
+		o = new StringBufOutput();
+		i32 = haxe.Int32.ofInt(-123456789);
+		o.writeInt32(i32);
+		assertEquals("-123456789", o.toString());
+
+		o = new StringBufOutput();
+		i32 = haxe.Int32.ofInt(-123456789);
+		i32 = haxe.Int32.mul(i32, ten);
+		o.writeInt32(i32);
+		assertEquals("-1234567890", o.toString());
+
+		o = new StringBufOutput();
+		o.writeString("Hi there");
+		assertEquals("Hi there", o.toString());
+
+		o = new StringBufOutput();
+		o.writeUTF("Hi there");
+		assertEquals("Hi there", o.toString());
+	}
 }
 
 class ChxTest {
 	static function main() 
 	{
-		chx.Log.redirectTraces(false);
+		//chx.Log.redirectTraces(false);
 		var r = new haxe.unit.TestRunner();
 		r.add(new ChxTests());
 		r.run();
