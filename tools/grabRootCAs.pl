@@ -77,7 +77,7 @@ sub generateAs3Class(@) {
  * be better to only add the certificates you require for your application.
  *
  */
-package crypt.cert;
+package chx.crypt.cert;
 
 class MozillaRootCertificates extends X509CertificateCollection {
 	public function new() {
@@ -119,7 +119,7 @@ sub main() {
   my $data = getCertData();
   my @certs = extractCerts($data);
   my $class = generateAs3Class(@certs);
-  open (TMP, ">../ext/crypt/cert/MozillaRootCertificates.hx");
+  open (TMP, ">../ext2/chx/crypt/cert/MozillaRootCertificates.hx");
   print TMP $class;
   close TMP;
   unlink "certdata.c";
