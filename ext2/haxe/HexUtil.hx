@@ -27,8 +27,7 @@
 
 package haxe;
 
-import haxe.Int32;
-import haxe.io.Bytes;
+import I32;
 
 class HexUtil {
 	public static function intToHex(j:Int)

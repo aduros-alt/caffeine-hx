@@ -25,9 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package crypt;
-
-import haxe.io.Bytes;
+package chx.crypt;
 
 interface IBlockCipher {
 	var blockSize(getBlockSize,null) : Int;

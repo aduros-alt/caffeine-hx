@@ -2,8 +2,6 @@ import crypt.Tea;
 import crypt.IMode;
 import crypt.ModeECB;
 import crypt.ModeCBC;
-import haxe.io.Bytes;
-import haxe.io.BytesUtil;
 
 enum CryptMode {
 	CBC;

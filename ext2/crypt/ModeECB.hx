@@ -27,10 +27,6 @@
 
 package crypt;
 
-import haxe.io.Bytes;
-import haxe.io.BytesBuffer;
-import haxe.io.BytesUtil;
-
 class ModeECB implements IMode {
 	public var cipher(default,null)	: IBlockCipher;
 	public var padding				: IPad;

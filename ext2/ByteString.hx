@@ -33,8 +33,7 @@
 // 0x12345678 in Big Endian (network byte order) is stored 12 34 56 78
 // 0x12345678 in Little Endian (Intel architecture) is stored 78 56 34 12
 
-import haxe.Int32;
-import haxe.Int32Util;
+import I32;
 
 // TODO: implement as flash.util.ByteArray for flash 9
 class ByteString {
@@ -167,17 +166,13 @@ class ByteString {
 	/**
 		Read a 32 bit signed integer from the buffer.
 	**/
-#if neko
 	public function readInt() : Int32 {
-#else true
-	public function readInt() : Int {
-#end
 		var b = new ByteString();
 		readBytes(b, 0, 4);
 
 		if(endian == BIG_ENDIAN)
-			return(Int32Util.decodeBE(Bytes.ofString(b.toString())));
-		return Int32Util.decodeLE(Bytes.ofString(b.toString()));
+			return(I32.decodeBE(Bytes.ofString(b.toString())));
+		return I32.decodeLE(Bytes.ofString(b.toString()));
 	}
 
 	/**
@@ -388,15 +383,11 @@ class ByteString {
 		Write a 32 bit integer. It will be written in the byte order according to
 		the 'endian' setting.
 	**/
-#if neko
 	public function writeInt(v : Int32) : Void {
-#else true
-	public function writeInt(v : Int) : Void {
-#end
 		if(endian == BIG_ENDIAN)
-			writeBytes(Int32Util.encodeBE(v));
+			writeBytes(I32.encodeBE(v));
 		else
-			writeBytes(Int32Util.encodeLE(v));
+			writeBytes(I32.encodeLE(v));
 		update();
 	}
 
@@ -531,13 +522,9 @@ class ByteString {
 	/**
 		Convert an array of 32bit integers to a little endian string<br />
 	**/
-#if neko
 	public static function int32ToString(l : Array<Int32>) : String
-#else true
-	public static function int32ToString(l : Array<Int>) : String
-#end
 	{
-		return Int32Util.packLE(#if !neko untyped #end l).toString();
+		return I32.packLE(#if !neko untyped #end l).toString();
 	}
 
 	/*
@@ -654,14 +641,10 @@ class ByteString {
 		If the string length is not a multiple of 4, it will be NULL padded
 		at the end.
 	**/
-#if neko
 	public static function strToInt32(s : String) : Array<Int32>
-#else true
-	public static function strToInt32(s : String) : Array<Int>
-#end
 	{
 		return #if !neko cast #end
-			Int32Util.unpackLE(Bytes.ofString(nullPadString(s,4)));
+			I32.unpackLE(Bytes.ofString(nullPadString(s,4)));
 	}
 
 	/**

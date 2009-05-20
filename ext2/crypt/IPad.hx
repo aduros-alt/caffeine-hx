@@ -27,8 +27,6 @@
 
 package crypt;
 
-import haxe.io.Bytes;
-
 interface IPad {
 	/** finished padded block size **/
 	var blockSize(default,setBlockSize) : Int;

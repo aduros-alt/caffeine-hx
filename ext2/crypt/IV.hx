@@ -27,10 +27,6 @@
 
 package crypt;
 
-import haxe.io.Bytes;
-import haxe.io.BytesBuffer;
-import haxe.io.BytesUtil;
-
 private enum IvState {
 	IV_UNINIT;
 	IV_BLOCK;

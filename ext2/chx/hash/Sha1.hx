@@ -35,8 +35,8 @@
 
 package chx.hash;
 
-import haxe.io.BytesUtil;
-import haxe.Int32Util;
+import BytesUtil;
+import I32;
 import haxe.HexUtil;
 
 class Sha1 implements IHash {
@@ -214,11 +214,11 @@ class Sha1 implements IHash {
     	}
 
 		bb = new BytesBuffer();
-		bb.add(Int32Util.encodeBE(cast H0));
-		bb.add(Int32Util.encodeBE(cast H1));
-		bb.add(Int32Util.encodeBE(cast H2));
-		bb.add(Int32Util.encodeBE(cast H3));
-		bb.add(Int32Util.encodeBE(cast H4));
+		bb.add(I32.encodeBE(cast H0));
+		bb.add(I32.encodeBE(cast H1));
+		bb.add(I32.encodeBE(cast H2));
+		bb.add(I32.encodeBE(cast H3));
+		bb.add(I32.encodeBE(cast H4));
 		return bb.getBytes();
 #end
 	}

@@ -32,9 +32,6 @@
 
 package crypt;
 
-import haxe.io.Bytes;
-import haxe.io.BytesBuffer;
-import haxe.io.BytesUtil;
 import math.BigInteger;
 import math.prng.Random;
 

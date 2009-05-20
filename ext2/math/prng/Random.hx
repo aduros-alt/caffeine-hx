@@ -34,8 +34,6 @@
 **/
 package math.prng;
 
-import haxe.io.Bytes;
-
 class Random {
 	var state : #if as3gen Dynamic #else IPrng #end;
 	var pool : Array<Int>;

@@ -27,9 +27,9 @@
 
 package chx.hash;
 
-import haxe.io.BytesUtil;
+import BytesUtil;
 import haxe.HexUtil;
-import haxe.Int32Util;
+import I32;
 
 class Md5 implements IHash {
 
@@ -263,7 +263,7 @@ class Md5 implements IHash {
 
 			i += 16;
 		}
-		return Int32Util.packLE(cast [a,b,c,d]);
+		return I32.packLE(cast [a,b,c,d]);
 	}
 #end
 }

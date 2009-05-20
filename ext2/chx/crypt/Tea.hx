@@ -25,12 +25,9 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package crypt;
+package chx.crypt;
 
-import haxe.Int32;
-import haxe.Int32Util;
-import haxe.io.Bytes;
-import haxe.io.BytesUtil;
+import I32;
 
 class Tea implements IBlockCipher {
 #if neko
@@ -48,9 +45,9 @@ class Tea implements IBlockCipher {
 				BytesUtil.nullPad(key.sub(0,l), 16)
 		);
 #if neko
-		k = xxtea_create_key(Int32Util.mkNekoArray(m));
+		k = xxtea_create_key(I32.mkNekoArray(m));
 #else
-		k = Int32Util.toNativeInt32Array(m);
+		k = I32.toNativeArray(m);
 #end
 		blockSize = 8;
 	}
@@ -78,12 +75,12 @@ class Tea implements IBlockCipher {
 		if (n == 1)
 			v[n++] = Int32.ofInt(0);
 		var rv = xxtea_encrypt_block(
-				Int32Util.mkNekoArray(v),
+				I32.mkNekoArray(v),
 				n,
 				k);
 		return Bytes.ofData(rv);
 #else
-		var v : Array<Int> = Int32Util.toNativeInt32Array(BytesUtil.bytesToInt32LE(plaintext));
+		var v : Array<Int> = I32.toNativeArray(BytesUtil.bytesToInt32LE(plaintext));
 		var n = v.length;
 		if (n == 1)
 			v[n++] = 0;
@@ -110,7 +107,7 @@ class Tea implements IBlockCipher {
 			y = v[0];
 			z = v[n-1] += (z>>>5 ^ y<<2) + (y>>>3 ^ z<<4) ^ (sum^y) + (k[p&3^e]^z);
 		}
-		return Int32Util.packLE(cast v);
+		return I32.packLE(cast v);
 #end
 	}
 
@@ -121,12 +118,12 @@ class Tea implements IBlockCipher {
 		var v = BytesUtil.bytesToInt32LE(ciphertext);
 		var n = v.length;
 		var rv = xxtea_decrypt_block(
-				Int32Util.mkNekoArray(v),
+				I32.mkNekoArray(v),
 				n,
 				k);
 		return Bytes.ofData(rv);
 #else
-		var v : Array<Int> = Int32Util.toNativeInt32Array(BytesUtil.bytesToInt32LE(ciphertext));
+		var v : Array<Int> = I32.toNativeArray(BytesUtil.bytesToInt32LE(ciphertext));
 		var n = v.length;
 
 		var delta = 0x9e3779B9;
@@ -151,7 +148,7 @@ class Tea implements IBlockCipher {
 			y = v[0] -= (z>>>5 ^ y<<2) + (y>>>3 ^ z<<4) ^ (sum^y) + (k[p&3^e]^z);
 			sum -= delta;
 		}
-		return Int32Util.packLE(cast v);
+		return I32.packLE(cast v);
 #end
 	}
 

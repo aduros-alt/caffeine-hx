@@ -1,6 +1,5 @@
 import math.IEEE754;
 
-import haxe.io.Bytes;
 import haxe.io.BytesInput;
 import haxe.io.BytesOutput;
 

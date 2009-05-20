@@ -4,8 +4,6 @@ import chx.hash.Sha1;
 import chx.hash.Sha256;
 
 import haxe.HexUtil;
-import haxe.io.Bytes;
-import haxe.io.BytesUtil;
 
 class Vectors {
 	public static function Sha1() {

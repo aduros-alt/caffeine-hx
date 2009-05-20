@@ -65,8 +65,6 @@
 
 package math;
 
-import haxe.io.Bytes;
-
 private enum Status {
 	Normal;
 	Overflow;

@@ -32,13 +32,10 @@
 
 package math;
 
-import haxe.io.Bytes;
-import haxe.io.BytesBuffer;
 import haxe.io.BytesData;
-import haxe.io.BytesUtil;
 
-import haxe.Int32;
-import haxe.Int32Util;
+import BytesUtil;
+import I32;
 
 #if neko
 enum HndBI {
@@ -273,14 +270,14 @@ class BigInteger {
 			var r:String = "";
 			bi.divRemTo(d,y,z);
 			while(y.sigNum() > 0) {
-				r = Int32Util.baseEncode(
+				r = I32.baseEncode(
 						Int32.add(
 							Int32.ofInt(a),
 							z.toInt32()
 						), b).substr(1) + r;
 				y.divRemTo(d,y,z);
 			}
-			return Bytes.ofString(Int32Util.baseEncode(z.toInt32(), b) + r);
+			return Bytes.ofString(I32.baseEncode(z.toInt32(), b) + r);
 		}
 
 		if((b < 2 || b > 36) && b != 256) {

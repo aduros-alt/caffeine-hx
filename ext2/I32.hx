@@ -95,7 +95,7 @@ class I32 {
 	public static inline function abs(v : Int32) : Int32
 	{
 		#if neko
-		if(I32.compare(ofInt(0), v) > 0)
+		if(compare(ofInt(0), v) > 0)
 			return(neg(v));
 		return v;
 		#else
@@ -126,6 +126,32 @@ class I32 {
 	public static inline function and(a : Int32, b : Int32) : Int32
 	{
 		return #if neko untyped __i32__and(a,b) #else a & b #end;
+	}
+
+	/**
+	*	Encode a 32 bit int to String in base [radix].
+	*
+	*	@param v Integer to convert
+	*	@param radix Number base to convert to, from 2-32
+	*	@return String representation of the number in the given base.
+	**/
+	public static function baseEncode(v : Int32, radix : Int) : String
+	{
+		if(radix < 2 || radix > 36)
+			throw "radix out of range";
+		var sb = "";
+		var av : Int32 = abs(v);
+		var radix32 = ofInt(radix);
+		while(true) {
+			var r32 = mod(av, radix32);
+			sb = Constants.DIGITS_BN.charAt(toInt(r32)) + sb;
+			av = div(sub(av,r32), radix32);
+			if(eq(av, ZERO))
+				break;
+		}
+		if(lt(v, ZERO))
+			return "-" + sb;
+		return sb;
 	}
 
 	/**
@@ -162,13 +188,81 @@ class I32 {
 	}
 
 	/**
+	* Encode an Int32 to a big endian string.
+	**/
+	public static function encodeBE(i : Int32) : Bytes
+	{
+		var sb = new BytesBuffer();
+		sb.addByte( toInt(B4(i)) );
+		sb.addByte( toInt(B3(i)) );
+		sb.addByte( toInt(B2(i)) );
+		sb.addByte( toInt(B1(i)) );
+		return sb.getBytes();
+	}
+
+	/**
+	* Encode an Int32 to a little endian string. Lowest byte is first in string so
+	* 0xA0B0C0D0 encodes to [D0,C0,B0,A0]
+	**/
+	public static function encodeLE(i : Int32) : Bytes
+	{
+		var sb = new BytesBuffer();
+		sb.addByte( toInt(B1(i)) );
+		sb.addByte( toInt(B2(i)) );
+		sb.addByte( toInt(B3(i)) );
+		sb.addByte( toInt(B4(i)) );
+		return sb.getBytes();
+	}
+
+	/**
+	* Decode 4 big endian encoded bytes to a 32 bit integer.
+	**/
+	public static function decodeBE( s : Bytes, ?pos : Int ) : Int32
+	{
+		if(pos == null)
+			pos = 0;
+		var b0 = ofInt(s.get(pos+3));
+		var b1 = ofInt(s.get(pos+2));
+		var b2 = ofInt(s.get(pos+1));
+		var b3 = ofInt(s.get(pos));
+		b1 = shl(b1, 8);
+		b2 = shl(b2, 16);
+		b3 = shl(b3, 24);
+		var a = add(b0, b1);
+		a = add(a, b2);
+		a = add(a, b3);
+		return a;
+	}
+
+	/**
+	* Decode 4 little endian encoded bytes to a 32 bit integer.
+	**/
+	public static function decodeLE( s : Bytes, ?pos : Int ) : Int32
+	{
+		if(pos == null)
+			pos = 0;
+		var b0 = ofInt(s.get(pos));
+		var b1 = ofInt(s.get(pos+1));
+		var b2 = ofInt(s.get(pos+2));
+		var b3 = ofInt(s.get(pos+3));
+		b1 = shl(b1, 8);
+		b2 = shl(b2, 16);
+		b3 = shl(b3, 24);
+		var a = add(b0, b1);
+		a = add(a, b2);
+		a = add(a, b3);
+		return a;
+	}
+
+
+	/**
 	*	Returns true if a == b
 	**/
 	public static inline function eq(a:Int32, b:Int32) : Bool
 	{
 		return
 			#if neko
-				(I32.compare(a,b) == 0) ? true : false;
+				(compare(a,b) == 0) ? true : false;
 			#else
 				(a == b);
 			#end
@@ -181,7 +275,7 @@ class I32 {
 	{
 		return
 			#if neko
-				(I32.compare(a,b) > 0) ? true : false;
+				(compare(a,b) > 0) ? true : false;
 			#else
 				(a > b);
 			#end
@@ -194,7 +288,7 @@ class I32 {
 	{
 		return
 			#if neko
-				(I32.compare(a,b) >= 0) ? true : false;
+				(compare(a,b) >= 0) ? true : false;
 			#else
 				(a >= b);
 			#end
@@ -207,7 +301,7 @@ class I32 {
 	{
 		return
 			#if neko
-				(I32.compare(a,b) < 0) ? true : false;
+				(compare(a,b) < 0) ? true : false;
 			#else
 				(a < b);
 			#end
@@ -220,23 +314,45 @@ class I32 {
 	{
 		return
 			#if neko
-				(I32.compare(a,b) <= 0) ? true : false;
+				(compare(a,b) <= 0) ? true : false;
 			#else
 				(a <= b);
 			#end
 	}
 
 	/**
-	*  Create an Int32 from a high word (a) and a low word(b)
+	*  Create an Int32 from a high word and a low word
 	*/
-	public static inline function make( a : Int, b : Int ) : Int32 {
+	public static inline function make( high : Int, low : Int ) : Int32 {
 		return
 			#if neko
-				add(shl(cast a,16),cast b);
+				add(shl(cast high,16),cast low);
 			#else
-				a << 16 + b;
+				high << 16 + low;
 			#end
 	}
+
+#if neko
+	/**
+	* Create a neko array of Int32 suitable for passing to ndlls.
+	*
+	* @param a Array of Int32 type.
+	* @return Neko array
+	**/
+	public static function mkNekoArray( a : Array<Int32> ) : Dynamic {
+		if( a == null )
+			return null;
+		untyped {
+			var r = __dollar__amake(a.length);
+			var i = 0;
+			while( i < a.length ) {
+				r[i] = a[i];
+				i += 1;
+			}
+			return r;
+		}
+	}
+#end
 
 	/**
 	* Makes a color from an alpha value (0-255) and a 3 byte rgb value
@@ -292,6 +408,42 @@ class I32 {
 	}
 
 	/**
+	* Convert an array of 32bit integers to a big endian buffer.
+	*
+	* @param l Array of Int32 types
+	* @return Bytes big endian encoded.
+	**/
+	public static function packBE(l : Array<Int32>) : Bytes
+	{
+		var sb = new BytesBuffer();
+		for(i in 0...l.length) {
+			sb.addByte( toInt(B4(l[i])) );
+			sb.addByte( toInt(B3(l[i])) );
+			sb.addByte( toInt(B2(l[i])) );
+			sb.addByte( toInt(B1(l[i])) );
+		}
+		return sb.getBytes();
+	}
+
+	/**
+	* Convert an array of 32bit integers to a little endian buffer.
+	*
+	* @param l Array of Int32 types
+	* @return Bytes little endian encoded.
+	**/
+	public static function packLE(l : Array<Int32>) : Bytes
+	{
+		var sb = new BytesBuffer();
+		for(i in 0...l.length) {
+			sb.addByte( toInt(B1(l[i])) );
+			sb.addByte( toInt(B2(l[i])) );
+			sb.addByte( toInt(B3(l[i])) );
+			sb.addByte( toInt(B4(l[i])) );
+		}
+		return sb.getBytes();
+	}
+
+	/**
 	* Returns the lower 3 bytes of an Int32, most commonly used
 	* to extract an RGB value from ARGB color
 	*/
@@ -330,6 +482,109 @@ class I32 {
 	}
 
 	/**
+	* Returns an exploded color value from the Int32
+	*/
+	public static inline function toColor(v : Int32) : {alpha:Int,color:Int}
+	{
+		return {
+			alpha : B4(v),
+			color : rgbFromArgb(v)
+		};
+	}
+
+	/**
+	* Safely converts an Int32 to Float. In neko, there
+	* is no possibility of overflow
+	*/
+	public static inline function toFloat(v:Int32) : Float
+	{
+		#if neko
+		var high : Int = toInt(ushr(v, 16));
+		var low : Int = toInt(and(v, ofInt(0xFFFF)));
+		return (high * 0x10000) + (low * 1.0);
+		#else
+		return v * 1.0;
+		#end
+	}
+
+	/**
+	* Creates a haxe Int from an Int32
+	*
+	* @throws String Overflow in neko only if 32 bits are required.
+	**/
+	public static inline function toInt(v : Int32) : Int
+	{
+		return
+			#if neko
+				try untyped __i32__to_int(v) catch( e : Dynamic ) throw "Overflow " + v;
+			#elseif flash9
+				return cast v;
+			#else
+				return ((cast v) & 0xFFFFFFFF);
+			#end
+	}
+
+	/**
+	* On platforms where there is a native 32 bit int, this will
+	* cast an Int32 array properly without overflows thrown.
+	**/
+	public static inline function toNativeArray(v : Array<Int32>) : Array<Int> {
+		#if neko
+			var a = new Array<Int>();
+			for(i in v)
+				a.push(toInt(i));
+			return a;
+		#else
+			return cast v;
+		#end
+	}
+
+	/**
+	* Convert a buffer containing 32bit integers to an array of ints.
+	* If the buffer length is not a multiple of 4, an exception is thrown
+	**/
+	public static function unpackLE(s : Bytes) : Array<Int32>
+	{
+		if(s == null || s.length == 0)
+			return new Array();
+		if(s.length % 4 != 0)
+			throw "Buffer not multiple of 4 bytes";
+
+		var a = new Array<Int32>();
+		var pos = 0;
+		var i = 0;
+		var len = s.length;
+		while(pos < len) {
+			a[i] = decodeLE( s, pos );
+			pos += 4;
+			i++;
+		}
+		return a;
+	}
+
+	/**
+	* Convert a buffer containing 32bit integers to an array of ints.
+	* If the buffer length is not a multiple of 4, an exception is thrown
+	**/
+	public static function unpackBE(s : Bytes) : Array<Int32>
+	{
+		if(s == null || s.length == 0)
+			return new Array();
+		if(s.length % 4 != 0)
+			throw "Buffer not multiple of 4 bytes";
+
+		var a = new Array();
+		var pos = 0;
+		var i = 0;
+		while(pos < s.length) {
+			a[i] = decodeBE( s, pos );
+			pos += 4;
+			i++;
+		}
+		return a;
+	}
+
+	/**
 	* Returns v >>> bits (unsigned shift)
 	*/
 	public static inline function ushr(v : Int32, bits:Int) : Int32
@@ -345,46 +600,6 @@ class I32 {
 		return #if neko untyped __i32__xor(a,b) #else a ^ b #end;
 	}
 
-	/**
-	* Returns an exploded color value from the Int32
-	*/
-	public static inline function toColor(v : Int32) : {alpha:Int,color:Int}
-	{
-		return {
-			alpha : B4(v),
-			color : rgbFromArgb(v)
-		};
-	}
-
-	/**
-	* Creates a haxe Int from an Int32
-	*
-	* @throws String Overflow in neko only if 32 bits are required.
-	**/
-	public static inline function toInt(v : Int32) : Int
-	{
-		return
-			#if neko
-				try untyped __i32__to_int(v) catch( e : Dynamic ) throw "Overflow " + v;
-			#else
-				v;
-			#end
-	}
-
-	/**
-	* Safely converts an Int32 to Float. In neko, there
-	* is no possibility of overflow
-	*/
-	public static inline function toFloat(v:Int32) : Float
-	{
-		#if neko
-		var high : Int = I32.toInt(I32.ushr(v, 16));
-		var low : Int = I32.toInt(I32.and(v, I32.ofInt(0xFFFF)));
-		return (high * 0x10000) + (low * 1.0);
-		#else
-		return v * 1.0;
-		#end
-	}
 
 	#if neko
 	static function __init__() untyped {

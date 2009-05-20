@@ -27,10 +27,6 @@
 
 package crypt;
 
-import haxe.io.Bytes;
-import haxe.io.BytesBuffer;
-import haxe.io.BytesUtil;
-
 /**
 	Pads string with 0xFF bytes
 **/

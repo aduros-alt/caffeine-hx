@@ -27,9 +27,6 @@
 
 package crypt;
 
-import haxe.io.Bytes;
-import haxe.io.BytesBuffer;
-
 class PadPkcs5 implements IPad {
 	public var blockSize(default,setBlockSize) : Int;
 	public var textSize(default,null) : Int;

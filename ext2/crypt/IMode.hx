@@ -27,8 +27,6 @@
 
 package crypt;
 
-import haxe.io.Bytes;
-
 interface IMode {
 	//var blockSize : Int;
 	var cipher(default, null) : IBlockCipher;

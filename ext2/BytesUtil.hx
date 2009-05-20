@@ -25,12 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package haxe.io;
-
-import haxe.io.Bytes;
-import haxe.io.BytesBuffer;
-import haxe.Int32;
-import haxe.Int32Util;
+import I32;
 
 class BytesUtil {
 	/** static 0 length Bytes object **/
@@ -53,7 +48,7 @@ class BytesUtil {
 		b > 255 only the lowest 8 bits are used.
 	**/
 	public static function byte32ToHex(b : Int32) {
-		var bs : Int = Int32.toInt(Int32.and(b, Int32.ofInt(0xFF)));
+		var bs : Int = I32.toInt(I32.and(b, I32.ofInt(0xFF)));
 		return StringTools.hex(bs,2).toLowerCase();
 	}
 
@@ -64,7 +59,7 @@ class BytesUtil {
 	**/
 	public static function bytesToInt32LE(s : Bytes) : Array<Int32>
 	{
-		return Int32Util.unpackLE(nullPad(s,4));
+		return I32.unpackLE(nullPad(s,4));
 	}
 
 	/**
@@ -101,7 +96,7 @@ class BytesUtil {
 	**/
 	public static inline function int32ToBytesLE(l : Array<Int32>) : Bytes
 	{
-		return Int32Util.packLE(l);
+		return I32.packLE(l);
 	}
 
 	/**
@@ -113,7 +108,7 @@ class BytesUtil {
 	public static function int32ArrayToBytes(a: Array<Int32>, ?padToBytes:Int) : Bytes  {
 		var sb = new BytesBuffer();
 		for(v in a) {
-			var i = Int32.toInt(v);
+			var i = I32.toInt(v);
 			if(i > 0xFF || i < 0)
 				throw "Value out of range";
 			sb.addByte(i);
@@ -178,9 +173,9 @@ class BytesUtil {
 	}
 
 	/**
-		Parse a hex string into a Bytes. The hex string
-		may start with 0x, may contain spaces, and may contain
-		: delimiters.
+	* Parse a hex string into a Bytes. The hex string
+	* may start with 0x, may contain spaces, and may contain
+	* : delimiters.
 	**/
 	public static function ofHex(hs : String) : Bytes {
 		var s : String = StringTools.stripWhite(hs);

@@ -27,10 +27,6 @@
 
 package crypt;
 
-import haxe.io.Bytes;
-import haxe.io.BytesBuffer;
-import haxe.io.BytesUtil;
-
 class ModeCBC extends IV, implements IMode {
 	public function new(bCipher: IBlockCipher, ?pad : IPad) {
 		super(bCipher, pad);

@@ -36,8 +36,8 @@
 
 package chx.hash;
 
-import haxe.io.BytesUtil;
-import haxe.Int32Util;
+import BytesUtil;
+import I32;
 import haxe.HexUtil;
 
 class Sha256 implements IHash {
@@ -76,9 +76,9 @@ class Sha256 implements IHash {
 #if !neko
 	private static var charSize : Int = 8;
 	public static function encode(s : Bytes) : Bytes {
-		var pb : Array<Int> = cast Int32Util.unpackBE(s);
+		var pb : Array<Int> = cast I32.unpackBE(s);
 		var res = core_sha256(pb, s.length * charSize);
-		return Int32Util.packBE(cast res);
+		return I32.packBE(cast res);
 	}
 
 	static inline function S (X, n) {return ( X >>> n ) | (X << (32 - n));}
