@@ -26,9 +26,9 @@
 package chx.lang;
 
 /**
-	Thrown where URIs are not properly formatted
+	Thrown where nulls are not acceptable in function or constructor calls
 	@author rweir
 **/
-class UriFormatException extends Exception {
+class NullPointerException extends Exception {
 }
 
