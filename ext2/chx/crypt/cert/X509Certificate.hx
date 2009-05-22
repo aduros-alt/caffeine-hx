@@ -32,7 +32,7 @@
  * X509Certificate
  *
  **/
-package crypt.cert;
+package chx.crypt.cert;
 
 import hash.IHash;
 import hash.Md2;

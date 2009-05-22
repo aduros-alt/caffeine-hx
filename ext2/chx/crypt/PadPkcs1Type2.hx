@@ -25,25 +25,25 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package crypt;
+package chx.crypt;
 
-interface IPad {
-	/** finished padded block size **/
-	var blockSize(default,setBlockSize) : Int;
-	/** text that can fit into each block **/
-	var textSize(default,null) : Int;
+import math.prng.Random;
 
-	function pad( s : Bytes ) : Bytes;
+/**
+	Pads string with random bytes
+**/
+class PadPkcs1Type2 extends PadPkcs1Type1, implements IPad {
+	var rng : Random;
 
-	function unpad( s : Bytes ) : Bytes;
+	public function new( size : Int ) {
+		super(size);
+		typeByte = 2;
+		rng = new Random();
+	}
 
-	/** pads by block? **/
-	function isBlockPad() : Bool;
-
-	/** returns the number of blocks for message length len **/
-	function calcNumBlocks(len : Int) : Int;
-
-	/** number of bytes padding needs per block **/
-	function blockOverhead() : Int;
-
+	override public function getPadByte() : Int {
+		var x: Int = 0;
+		while(x == 0) x = rng.getByte();
+		return x;
+	}
 }

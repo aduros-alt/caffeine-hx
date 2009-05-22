@@ -25,7 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package crypt;
+package chx.crypt;
 
 /**
 	Pads string with 0xFF bytes

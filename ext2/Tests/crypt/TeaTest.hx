@@ -1,7 +1,7 @@
-import crypt.Tea;
-import crypt.IMode;
-import crypt.ModeECB;
-import crypt.ModeCBC;
+import chx.crypt.Tea;
+import chx.crypt.IMode;
+import chx.crypt.ModeECB;
+import chx.crypt.ModeCBC;
 
 enum CryptMode {
 	CBC;

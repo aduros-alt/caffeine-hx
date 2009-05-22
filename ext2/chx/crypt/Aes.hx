@@ -25,12 +25,10 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package crypt;
-//import crypt.Base.CryptMode;
+package chx.crypt;
 
-#if neko
-private enum NekoKeycontext {
-}
+#if (neko || cpp)
+private typedef Keycontext = Dynamic;
 #else
 private typedef Keycontext = {
 	var rounds : Int;
@@ -41,22 +39,18 @@ private typedef Keycontext = {
 class Aes implements IBlockCipher {
 	public static var AES_BLOCK_SIZE : Int = 16;
 
-	public var keylen(default,setKeylen) : Int;
-	public var passphrase(default,setPassphrase) : String;
-	public var blockSize(getBlockSize,null) : Int;
+	public var keylen(default,__setKeylen) : Int;
+	public var passphrase(default,__setPassphrase) : Bytes;
+	public var blockSize(__getBlockSize,null) : Int;
 	//TODO: neko needs to respect this flag
 	var initialized : Bool;
-#if !neko
 	var encKey : Keycontext;
 	var decKey : Keycontext;
-#else
-	var encKey : NekoKeycontext;
-	var decKey : NekoKeycontext;
-#end
 
-	public function new(keylen : Int, phrase:String) {
-		setKeylen(keylen);
-		setPassphrase(phrase);
+
+	public function new(keylen : Int, phrase:Bytes) {
+		__setKeylen(keylen);
+		__setPassphrase(phrase);
 		blockSize = AES_BLOCK_SIZE;
 		initialized = true;
 		initKeys();
@@ -66,61 +60,58 @@ class Aes implements IBlockCipher {
 		return "aes-" + keylen;
 	}
 
-	function setKeylen(len : Int) : Int {
-		if(len != 128 && len != 192 && len != 256)
-			throw "Invalid key length";
-		keylen = len;
-		if(initialized)
-			initKeys();
-		return len;
-	}
 
-	function setPassphrase(s : String) {
-		passphrase = s;
-		if(initialized)
-			initKeys();
-		return s;
-	}
-
-	function getBlockSize() : Int {
+	function __getBlockSize() : Int {
 		return this.blockSize;
 	}
 
 	function initKeys() {
-#if neko
-		encKey = stringToKey(true, keylen, untyped passphrase.__s);
-		decKey = stringToKey(false, keylen, untyped passphrase.__s);
-#else
-		encKey = stringToKey(true, keylen, passphrase);
-		decKey = stringToKey(false, keylen, passphrase, encKey);
-#end
+		encKey = makeKey(true, keylen, passphrase);
+		decKey = makeKey(false, keylen, passphrase, encKey);
 	}
 
-	public function encryptBlock( block : String ) : String {
+	public function encryptBlock( block : Bytes ) : Bytes {
 		if(block.length != blockSize)
 			throw("bad block size");
-#if neko
-		var rv = new String(aes_encrypt_block( encKey, untyped block.__s));
-#if CAFFEINE_DEBUG
-		if(blockSize != rv.length)
-			throw("returned buffer is " + rv.length + " bytes");
-#end
-		return rv;
-#else
-		return AESencrypt( block, encKey );
-#end
+		#if (neko || cpp)
+			var rv = Bytes.ofData(aes_encrypt_block( encKey, block.getData()));
+			if(blockSize != rv.length)
+				throw("returned buffer is " + rv.length + " bytes");
+			return rv;
+		#else
+			return AESencrypt( block, encKey );
+		#end
 	}
 
-	public function decryptBlock( block : String ) : String {
-#if neko
-		var rv = new String(aes_decrypt_block( decKey, untyped block.__s));
-#if CAFFEINE_DEBUG
-		if(blockSize != rv.length)
-			throw("returned buffer is " + rv.length + " bytes");
-#end
-		return rv;
+	public function decryptBlock( block : Bytes ) : Bytes {
+		#if neko
+			var rv = Bytes.ofData(aes_decrypt_block( decKey, block.getData()));
+			if(blockSize != rv.length)
+				throw("returned buffer is " + rv.length + " bytes");
+			return rv;
+		#else
+			return AESdecrypt( block, decKey );
+		#end
+	}
+
+	/**
+	* Transform buffer to a key. If making a decryption key, and the encrypt key
+	* for the same buffer and keylen exists, it may be passed in as context to
+	* reduce key generation time.
+	*
+	* @param encrypt True for an encryption key, false for decrypt
+	* @param keylen length of key to generate
+	* @param buf Bytes buffer of key material
+	* @param context Optional encrypt key for generating decrypt key
+	**/
+	static function makeKey(  encrypt : Bool, keylen : Int, buf : Bytes, ?context : Keycontext ) : Keycontext
+	{
+#if (neko || cpp)
+		return aes_create_key(encrypt, keylen, buf.getData());
 #else
-		return AESdecrypt( block, decKey );
+		if(encrypt)
+			return keyExpansionEnc( buf, keylen );
+		return keyExpansionDec( buf, keylen, context );
 #end
 	}
 
@@ -170,19 +161,23 @@ class Aes implements IBlockCipher {
 	}
 */
 
-#if neko
-/*
-	//value pass, value msg, value key_len
-	private static var naes_ecb_encrypt = neko.Lib.load("ncrypt","naes_ecb_encrypt",3);
-	private static var naes_ecb_decrypt = neko.Lib.load("ncrypt","naes_ecb_decrypt",3);
-	private static var naes_cbc_encrypt = neko.Lib.load("ncrypt","naes_cbc_encrypt",3);
-	private static var naes_cbc_decrypt = neko.Lib.load("ncrypt","naes_cbc_decrypt",3);
-*/
-	private static var stringToKey = neko.Lib.load("ncrypt","aes_create_key",3);
-	private static var aes_encrypt_block = neko.Lib.load("ncrypt","aes_encrypt_block",2);
-	private static var aes_decrypt_block = neko.Lib.load("ncrypt","aes_decrypt_block",2);
+	private function __setKeylen(len : Int) : Int {
+		if(len != 128 && len != 192 && len != 256)
+			throw "Invalid key length";
+		keylen = len;
+		if(initialized)
+			initKeys();
+		return len;
+	}
 
-#else
+	private function __setPassphrase(buf : Bytes) {
+		passphrase = buf;
+		if(initialized)
+			initKeys();
+		return buf;
+	}
+
+#if !(neko || cpp)
 
 	static var maxkc : Int = 8;
 	static var maxrk : Int = 14;
@@ -281,25 +276,7 @@ class Aes implements IBlockCipher {
 		return sb.toString();
 	}
 */
-	/**
-		Transform a string to a key. If making a decryption key, and the encrypt key
-		for the same string and keylen exists, it may be passes in context to
-		reduce key generation time.
-	**/
-	static function stringToKey(  encrypt : Bool, keylen : Int, s : String,  ?context : Keycontext ) : Keycontext
-	{
-		var sb = new StringBuf();
-		//string len max 32 bytes
-		for(i in 0...32) {
-			if(i<s.length)
-				sb.addChar(s.charCodeAt(i));
-			else
-				sb.addChar(0);
-		}
-		if(encrypt)
-			return keyExpansionEnc( sb.toString(), keylen );
-		return keyExpansionDec( sb.toString(), keylen, context );
-	}
+
 
 	/* Adaptations from Javascript source
 	* Rijndael (AES) Encryption
@@ -315,7 +292,7 @@ class Aes implements IBlockCipher {
 	* materials provided with the application or distribution.
 	*/
 	// http://www.hanewin.net/encrypt/aes/aes.htm
-	static function keyExpansionEnc( key : String, keylen : Int)
+	static function keyExpansionEnc( key : Bytes, keylen : Int)
 	{
 		var i:Int, j:Int, r:Int, t:Int;
 		var keybytes : Int;
@@ -349,8 +326,8 @@ class Aes implements IBlockCipher {
 
 		i = 0;
 		for(j in 0...keybytes) {
-			k[j] = key.charCodeAt(i) | (key.charCodeAt(i+1)<<8)
-				| (key.charCodeAt(i+2)<<16) | (key.charCodeAt(i+3)<<24);
+			k[j] = key.get(i) | (key.get(i+1)<<8)
+				| (key.get(i+2)<<16) | (key.get(i+3)<<24);
 			i += 4;
 		}
 
@@ -420,7 +397,7 @@ class Aes implements IBlockCipher {
 		return { rounds : rounds, rk : keySched };
 	} // keyExpansionEnc
 
-	static function keyExpansionDec(key : String, keylen : Int, ?context : Keycontext) {
+	static function keyExpansionDec(key : Bytes, keylen : Int, ?context : Keycontext) {
 		var w;
 		var rk2 = new Array<Array<Int>>(); // maxrk+1
 		var ctx : Keycontext;
@@ -1380,6 +1357,20 @@ class Aes implements IBlockCipher {
 	0xefe6e815,0xe1ede51c,0xf3f0f207,0xfdfbff0e,
 	0xa792b479,0xa999b970,0xbb84ae6b,0xb58fa362,
 	0x9fbe805d,0x91b58d54,0x83a89a4f,0x8da39746 ];
+
+#end
+
+#if (neko || cpp)
+/*
+	//value pass, value msg, value key_len
+	private static var naes_ecb_encrypt = neko.Lib.load("ncrypt","naes_ecb_encrypt",3);
+	private static var naes_ecb_decrypt = neko.Lib.load("ncrypt","naes_ecb_decrypt",3);
+	private static var naes_cbc_encrypt = neko.Lib.load("ncrypt","naes_cbc_encrypt",3);
+	private static var naes_cbc_decrypt = neko.Lib.load("ncrypt","naes_cbc_decrypt",3);
+*/
+	private static var aes_create_key = neko.Lib.load("ncrypt","aes_create_key",3);
+	private static var aes_encrypt_block = neko.Lib.load("ncrypt","aes_encrypt_block",2);
+	private static var aes_decrypt_block = neko.Lib.load("ncrypt","aes_decrypt_block",2);
 
 #end
 }

@@ -11,7 +11,7 @@
  * be better to only add the certificates you require for your application.
  *
  */
-package crypt.cert;
+package chx.crypt.cert;
 
 class MozillaRootCertificates extends X509CertificateCollection {
 	public function new() {

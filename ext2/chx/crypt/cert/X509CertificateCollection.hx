@@ -35,7 +35,7 @@
  * own certificate collection, you will need a PEM encoded certificate, along
  * with the Base64 encoded subject from X509Certificate.getSubjectPrincipal()
  */
-package crypt.cert;
+package chx.crypt.cert;
 
 class X509CertificateCollection {
 	private var _map : Dynamic;

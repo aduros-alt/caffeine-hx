@@ -25,7 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package crypt;
+package chx.crypt;
 
 class PadNull implements IPad {
 	public var blockSize(default,setBlockSize) : Int;

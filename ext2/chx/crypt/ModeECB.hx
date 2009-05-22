@@ -25,7 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package crypt;
+package chx.crypt;
 
 class ModeECB implements IMode {
 	public var cipher(default,null)	: IBlockCipher;

@@ -28,7 +28,7 @@
  * Derived from javascript implementation Copyright (c) 2005 Tom Wu
  */
 
-package crypt;
+package chx.crypt;
 
 import math.BigInteger;
 
@@ -58,20 +58,75 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 	}
 
 	/**
-		Generate a new random private key B bits long, using public expt E.
-		Generating keys over 512 bits in neko, or 256 bit on other platforms
-		is just not practical. If you need large keys, generate them with
-		openssl and load them into RSA.<br />
-		<b>openssl genrsa -des3 -out user.key 1024</b><br />
-		<b>openssl genrsa -3 -out user.key 1024</b> no password, 3 as exponent<br />
-		will generate a 1024 bit key, which can be displayed with<br />
-		<b>openssl rsa -in user.key -noout -text</b>
+	* Return the PKCS#1 RSA decryption of "ctext", an even-length hex string.
+	*
+	* @param ctext Hexadecimal string
+	**/
+	public function decrypt( buf : Bytes ) : Bytes {
+		return doBufferDecrypt(buf, doPrivate, new PadPkcs1Type2(blockSize));
+	}
+
+	/**
+	* @todo Double check that enc is sign byted, if there are errors here
+	**/
+	override public function decryptBlock( enc : Bytes ) : Bytes {
+		var c : BigInteger = BigInteger.ofBytes(enc);
+		var m : BigInteger = doPrivate(c);
+		if(m == null)
+			throw "doPrivate error";
+
+		// the encrypted block is a BigInteger, so any leading
+		// 0's will have been truncated. Push them back in.
+		var ba = m.toBytes();
+		if(ba.length < blockSize) {
+			var b2 = Bytes.alloc(blockSize);
+			for(i in 0...blockSize)
+				b2.set(i, 0);
+			b2.blit(ba.length - blockSize, ba, 0, ba.length);
+			ba = b2;
+		}
+		else {
+			while(ba.length > blockSize) {
+				var cnt = ba.length - blockSize;
+				for(i in 0...cnt)
+					if(ba.get(i) != 0)
+						throw "decryptBlock length error";
+				ba = ba.sub(cnt, blockSize);
+			}
+		}
+		return ba;
+	}
+
+	/**
+	* Return the PKCS#1 RSA decryption of "text", which is any valid
+	* hex string, optionally separated w with : or whitespace as
+	* a separator character.
+	*
+	* @param hexString Hexadecimal string
+	* @return Bytes of decrypted data
+	**/
+	public function decryptText( hexString : String ) : Bytes {
+		return decrypt( BytesUtil.ofHex(BytesUtil.cleanHexFormat(hexString)) );
+	}
+
+	/**
+	* Generate a new random private key B bits long, using public expt E.
+	* Generating keys over 512 bits in neko, or 256 bit on other platforms
+	* is just not practical. If you need large keys, generate them with
+	* openssl and load them into RSA.<br />
+	* <b>openssl genrsa -des3 -out user.key 1024</b><br />
+	* <b>openssl genrsa -3 -out user.key 1024</b> no password, 3 as exponent<br />
+	* will generate a 1024 bit key, which can be displayed with<br />
+	* <b>openssl rsa -in user.key -noout -text</b>
+	*
+	* @param B Number of bits for key
+	* @param E public exponent, a hexadecimal string
 	*/
 	public static function generate(B:Int, E:String) : RSA {
 		var rng = new math.prng.Random();
 		var key:RSA = new RSA(); // new RSA(null,0,null);
 		var qs : Int = B>>1;
-		key.e = Std.parseInt("0x" + E);
+		key.e = Std.parseInt(StringTools.startsWith(E, "0x") ? E : "0x" + E);
 		var ee : BigInteger = BigInteger.ofInt(key.e);
 		while(true) {
 			key.p = BigInteger.randomPrime(B-qs, ee, 10, true, rng);
@@ -97,14 +152,27 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 	}
 
 	/**
-		Set the private key fields N (modulus), E (public exponent)
-		and D (private exponent) from hex strings.
-		Throws exception if inputs are invalid.
+	* Sign a certificate
+	*
+	* @param content buffer string
+	**/
+	public function sign( content : Bytes ) : Bytes {
+		return doBufferEncrypt(content, doPrivate, new PadPkcs1Type1(blockSize));
+	}
+
+	/**
+	* Set the private key fields N (modulus), E (public exponent)
+	* and D (private exponent) from hex strings.
+	*
+	* @param N modulus, a hexadecimal string
+	* @param E public exponent, a hexadecimal string
+	* @param D private exponent, a hexadecimal string
+	* @throws String on errors
 	**/
 	public function setPrivate(N:String,E:String,D:String) : Void {
 		super.setPublic(N, E);
 		if(D != null && D.length > 0) {
-			var s = cleanFormat(D);
+			var s = BytesUtil.cleanHexFormat(D);
 			d = BigInteger.ofString(s, 16);
 		}
 		else
@@ -112,8 +180,18 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 	}
 
 	/**
-		Set the private key fields N, E, D and CRT params from
-		hex strings. Throws exception if any input is invalid
+	* Set the private key fields N, E, D and CRT params from
+	* hex strings.
+	*
+	* @param N modulus, a hexadecimal string
+	* @param E public exponent, a hexadecimal string
+	* @param D private exponent, a hexadecimal string
+	* @param P , a hexadecimal string
+	* @param Q , a hexadecimal string
+	* @param DP , a hexadecimal string
+	* @param DQ , a hexadecimal string
+	* @param C , a hexadecimal string
+	* @throws String on errors
 	**/
 	public function setPrivateEx(
 			N:String,E:String,D:String,P:String,
@@ -123,16 +201,16 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 		if(P != null && Q != null && C != null &&
 			P.length > 0 && Q.length > 0 && C.length > 0)
 		{
-			var s : String = cleanFormat(P);
+			var s : String = BytesUtil.cleanHexFormat(P);
 			p = BigInteger.ofString(s, 16);
-			s = cleanFormat(Q);
+			s = BytesUtil.cleanHexFormat(Q);
 			q = BigInteger.ofString(s,16);
 			if(DP == null) {
 				var pm1 : BigInteger = p.sub(BigInteger.ONE);
 				dmp1 = d.mod(pm1);
 			}
 			else {
-				s = cleanFormat(DP);
+				s = BytesUtil.cleanHexFormat(DP);
 				dmp1 = BigInteger.ofString(s,16);
 			}
 			if(DQ == null) {
@@ -140,56 +218,14 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 				dmq1 = d.mod(pq1);
 			}
 			else {
-				s = cleanFormat(DQ);
+				s = BytesUtil.cleanHexFormat(DQ);
 				dmq1 = BigInteger.ofString(s,16);
 			}
-			s = cleanFormat(C);
+			s = BytesUtil.cleanHexFormat(C);
 			coeff = BigInteger.ofString(s,16);
 		}
 		else
 			throw("Invalid RSA private key ex");
-	}
-
-	/**
-		Return the PKCS#1 RSA decryption of "ctext".
-		"ctext" is an even-length hex string and the output
-		is a plain string.
-	**/
-	public function decrypt(ctext : String) : String {
-		return doDecrypt(ctext, doPrivate, new PadPkcs1Type2(blockSize));
-	}
-
-	/**
-		Sign a certificate
-	**/
-	public function sign( content : Bytes ) : String {
-		return doEncrypt(content.toString(), doPrivate, new PadPkcs1Type1(blockSize));
-	}
-
-	override public function decryptBlock( enc : String ) : String {
-		var c : BigInteger = BigInteger.ofString(enc, 256);
-		var m : BigInteger = doPrivate(c);
-		if(m == null) {
-			throw "doPrivate error";
-			return null;
-		}
-		// the encrypted block is a BigInteger, so any leading
-		// 0's will have been truncated. Push them back in.
-		var ba = m.toBytes();
-		if(ba.length < blockSize) {
-			var b2 = Bytes.alloc(blockSize);
-			b2.blit(ba.length - blockSize, ba, 0, ba.length);
-		}
-		else {
-			while(ba.length > blockSize) {
-				var cnt = ba.length - blockSize;
-				for(i in 0...cnt)
-					if(ba.get(i) != 0)
-						throw "decryptBlock length error";
-				ba = ba.sub(cnt, blockSize);
-			}
-		}
-		return ByteString.ofIntArray(ba).toString();
 	}
 
 	//////////////////////////////////////////////////

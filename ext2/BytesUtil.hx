@@ -35,6 +35,27 @@ class BytesUtil {
 	//            Public Static methods                //
 	/////////////////////////////////////////////////////
 	/**
+	* Takes an array of byte values, and creates a Bytes buffer. The
+	* values in the provided array must all be 0-255
+	*
+	* @param a Array of byte values
+	* @param padToBytes Pad buffer to multiple of, or no padding
+	* @throws String if any value in the input array is not in the range 0-255
+	**/
+	public static function byteArrayToBytes(a: Array<Int>, ?padToBytes:Int) : Bytes  {
+		var sb = new BytesBuffer();
+		for(i in a) {
+			if(i > 0xFF || i < 0)
+				throw "Value out of range";
+			sb.addByte(i);
+		}
+		if(padToBytes != null && padToBytes > 0) {
+			return nullPad(sb.getBytes(), padToBytes);
+		}
+		return sb.getBytes();
+	}
+
+	/**
 		Return a hex representation of the byte b. If
 		b > 255 only the lowest 8 bits are used.
 	**/
@@ -63,6 +84,54 @@ class BytesUtil {
 	}
 
 	/**
+	* Cleans out all whitespace and colons from input hex strings, returning
+	* a compact, lowercase  version. This will do the following type of conversions:
+	* <ul>
+	* <li>A0:ff -> a0ff
+	* <li>a0 ff -> a0ff
+	* <li>a0ff -> a0ff
+	* <li>0xFFFF -> ffff
+	* </ul>a:ff -> 0aff
+	*
+	* @param hex Hexadecimal string
+	* @return compacted hexadecimal string, with no leading 0x
+	**/
+	public static function cleanHexFormat(hex : String) : String {
+
+		var e : String = StringTools.replace(hex, ":", "");
+		e = e.split("|").join("");
+#if (neko || flash9 || js)
+		var ereg : EReg = ~/([\s]*)/g;
+		e = ereg.replace(e, "");
+#else
+		e = e.split("\r").join("");
+		e = e.split("\n").join("");
+		e = e.split("\t").join("");
+		e = StringTools.replace(e, " ", "");
+		e = StringTools.replace(e, " ", "");
+#end
+		if(StringTools.startsWith(e, "0x"))
+			e = e.substr(2);
+		if(e.length & 1 == 1) e = "0" + e;
+		return e.toLowerCase();
+	}
+
+	/**
+	* Encode a buffer to a base specified by the input character set. This
+	* is a wrapper to haxe.BaseCode which creates a new BaseCode object
+	* on every call, so if speed is required, use BaseCode directly.
+	*
+	* @param buf Bytes buffer
+	* @param base String containing characters for each digit
+	* @return new buffer, encoded
+	**/
+	public static function encodeToBase(buf:Bytes,base:String) : Bytes
+	{
+		var bc = new haxe.BaseCode( Bytes.ofString(base) );
+		return bc.encodeBytes(buf);
+	}
+
+	/**
 		Tests if two Bytes objects are equal.
 	**/
 	public static function eq(a:Bytes, b:Bytes) : Bool {
@@ -76,19 +145,13 @@ class BytesUtil {
 	}
 
 	/**
-		Dump a string to hex bytes. By default, will be seperated with
-		spaces. To have no seperation, use the empty string as a seperator.
+	* Dump a buffer to hex bytes. By default, will be seperated with
+	* spaces. To have no seperation, use the empty string as a separator.
+	*
+	* @deprecated use toHex()
 	**/
-	public static function hexDump(b : Bytes, ?seperator:Dynamic) : String {
-		if(seperator == null)
-			seperator = " ";
-		var sb = new StringBuf();
-		var l = b.length;
-		for(i in 0...l) {
-			sb.add(StringTools.hex(b.get(i),2).toLowerCase());
-			sb.add(seperator);
-		}
-		return StringTools.rtrim(sb.toString());
+	public static function hexDump(b : Bytes, ?separator:Dynamic) : String {
+		return toHex(b, separator);
 	}
 
 	/*
@@ -149,9 +212,11 @@ class BytesUtil {
 	}
 
 	/**
-		Pad with NULLs to the specified chunk length. Note
-		that 0 length buffer passed to this will not be padded. See also
-		nullBytes()
+	* Pad with NULLs to the specified chunk length. Note
+	* that 0 length buffer passed to this will not be padded. See also
+	* nullBytes()
+	*
+	* @return Original buffer if no padding required, or new buffer padded.
 	**/
 	public static function nullPad(s : Bytes, chunkLen: Int) : Bytes {
 		var r = chunkLen - (s.length % chunkLen);
@@ -178,12 +243,7 @@ class BytesUtil {
 	* : delimiters.
 	**/
 	public static function ofHex(hs : String) : Bytes {
-		var s : String = StringTools.stripWhite(hs);
-		s = StringTools.replaceRecurse(s, "|", "").toLowerCase();
-		if(StringTools.startsWith(s, "0x"))
-			s = s.substr(2);
-		if (s.length&1==1) s="0"+s;
-
+		var s : String = cleanHexFormat(hs);
 		var b = new BytesBuffer();
 		var l = Std.int(s.length/2);
 		for(x in 0...l) {
@@ -218,6 +278,22 @@ class BytesUtil {
 // 		}
 // 		return a;
 // 	}
+
+	/**
+	* Dump a buffer to hex bytes. By default, will be seperated with
+	* spaces. To have no seperation, use the empty string as a separator.
+	**/
+	public static function toHex(b : Bytes, ?separator:Dynamic) : String {
+		if(separator == null)
+			separator = " ";
+		var sb = new StringBuf();
+		var l = b.length;
+		for(i in 0...l) {
+			sb.add(StringTools.hex(b.get(i),2).toLowerCase());
+			sb.add(separator);
+		}
+		return StringTools.rtrim(sb.toString());
+	}
 
 	/**
 		Remove nulls at the end of a Bytes.

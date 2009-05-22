@@ -25,60 +25,61 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package crypt;
+package chx.crypt;
 
-class PadPkcs5 implements IPad {
-	public var blockSize(default,setBlockSize) : Int;
-	public var textSize(default,null) : Int;
-
-	public function new( blockLen : Int ) {
-		setBlockSize(blockLen);
+class ModeCBC extends IV, implements IMode {
+	public function new(bCipher: IBlockCipher, ?pad : IPad) {
+		super(bCipher, pad);
 	}
 
-	public function pad( s : Bytes ) : Bytes {
+	public function toString() {
+		if(cipher != null)
+			return Std.string(cipher) + "-cbc";
+		return "???-???-cbc";
+	}
+
+	public function encrypt( s : Bytes ) : Bytes {
+		var buf = prepareEncrypt( s );
+		var bsize = cipher.blockSize;
+		var numBlocks = Std.int(buf.length/bsize);
+		var offset : Int = 0;
 		var sb = new BytesBuffer();
-		sb.add ( s );
-		var chr : Int = blockSize - (s.length % blockSize);
-		if(s.length == blockSize)
-			chr = blockSize;
-		for( i in 0...chr) {
-			sb.addByte( chr );
+
+		var curIV = iv;
+		for (i in 0...numBlocks) {
+			var sb2 = new BytesBuffer();
+			for(x in 0...cipher.blockSize) {
+				var bc : Int = buf.get(offset + x);
+				var ic : Int = curIV.get(x);
+				sb2.addByte( bc ^ ic );
+			}
+			var outBuffer = cipher.encryptBlock(sb2.getBytes());
+			sb.add(outBuffer);
+			curIV = outBuffer;
+			offset += cipher.blockSize;
 		}
-		return sb.getBytes();
+		return finishEncrypt(sb.getBytes());
 	}
 
-	public function unpad( s : Bytes ) : Bytes {
-		if( s.length % blockSize != 0)
-			throw "crypt.padpkcs5 unpad: buffer length "+s.length+" not multiple of block size " + blockSize;
-		var c = s.get(s.length-1);
-		var i = c;
-		var pos = s.length - 1;
-		while(i > 0) {
-			var n = s.get(pos);
-			if (c != n)
-				throw "crypt.padpkcs5 unpad: invalid byte";
-			pos--;
-			i--;
+	public function decrypt( s : Bytes ) : Bytes {
+		var buf = prepareDecrypt( s );
+		var bsize = cipher.blockSize;
+		if(buf.length % bsize != 0)
+			throw "Invalid buffer length";
+		var numBlocks = Std.int(buf.length/bsize);
+		var offset : Int = 0;
+		var sb = new BytesBuffer();
+
+		for (i in 0...numBlocks) {
+			var rv = cipher.decryptBlock(buf.sub(offset, bsize));
+			var sb2 = new BytesBuffer();
+			for(x in 0...cipher.blockSize) {
+				sb2.addByte( rv.get(x) ^ currentIV.get(x));
+			}
+			sb.add(sb2.getBytes());
+			currentIV = buf.sub(offset, cipher.blockSize);
+			offset += bsize;
 		}
-		return s.sub(0, s.length - c);
+		return finishDecrypt(sb.getBytes());
 	}
-
-	function setBlockSize(len : Int) : Int {
-		blockSize = len;
-		textSize = len;
-		return len;
-	}
-
-	public function calcNumBlocks(len : Int) : Int {
-		var n : Int = Math.ceil(len/blockSize);
-		if(len % blockSize == 0)
-			n++;
-		return n;
-	}
-
-	/** pads by block? **/
-	public function isBlockPad() : Bool { return false; }
-
-	/** number of bytes padding needs per block **/
-	public function blockOverhead() : Int { return 0; }
 }

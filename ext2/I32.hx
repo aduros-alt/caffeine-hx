@@ -97,7 +97,8 @@ class I32 {
 		#if neko
 		if(compare(ofInt(0), v) > 0)
 			return(neg(v));
-		return v;
+		else
+			return v;
 		#else
 		return Std.int(Math.abs(v));
 		#end
@@ -193,10 +194,10 @@ class I32 {
 	public static function encodeBE(i : Int32) : Bytes
 	{
 		var sb = new BytesBuffer();
-		sb.addByte( toInt(B4(i)) );
-		sb.addByte( toInt(B3(i)) );
-		sb.addByte( toInt(B2(i)) );
-		sb.addByte( toInt(B1(i)) );
+		sb.addByte( B4(i) );
+		sb.addByte( B3(i) );
+		sb.addByte( B2(i) );
+		sb.addByte( B1(i) );
 		return sb.getBytes();
 	}
 
@@ -207,10 +208,10 @@ class I32 {
 	public static function encodeLE(i : Int32) : Bytes
 	{
 		var sb = new BytesBuffer();
-		sb.addByte( toInt(B1(i)) );
-		sb.addByte( toInt(B2(i)) );
-		sb.addByte( toInt(B3(i)) );
-		sb.addByte( toInt(B4(i)) );
+		sb.addByte( B1(i) );
+		sb.addByte( B2(i) );
+		sb.addByte( B3(i) );
+		sb.addByte( B4(i) );
 		return sb.getBytes();
 	}
 
@@ -417,10 +418,10 @@ class I32 {
 	{
 		var sb = new BytesBuffer();
 		for(i in 0...l.length) {
-			sb.addByte( toInt(B4(l[i])) );
-			sb.addByte( toInt(B3(l[i])) );
-			sb.addByte( toInt(B2(l[i])) );
-			sb.addByte( toInt(B1(l[i])) );
+			sb.addByte( B4(l[i]) );
+			sb.addByte( B3(l[i]) );
+			sb.addByte( B2(l[i]) );
+			sb.addByte( B1(l[i]) );
 		}
 		return sb.getBytes();
 	}
@@ -435,10 +436,10 @@ class I32 {
 	{
 		var sb = new BytesBuffer();
 		for(i in 0...l.length) {
-			sb.addByte( toInt(B1(l[i])) );
-			sb.addByte( toInt(B2(l[i])) );
-			sb.addByte( toInt(B3(l[i])) );
-			sb.addByte( toInt(B4(l[i])) );
+			sb.addByte( B1(l[i]) );
+			sb.addByte( B2(l[i]) );
+			sb.addByte( B3(l[i]) );
+			sb.addByte( B4(l[i]) );
 		}
 		return sb.getBytes();
 	}
@@ -453,7 +454,7 @@ class I32 {
 			#if neko
 				toInt(and(v, ofInt(0xFFFFFF)));
 			#else
-				return v & 0xFFFFFF;
+				v & 0xFFFFFF;
 			#end
 	}
 
@@ -518,15 +519,17 @@ class I32 {
 			#if neko
 				try untyped __i32__to_int(v) catch( e : Dynamic ) throw "Overflow " + v;
 			#elseif flash9
-				return cast v;
+				cast v;
 			#else
-				return ((cast v) & 0xFFFFFFFF);
+				((cast v) & 0xFFFFFFFF);
 			#end
 	}
 
 	/**
 	* On platforms where there is a native 32 bit int, this will
 	* cast an Int32 array properly without overflows thrown.
+	*
+	* @throws String Overflow in neko only if 32 bits are required.
 	**/
 	public static inline function toNativeArray(v : Array<Int32>) : Array<Int> {
 		#if neko

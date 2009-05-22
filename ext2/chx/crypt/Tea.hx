@@ -35,7 +35,7 @@ class Tea implements IBlockCipher {
 #else
 	var k : Array<Int>; // 16 bytes of key material
 #end
-	public var blockSize(getBlockSize,null) : Int;
+	public var blockSize(__getBlockSize,null) : Int;
 
 	public function new(key : Bytes) {
 		var l = key.length;
@@ -56,7 +56,7 @@ class Tea implements IBlockCipher {
 		return "xxtea";
 	}
 
-	function getBlockSize() : Int {
+	function __getBlockSize() : Int {
 		return this.blockSize;
 	}
 

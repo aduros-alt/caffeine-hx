@@ -26,15 +26,15 @@
  */
 
 class Constants {
-	public static var DIGITS_BASE10 : String = "0123456789";
-	public static var DIGITS_HEXU : String = "0123456789ABCDEF";
-	public static var DIGITS_HEXL : String = "0123456789abcdef";
-	public static var DIGITS_OCTAL : String = "01234567";
-	public static var DIGITS_BN : String = "0123456789abcdefghijklmnopqrstuvwxyz";
-	public static var DIGITS_BASE64 : String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	public inline static var DIGITS_BASE10 : String = "0123456789";
+	public inline static var DIGITS_HEXU : String = "0123456789ABCDEF";
+	public inline static var DIGITS_HEXL : String = "0123456789abcdef";
+	public inline static var DIGITS_OCTAL : String = "01234567";
+	public inline static var DIGITS_BN : String = "0123456789abcdefghijklmnopqrstuvwxyz";
+	public inline static var DIGITS_BASE64 : String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-	public static var PROTO_HTTP : String = "http://";
-	public static var PROTO_FILE : String = "file://";
-	public static var PROTO_FTP : String = "ftp://";
-	public static var PROTO_RTMP : String = "rtmp://";
+	public inline static var PROTO_HTTP : String = "http://";
+	public inline static var PROTO_FILE : String = "file://";
+	public inline static var PROTO_FTP : String = "ftp://";
+	public inline static var PROTO_RTMP : String = "rtmp://";
 }
