@@ -426,7 +426,7 @@ class Aes implements IBlockCipher {
 		return { rounds : rounds, rk : rk2 };
 	}
 
-	function AESencrypt(block : String, ctx : Keycontext)
+	function AESencrypt(block : Bytes, ctx : Keycontext)
 	{
 		var r;
 		var t0,t1,t2,t3;
@@ -467,7 +467,7 @@ class Aes implements IBlockCipher {
 		return I32.packLE(b);
 	}
 
-	function AESdecrypt(block, ctx)
+	function AESdecrypt(block : Bytes, ctx)
 	{
 		var t0:Int,t1:Int,t2:Int,t3:Int;
 		var b = I32.unpackLE(block);
