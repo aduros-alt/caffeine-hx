@@ -150,7 +150,11 @@ COUCH:
 	}
 
 	/**
-		Retrieves a specific document. To set options, provide a DocumentOptions object
+	* Retrieves a specific document. To set options, provide a DocumentOptions object
+	*
+	* @param id Document id
+	* @param options Document options. Refer to the DocumentOptions class
+	* @return Documeent if it exists, or null.
 	**/
 	public function open(id:String, ?options:DocumentOptions) : Document {
 		var qp = null;
@@ -165,9 +169,8 @@ COUCH:
 	}
 
 	function documentFactory(t : Transaction, id : String) : Document {
-		var ct = t.getHeader("Content-type");
+		var ct = t.getHeader("Content-Type");
 		var d : Document = null;
-		trace(ct);
 		if(ct.substr(0,10) == "text/plain" || ct == "application/json") {
 			d = new JSONDocument(t.getJsonObject());
 		}
