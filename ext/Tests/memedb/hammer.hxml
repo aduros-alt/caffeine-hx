@@ -1,5 +1,0 @@
--main MemeHammer
---override
--cp ../../
--debug
--neko test.n
