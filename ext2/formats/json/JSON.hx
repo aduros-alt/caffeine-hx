@@ -144,8 +144,7 @@ private class Encode {
 				if (Reflect.isFunction(value))
 					continue;
 
-				//s.add(escapeString( key ) + ":" + convertToString( value ));
-				s.add(escapeString( key ) + ":" + convertToString( Reflect.fields(o) ));
+				s.add(escapeString( key ) + ":" + convertToString( value ));
 				s.add(",");
 			}
 		}
