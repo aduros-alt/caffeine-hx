@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2008, The Caffeine-hx project contributors
  * Original author : Russell Weir
- * Contributors: 
+ * Contributors:
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -27,7 +27,7 @@
 
 package formats.json;
 
-class JsonException {
+class JSONException {
 	public var msg : String;
 	public var at : Null<Int>;
 	public var text : String;

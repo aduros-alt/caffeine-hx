@@ -40,7 +40,7 @@
 
 package formats.json;
 
-class JsonDecoder {
+class JSONDecoder {
 
 	var at:Int;
 	var ch:String;
@@ -60,17 +60,17 @@ class JsonDecoder {
 			this.text = text ;
 			return value();
 		}
-		catch(e : JsonException) {
+		catch(e : JSONException) {
 			throw(e);
 		}
 	/*	catch (e : Dynamic) {
-			throw(new JsonException("unhandled error "+Std.string(e)));
+			throw(new JSONException("unhandled error "+Std.string(e)));
 		}
 	*/	return {};
 	}
 
 	function error(m):Void {
-		throw new JsonException(m, at-1, text);
+		throw new JSONException(m, at-1, text);
 	}
 
 	function next() {

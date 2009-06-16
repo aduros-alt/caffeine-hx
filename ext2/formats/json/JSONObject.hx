@@ -28,11 +28,11 @@
 
 package formats.json;
 
-class JsonObject {
+class JSONObject {
 	public var data(default,null) : Dynamic;
 
 	/**
-		Initial data may be a JSON formatted String, JsonObject, or an
+		Initial data may be a JSON formatted String, JSONObject, or an
 		Object, or null.
 	**/
 	public function new(?initialData : Dynamic) {
@@ -40,12 +40,12 @@ class JsonObject {
 			this.data = {};
 		else if(Std.is(initialData, String))
 			this.data = JSON.decode(initialData);
-		else if(Std.is(initialData, JsonObject))
+		else if(Std.is(initialData, JSONObject))
 			this.data = initialData.data;
 		else if(Reflect.isObject(initialData))
 			this.data = initialData;
 		else
-			throw new JsonException("JsonObject can not parse initialData");
+			throw new JSONException("JSONObject can not parse initialData");
 	}
 
 	public function toString() {
@@ -54,11 +54,11 @@ class JsonObject {
 	}
 
 	static function DOES_NOT_EXIST(k:String) {
-		return "Json key '"+k+"' does not exist";
+		return "JSON key '"+k+"' does not exist";
 	}
 
 	static function CAN_NOT_CONVERT(k:String, t:String) {
-		return "Json key '"+k+"' can not be converted to type '"+t+"'";
+		return "JSON key '"+k+"' can not be converted to type '"+t+"'";
 	}
 
 	/**
@@ -69,17 +69,17 @@ class JsonObject {
 	}
 
 	/**
-		Return a new Json Object by appending [j] to this. Fields
+		Return a new JSON Object by appending [j] to this. Fields
 		in [j] will overwrite [this]
 	**/
-	public function concat(j : JsonObject) : JsonObject {
+	public function concat(j : JSONObject) : JSONObject {
 		var d = {};
 		var a = [this.data, j.data];
 		for(o in a) {
 			for(i in Reflect.fields(o))
 				Reflect.setField(d, i, Reflect.field(o, i));
 		}
-		var nj = new JsonObject();
+		var nj = new JSONObject();
 		nj.data = d;
 		return nj;
 	}
@@ -107,7 +107,7 @@ class JsonObject {
 	**/
 	public function getBool(key : String) : Bool {
 		if(!has(key))
-			throw new JsonException(DOES_NOT_EXIST(key));
+			throw new JSONException(DOES_NOT_EXIST(key));
 		var o = get(key);
 		if(Std.is(o, Bool))
 			return o;
@@ -118,13 +118,13 @@ class JsonObject {
 			if(s == "false")
 				return false;
 		}
-		throw new JsonException(CAN_NOT_CONVERT(key, "Bool"));
+		throw new JSONException(CAN_NOT_CONVERT(key, "Bool"));
 		return false;
 	}
 
 	public function getFloat(key : String) : Float {
 		if(!has(key))
-			throw new JsonException(DOES_NOT_EXIST(key));
+			throw new JSONException(DOES_NOT_EXIST(key));
 		var o = get(key);
 		if(Std.is(o,Float)) {
 			return o;
@@ -136,14 +136,14 @@ class JsonObject {
 		try {
 			rv =  Std.parseFloat(Std.string(o));
 		} catch(e : Dynamic) {
-			throw new JsonException(CAN_NOT_CONVERT(key, "Float"));
+			throw new JSONException(CAN_NOT_CONVERT(key, "Float"));
 		}
 		return rv;
 	}
 
 	public function getInt(key : String) : Int {
 		if(!has(key))
-			throw new JsonException(DOES_NOT_EXIST(key));
+			throw new JSONException(DOES_NOT_EXIST(key));
 		var o = get(key);
 		if(Std.is(o,Int))
 			return o;
@@ -153,43 +153,43 @@ class JsonObject {
 		if(Std.is(o,Float)) {
 			return Std.int(o);
 		}
-		throw new JsonException(key + " is not an Int.");
+		throw new JSONException(key + " is not an Int.");
 		return 0;
 	}
 
 	/**
-		Returns a JsonArray from the specified key <br />
+		Returns a JSONArray from the specified key <br />
 		TODO: Optimize.
 	**/
-	public function getJsonArray(key : String) : JsonArray {
+	public function getJSONArray(key : String) : JSONArray {
 		if(!has(key))
-			throw new JsonException(DOES_NOT_EXIST(key));
-		return JsonArray.fromObject(JSON.encode(get(key)));
+			throw new JSONException(DOES_NOT_EXIST(key));
+		return JSONArray.fromObject(JSON.encode(get(key)));
 	}
 
 	/**
-		Return key as a new Json Object. If it cannot be converted,
+		Return key as a new JSON Object. If it cannot be converted,
 		an exception is thrown.
 	**/
-	public function getJsonObject(key : String) : JsonObject {
+	public function getJSONObject(key : String) : JSONObject {
 		if(!has(key))
-			throw new JsonException(DOES_NOT_EXIST(key));
-		var rv : JsonObject;
+			throw new JSONException(DOES_NOT_EXIST(key));
+		var rv : JSONObject;
 		try {
-			rv = new JsonObject(get(key));
+			rv = new JSONObject(get(key));
 		}
 		catch(e : Dynamic) {
-			throw new JsonException(CAN_NOT_CONVERT(key,"JsonObject"));
+			throw new JSONException(CAN_NOT_CONVERT(key,"JSONObject"));
 		}
 		return rv;
 	}
 
 	/**
-		Throws JsonException if key does not exist
+		Throws JSONException if key does not exist
 	**/
 	public function getString(key : String) : String {
 		if(!has(key))
-			throw new JsonException(DOES_NOT_EXIST(key));
+			throw new JSONException(DOES_NOT_EXIST(key));
 		var o = get(key);
 		if(o == null)
 			return null;
@@ -216,7 +216,7 @@ class JsonObject {
 	public function optBool(key:String, ?defaultValue : Bool) : Bool {
 		return try {
 			getBool(key);
-		} catch (e : JsonException) {
+		} catch (e : JSONException) {
 			defaultValue;
 		}
 	}
@@ -224,7 +224,7 @@ class JsonObject {
 	public function optFloat(key:String, ?defaultValue : Float) : Float {
 		return try {
 			getFloat(key);
-		} catch (e : JsonException) {
+		} catch (e : JSONException) {
 			defaultValue;
 		}
 	}
@@ -232,7 +232,7 @@ class JsonObject {
 	public function optInt(key:String, ?defaultValue : Int) : Null<Int> {
 		return try {
 			getInt(key);
-		} catch (e : JsonException) {
+		} catch (e : JSONException) {
 			defaultValue;
 		}
 	}
@@ -240,7 +240,7 @@ class JsonObject {
 	public function optString(key:String, ?defaultValue : String) : String {
 		return try {
 			getString(key);
-		} catch (e : JsonException) {
+		} catch (e : JSONException) {
 			defaultValue;
 		}
 	}
@@ -284,7 +284,7 @@ class JsonObject {
 			o = Reflect.field(o, i);
 			key = i;
 		}
-		if(Std.is(v, JsonObject))
+		if(Std.is(v, JSONObject))
 			Reflect.setField(lastO, key, v.data);
 		else
 			Reflect.setField(lastO, key, v);
@@ -295,7 +295,7 @@ class JsonObject {
 	**/
 	public function setAll(o:Dynamic) {
 		if(!Reflect.isObject(o))
-			throw new JsonException("Must be an object");
+			throw new JSONException("Must be an object");
 		for(i in Reflect.fields(o))
 			Reflect.setField(data,i, Reflect.field(o, i));
 	}

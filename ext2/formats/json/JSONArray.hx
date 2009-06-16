@@ -27,7 +27,7 @@
 
 package formats.json;
 
-class JsonArray {
+class JSONArray {
 	public var data(default, null) : Array<Dynamic>;
 	public var length(getLength, null) : Int;
 
@@ -43,13 +43,13 @@ class JsonArray {
 		return data[idx];
 	}
 
-	public function getJsonObject(idx : Int) : JsonObject {
-		return new JsonObject(get(idx));
+	public function getJSONObject(idx : Int) : JSONObject {
+		return new JSONObject(get(idx));
 	}
 
 	public function getString(idx : Int) : String {
 		if(idx < 0)
-			throw new JsonException("invalid index");
+			throw new JSONException("invalid index");
 		if(idx >= data.length)
 			return "null";
 		if(Std.is(data[idx], String))
@@ -58,7 +58,7 @@ class JsonArray {
 	}
 
 	public static function fromObject(s : String) {
-		var ja = new JsonArray();
+		var ja = new JSONArray();
 		ja.data = cast JSON.decode(s);
 		return ja;
 	}
