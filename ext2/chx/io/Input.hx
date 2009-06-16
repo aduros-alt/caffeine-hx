@@ -38,9 +38,39 @@ class Input {
 	/**
 		Returns number of bytes available to be read without blocking.
 	**/
-	public var bytesAvailable(getBytesAvailable, null) : Int;
+	public var bytesAvailable(__getBytesAvailable, null) : Int;
+	public var bigEndian(default,__setEndian) : Bool;
 
-	public var bigEndian(default,setEndian) : Bool;
+	public function close() {
+	}
+
+	/**
+	* Returns true if the Input is at the end of file.
+	**/
+	public function isEof() : Bool {
+		return throw new chx.lang.UnsupportedException("Not implemented for this input type");
+	}
+
+	public function readAll( ?bufsize : Int ) : Bytes {
+		if( bufsize == null )
+		#if php
+			bufsize = 8192; // default value for PHP and max under certain circumstances
+		#else
+			bufsize = (1 << 14); // 16 Ko
+		#end
+		var buf = Bytes.alloc(bufsize);
+		var total = new BytesBuffer();
+		try {
+			while( true ) {
+				var len = readBytes(buf,0,bufsize);
+				if( len == 0 )
+					throw new BlockedException();
+				total.addBytes(buf,0,len);
+			}
+		} catch( e : EofException ) {
+		}
+		return total.getBytes();
+	}
 
 	/**
 		Abstract method for reading an unsigned 8 bit value from the
@@ -48,16 +78,6 @@ class Input {
 	**/
 	public function readByte() : Int {
 		return throw new chx.lang.FatalException("Not implemented");
-	}
-
-
-	function getBytesAvailable() : Int {
-		return throw new chx.lang.FatalException("Not implemented");
-	}
-
-	function setEndian(b) {
-		bigEndian = b;
-		return b;
 	}
 
 	/**
@@ -82,33 +102,6 @@ class Input {
 		}
 		return len;
 	}
-
-	public function close() {
-	}
-
-	/* ------------------ API ------------------ */
-
-	public function readAll( ?bufsize : Int ) : Bytes {
-		if( bufsize == null )
-		#if php
-			bufsize = 8192; // default value for PHP and max under certain circumstances
-		#else
-			bufsize = (1 << 14); // 16 Ko
-		#end
-		var buf = Bytes.alloc(bufsize);
-		var total = new BytesBuffer();
-		try {
-			while( true ) {
-				var len = readBytes(buf,0,bufsize);
-				if( len == 0 )
-					throw new BlockedException();
-				total.addBytes(buf,0,len);
-			}
-		} catch( e : EofException ) {
-		}
-		return total.getBytes();
-	}
-
 	/**
 		Reads len bytes. Will continue to loop calling readBytes until the requested
 		number of bytes is read.
@@ -309,13 +302,28 @@ class Input {
 	}
 
 	/**
-		Reads a 16 bit unsigned int length value, then the string.
-		@return String encoded with length from stream
+	* Reads a 16 bit unsigned int length value, then the string.
+	*
+	* @return String encoded with length from stream
 	**/
 	public function readUTF() : String {
 		var len = readUInt16();
 		return readString(len);
 	}
+
+	//////////////////////////////////////////////////
+	//               Getters/Setters                //
+	//////////////////////////////////////////////////
+
+	function __getBytesAvailable() : Int {
+		return throw new chx.lang.FatalException("Not implemented");
+	}
+
+	function __setEndian(b) {
+		bigEndian = b;
+		return b;
+	}
+
 
 #if neko
 	static var _float_of_bytes = neko.Lib.load("std","float_of_bytes",2);

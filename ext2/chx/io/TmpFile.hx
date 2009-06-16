@@ -1,7 +1,5 @@
 /*
  * Copyright (c) 2008, The Caffeine-hx project contributors
- * Original author : Russell Weir
- * Contributors:
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -26,44 +24,48 @@
  */
 
 
-package neko.io;
-import neko.io.File;
+package chx.io;
 
 /**
-	Create a temporary disk file that will be deleted automatically when
-	the class is garbage collected.
+* Create a temporary disk file that will be deleted automatically when
+* the class is garbage collected. The underlying file is opened in binary mode.
+*
+* @author Russell Weir
 **/
 class TmpFile {
 	private var fi : FileInput;
 	private var fo : FileOutput;
-	private var __f : FileHandle;
+	private var fd : FileDescriptor;
 
 	/**
-		Create a new TmpFile, which will be ready for io when the constructor returns.
+	* Create a new TmpFile, which will be ready for io when the constructor returns.
 	**/
 	public function new() : Void {
-		__f = untyped tmpfile_open();
-		fi = new FileInput(__f);
-		fo = new FileOutput(__f);
+		var flags : Int = FileDescriptor.READWRITE | FileDescriptor.BINARY;
+		fd = FileDescriptor.ofHandle( tmpfile_open(), flags);
+		fi = new FileInput(fd);
+		fo = new FileOutput(fd);
 	}
 
 	/**
-		Once a TmpFile is closed, it can no longer be used. There is
-		no need to call this function, as it will be done automatically.
+	* Once a TmpFile is closed, it can no longer be used. There is
+	* no need to call this function, as it will be done automatically.
 	**/
 	public function close() : Void {
-		untyped tmpfile_close(__f);
+		tmpfile_close(fd.getHandle());
+		try fi.close() catch(e:Dynamic) {}
+		try fo.close() catch(e:Dynamic) {}
 	}
 
 	/**
-		Get the FileInput handle
+	* Get the FileInput handle
 	**/
 	public function getInput() : FileInput {
 		return fi;
 	}
 
 	/**
-		Get the FileOutput handle
+	* Get the FileOutput handle
 	**/
 	public function getOutput() : FileOutput {
 		return fo;
