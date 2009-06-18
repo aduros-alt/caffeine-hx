@@ -169,7 +169,11 @@ COUCH:
 	}
 
 	function documentFactory(t : Transaction, id : String) : Document {
-		var ct = t.getHeader("Content-Type");
+		var ctf:String = t.getHeader("Content-Type");
+		var ct = "application/json";
+		if(ctf != null)
+			ct = ctf.split(";")[0];
+
 		var d : Document = null;
 		if(ct.substr(0,10) == "text/plain" || ct == "application/json") {
 			d = new JSONDocument(t.getJSONObject());
