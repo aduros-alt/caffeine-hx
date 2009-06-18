@@ -59,7 +59,7 @@ abstract public class Document {
 			docTypes.put(type.toLowerCase(), clazz);
 		}
 	}
-	
+
 	private static Random random = new Random();
 
 	// constants
@@ -114,6 +114,11 @@ abstract public class Document {
 		String revision=generateRevision(backend,database,id);
 		Document d;
 		try {
+			if (contentType==null) {
+				contentType = Document.DEFAULT_CONTENT_TYPE;
+			} else {
+				contentType = contentType.split(";")[0];
+			}
 			d = clazz.newInstance();
 			d.backend = backend;
 			if (commonData==null) {
@@ -187,7 +192,7 @@ abstract public class Document {
 	protected boolean commonDirty = false;
 	protected boolean dataDirty = false;
 	protected Logger log = Logger.get(getClass());
-	
+
 	/**
 	 * Override if content type to send to browser is different than the document content type.
 	 * @return Mime type for HTTP response
@@ -195,7 +200,7 @@ abstract public class Document {
 	public String getBrowserContentType() {
 		return getContentType();
 	}
-	
+
 	/**
 	 * Returns the data that is common to all revisions of this document
 	 * @return JSON object with common data information
@@ -203,7 +208,7 @@ abstract public class Document {
 	public JSONObject getCommonData() {
 		return commonData;
 	}
-	
+
 	/**
 	 * Gets the MemeDB content type for this document. This is the content type
 	 * that must be used by clients to create or update documents of this type.
@@ -217,7 +222,7 @@ abstract public class Document {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Retrieves the date that the document was originally created.
 	 * @return date of first document instance
@@ -230,7 +235,7 @@ abstract public class Document {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Gets the database this document belongs to.
 	 * @return Plain text database name
@@ -243,7 +248,7 @@ abstract public class Document {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Returns the plain text id of the document.
 	 * @return Then unencoded id
@@ -256,7 +261,7 @@ abstract public class Document {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Returns the meta data, which is all the revision specific information
 	 * @return JSONObject of meta data revision information
@@ -264,15 +269,15 @@ abstract public class Document {
 	public JSONObject getMetaData() {
 		return metaData;
 	}
-	
+
 	/**
 	 * The sequence number of the document revision
-	 * @return long sequence number 
+	 * @return long sequence number
 	 */
 	final public long getSequence() {
 		return metaData.getLong(SEQ);
 	}
-	
+
 	/**
 	 * Returns the revision id for the document.
 	 * @return string revision id
@@ -280,7 +285,7 @@ abstract public class Document {
 	public String getRevision() {
 		return metaData.getString(REV);
 	}
-	
+
 	/**
 	 * Date of revision creation
 	 * @return date revision was created
@@ -288,7 +293,7 @@ abstract public class Document {
 	public Date getRevisionDate() {
 		return new Date(metaData.getLong(REV_DATE));
 	}
-	
+
 	/**
 	* Returns the required file extension (without the .) for the revision data
 	* @see requiresRevisionExtension
@@ -296,7 +301,7 @@ abstract public class Document {
 	public String getRevisionExtension() {
 		return "";
 	}
-	
+
 	/**
 	 * Returns the username that created this revision of the document. The
 	 * user is that which is logged in through the _auth mechanism.
@@ -305,7 +310,7 @@ abstract public class Document {
 	public String getRevisionUser() {
 		return metaData.getString(REV_USER);
 	}
-	
+
 	/**
 	 * Checks if the document common data has changed.
 	 * @return true if the common data has been changed
@@ -330,9 +335,9 @@ abstract public class Document {
 	public boolean requiresRevisionExtension() {
 		return false;
 	}
-	
+
 	/**
-	 * Handler for sending document over HTTP. The default implementation sets the response code to SC_OK, 
+	 * Handler for sending document over HTTP. The default implementation sets the response code to SC_OK,
 	 * the output Content-Type to getBrowserContentType, then calls sendBody.
 	 * @param request Client HTTP request
 	 * @param response Client HTTP response
@@ -343,7 +348,7 @@ abstract public class Document {
 		response.setContentType(getBrowserContentType());
 		sendBody(response.getOutputStream(),request,response);
 	}
-	
+
 	/**
 	 * Abstract method that must be used if not overriding the sendDocument method. This is the method that should write to the dataOutput
 	 * OutputStream.
@@ -365,7 +370,7 @@ abstract public class Document {
 	public void setDataDirty(boolean dataDirty) {
 		this.dataDirty = dataDirty;
 	}
-	
+
 	/**
 	 * Sets a flag to indicate that the common data has been changed.
 	 * @param commonDirty true if document common data has changed
@@ -373,7 +378,7 @@ abstract public class Document {
 	public void setCommonDirty(boolean commonDirty) {
 		this.commonDirty = commonDirty;
 	}
-	
+
 	/**
 	 * Set the revision history information. Internal use.
 	 * @param revs
@@ -381,7 +386,7 @@ abstract public class Document {
 	public void setRevisions(JSONArray revs) {
 		commonData.put("_revisions",revs);
 	}
-	
+
 	/**
 	 * Called from the DBState implementation to set the document sequence number.
 	 * @param seq Database sequence number
@@ -390,7 +395,7 @@ abstract public class Document {
 		metaData.put(SEQ, seq);
 		dataDirty = true;
 	}
-	
+
 	/**
 	 * Non-indented version of toString which returns the common and meta JSON data
 	 * @return unformatted json string of document
@@ -428,7 +433,7 @@ abstract public class Document {
 		}
 		return jsonString;
 	}
-		
+
 	/**
 	 * If the document requires revision data, on loading and creating this method will be called.
 	 * @param dataInput Source for revision data stream
@@ -444,7 +449,7 @@ abstract public class Document {
 	public void writeCommonData(Writer writer) throws IOException {
 		commonData.write(writer);
 	}
-		
+
 	/**
 	 * Write out the document to the specified writer.
 	 * @param params Options. "pretty" => ["true"] will format with 2 space indent
@@ -465,13 +470,13 @@ abstract public class Document {
 			writer.write(toString());
 		}
 	}
-	
+
 	/**
 	 * Return true if there is data that does not go into the _common or .meta file. Used for example in Binary and Text Document types.
 	 * @return true if revision data must be appended to document
 	 */
 	abstract public boolean writesRevisionData();
-	
+
 	/**
 	 * Must return true if the document requires an additional file to store revision data in. Revision
 	 * data is that which is not common or meta information, for example image data for image/png
@@ -479,24 +484,24 @@ abstract public class Document {
 	 * @throws java.io.IOException
 	 */
 	abstract public void writeRevisionData(OutputStream dataOutput) throws IOException;
-	
+
 
 	////////////////////////////////////////
 	//         Protected methods          //
 	////////////////////////////////////////
-	
+
 	protected void setRevision(String rev) {
 		metaData.put(REV,rev);
 	}
-	
+
 	protected void setRevisionDate(Date date) {
 		metaData.put(REV_DATE,date.getTime());
 	}
-	
+
 	protected void setRevisionDate(long timestamp) {
 		metaData.put(REV_DATE,timestamp);
 	}
-	
+
 	protected void setRevisionUser(String revUser) {
 		metaData.put(REV_USER, revUser);
 	}

@@ -57,6 +57,8 @@ public class UpdateDocument extends BaseRequestHandler {
 		String contentType = request.getContentType();
 		if (contentType==null) {
 			contentType = Document.DEFAULT_CONTENT_TYPE;
+		} else {
+			contentType = contentType.split(";")[0];
 		}
 
 		Lock lock = null;
@@ -138,9 +140,9 @@ public class UpdateDocument extends BaseRequestHandler {
 
 	public boolean match(Credentials credentials, HttpServletRequest request, String db, String id) {
 		return (
-				db!=null && 
-				!db.startsWith("_") && 
-				((id!=null && request.getMethod().equals("PUT")) || 
+				db!=null &&
+				!db.startsWith("_") &&
+				((id!=null && request.getMethod().equals("PUT")) ||
 					(/*id==null &&*/ request.getMethod().equals("POST"))) &&
 				(!allowHtml || memeDB.getBackend().doesDatabaseExist(db))
 				);
