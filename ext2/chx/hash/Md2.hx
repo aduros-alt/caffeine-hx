@@ -27,7 +27,7 @@
 
 package chx.hash;
 
-import haxe.HexUtil;
+import chx.HexUtil;
 
 class Md2 implements IHash {
 

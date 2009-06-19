@@ -1,11 +1,12 @@
-import protocols.memedb.Session;
-import protocols.memedb.Database;
-import protocols.memedb.DesignDocument;
-import protocols.memedb.DesignView;
-import protocols.memedb.JSONDocument;
-import protocols.memedb.Result;
-import protocols.memedb.Row;
-import protocols.memedb.View;
+import chx.protocols.memedb.Session;
+import chx.protocols.memedb.Database;
+import chx.protocols.memedb.Document;
+import chx.protocols.memedb.DesignDocument;
+import chx.protocols.memedb.DesignView;
+import chx.protocols.memedb.JSONDocument;
+import chx.protocols.memedb.Result;
+import chx.protocols.memedb.Row;
+import chx.protocols.memedb.View;
 
 class MemeHammer {
 	static var testname = "hammertest";
@@ -20,10 +21,15 @@ class MemeHammer {
 
 	public static function main() {
 		var args = neko.Sys.args();
-		if(args.length > 0)
+		if(args.length > 0) {
 			host = args[0];
+			if(args.length > 1)
+				port = Std.parseInt(args[1]);
+		}
 		var c = new MemeHammer();
-		c.createDataFast();
+		var records = c.createDataFast();
+		var ids = c.saveData(records);
+		c.fetchData(ids);
 	}
 
 	public function new() {
@@ -40,6 +46,7 @@ class MemeHammer {
 	}
 
 	public function createDataFast() {
+		var records = new Array<JSONDocument>();
 		var rand = new neko.Random();
 		rand.setSeed(Std.int(neko.Sys.time()) + (145 * 2));
 
@@ -55,9 +62,40 @@ class MemeHammer {
 			mr.set("title", "Test Post");
 			mr.set("author", keysb.toString());
 			//mr.set("postTime", Date.now());
-			db.save(mr);
+			records.push(mr);
 		}
 		var end = neko.Sys.time();
 		neko.Lib.println("Created "+maxRecords+ " in "+Std.string(end-start) + " seconds.. "+ Std.string(maxRecords/(end-start)) + " per second");
+		return records;
+	}
+
+	public function saveData(records : Array<JSONDocument>) : Array<String> {
+		var ids = new Array<String>();
+		neko.Lib.println("Saving test data");
+		var start = neko.Sys.time();
+
+		for(mr in records) {
+			if(db.save(mr))
+				ids.push(mr.id);
+			else
+				throw "Save error";
+		}
+		var end = neko.Sys.time();
+		neko.Lib.println("Saved "+maxRecords+ " in "+Std.string(end-start) + " seconds.. "+ Std.string(maxRecords/(end-start)) + " per second");
+		return ids;
+	}
+
+	public function fetchData(ids : Array<String>) : Void {
+		neko.Lib.println("Retrieving test data");
+		var start = neko.Sys.time();
+
+		for(id in ids) {
+			var doc : Document = db.open(id);
+			if(doc == null)
+				throw "Error retrieving document id " + id;
+		}
+
+		var end = neko.Sys.time();
+		neko.Lib.println("Retrieved "+maxRecords+ " in "+Std.string(end-start) + " seconds.. "+ Std.string(maxRecords/(end-start)) + " per second");
 	}
 }

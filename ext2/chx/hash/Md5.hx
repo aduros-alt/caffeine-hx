@@ -28,7 +28,7 @@
 package chx.hash;
 
 import BytesUtil;
-import haxe.HexUtil;
+import chx.HexUtil;
 import I32;
 
 class Md5 implements IHash {

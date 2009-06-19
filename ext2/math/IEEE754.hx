@@ -495,7 +495,7 @@ class IEEE754 {
 	}
 
 // 	public function toHex() {
-// 		return haxe.HexUtil.bytesToHex(toBytes()).toUpperCase();
+// 		return chx.HexUtil.bytesToHex(toBytes()).toUpperCase();
 // 	}
 
 	public function toBytes() {

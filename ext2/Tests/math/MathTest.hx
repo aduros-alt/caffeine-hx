@@ -14,13 +14,13 @@ class IEEE754Test extends haxe.unit.TestCase {
 		var bo = new BytesOutput();
 		bo.bigEndian = bigEndian;
 		bo.writeDouble(value);
-		var expectHex = haxe.HexUtil.bytesToHex(bo.getBytes()).toUpperCase();
+		var expectHex = chx.HexUtil.bytesToHex(bo.getBytes()).toUpperCase();
 
 		var b = IEEE754.doubleToBytes(value, bigEndian);
 		var bi = new BytesInput(b);
 		bi.bigEndian = bigEndian;
 		var result = bi.readDouble();
-		var resultHex = haxe.HexUtil.bytesToHex(b).toUpperCase();
+		var resultHex = chx.HexUtil.bytesToHex(b).toUpperCase();
 		var newValue = IEEE754.bytesToFloat(b, bigEndian);
 
 		try {
@@ -69,13 +69,13 @@ class IEEE754Test extends haxe.unit.TestCase {
 		bo = new BytesOutput();
 		bo.bigEndian = bigEndian;
 		bo.writeFloat(value);
-		expectHex = haxe.HexUtil.bytesToHex(bo.getBytes()).toUpperCase();
+		expectHex = chx.HexUtil.bytesToHex(bo.getBytes()).toUpperCase();
 
 		b = IEEE754.floatToBytes(value, bigEndian);
 		bi = new BytesInput(b);
 		bi.bigEndian = bigEndian;
 		result = bi.readFloat();
-		resultHex = haxe.HexUtil.bytesToHex(b).toUpperCase();
+		resultHex = chx.HexUtil.bytesToHex(b).toUpperCase();
 		newValue = IEEE754.bytesToFloat(b, bigEndian);
 
 		try {

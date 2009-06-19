@@ -3,7 +3,7 @@ import chx.hash.Md5;
 import chx.hash.Sha1;
 import chx.hash.Sha256;
 
-import haxe.HexUtil;
+import chx.HexUtil;
 
 class Vectors {
 	public static function Sha1() {

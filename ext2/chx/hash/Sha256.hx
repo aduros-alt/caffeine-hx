@@ -38,7 +38,7 @@ package chx.hash;
 
 import BytesUtil;
 import I32;
-import haxe.HexUtil;
+import chx.HexUtil;
 
 class Sha256 implements IHash {
 

@@ -37,7 +37,7 @@ package chx.hash;
 
 import BytesUtil;
 import I32;
-import haxe.HexUtil;
+import chx.HexUtil;
 
 class Sha1 implements IHash {
 	static var K : Array<Int> = [0x5a827999, 0x6ed9eba1, 0x8f1bbcdc, 0xca62c1d6];

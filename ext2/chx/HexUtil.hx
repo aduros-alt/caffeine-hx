@@ -25,7 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package haxe;
+package chx;
 
 import I32;
 
@@ -45,9 +45,9 @@ class HexUtil {
 	{
 		var sb = new StringBuf();
 		var i : Int = 8;
-		var f = Int32.ofInt(0xf);
+		var f = I32.ofInt(0xf);
 		while(i-- > 0) {
-			var v : Int = Int32.toInt(Int32.and(Int32.ushr(j,(i*4)), f));
+			var v : Int = I32.toInt(I32.and(I32.ushr(j,(i*4)), f));
 			sb.add(StringTools.hex(v).toLowerCase());
 		}
 		return sb.toString();
