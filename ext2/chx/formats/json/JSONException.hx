@@ -39,6 +39,6 @@ class JSONException {
 	}
 	public function toString()
 	{
-		return "JSON Exception: "+msg;
+		return "JSON Exception: "+msg + (at == null ? "" : " at position " + Std.string(at));
 	}
 }

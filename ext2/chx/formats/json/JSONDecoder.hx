@@ -54,19 +54,19 @@ class JSONDecoder {
 	public function parse(text:String):Dynamic {
 		if(text == null || text == "")
 			return {};
-		try {
+// 		try {
 			at = 0 ;
 			ch = '';
 			this.text = text ;
 			return value();
-		}
-		catch(e : JSONException) {
-			throw(e);
-		}
-	/*	catch (e : Dynamic) {
-			throw(new JSONException("unhandled error "+Std.string(e)));
-		}
-	*/	return {};
+// 		}
+// 		catch(e : JSONException) {
+// 			throw(e);
+// 		}
+// 		catch (e : Dynamic) {
+// 			throw(new JSONException("unhandled error "+Std.string(e)));
+// 		}
+		return {};
 	}
 
 	function error(m):Void {
@@ -82,7 +82,7 @@ class JSONDecoder {
 
 	function white() {
 		while (ch != null) {
-			if (ch <= ' ') {
+			if (at == 0 || ch <= ' ') {
 				next();
 			} else if (ch == '/') {
 				switch (next()) {
@@ -104,7 +104,7 @@ class JSONDecoder {
 						}
 						break;
 					default:
-						error("Syntax error");
+						error("Syntax error - whitespace");
 				}
 			} else {
 				break;
@@ -287,7 +287,7 @@ class JSONDecoder {
 					return null;
 				}
 		}
-		error("Syntax error");
+		error("Syntax error - word");
 		return false; // never get here
 	}
 
