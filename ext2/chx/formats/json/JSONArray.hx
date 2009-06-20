@@ -57,6 +57,14 @@ class JSONArray {
 		return Std.string(data[idx]);
 	}
 
+	public function optString(idx:Int,defaultValue:String=null) : String {
+		return try {
+			getString(idx);
+		} catch(e:Dynamic) {
+			defaultValue;
+		}
+	}
+
 	public static function fromObject(s : String) {
 		var ja = new JSONArray();
 		ja.data = cast JSON.decode(s);

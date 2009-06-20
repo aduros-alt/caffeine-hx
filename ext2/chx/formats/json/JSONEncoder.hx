@@ -69,6 +69,8 @@ class JSONEncoder {
 		else if (Std.is(value,Hash))		return hashToString(value);
 		else if (Std.is(value,IntHash))		return intHashToString(value);
 		else if (Std.is(value,Bytes))		return throw new JSONException("Can not encode Bytes object yet.");
+		else if (Std.is(value,JSONArray))	return convertToString(value.data);
+		else if (Std.is(value,JSONObject))	return convertToString(value.data);
 		else if (Reflect.isObject(value))	return objectToString( value );
 
 		throw new JSONException("JSON encode failed");

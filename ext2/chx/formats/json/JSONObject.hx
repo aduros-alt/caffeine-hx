@@ -237,6 +237,24 @@ class JSONObject {
 		}
 	}
 
+	public function optJSONArray(key:String, defaultValue:JSONArray=null) : JSONArray
+	{
+		return try {
+			getJSONArray(key);
+		} catch (e : JSONException) {
+			defaultValue;
+		}
+	}
+
+	public function optJSONObject(key:String, defaultValue:JSONObject=null) : JSONObject
+	{
+		return try {
+			getJSONObject(key);
+		} catch (e : JSONException) {
+			defaultValue;
+		}
+	}
+
 	public function optString(key:String, ?defaultValue : String) : String {
 		return try {
 			getString(key);
