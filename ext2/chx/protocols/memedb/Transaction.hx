@@ -164,6 +164,18 @@ class Transaction {
 	}
 
 	/**
+	* Get the http error code
+	**/
+	public function getHttpErrorNumber() : Null<Int> {
+		if(httpErrMsg == null)
+			return null;
+		var ereg = ~/([0-9]+)$/;
+		if(ereg.match(httpErrMsg))
+			return Std.parseInt(ereg.matched(1));
+		return null;
+	}
+
+	/**
 		Returns the object of the response body
 	**/
 	public function getJSONObject() : JSONObject {

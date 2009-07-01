@@ -236,22 +236,33 @@ COUCH:
 
 
 	/**
-		Saves a Document. If docId is null, the server will generate an id.
+	* Saves a Document. If docId is null, the server will generate an id.
+	*
+	* @param doc MemeDB document.
+	* @return Object with ok flag and Transaction object
 	**/
-	public function save(doc : Document) : Bool {
+	public function save(doc : Document) : { ok: Bool, transaction:Transaction }
+	{
 		//if(Std.is(doc,DesignDocument))
 		//	return saveWithId(doc, untyped doc.getPathEncoded());
 		return saveWithId(doc,doc.getId());
 	}
 
 	/**
-		Save a document at the given id. If docId is null or "", the document will
-		be POSTed and a new docId will be retrieved. If docId is not null, the document
-		will be PUT with that id.
+	* Save a document at the given id. If docId is null or "", the document will
+	* be POSTed and a new docId will be retrieved. If docId is not null, the document
+	* will be PUT with that id.
+	*
+	* @param doc MemeDB document.
+	* @return Object with ok flag and Transaction object
 	**/
-	public function saveWithId( d: Document, id:String) : Bool {
+	public function saveWithId( d: Document, id:String) : { ok: Bool, transaction:Transaction}
+	{
 		var t : Transaction = session.saveWithId(this, d, id);
-		return t.isOk();
+		return {
+			ok: t.isOk(),
+			transaction : t
+			};
 	}
 
 
