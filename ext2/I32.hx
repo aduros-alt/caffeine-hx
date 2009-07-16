@@ -329,7 +329,7 @@ class I32 {
 			#if neko
 				add(shl(cast high,16),cast low);
 			#else
-				high << 16 + low;
+				(high << 16) + low;
 			#end
 	}
 
