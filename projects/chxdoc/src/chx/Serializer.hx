@@ -173,7 +173,7 @@ class Serializer {
 					// when f() is a callback
 					key = untyped v.__serializeHash();
 				} catch(e : Dynamic) {
-					key = cast v.__serializeHash;
+					key = cast Reflect.field(v, "__serializeHash");
 					if(key == null)
 						throw "bad key";
 				}
