@@ -27,12 +27,15 @@ package chx.protocols.http;
 #if neko
 import neko.net.Host;
 import neko.net.Socket;
+#elseif cpp
+import cpp.net.Host;
+import cpp.net.Socket;
 #elseif php
 import php.net.Host;
 import php.net.Socket;
 #end
 
-#if (neko || php)
+#if (neko || php || cpp)
 private typedef AbstractSocket = {
 	var input(default,null) : haxe.io.Input;
 	var output(default,null) : haxe.io.Output;
@@ -53,41 +56,48 @@ class Request {
 	public var requestText(default,null) : String;
 	public var status(default, null) : Int;
 	public var ignoreResponse : Bool;
-#if (neko || php)
+#if (neko || php || cpp)
 	public var noShutdown : Bool;
 	public var cnxTimeout : Float;
-	var responseHeaders : Hash<String>;
+	public var responseHeaders : Hash<String>;
 	var postData : String;
-	var chunk_size : Int;
+	var chunk_size : Null<Int>;
 	var chunk_buf : haxe.io.Bytes;
 	var file : { param : String, filename : String, io : haxe.io.Input, size : Int };
 #elseif js
-	var async : Bool;
+	public var async : Bool;
 	var postData : String;
 #end
 	var headers : Hash<String>;
 	var params : Hash<String>;
 	var bodyText : String;
 
-	#if (neko || php)
+	#if (neko || php || cpp)
 	public static var PROXY : { host : String, port : Int, auth : { user : String, pass : String } } = null;
 	#end
 
+	/**
+	 * In PHP Https (SSL) connections are allowed only if the OpenSSL extension is enabled.
+	 * @param	url
+	 */
 	public function new( url : String ) {
 		this.url = url;
 		headers = new Hash();
 		params = new Hash();
 		#if js
 		async = true;
-		#elseif (neko || php)
+		#elseif (neko || php || cpp)
 		cnxTimeout = 10;
+		#end
+		#if php
+		noShutdown = ! untyped __call__('function_exists', 'stream_socket_shutdown');
 		#end
 	}
 
 	/**
-		Set an Http header value. Passing null as the value will clear the
-		header.
-	**/
+	 * Set an Http header value. Passing null as the value will clear the
+	 * header.
+	 */
 	public function setHeader( header : String, value : String ) {
 		if(value == null)
 			headers.remove(header);
@@ -100,14 +110,14 @@ class Request {
 	}
 
 	/**
-		Setting bodyText will bypass any params set by setParameter
-		for POSTS and PUTS
-	**/
+	 * Setting bodyText will bypass any params set by setParameter
+	 * for POSTS and PUTS
+	 */
 	public function setBodyText( s : String ) {
 		bodyText = s;
 	}
 
-	#if (neko || js)
+	#if (neko || js || cpp)
 	public function setPostData( data : String ) {
 		postData = data;
 	}
@@ -138,7 +148,8 @@ class Request {
 				me.onError("Http Error #"+r.status);
 			}
 		};
-		r.onreadystatechange = onreadystatechange;
+		if( async )
+			r.onreadystatechange = onreadystatechange;
 		var uri = postData;
 		if( uri != null )
 			post = true;
@@ -175,15 +186,15 @@ class Request {
 		loader.addEventListener( "complete", function(e){
 			me.onData( loader.data );
 		});
-		loader.addEventListener( "httpStatus", function(e){
+		loader.addEventListener( "httpStatus", function(e:flash.events.HTTPStatusEvent){
 			// on Firefox 1.5, Flash calls onHTTPStatus with 0 (!??)
 			if( e.status != 0 )
 				me.onStatus( e.status );
 		});
-		loader.addEventListener( "ioError", function(e){
+		loader.addEventListener( "ioError", function(e:flash.events.IOErrorEvent){
 			me.onError(e.text);
 		});
-		loader.addEventListener( "securityError", function(e){
+		loader.addEventListener( "securityError", function(e:flash.events.SecurityErrorEvent){
 			me.onError(e.text);
 		});
 
@@ -254,7 +265,7 @@ class Request {
 		}
 		if( !r.sendAndLoad(small_url,r,if( param ) { if( post ) "POST" else "GET"; } else null) )
 			onError("Failed to initialize Connection");
-	#elseif (neko || php)
+	#elseif (neko || php || cpp)
 		var me = this;
 		var output = new haxe.io.BytesOutput();
 		var old = onError;
@@ -273,26 +284,41 @@ class Request {
 	#end
 	}
 
-#if (neko || php)
+#if (neko || php || cpp)
 
 	public function fileTransfer( argname : String, filename : String, file : haxe.io.Input, size : Int ) {
 		this.file = { param : argname, filename : filename, io : file, size : size };
 	}
 
 	public function customRequest( post : Bool, api : haxe.io.Output, ?sock : AbstractSocket, ?method : String  ) {
+		#if php
+		var url_regexp = ~/^(https?:\/\/)?([a-zA-Z\.0-9-]+)(:[0-9]+)?(.*)$/;
+		#else
 		var url_regexp = ~/^(http:\/\/)?([a-zA-Z\.0-9-]+)(:[0-9]+)?(.*)$/;
+		#end
 		if( !url_regexp.match(url) ) {
 			onError("Invalid URL");
 			return;
 		}
-		if( sock == null )
+		#if php
+		var secure = (url_regexp.matched(1) == "https://");
+		#end
+		if ( sock == null )
+			#if php
+			sock = (secure) ? Socket.newSslSocket() : new Socket();
+			#else
 			sock = new Socket();
+			#end
 		var host = url_regexp.matched(2);
 		var portString = url_regexp.matched(3);
 		var request = url_regexp.matched(4);
 		if( request == "" )
 			request = "/";
-		var port = if( portString == null || portString == "" ) 80 else Std.parseInt(portString.substr(1,portString.length-1));
+		#if php
+		var port = if( portString == null || portString == "" ) ((!secure) ? 80 : 443) else Std.parseInt(portString.substr(1,portString.length-1));
+		#else
+		var port = if ( portString == null || portString == "" ) 80 else Std.parseInt(portString.substr(1, portString.length - 1));
+		#end
 		var data;
 
 		var multipart = (file != null);
@@ -400,9 +426,9 @@ class Request {
 		}
 		try {
 			if( Request.PROXY != null )
-				 sock.connect(new Host(Request.PROXY.host),Request.PROXY.port);
+				sock.connect(new Host(Request.PROXY.host),Request.PROXY.port);
 			else
-				 sock.connect(new Host(host),port);
+				sock.connect(new Host(host),port);
 			sock.write(b.toString());
 			this.requestText = b.toString();
 			if( multipart ) {
@@ -431,24 +457,14 @@ class Request {
 		}
 	}
 
-	//static var a:Float;
-	//static var count:Int;
-	//static var d:Float;
-
 	function readHttpResponse( api : haxe.io.Output, sock : AbstractSocket ) {
-		//if (count == null ) count = 0;
-		//if (d == null ) d = 0;
-		//if ( count > 1000 ) trace(d);
-		//count++;
 		// READ the HTTP header (until \r\n\r\n)
 		var b = new haxe.io.BytesBuffer();
 		var k = 4;
 		var s = haxe.io.Bytes.alloc(4);
 		sock.setTimeout(cnxTimeout); // 10 seconds
 		while( true ) {
-			//a = haxe.Timer.stamp();
 			var p = sock.input.readBytes(s,0,k);
-		 //d = d + (haxe.Timer.stamp()-a);
 			while( p != k )
 				p += sock.input.readBytes(s,p,k - p);
 			b.addBytes(s,0,k);
@@ -560,9 +576,8 @@ class Request {
 					if( chunked ) {
 						if( !readChunk(chunk_re,api,buf,len) )
 							break;
-					} else {
+					} else
 						api.writeBytes(buf,0,len);
-					}
 					size -= len;
 				}
 			} catch( e : haxe.io.Eof ) {
@@ -571,10 +586,9 @@ class Request {
 		}
 		if( chunked && (chunk_size != null || chunk_buf != null) )
 			throw "Invalid chunk";
-		//api.close();
-
 		if( status < 200 || status >= 400 )
 			throw "Http Error #"+status;
+		api.close();
 	}
 
 	function readChunk(chunk_re : EReg, api : haxe.io.Output, buf : haxe.io.Bytes, len ) {
