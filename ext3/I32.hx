@@ -606,22 +606,22 @@ class I32 {
 
 	#if neko
 	static function __init__() untyped {
-		__i32__new = neko.Lib.load("std","int32_new",1);
-		__i32__to_int = neko.Lib.load("std","int32_to_int",1);
-		__i32__add = neko.Lib.load("std","int32_add",2);
-		__i32__sub = neko.Lib.load("std","int32_sub",2);
-		__i32__mul = neko.Lib.load("std","int32_mul",2);
-		__i32__div = neko.Lib.load("std","int32_div",2);
-		__i32__mod = neko.Lib.load("std","int32_mod",2);
-		__i32__shl = neko.Lib.load("std","int32_shl",2);
-		__i32__shr = neko.Lib.load("std","int32_shr",2);
-		__i32__ushr = neko.Lib.load("std","int32_ushr",2);
-		__i32__and = neko.Lib.load("std","int32_and",2);
-		__i32__or = neko.Lib.load("std","int32_or",2);
-		__i32__xor = neko.Lib.load("std","int32_xor",2);
-		__i32__neg = neko.Lib.load("std","int32_neg",1);
-		__i32__complement = neko.Lib.load("std","int32_complement",1);
-		__i32__compare = neko.Lib.load("std","int32_compare",2);
+		__i32__new = chx.Lib.load("std","int32_new",1);
+		__i32__to_int = chx.Lib.load("std","int32_to_int",1);
+		__i32__add = chx.Lib.load("std","int32_add",2);
+		__i32__sub = chx.Lib.load("std","int32_sub",2);
+		__i32__mul = chx.Lib.load("std","int32_mul",2);
+		__i32__div = chx.Lib.load("std","int32_div",2);
+		__i32__mod = chx.Lib.load("std","int32_mod",2);
+		__i32__shl = chx.Lib.load("std","int32_shl",2);
+		__i32__shr = chx.Lib.load("std","int32_shr",2);
+		__i32__ushr = chx.Lib.load("std","int32_ushr",2);
+		__i32__and = chx.Lib.load("std","int32_and",2);
+		__i32__or = chx.Lib.load("std","int32_or",2);
+		__i32__xor = chx.Lib.load("std","int32_xor",2);
+		__i32__neg = chx.Lib.load("std","int32_neg",1);
+		__i32__complement = chx.Lib.load("std","int32_complement",1);
+		__i32__compare = chx.Lib.load("std","int32_compare",2);
 
 		ZERO = untyped __i32__new(0);
 		ONE = untyped __i32__new(1);

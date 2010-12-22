@@ -25,10 +25,11 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+pacakge chx.collections;
+
 /**
 	A two dimensional IntHash.
 **/
-
 class XYHash<T> {
 	var cache : IntHash<IntHash<T>>;
 

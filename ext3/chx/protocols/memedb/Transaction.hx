@@ -50,14 +50,14 @@ class Transaction {
 	private var http : Request;
 	private var httpErrMsg : String;
 	private var method : String;
-	private var output : haxe.io.BytesOutput;
+	private var output : chx.io.BytesOutput;
 	/** HTTP status code **/
 	public var status(default,null) : Int;
 
 	public function new(httpMethod: String, url:String, token:String, ?args:Hash<String>, ?contentType : String)
 	{
 		err = false;
-		output = new haxe.io.BytesOutput();
+		output = new chx.io.BytesOutput();
 
 		http = new Request(url);
 		//http.noShutdown = true;

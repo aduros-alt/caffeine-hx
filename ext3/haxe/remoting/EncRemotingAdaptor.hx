@@ -146,7 +146,7 @@ class EncRemotingAdaptor {
 		}
 		catch(e:Dynamic) {
 			trace(e);
-			neko.Lib.rethrow(e);
+			chx.Lib.rethrow(e);
 		}
 		#else true
 		sp.socket.send(sbenc.toString());

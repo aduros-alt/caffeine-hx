@@ -29,7 +29,7 @@ class ContextAll extends Context {
 	public override function call( path : Array<String>, params : Array<Dynamic> ) : Dynamic {
 		#if neko
 		var o : Dynamic = null;
-		var m : Dynamic = neko.Lib.getClasses();
+		var m : Dynamic = chx.Lib.getClasses();
 		for( p in path ) {
 			o = m;
 			m = Reflect.field(o,p);

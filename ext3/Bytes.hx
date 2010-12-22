@@ -246,9 +246,7 @@ class Bytes {
 			b.writeUTFBytes(s);
 			return new Bytes(b.length,b);
 		#elseif php
-			//return new Bytes(untyped __call__("strlen", s), cast s); // returns a referenced string, incorrect?
-			return new Bytes(untyped __call__("strlen", s), untyped __call__("substr",s,0));
-			//return ofData(untyped __call__("new _hx_array", __call__("array_values", __call__("unpack", "C*",  s))));
+			return new Bytes(untyped __call__("strlen", s), cast s);
 		#elseif cpp
 			var a = new BytesData();
 			untyped __global__.__hxcpp_bytes_of_string(a,s);

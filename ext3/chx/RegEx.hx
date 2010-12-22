@@ -578,7 +578,7 @@ class RegEx #if !flash9 implements EReg #end {
 				if(!isRoot())
 					parent.addChildFrame(id, this, st);
 				#if DEBUG_MATCH_V
-				neko.Lib.println("pushOrFrame dump:");
+				chx.Lib.println("pushOrFrame dump:");
 				root.traceFrames();
 				#end
 				break;
@@ -2229,9 +2229,9 @@ class RegEx #if !flash9 implements EReg #end {
 
 	#if (DEBUG_MATCH || DEBUG_MATCH_V)
 	function traceFrames() {
-		neko.Lib.println(traceName());
+		chx.Lib.println(traceName());
 		for(i in stack)
-			neko.Lib.println("\t" + stackItemToString(i));
+			chx.Lib.println("\t" + stackItemToString(i));
 		for(ch in children)
 			ch.traceFrames();
 	}
@@ -2257,7 +2257,7 @@ class RegEx #if !flash9 implements EReg #end {
 		if(!isRoot())
 			parent.addChildFrame(id, this, st);
 		#if DEBUG_MATCH_V
-		neko.Lib.println(traceName() + " pushRepeatFrame dump:");
+		chx.Lib.println(traceName() + " pushRepeatFrame dump:");
 		root.traceFrames();
 		#end
 	}

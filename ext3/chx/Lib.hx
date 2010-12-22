@@ -152,7 +152,7 @@ class Lib {
 	 * Returns a string referencing the data contains in bytes.
 	 * @param	b
 	 */
-	public inline static function stringReference( b : haxe.io.Bytes ) {
+	public inline static function stringReference( b : Bytes ) {
 		#if cpp
 			throw b;
 		#else

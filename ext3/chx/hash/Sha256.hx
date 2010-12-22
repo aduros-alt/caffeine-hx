@@ -148,9 +148,9 @@ class Sha256 implements IHash {
 		return Bytes.ofData(sha_final(_ctx));
 	}
 
-	private static var sha_init = neko.Lib.load("hash","sha_init",1);
-	private static var sha_update = neko.Lib.load("hash","sha_update",2);
-	private static var sha_final = neko.Lib.load("hash","sha_final",1);
+	private static var sha_init = chx.Lib.load("hash","sha_init",1);
+	private static var sha_update = chx.Lib.load("hash","sha_update",2);
+	private static var sha_final = chx.Lib.load("hash","sha_final",1);
 #end
 
 }

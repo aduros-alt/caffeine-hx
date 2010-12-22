@@ -354,8 +354,8 @@ class Serializer {
 					serialize(v.get(k));
 				}
 				buf.writeString("h");
-			case #if neko "haxe.io.Bytes" #else cast haxe.io.Bytes #end:
-				var v : haxe.io.Bytes = v;
+			case #if neko "haxe.io.Bytes" #else cast haxe.io.Bytes #end, #if neko "Bytes" #else cast Bytes #end:
+				var v : Bytes = v;
 				#if neko
 				var chars = new String(base_encode(v.getData(),untyped BASE64.__s));
 				#else
@@ -528,7 +528,7 @@ class Serializer {
 	}
 
 	#if neko
-	static var base_encode = neko.Lib.load("std","base_encode",2);
+	static var base_encode = chx.Lib.load("std","base_encode",2);
 	#end
 
 }

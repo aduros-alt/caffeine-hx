@@ -33,7 +33,7 @@ import chx.net.Socket;
 import chx.net.packets.Packet;
 
 private typedef ThreadInfo = {
-	var t : neko.vm.Thread;
+	var t : chx.vm.Thread;
 	var socks : Array<Socket>;
 	var wsocks : Array<Socket>;
 }
@@ -244,7 +244,7 @@ class PacketServer <Client> {
 			socks : new Array(),
 			wsocks : new Array(),
 		};
-		t.t = neko.vm.Thread.create(callback(runThread,t));
+		t.t = chx.vm.Thread.create(callback(runThread,t));
 		return t;
 	}
 
@@ -258,7 +258,7 @@ class PacketServer <Client> {
 		if( t.socks.length > 0 )
 			readWriteThread(t);
 		while( true ) {
-			var m : ThreadMessage = neko.vm.Thread.readMessage(t.socks.length == 0);
+			var m : ThreadMessage = chx.vm.Thread.readMessage(t.socks.length == 0);
 			if( m == null ) break;
 			switch( m ) {
 			case Connect(s):
@@ -316,7 +316,7 @@ class PacketServer <Client> {
 			// if just Exception return false
 			// rethrow (BlockedExceptions)
 			if( Std.is(e, chx.lang.BlockedException))
-				neko.Lib.rethrow(e);
+				chx.Lib.rethrow(e);
 			return false;
 		}
 		var pos = 0;

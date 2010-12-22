@@ -101,7 +101,7 @@ class InternalSocketInput extends chx.io.Input
 	public override function readAll( ?bufsize : Int ) : String {
 		if( bufsize == null )
 				bufsize = (1 << 14); // 16 Ko
-		var buf = neko.Lib.makeString(bufsize);
+		var buf = chx.Lib.makeString(bufsize);
 		var total = new StringBuf();
 		var oldBlock = __handle.getBlocking();
 		__handle.setBlocking(false);

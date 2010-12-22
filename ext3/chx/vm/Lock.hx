@@ -84,8 +84,8 @@ class Lock {
 
 
 	#if (neko || cpp)
-	static var lock_create = neko.Lib.load("std","lock_create",0);
-	static var lock_release = neko.Lib.load("std","lock_release",1);
-	static var lock_wait = neko.Lib.load("std","lock_wait",2);
+	static var lock_create = chx.Lib.load("std","lock_create",0);
+	static var lock_release = chx.Lib.load("std","lock_release",1);
+	static var lock_wait = chx.Lib.load("std","lock_wait",2);
 	#end
 }

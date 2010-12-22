@@ -30,10 +30,10 @@ import chx.sys.db.Connection;
 private class D {
 
 	static function load(fun,args) : Dynamic {
-		return neko.Lib.load(lib,fun,args);
+		return chx.Lib.load(lib,fun,args);
 	}
 
-	static var lib = try { neko.Lib.load("mysql5","connect",1); "mysql5"; } catch( e : Dynamic ) "mysql";
+	static var lib = try { chx.Lib.load("mysql5","connect",1); "mysql5"; } catch( e : Dynamic ) "mysql";
 	public static var connect = load("connect",1);
 	public static var select_db = load("select_db",2);
 	public static var request = load("request",2);
@@ -196,7 +196,7 @@ class Mysql {
 		pass : String,
 		socket : String,
 		database : String
-	} ) : neko.db.Connection {
+	} ) : chx.sys.db.Connection {
 		var o = untyped {
 			host : params.host.__s,
 			port : params.port,
@@ -209,7 +209,7 @@ class Mysql {
 			D.select_db(c,untyped params.database.__s);
 		} catch( e : Dynamic ) {
 			D.close(c);
-			neko.Lib.rethrow(e);
+			chx.Lib.rethrow(e);
 		}
 		return new MysqlConnection(c);
 	}

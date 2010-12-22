@@ -160,7 +160,7 @@ class BufferedInput extends FilteredInput {
 		} catch( e : EofException ) {
 			s = newBuffer().toString();
 			if( s.length == 0 )
-				#if neko neko.Lib.rethrow #else throw #end (e);
+				#if neko chx.Lib.rethrow #else throw #end (e);
 		}
 		return s;
 	}
@@ -247,8 +247,8 @@ class BufferedInput extends FilteredInput {
 	}
 
 #if neko
-	static var _float_of_bytes = neko.Lib.load("std","float_of_bytes",2);
-	static var _double_of_bytes = neko.Lib.load("std","double_of_bytes",2);
+	static var _float_of_bytes = chx.Lib.load("std","float_of_bytes",2);
+	static var _double_of_bytes = chx.Lib.load("std","double_of_bytes",2);
 	static function __init__() untyped {
 		BufferedInput.prototype.bigEndian = false;
 	}

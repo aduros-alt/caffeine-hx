@@ -40,9 +40,9 @@ class TcpSocketOutput extends chx.io.Output {
 		if( __handle != null ) socket_close(__handle);
 	}
 
-	private static var socket_close = neko.Lib.load("std","socket_close",1);
-	private static var socket_send_char = neko.Lib.load("std","socket_send_char",2);
-	private static var socket_send = neko.Lib.load("std","socket_send",4);
+	private static var socket_close = chx.Lib.load("std","socket_close",1);
+	private static var socket_send_char = chx.Lib.load("std","socket_send_char",2);
+	private static var socket_send = chx.Lib.load("std","socket_send",4);
 }
 
 #elseif flash9

@@ -56,7 +56,7 @@ class TcpSocketInput extends chx.io.Input {
 		}
 	}
 
-	override function getBytesAvailable() : Int {
+	override function __getBytesAvailable() : Int {
 		return throw new chx.lang.FatalException("Not implemented");
 	}
 
@@ -80,9 +80,9 @@ class TcpSocketInput extends chx.io.Input {
 		if( __handle != null ) socket_close(__handle);
 	}
 
-	private static var socket_recv = neko.Lib.load("std","socket_recv",4);
-	private static var socket_recv_char = neko.Lib.load("std","socket_recv_char",1);
-	private static var socket_close = neko.Lib.load("std","socket_close",1);
+	private static var socket_recv = chx.Lib.load("std","socket_recv",4);
+	private static var socket_recv_char = chx.Lib.load("std","socket_recv_char",1);
+	private static var socket_close = chx.Lib.load("std","socket_close",1);
 }
 
 #elseif flash9

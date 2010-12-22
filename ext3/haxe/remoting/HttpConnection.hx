@@ -84,7 +84,7 @@ class HttpConnection implements Connection, implements Dynamic<Connection> {
 		//var v = neko.Web.getParams().get("__x");
 		//if( neko.Web.getClientHeader("X-Haxe-Remoting") == null || v == null )
 			//return false;
-		//neko.Lib.print(processRequest(v,ctx));
+		//chx.Lib.print(processRequest(v,ctx));
 		//return true;
 	//}
 	//#elseif php

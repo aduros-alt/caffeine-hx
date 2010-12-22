@@ -249,7 +249,7 @@ class RealtimeServer<SockType : chx.net.Socket, Client> {
 		try {
 			c.rbytes += c.sock.input.readBytes(c.rbuffer,c.rbytes,available);
 		} catch( e : Dynamic ) {
-			if( !Std.is(e,haxe.io.Eof) && !Std.is(e,haxe.io.Error) )
+			if( !Std.is(e,chx.lang.EofException) && !Std.is(e,chx.io.IOException) )
 				chx.Lib.rethrow(e);
 			return false;
 		}

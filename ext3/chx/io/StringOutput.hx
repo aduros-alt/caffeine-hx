@@ -55,7 +55,7 @@ class StringOutput extends chx.io.Output {
 		//return len;
 		
 		#if neko
-			b.addSub( neko.Lib.stringReference( buf ), pos, len );
+			b.addSub( chx.Lib.stringReference( bb ), pos, len );
 		#else
 			b.addSub( bb.toString(), pos, len );
 		#end
@@ -147,8 +147,8 @@ class StringOutput extends chx.io.Output {
 	}
 
 #if neko
-	static var _float_bytes = neko.Lib.load("std","float_bytes",2);
-	static var _double_bytes = neko.Lib.load("std","double_bytes",2);
+	static var _float_bytes = chx.Lib.load("std","float_bytes",2);
+	static var _double_bytes = chx.Lib.load("std","double_bytes",2);
 	static function __init__() untyped {
 		StringOutput.prototype.bigEndian = true;
 	}

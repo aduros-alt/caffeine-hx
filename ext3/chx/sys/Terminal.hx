@@ -38,7 +38,7 @@ class Terminal {
 		Prints to stdout
 	**/
 	public static function print(s:Dynamic) : Void {
-		stdout.write(haxe.io.Bytes.ofString(Std.string(s)));
+		stdout.write(Bytes.ofString(Std.string(s)));
 		stdout.flush();
 	}
 

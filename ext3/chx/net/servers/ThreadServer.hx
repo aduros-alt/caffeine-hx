@@ -35,7 +35,7 @@ private typedef ClientInfos<Client> = {
 	var client : Client;
 	var sock : chx.net.Socket;
 	var thread : ThreadInfos;
-	var buf : haxe.io.Bytes;
+	var buf : Bytes;
 	var bufpos : Int;
 }
 
@@ -48,11 +48,11 @@ class ThreadServer<Client,Message> {
 	public var listen : Int;
 	public var nthreads : Int;
 	public var connectLag : Float;
-	public var errorOutput : haxe.io.Output;
+	public var errorOutput : chx.io.Output;
 	public var initialBufferSize : Int;
 	public var maxBufferSize : Int;
 	public var messageHeaderSize : Int;
-	public var updateTime : Float;
+	public var updateTime : Int;
 	public var maxSockPerThread : Int;
 
 	public function new() {
@@ -65,7 +65,7 @@ class ThreadServer<Client,Message> {
 		initialBufferSize = (1 << 10);
 		maxBufferSize = (1 << 16);
 		maxSockPerThread = 64;
-		updateTime = 1;
+		updateTime = 1000;
 	}
 
 	function runThread(t) {
@@ -87,7 +87,7 @@ class ThreadServer<Client,Message> {
 				if( c.buf.length == maxBufferSize )
 					throw "Max buffer size reached";
 			}
-			var newbuf = haxe.io.Bytes.alloc(newsize);
+			var newbuf = Bytes.alloc(newsize);
 			newbuf.blit(0,c.buf,0,c.bufpos);
 			c.buf = newbuf;
 			available = newsize - c.bufpos;
@@ -116,7 +116,7 @@ class ThreadServer<Client,Message> {
 					readClientData(infos);
 				} catch( e : Dynamic ) {
 					t.socks.remove(s);
-					if( !Std.is(e,haxe.io.Eof) && !Std.is(e,haxe.io.Error) )
+					if( !Std.is(e,chx.lang.EofException) && !Std.is(e,chx.lang.IOException) )
 						logError(e);
 					work(callback(doClientDisconnected,s,infos.client));
 				}
@@ -172,7 +172,7 @@ class ThreadServer<Client,Message> {
 			thread : threads[Std.random(nthreads)],
 			client : clientConnected(sock),
 			sock : sock,
-			buf : haxe.io.Bytes.alloc(initialBufferSize),
+			buf : Bytes.alloc(initialBufferSize),
 			bufpos : 0,
 		};
 		sock.custom = infos;
@@ -208,8 +208,8 @@ class ThreadServer<Client,Message> {
 	}
 
 	public function run( host, port ) {
-		sock = new chx.net.Socket();
-		sock.bind(new chx.net.Host(host),port);
+		sock = new chx.net.TcpSocket();
+		sock.bind(host,port);
 		sock.listen(listen);
 		init();
 		while( true ) {
@@ -221,7 +221,7 @@ class ThreadServer<Client,Message> {
 		}
 	}
 
-	public function sendData( s : chx.net.Socket, data : String ) {
+	public function sendData( s : chx.net.Socket, data : Bytes ) {
 		try {
 			s.write(data);
 		} catch( e : Dynamic ) {
@@ -250,7 +250,7 @@ class ThreadServer<Client,Message> {
 	public dynamic function clientDisconnected( c : Client ) {
 	}
 
-	public dynamic function readClientMessage( c : Client, buf : haxe.io.Bytes, pos : Int, len : Int ) : { msg : Message, bytes : Int } {
+	public dynamic function readClientMessage( c : Client, buf : Bytes, pos : Int, len : Int ) : { msg : Message, bytes : Int } {
 		return {
 			msg : null,
 			bytes : len,

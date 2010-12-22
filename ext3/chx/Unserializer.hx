@@ -306,7 +306,7 @@ class Unserializer {
  			if( get(pos++) != ":".code || length - pos < len )
 				throw "Invalid bytes length";
 			#if neko
-			var bytes = haxe.io.Bytes.ofData( base_decode(untyped buf.substr(pos,len).__s,untyped BASE64.__s) );
+			var bytes = Bytes.ofData( base_decode(untyped buf.substr(pos,len).__s,untyped BASE64.__s) );
 			#else
 			var codes = CODES;
 			if( codes == null ) {
@@ -317,7 +317,7 @@ class Unserializer {
 			var rest = len & 3;
 			var size = (len >> 2) * 3 + ((rest >= 2) ? rest - 1 : 0);
 			var max = i + (len - rest);
-			var bytes = haxe.io.Bytes.alloc(size);
+			var bytes = Bytes.alloc(size);
 			var bpos = 0;
 			while( i < max ) {
 				var c1 = codes[untyped buf.cca(i++)];
@@ -366,7 +366,7 @@ class Unserializer {
 	}
 
 	#if neko
-	static var base_decode = neko.Lib.load("std","base_decode",2);
+	static var base_decode = chx.Lib.load("std","base_decode",2);
 	#end
 
 }

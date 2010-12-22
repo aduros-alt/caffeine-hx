@@ -23,6 +23,9 @@
  * DAMAGE.
  */
 package haxe.remoting;
+import chx.crypt.Aes;
+import chx.io.StringOutput;
+import chx.Serializer;
 
 typedef Socket =
 	#if flash9
@@ -31,12 +34,8 @@ typedef Socket =
 		flash.XMLSocket
 	#elseif js
 		js.XMLSocket
-	#elseif neko
-		neko.net.Socket
-	#elseif php
-		php.net.Socket
-	#elseif cpp
-		cpp.net.Socket
+	#elseif (neko || php || cpp)
+		chx.net.Socket
 	#else
 		Dynamic
 	#end
@@ -122,21 +121,23 @@ class SocketProtocol {
 	}
 
 	public function sendRequest( path : Array<String>, params : Array<Dynamic> ) {
-		var s = new chx.Serializer();
+		var out : StringOutput = new StringOutput();
+		var s = new Serializer(out);
 		s.serialize(true);
 		s.serialize(path);
 		s.serialize(params);
-		sendMessage(s.toString());
+		sendMessage(out.toString());
 	}
 
 	public function sendAnswer( answer : Dynamic, ?isException : Bool ) {
-		var s = new chx.Serializer();
+		var out : StringOutput = new StringOutput();
+		var s = new Serializer(out);
 		s.serialize(false);
 		if( isException )
 			s.serializeException(answer);
 		else
 			s.serialize(answer);
-		sendMessage(s.toString());
+		sendMessage(out.toString());
 	}
 
 	public function sendMessage( msg : String ) {

@@ -163,7 +163,7 @@ class Input {
 		} catch( e : EofException ) {
 			s = buf.toString();
 			if( s.length == 0 )
-				#if neko neko.Lib.rethrow #else throw #end (e);
+				#if neko chx.Lib.rethrow #else throw #end (e);
 		}
 		return s;
 	}
@@ -307,7 +307,7 @@ class Input {
 		var b = Bytes.alloc(len);
 		readFullBytes(b,0,len);
 		#if neko
-		return neko.Lib.stringReference(b);
+		return chx.Lib.stringReference(b);
 		#else
 		return b.toString();
 		#end
@@ -337,8 +337,8 @@ class Input {
 	}
 
 #if neko
-	static var _float_of_bytes = neko.Lib.load("std","float_of_bytes",2);
-	static var _double_of_bytes = neko.Lib.load("std","double_of_bytes",2);
+	static var _float_of_bytes = chx.Lib.load("std","float_of_bytes",2);
+	static var _double_of_bytes = chx.Lib.load("std","double_of_bytes",2);
 	static function __init__() untyped {
 		Input.prototype.bigEndian = false;
 	}

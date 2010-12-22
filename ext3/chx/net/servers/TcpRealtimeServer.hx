@@ -29,20 +29,20 @@ package system.net.servers;
 import system.net.servers.RealtimeServer;
 import system.net.servers.RealtimeServer.SocketInfos;
 import system.net.servers.RealtimeServer.ThreadMessage;
-import neko.net.Socket;
+import chx.net.Socket;
 
-class TcpRealtimeServer<Client> extends RealtimeServer<neko.net.Socket,Client> {
+class TcpRealtimeServer<Client> extends RealtimeServer<chx.net.Socket,Client> {
 
 	public function new() {
 		super();
-		select_function = neko.net.Socket.select;
+		select_function = chx.net.Socket.select;
 	}
 
 	override function createSock() {
-		return new neko.net.Socket();
+		return new chx.net.Socket();
 	}
 
-	override function addClient( s : neko.net.Socket ) {
+	override function addClient( s : chx.net.Socket ) {
 		var tid = Std.random(config.threadsCount);
 		var thread = threads[tid];
 		if( thread == null ) {
@@ -50,7 +50,7 @@ class TcpRealtimeServer<Client> extends RealtimeServer<neko.net.Socket,Client> {
 			threads[tid] = thread;
 		}
 		var sh : { private var __s : SocketHandle; } = s;
-		var cinf : SocketInfos<neko.net.Socket, Client> = {
+		var cinf : SocketInfos<chx.net.Socket, Client> = {
 			sock : s,
 			handle : sh.__s,
 			client : null,
@@ -69,7 +69,7 @@ class TcpRealtimeServer<Client> extends RealtimeServer<neko.net.Socket,Client> {
 	}
 
 
-	override function clientWrite( c : SocketInfos<neko.net.Socket, Client> ) : Bool {
+	override function clientWrite( c : SocketInfos<chx.net.Socket, Client> ) : Bool {
 		var pos = 0;
 		while( c.wbytes > 0 )
 			try {
@@ -107,7 +107,7 @@ class TcpRealtimeServer<Client> extends RealtimeServer<neko.net.Socket,Client> {
 	}
 
 #if neko
-	private static var socket_send_char : SocketHandle -> Int -> Void = neko.Lib.load("std","socket_send_char",2);
-	private static var socket_send : SocketHandle -> Void -> Int -> Int -> Int = neko.Lib.load("std","socket_send",4);
+	private static var socket_send_char : SocketHandle -> Int -> Void = chx.Lib.load("std","socket_send_char",2);
+	private static var socket_send : SocketHandle -> Void -> Int -> Int -> Int = chx.Lib.load("std","socket_send",4);
 #end
 }

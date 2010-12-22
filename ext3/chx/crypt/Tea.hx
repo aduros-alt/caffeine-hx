@@ -154,9 +154,9 @@ class Tea implements IBlockCipher {
 
 
 #if neko
-	private static var xxtea_create_key = neko.Lib.load("ncrypt","xxtea_create_key",1);
-	private static var xxtea_encrypt_block = neko.Lib.load("ncrypt","xxtea_encrypt_block",3);
-	private static var xxtea_decrypt_block = neko.Lib.load("ncrypt","xxtea_decrypt_block",3);
+	private static var xxtea_create_key = chx.Lib.load("ncrypt","xxtea_create_key",1);
+	private static var xxtea_encrypt_block = chx.Lib.load("ncrypt","xxtea_encrypt_block",3);
+	private static var xxtea_decrypt_block = chx.Lib.load("ncrypt","xxtea_decrypt_block",3);
 #end
 }
 

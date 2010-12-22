@@ -59,8 +59,8 @@ class TcpPacketServer<Client> extends PacketServer<Client> {
 
 
 #if neko
-// 	private static var socket_send_char = neko.Lib.load("std","socket_send_char",2);
-	private static var socket_send  = neko.Lib.load("std","socket_send",4);
+// 	private static var socket_send_char = chx.Lib.load("std","socket_send_char",2);
+	private static var socket_send  = chx.Lib.load("std","socket_send",4);
 #end
 }
 

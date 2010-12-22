@@ -224,9 +224,9 @@ class Sha1 implements IHash {
 	}
 
 #if neko
-        private static var nsha1 = neko.Lib.load("hash","nsha1",1);
-		private static var sha_init = neko.Lib.load("hash","sha_init",1);
-		private static var sha_update = neko.Lib.load("hash","sha_update",2);
-		private static var sha_final = neko.Lib.load("hash","sha_final",1);
+        private static var nsha1 = chx.Lib.load("hash","nsha1",1);
+		private static var sha_init = chx.Lib.load("hash","sha_init",1);
+		private static var sha_update = chx.Lib.load("hash","sha_update",2);
+		private static var sha_final = chx.Lib.load("hash","sha_final",1);
 #end
 }

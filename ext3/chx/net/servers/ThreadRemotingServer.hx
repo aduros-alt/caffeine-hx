@@ -61,7 +61,7 @@ class ThreadRemotingServer extends ThreadServer<haxe.remoting.SocketConnection,S
 		var cnx = haxe.remoting.SocketConnection.create(s,ctx);
 		var me = this;
 		cnx.setErrorHandler(function(e) {
-			if( !Std.is(e,haxe.io.Eof) && !Std.is(e,haxe.io.Error) )
+			if( !Std.is(e,chx.lang.EofException) && !Std.is(e,chx.lang.IOException) )
 				me.logError(e);
 			me.stopClient(s);
 		});
@@ -69,7 +69,7 @@ class ThreadRemotingServer extends ThreadServer<haxe.remoting.SocketConnection,S
 		return cnx;
 	}
 
-	override function readClientMessage( cnx : haxe.remoting.SocketConnection, buf : haxe.io.Bytes, pos : Int, len : Int ) {
+	override function readClientMessage( cnx : haxe.remoting.SocketConnection, buf : Bytes, pos : Int, len : Int ) {
 		var msgLen = cnx.getProtocol().messageLength(buf.get(pos),buf.get(pos+1));
 		if( msgLen == null ) {
 			if( buf.get(pos) != 60 )
@@ -102,13 +102,13 @@ class ThreadRemotingServer extends ThreadServer<haxe.remoting.SocketConnection,S
 		try {
 			if( msg.charCodeAt(0) == 60 ) {
 				if( domains != null && msg == "<policy-file-request/>" )
-					cnx.getProtocol().socket.write(makePolicyFile()+"\x00");
+					cnx.getProtocol().socket.write(Bytes.ofString(makePolicyFile()+"\x00"));
 				else
 					onXml(cnx,msg);
 			} else
 				cnx.processMessage(msg);
 		} catch( e : Dynamic ) {
-			if( !Std.is(e,haxe.io.Eof) && !Std.is(e,haxe.io.Error) )
+			if( !Std.is(e,chx.lang.EofException) && !Std.is(e,chx.lang.IOException) )
 				logError(e);
 			stopClient(cnx.getProtocol().socket);
 		}

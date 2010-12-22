@@ -66,10 +66,10 @@ class Mutex {
 
 	#if (neko || cpp)
 
-	static var mutex_create = neko.Lib.loadLazy("std","mutex_create",0);
-	static var mutex_release = neko.Lib.loadLazy("std","mutex_release",1);
-	static var mutex_acquire = neko.Lib.loadLazy("std","mutex_acquire",1);
-	static var mutex_try = neko.Lib.loadLazy("std","mutex_try",1);
+	static var mutex_create = chx.Lib.loadLazy("std","mutex_create",0);
+	static var mutex_release = chx.Lib.loadLazy("std","mutex_release",1);
+	static var mutex_acquire = chx.Lib.loadLazy("std","mutex_acquire",1);
+	static var mutex_try = chx.Lib.loadLazy("std","mutex_try",1);
 
 	#else
 

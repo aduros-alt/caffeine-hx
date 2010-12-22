@@ -47,14 +47,14 @@ class Transaction {
 	private var http : protocols.http.Request;
 	private var httpErrMsg : String;
 	private var method : String;
-	private var output : haxe.io.StringOutput;
+	private var output : chx.io.StringOutput;
 	/** HTTP status code **/
 	public var status(default,null) : Int;
 
 	public function new(httpMethod: String, url:String, ?args:Hash<String>)
 	{
 		err = false;
-		output = new haxe.io.StringOutput();
+		output = new chx.io.StringOutput();
 		var me = this;
 		output.close = function() {
 			me.onData(me.output.toString());

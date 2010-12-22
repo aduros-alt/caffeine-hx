@@ -24,21 +24,13 @@
  */
 package chx.protocols.http;
 
-#if neko
-import neko.net.Host;
-import neko.net.Socket;
-#elseif cpp
-import cpp.net.Host;
-import cpp.net.Socket;
-#elseif php
-import php.net.Host;
-import php.net.Socket;
-#end
+import chx.net.Host;
+import chx.net.Socket;
 
 #if (neko || php || cpp)
 private typedef AbstractSocket = {
-	var input(default,null) : haxe.io.Input;
-	var output(default,null) : haxe.io.Output;
+	var input(default,null) : chx.io.Input;
+	var output(default,null) : chx.io.Output;
 	function connect( host : Host, port : Int ) : Void;
 	function setTimeout( t : Float ) : Void;
 	function write( str : String ) : Void;
@@ -62,8 +54,8 @@ class Request {
 	public var responseHeaders : Hash<String>;
 	var postData : String;
 	var chunk_size : Null<Int>;
-	var chunk_buf : haxe.io.Bytes;
-	var file : { param : String, filename : String, io : haxe.io.Input, size : Int };
+	var chunk_buf : Bytes;
+	var file : { param : String, filename : String, io : chx.io.Input, size : Int };
 #elseif js
 	public var async : Bool;
 	var postData : String;
@@ -267,7 +259,7 @@ class Request {
 			onError("Failed to initialize Connection");
 	#elseif (neko || php || cpp)
 		var me = this;
-		var output = new haxe.io.BytesOutput();
+		var output = new BytesOutput();
 		var old = onError;
 		var err = false;
 		onError = function(e) {
@@ -277,7 +269,7 @@ class Request {
 		customRequest(post,output);
 		if( !err )
 		#if neko
-			me.onData(neko.Lib.stringReference(output.getBytes()));
+			me.onData(chx.Lib.stringReference(output.getBytes()));
 		#else
 			me.onData(output.getBytes().toString());
 		#end
@@ -286,11 +278,11 @@ class Request {
 
 #if (neko || php || cpp)
 
-	public function fileTransfer( argname : String, filename : String, file : haxe.io.Input, size : Int ) {
+	public function fileTransfer( argname : String, filename : String, file : chx.io.Input, size : Int ) {
 		this.file = { param : argname, filename : filename, io : file, size : size };
 	}
 
-	public function customRequest( post : Bool, api : haxe.io.Output, ?sock : AbstractSocket, ?method : String  ) {
+	public function customRequest( post : Bool, api : chx.io.Output, ?sock : AbstractSocket, ?method : String  ) {
 		#if php
 		var url_regexp = ~/^(https?:\/\/)?([a-zA-Z\.0-9-]+)(:[0-9]+)?(.*)$/;
 		#else
@@ -433,13 +425,13 @@ class Request {
 			this.requestText = b.toString();
 			if( multipart ) {
 				var bufsize = 4096;
-				var buf = haxe.io.Bytes.alloc(bufsize);
+				var buf = Bytes.alloc(bufsize);
 				while( file.size > 0 ) {
 					var size = if( file.size > bufsize ) bufsize else file.size;
 					var len = 0;
 					try {
 						len = file.io.readBytes(buf,0,size);
-					} catch( e : haxe.io.Eof ) break;
+					} catch( e : chx.lang.EofException ) break;
 					sock.output.writeFullBytes(buf,0,len);
 					file.size -= len;
 				}
@@ -457,11 +449,11 @@ class Request {
 		}
 	}
 
-	function readHttpResponse( api : haxe.io.Output, sock : AbstractSocket ) {
+	function readHttpResponse( api : chx.io.Output, sock : AbstractSocket ) {
 		// READ the HTTP header (until \r\n\r\n)
-		var b = new haxe.io.BytesBuffer();
+		var b = new BytesBuffer();
 		var k = 4;
-		var s = haxe.io.Bytes.alloc(4);
+		var s = Bytes.alloc(4);
 		sock.setTimeout(cnxTimeout); // 10 seconds
 		while( true ) {
 			var p = sock.input.readBytes(s,0,k);
@@ -521,7 +513,7 @@ class Request {
 			}
 		}
 		#if neko
-		var headers = neko.Lib.stringReference(b.getBytes()).split("\r\n");
+		var headers = chx.Lib.stringReference(b.getBytes()).split("\r\n");
 		#else
 		var headers = b.getBytes().toString().split("\r\n");
 		#end
@@ -553,7 +545,7 @@ class Request {
 		chunk_buf = null;
 
 		var bufsize = 1024;
-		var buf = haxe.io.Bytes.alloc(bufsize);
+		var buf = Bytes.alloc(bufsize);
 		if( size == null ) {
 			if( !noShutdown )
 				sock.shutdown(false,true);
@@ -566,7 +558,7 @@ class Request {
 					} else
 						api.writeBytes(buf,0,len);
 				}
-			} catch( e : haxe.io.Eof ) {
+			} catch( e : chx.lang.EofException ) {
 			}
 		} else {
 			api.prepare(size);
@@ -580,7 +572,7 @@ class Request {
 						api.writeBytes(buf,0,len);
 					size -= len;
 				}
-			} catch( e : haxe.io.Eof ) {
+			} catch( e : chx.lang.EofException ) {
 				throw "Transfer aborted";
 			}
 		}
@@ -591,10 +583,10 @@ class Request {
 		api.close();
 	}
 
-	function readChunk(chunk_re : EReg, api : haxe.io.Output, buf : haxe.io.Bytes, len ) {
+	function readChunk(chunk_re : EReg, api : chx.io.Output, buf : Bytes, len ) {
 		if( chunk_size == null ) {
 			if( chunk_buf != null ) {
-				var b = new haxe.io.BytesBuffer();
+				var b = new BytesBuffer();
 				b.add(chunk_buf);
 				b.addBytes(buf,0,len);
 				buf = b.getBytes();
@@ -602,7 +594,7 @@ class Request {
 				chunk_buf = null;
 			}
 			#if neko
-			if( chunk_re.match(neko.Lib.stringReference(buf)) ) {
+			if( chunk_re.match(chx.Lib.stringReference(buf)) ) {
 			#else
 			if( chunk_re.match(buf.toString()) ) {
 			#end

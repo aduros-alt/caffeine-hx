@@ -1363,14 +1363,14 @@ class Aes implements IBlockCipher {
 #if (neko || cpp)
 /*
 	//value pass, value msg, value key_len
-	private static var naes_ecb_encrypt = neko.Lib.load("ncrypt","naes_ecb_encrypt",3);
-	private static var naes_ecb_decrypt = neko.Lib.load("ncrypt","naes_ecb_decrypt",3);
-	private static var naes_cbc_encrypt = neko.Lib.load("ncrypt","naes_cbc_encrypt",3);
-	private static var naes_cbc_decrypt = neko.Lib.load("ncrypt","naes_cbc_decrypt",3);
+	private static var naes_ecb_encrypt = chx.Lib.load("ncrypt","naes_ecb_encrypt",3);
+	private static var naes_ecb_decrypt = chx.Lib.load("ncrypt","naes_ecb_decrypt",3);
+	private static var naes_cbc_encrypt = chx.Lib.load("ncrypt","naes_cbc_encrypt",3);
+	private static var naes_cbc_decrypt = chx.Lib.load("ncrypt","naes_cbc_decrypt",3);
 */
-	private static var aes_create_key = neko.Lib.load("ncrypt","aes_create_key",3);
-	private static var aes_encrypt_block = neko.Lib.load("ncrypt","aes_encrypt_block",2);
-	private static var aes_decrypt_block = neko.Lib.load("ncrypt","aes_decrypt_block",2);
+	private static var aes_create_key = chx.Lib.load("ncrypt","aes_create_key",3);
+	private static var aes_encrypt_block = chx.Lib.load("ncrypt","aes_encrypt_block",2);
+	private static var aes_decrypt_block = chx.Lib.load("ncrypt","aes_decrypt_block",2);
 
 #end
 }

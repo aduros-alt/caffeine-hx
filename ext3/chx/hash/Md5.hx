@@ -96,8 +96,8 @@ class Md5 implements IHash {
 		return s;
 	}
 
-	static var base_encode = neko.Lib.load("std","base_encode",2);
-	static var make_md5 = neko.Lib.load("std","make_md5",1);
+	static var base_encode = chx.Lib.load("std","base_encode",2);
+	static var make_md5 = chx.Lib.load("std","make_md5",1);
 #end
 
 #if !(neko || php)

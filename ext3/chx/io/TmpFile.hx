@@ -71,6 +71,6 @@ class TmpFile {
 		return fo;
 	}
 
-	private static var tmpfile_open = neko.Lib.load("fileext","tmpfile_open",0);
-	private static var tmpfile_close = neko.Lib.load("fileext", "tmpfile_close", 1);
+	private static var tmpfile_open = chx.Lib.load("fileext","tmpfile_open",0);
+	private static var tmpfile_close = chx.Lib.load("fileext", "tmpfile_close", 1);
 }

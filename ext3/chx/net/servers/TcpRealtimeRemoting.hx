@@ -55,12 +55,12 @@ class TcpRealtimeRemoting extends TcpRealtimeServer<haxe.remoting.SocketConnecti
 	/**
 		Do not override when subclassing, will call initClientApi during a new connection.
 	**/
-	public override function clientConnected( s : neko.net.Socket ) {
+	public override function clientConnected( s : chx.net.Socket ) {
 		var ctx = new haxe.remoting.Context();
 		var cnx = haxe.remoting.SocketConnection.create(s,ctx);
 		var me = this;
 		cnx.setErrorHandler(function(e) {
-			if( !Std.is(e,haxe.io.Eof) && !Std.is(e,haxe.io.Error) )
+			if( !Std.is(e,chx.lang.EofException) && !Std.is(e,chx.lang.IOException) )
 				me.logError(e);
 			me.stopClient(s);
 		});
@@ -71,7 +71,7 @@ class TcpRealtimeRemoting extends TcpRealtimeServer<haxe.remoting.SocketConnecti
 	/**
 		Do not override when subclassing.
 	**/
-	public override function readClientMessage( cnx : haxe.remoting.SocketConnection, buf : haxe.io.Bytes, pos : Int, len : Int ) {
+	public override function readClientMessage( cnx : haxe.remoting.SocketConnection, buf : Bytes, pos : Int, len : Int ) {
 		var msgLen = cnx.getProtocol().messageLength(buf.get(pos),buf.get(pos+1));
 		if( msgLen == null ) {
 			if( buf.get(pos) != 60 )
@@ -96,7 +96,7 @@ class TcpRealtimeRemoting extends TcpRealtimeServer<haxe.remoting.SocketConnecti
 		return msgLen;
 	}
 
-	function handleClientMessage( cnx : haxe.remoting.SocketConnection, msg : haxe.io.Bytes ) {
+	function handleClientMessage( cnx : haxe.remoting.SocketConnection, msg : Bytes ) {
 		if( msg.get(0) == 60 ) {
 			onXml(cnx,msg.toString());
 			return;
@@ -104,7 +104,7 @@ class TcpRealtimeRemoting extends TcpRealtimeServer<haxe.remoting.SocketConnecti
 		try {
 			cnx.processMessage(msg.toString());
 		} catch( e : Dynamic ) {
-			if( !Std.is(e,haxe.io.Eof) && !Std.is(e,haxe.io.Error) )
+			if( !Std.is(e,chx.lang.EofException) && !Std.is(e,chx.lang.IOException) )
 				logError(e);
 			stopClient(cnx.getProtocol().socket);
 			return;

@@ -293,6 +293,17 @@ class TcpSocket implements chx.net.Socket {
 		select([this],null,null,0.0);
 	}
 
+	/**
+	 * 
+	 * @param	b
+	 * @todo Investigate what this is and document
+	 */
+	public function setFastSend( b : Bool ) {
+		#if (neko || cpp)
+		socket_set_fast_send(__handle, b);
+		#end
+	}
+	
 	public function write( content : Bytes ) {
 		#if (neko || cpp)
 			try {
@@ -411,24 +422,25 @@ class TcpSocket implements chx.net.Socket {
 #end
 
 #if (neko || cpp)
-	private static var socket_new = neko.Lib.load("std","socket_new",1);
-	private static var socket_close = neko.Lib.load("std","socket_close",1);
-	private static var socket_write = neko.Lib.load("std","socket_write",2);
-	private static var socket_read = neko.Lib.load("std","socket_read",1);
-	private static var socket_connect = neko.Lib.load("std","socket_connect",3);
-	private static var socket_listen = neko.Lib.load("std","socket_listen",2);
-	private static var socket_select = neko.Lib.load("std","socket_select",4);
-	private static var socket_bind = neko.Lib.load("std","socket_bind",3);
-	private static var socket_accept = neko.Lib.load("std","socket_accept",1);
-	private static var socket_peer = neko.Lib.load("std","socket_peer",1);
-	private static var socket_host = neko.Lib.load("std","socket_host",1);
-	private static var socket_set_timeout = neko.Lib.load("std","socket_set_timeout",2);
-	private static var socket_shutdown = neko.Lib.load("std","socket_shutdown",3);
-	private static var socket_set_blocking = neko.Lib.load("std","socket_set_blocking",2);
+	private static var socket_new = chx.Lib.load("std","socket_new",1);
+	private static var socket_close = chx.Lib.load("std","socket_close",1);
+	private static var socket_write = chx.Lib.load("std","socket_write",2);
+	private static var socket_read = chx.Lib.load("std","socket_read",1);
+	private static var socket_connect = chx.Lib.load("std","socket_connect",3);
+	private static var socket_listen = chx.Lib.load("std","socket_listen",2);
+	private static var socket_select = chx.Lib.load("std","socket_select",4);
+	private static var socket_bind = chx.Lib.load("std","socket_bind",3);
+	private static var socket_accept = chx.Lib.load("std","socket_accept",1);
+	private static var socket_peer = chx.Lib.load("std","socket_peer",1);
+	private static var socket_host = chx.Lib.load("std","socket_host",1);
+	private static var socket_set_timeout = chx.Lib.load("std","socket_set_timeout",2);
+	private static var socket_shutdown = chx.Lib.load("std","socket_shutdown",3);
+	private static var socket_set_blocking = chx.Lib.load("std", "socket_set_blocking", 2);
+	private static var socket_set_fast_send = chx.Lib.loadLazy("std","socket_set_fast_send",2);
 
 /*
-        private static var socket_send_char : SocketHandle -> Int -> Void = neko.Lib.load("std","socket_send_char",2);
-        private static var socket_send : SocketHandle -> Void -> Int -> Int -> Int = neko.Lib.load("std","socket_send",4);
+        private static var socket_send_char : SocketHandle -> Int -> Void = chx.Lib.load("std","socket_send_char",2);
+        private static var socket_send : SocketHandle -> Void -> Int -> Int -> Int = chx.Lib.load("std","socket_send",4);
 */
 #end
 

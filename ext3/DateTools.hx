@@ -37,7 +37,7 @@ class DateTools {
 
 	#if php
 	#elseif neko
-	static var date_format = neko.Lib.load("std","date_format",2);
+	static var date_format = chx.Lib.load("std","date_format",2);
 	#else
 	private static function __format_get( d : Date, e : String ) : String {
 		return switch( e ){

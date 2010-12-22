@@ -33,7 +33,7 @@ import haxe.Int32;
 class Posix {
 	public static function ctermid() : String {
 #if neko
-		return cast neko.Lib.nekoToHaxe(posix_ctermid());
+		return cast chx.Lib.nekoToHaxe(posix_ctermid());
 #elseif php
 
 		return untyped __call__("posix_ctermid");
@@ -114,7 +114,7 @@ class Posix {
 
 	public static function strerror(v:Int32) : String {
 #if neko
-		return cast neko.Lib.nekoToHaxe(posix_strerror(v));
+		return cast chx.Lib.nekoToHaxe(posix_strerror(v));
 #elseif php
 		return untyped __call__("posix_strerror", v);
 #end
@@ -127,26 +127,26 @@ class Posix {
 	**/
 	public static function uname() : Dynamic {
 #if neko
-		return neko.Lib.nekoToHaxe(posix_uname());
+		return chx.Lib.nekoToHaxe(posix_uname());
 #elseif php
 		return untyped __call__("posix_uname");
 #end
 	}
 
 #if (neko || cpp)
-	private static var posix_ctermid = neko.Lib.load("sys_posix","posix_ctermid",0);
-	private static var posix_getegid = neko.Lib.load("sys_posix","posix_getegid",0);
-	private static var posix_geteuid = neko.Lib.load("sys_posix","posix_geteuid",0);
-	private static var posix_getgid = neko.Lib.load("sys_posix","posix_getgid",0);
-	private static var posix_getpid = neko.Lib.load("sys_posix","posix_getpid",0);
-	private static var posix_getuid = neko.Lib.load("sys_posix","posix_getuid",0);
-	private static var posix_get_last_error = neko.Lib.load("sys_posix","posix_get_last_error",0);
-	private static var posix_kill = neko.Lib.load("sys_posix","posix_kill",2);
-	private static var posix_setgid = neko.Lib.load("sys_posix","posix_setgid",1);
-	private static var posix_setuid = neko.Lib.load("sys_posix","posix_setuid",1);
-	private static var posix_strerror = neko.Lib.load("sys_posix","posix_strerror",1);
-	private static var posix_uname = neko.Lib.load("sys_posix","posix_uname",0);
-// 	private static var  = neko.Lib.load("sys_posix","",);
+	private static var posix_ctermid = chx.Lib.load("sys_posix","posix_ctermid",0);
+	private static var posix_getegid = chx.Lib.load("sys_posix","posix_getegid",0);
+	private static var posix_geteuid = chx.Lib.load("sys_posix","posix_geteuid",0);
+	private static var posix_getgid = chx.Lib.load("sys_posix","posix_getgid",0);
+	private static var posix_getpid = chx.Lib.load("sys_posix","posix_getpid",0);
+	private static var posix_getuid = chx.Lib.load("sys_posix","posix_getuid",0);
+	private static var posix_get_last_error = chx.Lib.load("sys_posix","posix_get_last_error",0);
+	private static var posix_kill = chx.Lib.load("sys_posix","posix_kill",2);
+	private static var posix_setgid = chx.Lib.load("sys_posix","posix_setgid",1);
+	private static var posix_setuid = chx.Lib.load("sys_posix","posix_setuid",1);
+	private static var posix_strerror = chx.Lib.load("sys_posix","posix_strerror",1);
+	private static var posix_uname = chx.Lib.load("sys_posix","posix_uname",0);
+// 	private static var  = chx.Lib.load("sys_posix","",);
 #end
 
 }
