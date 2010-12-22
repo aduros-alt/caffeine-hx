@@ -23,7 +23,6 @@
  * DAMAGE.
  */
 package haxe.remoting;
-import chx.crypt.Aes;
 import chx.io.StringOutput;
 import chx.Serializer;
 
