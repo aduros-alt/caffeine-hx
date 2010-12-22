@@ -43,13 +43,13 @@ class Poll {
 			var i = 0;
 			var len = read.length;
 			while( i < len ) {
-				r[i] = read[i].__s;
+				r[i] = read[i].__handle;
 				i += 1;
 			}
 			i = 0;
 			len = write.length;
 			while( i < len ) {
-				w[i] = write[i].__s;
+				w[i] = write[i].__handle;
 				i += 1;
 			}
 			var k = socket_poll_prepare(d,r,w);
@@ -69,8 +69,8 @@ class Poll {
 			var i = 0;
 			var len = a.length;
 			while( i < len ){
-				r[i] = a[i].__s;
-				__dollar__hadd(c,a[i].__s,a[i]);
+				r[i] = a[i].__handle;
+				__dollar__hadd(c,a[i].__handle,a[i]);
 				i += 1;
 			}
 			r = socket_poll(r,d,t);

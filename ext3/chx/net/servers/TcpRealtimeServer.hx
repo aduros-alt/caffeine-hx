@@ -49,10 +49,10 @@ class TcpRealtimeServer<Client> extends RealtimeServer<chx.net.Socket,Client> {
 			thread = initThread();
 			threads[tid] = thread;
 		}
-		var sh : { private var __s : SocketHandle; } = s;
+		var sh : { private var __handle : SocketHandle; } = s;
 		var cinf : SocketInfos<chx.net.Socket, Client> = {
 			sock : s,
-			handle : sh.__s,
+			handle : sh.__handle,
 			client : null,
 			thread : thread,
 			wbuffer : Bytes.alloc(config.writeBufferSize),

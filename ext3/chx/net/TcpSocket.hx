@@ -73,7 +73,11 @@ import chx.lang.IOException;
 import chx.net.io.TcpSocketInput;
 import chx.net.io.TcpSocketOutput;
 
-
+/**
+ * A TCP Socket
+ * @todo Php implementation
+ * @todo implement chx.io.Output
+ */
 class TcpSocket implements chx.net.Socket {
 	public var __handle(default, null) : Dynamic;
 	public var bigEndian(default,setEndian) : Bool;
@@ -86,10 +90,11 @@ class TcpSocket implements chx.net.Socket {
 	#end
 
 	/**
-	@param s Optional existing socket to clone
-	@param asUdp set true if s is a udp socket. Only used for chx.net.UdpSocket
-	**/
-	public function new( ?s, ?asUdp ) {
+	 * Create a new TcpSocket
+	 * @param	s=null Optional existing socket to clone
+	 * @param	asUdp=false set true if s is a udp socket. Only used for chx.net.UdpSocket
+	 */
+	public function new( s=null, asUdp=false ) {
 		listeners = new Array();
 		__handle =
 			if( s == null ) {
@@ -131,6 +136,10 @@ class TcpSocket implements chx.net.Socket {
 		#elseif flash9
 			throw new FatalException("not implemented");
 			return null;
+		#else
+			// php todo
+			throw new FatalException("not implemented");
+			return null;
 		#end
 	}
 
@@ -149,6 +158,10 @@ class TcpSocket implements chx.net.Socket {
 			}
 		#elseif flash9
 			throw new FatalException("not implemented");
+		#else
+			// php todo
+			throw new FatalException("not implemented");
+			return null;
 		#end
 	}
 
@@ -157,13 +170,21 @@ class TcpSocket implements chx.net.Socket {
 			socket_close(__handle);
 		#elseif flash9
 			try __handle.close() catch(e:Dynamic) {}
+		#else
+			// php todo
+			throw new FatalException("not implemented");
+			return null;
 		#end
-		untyped {
-			input.__handle = null;
-			output.__handle = null;
+		try { 
+			untyped input.__handle = null;
+			input.close();
+		} catch (e:Dynamic) {
+			
 		}
-		input.close();
-		output.close();
+		try {
+			untyped output.__handle = null;
+			output.close();
+		}
 	}
 
 	public function connect(host : String, port : Int) {
@@ -213,6 +234,10 @@ class TcpSocket implements chx.net.Socket {
 				host : new Host("localhost"),
 				port : 0
 			};
+		#else
+			// php todo
+			throw new FatalException("not implemented");
+			return null;
 		#end
 	}
 
@@ -221,6 +246,10 @@ class TcpSocket implements chx.net.Socket {
 			socket_listen(__handle, connections);
 		#elseif flash9
 			throw new FatalException("not implemented");
+		#else
+			// php todo
+			throw new FatalException("not implemented");
+			return null;
 		#end
 	}
 
@@ -232,6 +261,10 @@ class TcpSocket implements chx.net.Socket {
 			return { host : h, port : a[1] };
 		#elseif flash9
 			return remote_host;
+		#else
+			// php todo
+			throw new FatalException("not implemented");
+			return null;
 		#end
 	}
 
@@ -245,6 +278,10 @@ class TcpSocket implements chx.net.Socket {
 			var ba = new flash.utils.ByteArray();
 			__handle.readBytes(ba, 0, 0);
 			return Bytes.ofData(ba);
+		#else
+			// php todo
+			throw new FatalException("not implemented");
+			return null;
 		#end
 	}
 
@@ -262,6 +299,10 @@ class TcpSocket implements chx.net.Socket {
 		#elseif flash9
 			if(b)
 				throw new FatalException("flash will not block on sockets");
+		#else
+			// php todo
+			throw new FatalException("not implemented");
+			return null;
 		#end
 	}
 
