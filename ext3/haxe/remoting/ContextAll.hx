@@ -24,6 +24,9 @@
  */
 package haxe.remoting;
 
+/**
+ * A Context that enables all objects and all fields access for the remoting connection.
+ */
 class ContextAll extends Context {
 
 	public override function call( path : Array<String>, params : Array<Dynamic> ) : Dynamic {

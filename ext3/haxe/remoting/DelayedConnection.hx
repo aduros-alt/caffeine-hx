@@ -24,8 +24,16 @@
  */
 package haxe.remoting;
 
+/**
+ * Delay messages until an Async connection is ready
+ * <pre>
+ * dc = DelayedConnection.create();
+ * ... later after the AsyncConnection is ready
+ * dc.connection = myAsycConnection;
+ * 
+ */
 class DelayedConnection implements AsyncConnection, implements Dynamic<AsyncConnection> {
-
+	/** Once set, the calls queued will all be processed */
 	public var connection(getConnection,setConnection) : AsyncConnection;
 
 	var __path : Array<String>;
@@ -40,7 +48,7 @@ class DelayedConnection implements AsyncConnection, implements Dynamic<AsyncConn
 		}>,
 	};
 
-	function new(data,path) {
+	function new(data, path : Array<String>) {
 		__data = data;
 		__path = path;
 	}
@@ -59,7 +67,11 @@ class DelayedConnection implements AsyncConnection, implements Dynamic<AsyncConn
 		return __data.cnx;
 	}
 
-	function setConnection(cnx) {
+	/**
+	 * Once set, the calls queued will all be processed
+	 * @param	cnx
+	 */
+	function setConnection(cnx : AsyncConnection) : AsyncConnection {
 		__data.cnx = cnx;
 		process(this);
 		return cnx;

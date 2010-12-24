@@ -213,7 +213,7 @@ class TcpSocket implements chx.net.Socket {
 			catch( e : IOError ) {
 				throw failMsg( e.message );
 			}
-			catch( e : flash.Error ) {
+			catch( e : flash.errors.Error ) {
 				throw new Exception( Std.string(e.message), e );
 			}
 			remote_host = {

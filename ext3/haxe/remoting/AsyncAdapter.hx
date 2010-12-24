@@ -32,7 +32,7 @@ class AsyncAdapter implements AsyncConnection {
 	var __cnx : Connection;
 	var __error : { ref : Dynamic -> Void };
 
-	function new(cnx,error) {
+	function new(cnx:Connection, error : { ref : Dynamic -> Void }) {
 		__cnx = cnx;
 		__error = error;
 	}
@@ -41,7 +41,7 @@ class AsyncAdapter implements AsyncConnection {
 		return new AsyncAdapter(__cnx.resolve(name),__error);
 	}
 
-	public function setErrorHandler(h) {
+	public function setErrorHandler(h : Dynamic -> Void) {
 		__error.ref = h;
 	}
 

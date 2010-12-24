@@ -94,7 +94,7 @@ class TcpSocketInput extends chx.io.Input {
 		__handle = s;
 	}
 
-	override function setEndian(b) {
+	override function __setEndian(b) {
 		bigEndian = b;
 		__handle.endian = b ? flash.utils.Endian.BIG_ENDIAN : flash.utils.Endian.LITTLE_ENDIAN;
 		return b;
@@ -115,7 +115,7 @@ class TcpSocketInput extends chx.io.Input {
 		}
 	}
 
-	override function getBytesAvailable() : Int {
+	override function __getBytesAvailable() : Int {
 		return __handle.bytesAvailable;
 	}
 

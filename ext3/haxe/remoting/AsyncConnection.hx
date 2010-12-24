@@ -24,6 +24,13 @@
  */
 package haxe.remoting;
 
+/**
+ * Remoting done asyncronously.
+ * 
+ * Classes which implement Dynamic<T> mean that every field access on this class 
+ * will return an instance of T, in the case the field does not exist. 
+ * And in the case a method named 'resolve' exists, this method will be called instead.
+ */
 interface AsyncConnection implements Dynamic<AsyncConnection> {
 
 	function resolve( name : String ) : AsyncConnection;

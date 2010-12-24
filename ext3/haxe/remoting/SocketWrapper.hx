@@ -26,8 +26,8 @@ package haxe.remoting;
 import haxe.remoting.SocketProtocol.Socket;
 
 /**
-	See [js.XMLSocket]
-**/
+ * Allows Javascript to use Flash sockets. See [js.XMLSocket]
+ */
 class SocketWrapper {
 
 	static var ID = 0;

@@ -24,6 +24,9 @@
  */
 package haxe.remoting;
 
+/**
+ * Flash to Flash remoting using flash.LocalConnection
+ */
 class LocalConnection implements AsyncConnection, implements Dynamic<AsyncConnection> {
 
 	static var ID = 0;

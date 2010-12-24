@@ -24,6 +24,9 @@
  */
 package haxe.remoting;
 
+/**
+ * AsyncConnection that allows for logging
+ */
 class AsyncDebugConnection implements AsyncConnection, implements Dynamic<AsyncDebugConnection> {
 
 	var __path : Array<String>;
@@ -35,10 +38,10 @@ class AsyncDebugConnection implements AsyncConnection, implements Dynamic<AsyncD
 		onresult : Array<String> -> Array<Dynamic> -> Dynamic -> Void,
 	};
 
-	function new(path,cnx,data) {
+	function new(path : Array<String>, cnx : AsyncConnection, handlers) {
 		__path = path;
 		__cnx = cnx;
-		__data = data;
+		__data = handlers;
 	}
 
 	public function resolve( name ) : AsyncConnection {
@@ -47,19 +50,19 @@ class AsyncDebugConnection implements AsyncConnection, implements Dynamic<AsyncD
 		return cnx;
 	}
 
-	public function setErrorHandler(h) {
+	public function setErrorHandler(h: Dynamic -> Void) {
 		__data.error = h;
 	}
 
-	public function setErrorDebug(h) {
+	public function setErrorDebug(h: Array<String> -> Array<Dynamic> -> Dynamic -> Void) {
 		__data.onerror = h;
 	}
 
-	public function setResultDebug(h) {
+	public function setResultDebug(h: Array<String> -> Array<Dynamic> -> Dynamic -> Void) {
 		__data.onresult = h;
 	}
 
-	public function setCallDebug(h) {
+	public function setCallDebug(h: Array<String> -> Array<Dynamic> -> Void) {
 		__data.oncall = h;
 	}
 
@@ -76,7 +79,13 @@ class AsyncDebugConnection implements AsyncConnection, implements Dynamic<AsyncD
 		});
 	}
 
-	public static function create( cnx : AsyncConnection ) {
+	/**
+	 * Creates a AsyncDebugConnection. Once created, use set* methods]
+	 * to add event handlers.
+	 * @param	cnx an existing AsyncConnection
+	 * @return New debug connection wrapping the AsyncConnection
+	 */
+	public static function create( cnx : AsyncConnection ) : AsyncDebugConnection {
 		var cnx = new AsyncDebugConnection([],cnx,{
 			error : function(e) throw e,
 			oncall : function(path,params) {},

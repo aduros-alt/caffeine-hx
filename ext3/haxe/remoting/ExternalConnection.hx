@@ -120,7 +120,13 @@ class ExternalConnection implements Connection, implements Dynamic<Connection> {
 	}
 
 	#if flash
-
+	
+	/**
+	 * Will return a connection to the local JavaScript haXe code. The JS haXe code must be compiled 
+	 * with the class ExternalConnection included. This only works with Flash Player 8 and higher.
+	 * @param	name
+	 * @param	?ctx
+	 */
 	public static function jsConnect( name : String, ?ctx : Context ) {
 		if( !flash.external.ExternalInterface.available )
 			throw "External Interface not available";
@@ -136,7 +142,15 @@ class ExternalConnection implements Connection, implements Dynamic<Connection> {
 
 	#elseif js
 
-	public static function flashConnect( name : String, flashObjectID : String, ?ctx : Context ) {
+	/**
+	 * Will return a connection to the given Flash Object. Some HTML properties must be set. 
+	 * This will only work with Flash 8 and higher. Please note that the haXe Flash content 
+	 * must be loaded and it must include the haxe.remoting.Connection class.
+	 * @param	name
+	 * @param	flashObjectID
+	 * @param	ctx
+	 */
+	public static function flashConnect( name : String, flashObjectID : String, ctx : Context = null ) {
 		var cnx = new ExternalConnection({ ctx : ctx, name : name, flash : flashObjectID },[]);
 		connections.set(name,cnx);
 		return cnx;

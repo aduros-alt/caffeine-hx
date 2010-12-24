@@ -25,6 +25,9 @@
 package haxe.remoting;
 import haxe.remoting.SocketProtocol.Socket;
 
+/**
+ * Flash or JS to server using Socket
+ */
 class SocketConnection implements AsyncConnection, implements Dynamic<AsyncConnection> {
 
 	var __path : Array<String>;
@@ -123,6 +126,13 @@ class SocketConnection implements AsyncConnection, implements Dynamic<AsyncConne
 		__data.error(header + estr);
 	}
 
+	/**
+	 * Creates remoting communications over an remoting Socket. In neko,
+	 * this can be used for real time communications with a Flash client which 
+	 * is using an XMLSocket to connect to the server.
+	 * @param	s
+	 * @param	?ctx
+	 */
 	public static function create( s : Socket, ?ctx : Context ) {
 		var data = {
 			protocol : new SocketProtocol(s,ctx),

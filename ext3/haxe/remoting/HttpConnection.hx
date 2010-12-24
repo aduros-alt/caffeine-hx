@@ -26,6 +26,9 @@ package haxe.remoting;
 import chx.sys.Web;
 import chx.io.StringOutput;
 
+/**
+ * JS/Neko to Http server (syncronous)
+ */
 class HttpConnection implements Connection, implements Dynamic<Connection> {
 
 	public static var TIMEOUT = 10;
@@ -73,7 +76,12 @@ class HttpConnection implements Connection, implements Dynamic<Connection> {
 
 	#if (js || neko || php)
 
-	public static function urlConnect( url : String ) {
+	/**
+	 * Creates a new remoting connection to the specified URL. In neko, this
+	 * will work like the asynchronous version but in synchronous mode.
+	 * @param	url
+	 */
+	public static function urlConnect( url : String ) : HttpConnection {
 		return new HttpConnection(url,[]);
 	}
 

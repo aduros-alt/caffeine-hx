@@ -24,6 +24,11 @@
  */
 package haxe.remoting;
 
+/**
+ * Connections that can receive incoming requests use a Context to
+ * control what objects are callable. This can be subclassed to create
+ * your own access policy by overriding the call() method.
+ */
 class Context {
 
 	var objects : Hash<{ obj : Dynamic, rec : Bool }>;
@@ -32,7 +37,15 @@ class Context {
 		objects = new Hash();
 	}
 
-	public function addObject( name : String, obj : {}, ?recursive ) {
+	/**
+	 * Share an object with the remote connection. Allow access to all 
+	 * its subfields by setting recursive to true
+	 * 
+	 * @param name The name to share under
+	 * @param obj Any object or class
+	 * @param recursive Allow access to object's subfields
+	 */
+	public function addObject( name : String, obj : {}, recursive : Bool = false ) {
 		objects.set(name,{ obj : obj, rec : recursive });
 	}
 

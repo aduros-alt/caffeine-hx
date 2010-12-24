@@ -25,6 +25,9 @@
 package haxe.remoting;
 import chx.io.StringOutput;
 
+/**
+ * Flash/JS/Neko to Http server
+ */
 class HttpAsyncConnection implements AsyncConnection, implements Dynamic<AsyncConnection> {
 
 	var __data : { url : String, error : Dynamic -> Void };
@@ -75,6 +78,10 @@ class HttpAsyncConnection implements AsyncConnection, implements Dynamic<AsyncCo
 		h.request(true);
 	}
 
+	/**
+	 * Will return an asynchronous connection to the given URL that can be a haXe/Server application
+	 * @param	url
+	 */
 	public static function urlConnect( url : String ) {
 		return new HttpAsyncConnection({ url : url, error : function(e) throw e },[]);
 	}

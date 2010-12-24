@@ -24,6 +24,9 @@
  */
 package haxe.remoting;
 
+/**
+ * A flash to AMF server remoting connection
+ */
 class AMFConnection implements AsyncConnection, implements Dynamic<AsyncConnection> {
 
 	var __data : {
@@ -70,7 +73,11 @@ class AMFConnection implements AsyncConnection, implements Dynamic<AsyncConnecti
 	}
 
 	#if flash
-	public static function urlConnect( gatewayUrl : String ) {
+	/**
+	 * Allows you to connect to an AMF Remoting server such as Flash Media Server or AMFPHP.
+	 * @param	gatewayUrl
+	 */
+	public static function urlConnect( gatewayUrl : String ) : AMFConnection {
 		#if flash9
 		var c = new flash.net.NetConnection();
 		var cnx = new AMFConnection({ cnx : c, error : function(e) throw e },[]);
@@ -87,7 +94,11 @@ class AMFConnection implements AsyncConnection, implements Dynamic<AsyncConnecti
 		#end
 	}
 
-	public static function connect( nc ) {
+	/**
+	 * Allows you to connect to an AMF Remoting server such as Flash Media Server or AMFPHP.
+	 * @param	nc
+	 */
+	public static function connect( nc : flash.net.NetConnection ) : AMFConnection {
 		return new AMFConnection({ cnx : nc, error : function(e) throw e },[]);
 	}
 
