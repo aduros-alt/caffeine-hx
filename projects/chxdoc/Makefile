@@ -34,6 +34,13 @@ clean:
 	rm -f make_release
 	rm -Rf chxdoc_release
 	rm -f chxdoc.n
+	rm -f temploc.n
+
+haxelib:
+	cd src/Tools && haxe build.hxml
+	cd src && zip -r ../chxdoc *
+	haxelib test chxdoc.zip
+	haxelib run chxdoc compile
 
 windows: dependencies dummy
 	wine haxe build.hxml
@@ -45,7 +52,7 @@ release: dependencies make_release
 	@if [ "${VER}" = "" ]; then exit 1; fi;
 	@./make_release $(VER)
 	mv chxdoc.exe bin/Windows/
-	mv chxdoc bin/Linux/
+	mv chxdoc bin/Linux64/
 
 make_release: make_release.sh
 

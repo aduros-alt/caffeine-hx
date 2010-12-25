@@ -298,10 +298,10 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 		switch( f.type ) {
 		case CFunction(args,ret):
 			//trace("Examining method " + f.name + " in " + current.nameDots + " f.get: " + Std.string(f.get));
-			if( f.get == RNormal && (f.set == RNormal || f.set == RF9Dynamic) ) {
+			if( f.get == RNormal && (f.set == RNormal || f.set == RDynamic) ) {
 				ctx.isMethod = true;
 
-				if( f.set == RF9Dynamic )
+				if( f.set == RDynamic )
 					ctx.isDynamic = true;
 
 				if( f.params != null )

@@ -1,0 +1,5 @@
+<project name="chxdoc" url="http://code.google.com/p/caffeine-hx/" license="BSD">
+    <user name="madrok"/>
+    <description>Haxe documentation generator</description>
+    <version name="0.9">Updated for newer haxe compiler</version>
+</project>

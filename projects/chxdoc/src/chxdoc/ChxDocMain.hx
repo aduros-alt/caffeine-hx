@@ -39,9 +39,9 @@ class ChxDocMain {
 	public static var config : Config =
 	{
 		versionMajor		: 0,
-		versionMinor		: 8,
+		versionMinor		: 9,
 		versionRevision		: 0,
-		buildNumber			: 511,
+		buildNumber			: 584,
 		verbose				: false,
 		rootTypesPackage	: null,
 		allPackages			: new Array(),
@@ -56,7 +56,7 @@ class ChxDocMain {
 		showPrivateMethods	: false,
 		showPrivateVars		: false,
 		showTodoTags		: false,
-		temploBaseDir		: "./templates/default/",
+		temploBaseDir		: Settings.defaultTemplate,
 		temploTmpDir		: "./tmp/",
 		temploMacros		: "macros.mtt",
 		htmlFileExtension	: ".html",
@@ -68,8 +68,8 @@ class ChxDocMain {
 		typeDirectory		: "./html/types/",
 
 		noPrompt			: false, // not implemented
-		installImagesDir	: false,
-		installCssFile		: false,
+		installImagesDir	: true,
+		installCssFile		: true,
 
 
 		title 				: "Haxe Application",

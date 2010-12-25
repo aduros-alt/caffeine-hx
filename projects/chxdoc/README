@@ -40,13 +40,12 @@ parameters. This will generate the file that chxdoc requires.
 
 The most common usage of chxdoc would be something like:
 
-chxdoc -o docs --tmpDir=_chxdoctmp --templateDir=templates/default --installTemplate=true --developer=false myproject.xml
+chxdoc -o docs_dev --developer=true myproject.xml
+chxdoc -o docs --templateDir=templates/release myproject.xml
 
-This will create all the html files in the output directory "docs", use a temporary
-directory "_chxdoctmp" for writing templo compiled files. All the images and css
-files from the template will be copied to the "docs" directory, and no private
-types will be output.
-
+Two versions of the documentation would be created, one with all the private data
+documented (in docs_dev), and a public release of the documentation in docs.
+All the images and css files from the template will be copied to both directories.
 
 If you are documenting the haxe std library, you need to generate xml files using
 the "all.hxml" file in the base directory of your installed standard lib. Once

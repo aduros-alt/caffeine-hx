@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2005-2009, The haXe Project Contributors
+ * All rights reserved.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *   - Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   - Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE HAXE PROJECT CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE HAXE PROJECT CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+ * DAMAGE.
+ */
 package haxe.rtti;
 import haxe.rtti.CType;
 import haxe.xml.Fast;
@@ -64,10 +88,12 @@ class XmlParser {
 
 	function mergeClasses( c : Classdef, c2 : Classdef ) {
 		// todo : compare supers & interfaces
-		if( c.isInterface != c2.isInterface || c.isExtern != c2.isExtern )
+		if( c.isInterface != c2.isInterface )
 			return false;
 		if( curplatform != null )
 			c.platforms.add(curplatform);
+		if( c.isExtern != c2.isExtern )
+			c.isExtern = false;
 
 		for( f2 in c2.fields ) {
 			var found = null;
@@ -184,8 +210,7 @@ class XmlParser {
 					case TPackage(_,_,_):
 					}
 				// we already have a mapping, but which is incompatible
-				neko.Lib.println("\nWARNING: Incompatibilities between "+tinf.path+" in "+tinf.platforms.join(",")+" and "+curplatform + ". Documentation will not be generated");
-				return;
+				throw "Incompatibilities between "+tinf.path+" in "+tinf.platforms.join(",")+" and "+curplatform;
 			}
 		}
 		cur.push(t);
@@ -205,9 +230,10 @@ class XmlParser {
 	function mkRights( r : String ) : Rights {
 		return switch( r ) {
 		case "null": RNo;
+		case "method": RMethod;
 		case "dynamic": RDynamic;
-		case "f9dynamic": RF9Dynamic;
-		default: RMethod(r);
+		case "inline": RInline;
+		default: RCall(r);
 		}
 	}
 
@@ -292,6 +318,7 @@ class XmlParser {
 			name : x.name,
 			type : t,
 			isPublic : x.x.exists("public"),
+			isOverride : x.x.exists("override"),
 			doc : doc,
 			get : if( x.has.get ) mkRights(x.att.get) else RNormal,
 			set : if( x.has.set ) mkRights(x.att.set) else RNormal,

@@ -1,0 +1,8 @@
+-neko chxdoc.n
+-main chxdoc/ChxDocMain.hx
+#-cmd nekotools boot chxdoc.n
+
+--next
+-neko temploc.n
+-main mtwin.templo.Main
+#-cmd nekotools boot temploc.n

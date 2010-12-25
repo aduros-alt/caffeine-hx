@@ -5,6 +5,9 @@ Targets:
 	- Add --showSourceFilePath for hard link to source files
 	- Import docs for methods etc. in classes if they implement an interface
 			and have no docs
+0.9
+	- Updated for newer haxe compiler
+	- --installTemplate now defaults to true
 
 0.8
 	- ADDED @since and @version

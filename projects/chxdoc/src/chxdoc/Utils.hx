@@ -123,11 +123,12 @@ class Utils {
 	**/
 	public static function rightsStr(r) : String {
 		return switch(r) {
-		case RDynamic: "dynamic";
-		case RF9Dynamic: "f9dynamic";
-		case RMethod(m): m;
 		case RNormal: "default";
 		case RNo: "null";
+		case RCall(m): m;
+		case RMethod: "method";
+		case RDynamic: "dynamic";
+		case RInline: "inline";
 		}
 	}
 
