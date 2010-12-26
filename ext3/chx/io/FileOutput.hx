@@ -38,10 +38,10 @@ class FileOutput extends chx.io.Output {
 		__f = f;
 	}
 
-	public override function writeByte( c : Int ) {
+	public override function writeByte( c : Int ) : Output {
 		var r = untyped __call__('fwrite', __f, __call__('chr', c));
 		if(untyped __physeq__(r, false)) return throw new Exception("error");
-		return r;
+		return this;
 	}
 
 	public override function writeBytes( b : Bytes, p : Int, l : Int ) : Int {
@@ -52,9 +52,10 @@ class FileOutput extends chx.io.Output {
 		return r;
 	}
 
-	public override function flush() {
+	public override function flush() : Output {
 		var r = untyped __call__('fflush', __f);
-		if(untyped __physeq__(r, false)) throw new Exception("error");
+		if (untyped __physeq__(r, false)) throw new Exception("error");
+		return this;
 	}
 
 	public override function close() {
@@ -97,16 +98,18 @@ class FileOutput extends chx.io.Output {
 		__f = f;
 	}
 
-	public override function writeByte( c : Int ) {
-		try file_write_char(__f,c) catch( e : Dynamic ) throw new Exception("error", e);
+	public override function writeByte( c : Int ) : Output {
+		try file_write_char(__f, c) catch ( e : Dynamic ) throw new Exception("error", e);
+		return this;
 	}
 
 	public override function writeBytes( s : Bytes, p : Int, l : Int ) : Int {
 		return try file_write(__f,s.getData(),p,l) catch( e : Dynamic ) throw new Exception("error", e);
 	}
 
-	public override function flush() {
+	public override function flush() : Output {
 		file_flush(__f);
+		return this;
 	}
 
 	public override function close() {

@@ -44,12 +44,13 @@ class BytesOutput extends Output {
 		#end
 	}
 
-	public override function writeByte(c) {
+	public override function writeByte(c) : Output {
 		#if flash9
 		b.writeByte(c);
 		#else
 		b.addByte(c);
 		#end
+		return this;
 	}
 
 	public override function writeBytes( buf : Bytes, pos, len ) : Int {
@@ -71,53 +72,63 @@ class BytesOutput extends Output {
 		return e;
 	}
 
-	public override function writeFloat( f : Float ) {
+	public override function writeFloat( f : Float ) : Output {
 		b.writeFloat(f);
+		return this;
 	}
 
-	public override function writeDouble( f : Float ) {
+	public override function writeDouble( f : Float ) : Output {
 		b.writeDouble(f);
+		return this;
 	}
 
-	public override function writeInt8( x : Int ) {
+	public override function writeInt8( x : Int ) : Output {
 		if( x < -0x80 || x >= 0x80 )
 			throw new OverflowException();
 		b.writeByte(x);
+		return this;
 	}
 
-	public override function writeInt16( x : Int ) {
+	public override function writeInt16( x : Int ) : Output {
 		if( x < -0x8000 || x >= 0x8000 ) throw new OverflowException();
 		b.writeShort(x);
+		return this;
 	}
 
-	public override function writeUInt16( x : Int ) {
+	public override function writeUInt16( x : Int ) : Output {
 		if( x < 0 || x >= 0x10000 ) throw new OverflowException();
 		b.writeShort(x);
+		return this;
 	}
 
-	public override function writeInt31( x : Int ) {
+	public override function writeInt31( x : Int ) : Output {
 		#if !neko
 		if( x < -0x40000000 || x >= 0x40000000 ) throw new OverflowException();
 		#end
 		b.writeInt(x);
+		return this;
 	}
 
-	public override function writeUInt30( x : Int ) {
+	public override function writeUInt30( x : Int ) : Output {
 		if( x < 0 || x >= 0x40000000 ) throw new OverflowException();
 		b.writeInt(x);
+		return this;
 	}
 
-	public override function writeInt32( x : haxe.Int32 ) {
+	public override function writeInt32( x : haxe.Int32 ) : Output {
 		b.writeInt(cast x);
+		return this;
 	}
 
-	public override function prepare( size : Int ) {
+	public override function prepare( size : Int ) : Output {
 		if( size > 0 )
 			b[size-1] = b[size-1];
+		return this;
 	}
 
-	public override function writeString( s : String ) {
+	public override function writeString( s : String ) : Output {
 		b.writeUTFBytes(s);
+		return this;
 	}
 
 	#end

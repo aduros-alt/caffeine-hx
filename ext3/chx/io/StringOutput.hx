@@ -37,16 +37,18 @@ class StringOutput extends chx.io.Output {
 		b = new StringBuf();
 	}
 
-	override public function writeByte( c : Int )  {
+	override public function writeByte( c : Int ) : Output {
 		b.addChar(c);
+		return this;
 	}
 
 	/**
 	 * Write a single character to the output
 	 * @param	c String of which only the first byte is added
 	 */
-	public function writeChar(c:String) : Void {
-        b.addSub(c,0,1);
+	public function writeChar(c:String) : Output {
+        b.addSub(c, 0, 1);
+		return this;
     }
 	
 	override public function  writeBytes( bb : Bytes, pos : Int, len : Int ) : Int {
@@ -62,7 +64,7 @@ class StringOutput extends chx.io.Output {
         return len;
 	}
 
-	override public function writeFloat( x : Float ) : Void {
+	override public function writeFloat( x : Float ) : Output {
 		// translates the float to the same precision as any
 		// other output would have
 		var bo = new BytesOutput();
@@ -80,69 +82,81 @@ class StringOutput extends chx.io.Output {
 		bi.bigEndian = this.bigEndian;
 		var v = bi.readFloat();
 		b.add(v);
+		return this;
 	}
 
-	override public function writeDouble( x : Float ) : Void {
+	override public function writeDouble( x : Float ) : Output {
 		b.add(x);
+		return this;
 	}
 
-	override public function writeInt8( x : Int ) : Void {
+	override public function writeInt8( x : Int ) : Output {
 		if( x < -0x80 || x >= 0x80 )
 			throw new OverflowException();
 		b.add(x);
+		return this;
 	}
 
-	override public function writeInt16( x : Int ) : Void  {
+	override public function writeInt16( x : Int ) : Output  {
 		if( x < -0x8000 || x >= 0x8000 ) throw new OverflowException();
 		b.add(x);
+		return this;
 	}
 
-	override public function writeUInt16( x : Int ) : Void  {
+	override public function writeUInt16( x : Int ) : Output  {
 		if( x < 0 || x >= 0x10000 ) throw new OverflowException();
 		b.add(x);
+		return this;
 	}
 
-	override public function writeInt24( x : Int ) : Void  {
+	override public function writeInt24( x : Int ) : Output  {
 		if( x < -0x800000 || x >= 0x800000 ) throw new OverflowException();
 		b.add(x);
+		return this;
 	}
 
-	override public function writeUInt24( x : Int ) : Void  {
+	override public function writeUInt24( x : Int ) : Output  {
 		if( x < 0 || x >= 0x1000000 ) throw new OverflowException();
 		b.add(x);
+		return this;
 	}
 
-	override public function writeInt31( x : Int ) : Void  {
+	override public function writeInt31( x : Int ) : Output  {
 		#if !neko
 		if( x < -0x40000000 || x >= 0x40000000 ) throw new OverflowException();
 		#end
 		b.add(x);
+		return this;
 	}
 
-	override public function writeUInt30( x : Int ) : Void  {
+	override public function writeUInt30( x : Int ) : Output  {
 		if( x < 0 #if !neko || x >= 0x40000000 #end ) throw new OverflowException();
 		b.add(x);
+		return this;
 	}
 
 	/**
 		Neko does not toString() int32s correctly.
 	**/
-	override public function writeInt32( x : haxe.Int32 ) : Void  {
+	override public function writeInt32( x : haxe.Int32 ) : Output  {
 		b.add(x);
+		return this;
 	}
 
 	/**
 		Unlike other outputs, this will not prepend the string length.
 	**/
-	override public function writeUTF( s : String ) : Void {
+	override public function writeUTF( s : String ) : Output {
 		b.add(s);
+		return this;
 	}
 
-	override public function writeString(s : String) : Void {
+	override public function writeString(s : String) : Output {
 		b.add(s);
+		return this;
 	}
 
-	public function toString() {
+	override public function toString() : String {
 		return b.toString();
 	}
 
