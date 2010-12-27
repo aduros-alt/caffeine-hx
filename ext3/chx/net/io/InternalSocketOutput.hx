@@ -28,6 +28,7 @@
 package chx.net.io;
 
 import chx.net.InternalSocket;
+import chx.io.Output;
 
 class InternalSocketOutput extends chx.io.Output
 {
@@ -37,8 +38,9 @@ class InternalSocketOutput extends chx.io.Output
 		__handle = s;
 	}
 
-	public override function writeByte( c : Int ) {
+	public override function writeByte( c : Int ) : Output {
 		__handle.write(Bytes.ofString(Std.chr(c)));
+		return this;
 	}
 
 	public override function writeBytes( buf : Bytes, pos : Int, len : Int) : Int {

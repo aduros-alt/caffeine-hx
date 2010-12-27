@@ -1,5 +1,6 @@
 package chx.net.io;
 
+import chx.io.Output;
 import chx.lang.BlockedException;
 import chx.lang.IOException;
 
@@ -13,7 +14,7 @@ class TcpSocketOutput extends chx.io.Output {
 		__handle = s;
 	}
 
-	public override function writeByte( c : Int ) {
+	public override function writeByte( c : Int ) : Output {
 		try {
 			socket_send_char(__handle, c);
 		} catch( e : Dynamic ) {
@@ -22,6 +23,7 @@ class TcpSocketOutput extends chx.io.Output {
 			else
 				throw new IOException("unhandled", e);
 		}
+		return this;
 	}
 
 	public override function writeBytes( buf : Bytes, pos : Int, len : Int) : Int {
@@ -56,12 +58,13 @@ class TcpSocketOutput extends chx.io.Output {
 		__handle = cast s;
 	}
 
-	public override function writeByte( c : Int ) {
+	public override function writeByte( c : Int ) : Output {
 		try {
 			__handle.writeByte(c);
 		} catch( e : IOError ) {
 			throw new IOException("unhandled", e);
 		}
+		return this;
 	}
 
 	public override function writeBytes( buf : Bytes, pos : Int, len : Int) : Int {
@@ -79,8 +82,9 @@ class TcpSocketOutput extends chx.io.Output {
 			try __handle.close() catch(e:Dynamic) {};
 	}
 
-	public override function flush() {
+	public override function flush() : Output {
 		__handle.flush();
+		return this;
 	}
 
 	override function setEndian(b) {
