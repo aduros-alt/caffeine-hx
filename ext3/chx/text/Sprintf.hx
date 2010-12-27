@@ -90,13 +90,13 @@ class Sprintf
 	// -=-=-=-=-=-=-=-=-=-=-=-=-=-
 	// "constants"
 	// -=-=-=-=-=-=-=-=-=-=-=-=-=-
-	static inline var kPAD_ZEROES		= 0x01;
-	static inline var kLEFT_ALIGN		= 0x02;
-	static inline var kSHOW_SIGN		= 0x04;
-	static inline var kPAD_POS			= 0x08;
-	static inline var kALT_FORM			= 0x10;
-	static inline var kLONG_VALUE		= 0x20;
-	static inline var kUSE_SEPARATOR	= 0x40;
+	public static inline var kPAD_ZEROES		= 0x01;
+	public static inline var kLEFT_ALIGN		= 0x02;
+	public static inline var kSHOW_SIGN		= 0x04;
+	public static inline var kPAD_POS			= 0x08;
+	public static inline var kALT_FORM			= 0x10;
+	public static inline var kLONG_VALUE		= 0x20;
+	public static inline var kUSE_SEPARATOR	= 0x40;
 
 	public static var DEBUG:Bool	= false;
 	public static var TRACE:Bool	= false;
@@ -127,7 +127,7 @@ class Sprintf
 				destString += format.substr(formatIndex);
 				formatIndex = format.length;
 			} else {
-				destString += format.substr(formatIndex,percentIndex);
+				destString += format.substr(formatIndex,percentIndex-formatIndex);
 
 				fieldOutcome = '** sprintf: invalid format at ' + argIndex + ' **';
 				length = properties = fieldCount = 0;
