@@ -1,9 +1,10 @@
 package chx.log;
 
 import chx.log.LogLevel;
+import haxe.PosInfos;
 
 class BaseLogger implements IEventLog {
-	
+	public var format : LogFormat;
 	public var serviceName : String;
 	public var level : LogLevel;
 	
@@ -19,6 +20,7 @@ class BaseLogger implements IEventLog {
 			EventLog.defaultLevel = LogLevel.NOTICE;
 		this.serviceName = service;
 		this.level = level;
+		this.format = new LogFormat(LogFormat.formatLong);
 	}
 	
 	/**
@@ -35,17 +37,17 @@ class BaseLogger implements IEventLog {
 	public function close():Void {
 	}
 	
-	public inline function debug(s:String) : Void { log(s,DEBUG); }
-	public inline function info(s:String) : Void { log(s,INFO); }
-	public inline function notice(s : String) : Void { log(s,NOTICE); }
-	public inline function warn(s : String) : Void { log(s,WARN); }
-	public inline function error(s : String) : Void { log(s,ERROR); }
-	public inline function critical(s : String) : Void { log(s,CRITICAL); }
-	public inline function alert(s : String) : Void { log(s,ALERT); }
-	public inline function emerg(s : String) : Void { log(s, EMERG); }
+	public inline function debug(s:String, ?pos:PosInfos) : Void { log(s,DEBUG, pos); }
+	public inline function info(s:String, ?pos:PosInfos) : Void { log(s,INFO, pos); }
+	public inline function notice(s : String, ?pos:PosInfos) : Void { log(s,NOTICE, pos); }
+	public inline function warn(s : String, ?pos:PosInfos) : Void { log(s,WARN, pos); }
+	public inline function error(s : String, ?pos:PosInfos) : Void { log(s,ERROR, pos); }
+	public inline function critical(s : String, ?pos:PosInfos) : Void { log(s,CRITICAL, pos); }
+	public inline function alert(s : String, ?pos:PosInfos) : Void { log(s,ALERT, pos); }
+	public inline function emerg(s : String, ?pos:PosInfos) : Void { log(s, EMERG, pos); }
 	
 	
-	public function log(s : String, ?lvl:LogLevel) {
+	public function log(s : String, ?lvl:LogLevel, ?pos:PosInfos) : Void {
 		throw "Override";
 	}
 }

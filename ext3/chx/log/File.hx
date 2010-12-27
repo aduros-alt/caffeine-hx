@@ -28,7 +28,9 @@
 
 package chx.log;
 
+import chx.io.StringOutput;
 import chx.log.LogLevel;
+import haxe.PosInfos;
 
 /**
 	Log to a text file. The class is started with a logging level
@@ -37,6 +39,8 @@ import chx.log.LogLevel;
 #if (neko || cpp || php)
 
 class File extends BaseLogger, implements IEventLog {
+	/** the default format for File type loggers */
+	public static var defaultFormat : LogFormat = new LogFormat(LogFormat.formatLong);
 	var STDOUT 		: chx.io.FileOutput;
 	var mutex		: chx.vm.Mutex;
 
@@ -44,23 +48,27 @@ class File extends BaseLogger, implements IEventLog {
 	*  Logs to the provided file handle. If the handle is null, logging will go
 	*  to STDOUT
 	**/
-	public function new(service: String,  level:LogLevel, ?hndFile : chx.io.FileOutput ) {
+	public function new(service: String,  ?level:LogLevel, ?hndFile : chx.io.FileOutput ) {
 		super(service, level);
 		if(hndFile == null)
 			STDOUT = chx.io.File.stdout();
 		else
 			STDOUT = hndFile;
+		this.format = defaultFormat.clone();
 		mutex = new chx.vm.Mutex();
 		mutex.release();
 	}
 
-	override public function log(s : String, ?lvl : LogLevel) {
+	override public function log(s : String, ?lvl : LogLevel, ?pos:PosInfos) {
 		if(lvl == null)
 			lvl = EventLog.defaultLevel;
 		if(Type.enumIndex(lvl) >= Type.enumIndex(level)) {
 			mutex.acquire();
+			var so : StringOutput = new StringOutput();
+			format.writeLogMessage(so, this.serviceName, lvl, s, pos);
 			try {
-				STDOUT.write(Bytes.ofString("["+Date.now().toString()+"] " +serviceName + " : "+Std.string(lvl)+" : "+ s + "\n"));
+				STDOUT.writeString(so.toString() + "\n");
+				//STDOUT.write(Bytes.ofString("["+Date.now().toString()+"] " +serviceName + " : "+Std.string(lvl)+" : "+ s + "\n"));
 				STDOUT.flush();
 			} catch(e:Dynamic) {
 				trace(e);

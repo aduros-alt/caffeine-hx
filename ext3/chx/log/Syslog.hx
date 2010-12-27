@@ -28,15 +28,29 @@
 
 package chx.log;
 
+import chx.io.StringOutput;
 import chx.log.LogLevel;
+import haxe.PosInfos;
 
 #if (neko || cpp)
 
+/**
+ * In a Syslog, the serviceName is already used by default, so
+ * if the default log format is being used, it will be replaced
+ * with new LogFormat("%d : %i (%C:%m:%l)");
+ */
 class Syslog extends BaseLogger, implements IEventLog {
 	/** the system command needed to add entries to the syslog service **/
 	public static var loggerCmd : String = "logger";
-
-	override public function log(s:String, ?lvl:LogLevel) {
+	/** the default format for Syslog type loggers */
+	public static var defaultFormat : LogFormat = new LogFormat(LogFormat.formatSyslog);
+	
+	public function new(service: String, ?level:LogLevel) {
+		super(service, level);
+		this.format = defaultFormat.clone();
+	}
+	
+	override public function log(s:String, ?lvl:LogLevel, ?pos:PosInfos) {
 		if(lvl == null)
 			lvl = NOTICE;
 		if(Type.enumIndex(lvl) >= Type.enumIndex(level)) {
@@ -50,7 +64,9 @@ class Syslog extends BaseLogger, implements IEventLog {
 			case ALERT: "user.alert";
 			case EMERG: "user.emerg";
 			}
-			neko.Sys.command(loggerCmd, ["-i", "-p", priority, "-t", StringTools.urlEncode(serviceName), s]);
+			var so : StringOutput = new StringOutput();
+			format.writeLogMessage(so, this.serviceName, lvl, s, pos);
+			neko.Sys.command(loggerCmd, ["-i", "-p", priority, "-t", StringTools.urlEncode(serviceName), so.toString()]);
 		}
 	}
 }

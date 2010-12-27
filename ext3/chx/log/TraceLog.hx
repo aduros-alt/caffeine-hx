@@ -28,17 +28,29 @@
 
 package chx.log;
 
+import chx.io.StringOutput;
 import chx.log.LogLevel;
+import haxe.PosInfos;
 
 /**
 	Log to haxe trace
 **/
 class TraceLog extends BaseLogger, implements IEventLog {
-	override public function log(s : String, ?lvl : LogLevel) {
+	/** the default format for Trace type loggers */
+	public static var defaultFormat : LogFormat = new LogFormat(LogFormat.formatLong);
+	
+	public function new(service: String, ?level:LogLevel) {
+		super(service, level);
+		this.format = defaultFormat.clone();
+	}
+	
+	override public function log(s : String, ?lvl : LogLevel, ?pos:PosInfos) {
 		if(lvl == null)
 			lvl = NOTICE;
-		if(Type.enumIndex(lvl) >= Type.enumIndex(level)) {
-			trace(serviceName + ": "+Std.string(lvl)+" : "+ s + "\n");
+		if (Type.enumIndex(lvl) >= Type.enumIndex(level)) {
+			var so : StringOutput = new StringOutput();
+			format.writeLogMessage(so, this.serviceName, lvl, s, pos);
+			trace(so.toString());
 		}
 	}
 }

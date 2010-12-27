@@ -28,16 +28,20 @@
 package chx.log;
 
 import chx.log.LogLevel;
+import haxe.PosInfos;
 
 /**
-*  This is the base EventLog class. If a default logger is not created,
-*  the static function log() will create one based on the target platform.
-*  Multiple IEventLogs can be added to the
+* This is the system EventLog. Multiple loggers can be added to the chain
+* using the add() method. If a default logger is not created, one will be
+* created automatically, based on the target platform, during the first
+* call to any logging function.
 **/
 class EventLog {
 	/** The list of loggers that will record events */
 	public static var loggers : List<IEventLog> = new List<IEventLog>();
-	public static var defaultServiceName : String;
+	/** The default service name used for any logger that is created */
+	public static var defaultServiceName : String = "Haxe App";
+	/** the minimum log level that will be logged */
 	public static var defaultLevel : LogLevel = NOTICE;
 
 	/**
@@ -56,27 +60,30 @@ class EventLog {
 			loggers.add(l);		
 	}
 	
+	/**
+	 * Close all open loggers, removing them from the list
+	 */
 	public static function close() : Void {
 		for (i in loggers) {
 			i.close();
+			loggers.remove(i);
 		}
-		loggers.clear();
 	}
 	
-	public static function debug(s:String) : Void { log(s,DEBUG); }
-	public static function info(s:String) : Void { log(s,INFO); }
-	public static function notice(s : String) : Void { log(s,NOTICE); }
-	public static function warn(s : String) : Void { log(s,WARN); }
-	public static function error(s : String) : Void { log(s,ERROR); }
-	public static function critical(s : String) : Void { log(s,CRITICAL); }
-	public static function alert(s : String) : Void { log(s,ALERT); }
-	public static function emerg(s : String) : Void { log(s,EMERG); }
+	public static function debug(s:String, ?pos:PosInfos) : Void { log(s,DEBUG, pos); }
+	public static function info(s:String, ?pos:PosInfos) : Void { log(s,INFO, pos); }
+	public static function notice(s : String, ?pos:PosInfos) : Void { log(s,NOTICE, pos); }
+	public static function warn(s : String, ?pos:PosInfos) : Void { log(s,WARN, pos); }
+	public static function error(s : String, ?pos:PosInfos) : Void { log(s,ERROR, pos); }
+	public static function critical(s : String, ?pos:PosInfos) : Void { log(s,CRITICAL, pos); }
+	public static function alert(s : String, ?pos:PosInfos) : Void { log(s,ALERT, pos); }
+	public static function emerg(s : String, ?pos:PosInfos) : Void { log(s,EMERG, pos); }
 
 	/**
 		Logs to the default logger, at the error level specified by
 		[lvl]. If [lvl] is not specified, the level NOTICE will be used.
 	**/
-	public static function log(s : String, ?lvl:LogLevel) {
+	public static function log(s : String, ?lvl:LogLevel, ?pos:PosInfos) {
 		if(lvl == null)
 			lvl = NOTICE;
 		if(loggers.length == 0) {
@@ -87,7 +94,7 @@ class EventLog {
 			#end
 		}
 		for (i in loggers) {
-			i.log(s, lvl);
+			i.log(s, lvl, pos);
 		}
 	}
 }

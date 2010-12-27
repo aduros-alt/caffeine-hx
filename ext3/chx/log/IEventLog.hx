@@ -27,17 +27,19 @@
 
 package chx.log;
 
+import haxe.PosInfos;
+
 interface IEventLog {
-	function debug(s:String) : Void;
-	function info(s:String) : Void;
-	function notice(s : String) : Void;
-	function warn(s : String) : Void;
-	function error(s : String) : Void;
-	function critical(s : String) : Void;
-	function alert(s : String) : Void;
-	function emerg(s : String) : Void;
+	function debug(s:String, ?pos:PosInfos) : Void;
+	function info(s:String, ?pos:PosInfos) : Void;
+	function notice(s : String, ?pos:PosInfos) : Void;
+	function warn(s : String, ?pos:PosInfos) : Void;
+	function error(s : String, ?pos:PosInfos) : Void;
+	function critical(s : String, ?pos:PosInfos) : Void;
+	function alert(s : String, ?pos:PosInfos) : Void;
+	function emerg(s : String, ?pos:PosInfos) : Void;
 
 	/** direct access to the log function **/
-	function log(s : String, ?lvl:LogLevel) : Void;
+	function log(s : String, ?lvl:LogLevel, ?pos:PosInfos) : Void;
 	function close() : Void;
 }
