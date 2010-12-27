@@ -141,6 +141,9 @@ The current available tags, all of which except for @deprecated can be used mult
 @todo Description
 	For generating TODO files and html notes
 
+@type Description
+	For adding descriptions for types (<T>)
+
 = Package and Type filtering =
 
 Filtering classes and packages is done using the -f switch, which will prevent

@@ -107,6 +107,7 @@ typedef FieldCtx = {
 	var isMethod 			: Bool; // true if method, false if field
 	var isInherited			: Bool; // true if field (var or method) is inherited
 	var isOverride			: Bool; // true if method is an override
+	var isInline			: Bool;
 	var inheritance			: Inheritance;
 	var isStatic 			: Bool;
 	var isDynamic			: Bool;

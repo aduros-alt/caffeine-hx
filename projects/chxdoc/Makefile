@@ -38,6 +38,7 @@ clean:
 
 haxelib:
 	cd src/Tools && haxe build.hxml
+	cd src && find . -name "*~" -exec rm {} \;
 	cd src && zip -r ../chxdoc *
 	haxelib test chxdoc.zip
 	haxelib run chxdoc compile

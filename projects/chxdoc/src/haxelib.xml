@@ -1,5 +1,5 @@
 <project name="chxdoc" url="http://code.google.com/p/caffeine-hx/" license="BSD">
     <user name="Madrok"/>
     <description>Haxe documentation generator</description>
-    <version name="0.9">Updated for newer haxe compiler</version>
+    <version name="0.9.1">Fixes methods as vars bug. Added method inheritance.</version>
 </project>

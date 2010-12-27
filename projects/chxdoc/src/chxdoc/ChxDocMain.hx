@@ -40,8 +40,8 @@ class ChxDocMain {
 	{
 		versionMajor		: 0,
 		versionMinor		: 9,
-		versionRevision		: 0,
-		buildNumber			: 584,
+		versionRevision		: 1,
+		buildNumber			: 604,
 		verbose				: false,
 		rootTypesPackage	: null,
 		allPackages			: new Array(),
@@ -866,11 +866,34 @@ class ChxDocMain {
 		}
 	}
 
+	public static function logDebug(msg:String, ?pkg:PackageContext, ?ctx : Ctx, ?pos:haxe.PosInfos) {
+		if( !config.verbose ) return;
+		if(pkg != null) {
+			msg += " in package " + pkg.full;
+		}
+		if(ctx != null) {
+			msg += " in " + ctx.name;
+		}
+		msg += " ("+ pos.fileName+":"+pos.lineNumber+")";
+		println("DEBUG: " + msg);
+	}
+
+	public static function logInfo(msg:String, ?pkg:PackageContext, ?ctx : Ctx, ?pos:haxe.PosInfos) {
+		if( !config.verbose ) return;
+		if(pkg != null) {
+			msg += " in package " + pkg.full;
+		}
+		if(ctx != null) {
+			msg += " in " + ctx.name;
+		}
+		println("INFO: " + msg);
+	}
+
 	/**
 	@todo Ctx may be a function, so we need the parent ClassCtx. Requires adding
 			'parent' to Ctx typedef
 	**/
-	public static function logWarning(msg:String, ?pkg:PackageContext, ?ctx : Ctx) {
+	public static function logWarning(msg:String, ?pkg:PackageContext, ?ctx : Ctx, ?pos:haxe.PosInfos) {
 		if( !config.verbose ) return;
 		if(pkg != null) {
 			msg += " in package " + pkg.full;
@@ -881,7 +904,7 @@ class ChxDocMain {
 		println("WARNING: " + msg);
 	}
 
-	public static function logError(msg:String, ?pkg:PackageContext, ?ctx : Ctx) {
+	public static function logError(msg:String, ?pkg:PackageContext, ?ctx : Ctx, ?pos:haxe.PosInfos) {
 		setDefaultPrinter();
 		if(pkg != null) {
 			msg += " in package " + pkg.full;
@@ -892,9 +915,9 @@ class ChxDocMain {
 		println("ERROR: " + msg);
 	}
 
-	public static function fatal(msg:String, ?exitVal) {
+	public static function fatal(msg:String, exitVal:Int=0, ?pos:haxe.PosInfos) {
 		setDefaultPrinter();
-		if(exitVal == null)
+		if(exitVal == 0)
 			exitVal = 1;
 		println("FATAL: " + msg);
 		if(! neko.Web.isModNeko )

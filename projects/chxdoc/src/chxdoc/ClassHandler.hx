@@ -68,16 +68,34 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 		while(sc != null) {
 			var s : Ctx = ChxDocMain.findType(sc.path);
 			var source : ClassCtx = cast s;
+			ChxDocMain.logDebug("Pass3", pkg, ctx);
+			// add to superClasses
 			ctx.superClasses.unshift(source);
 			if(first) {
+				// on first pass, the superclass has this class ctx
+				// added as a subclass
 				first = false;
 				addSubclass(source, ctx);
 			}
+			// add all vars in current superclass to class ctx
 			for(i in source.vars)
 				makeInheritedVar(ctx, source, i);
+			// add all methods in current superclass to class ctx
 			for(i in source.methods)
 				makeInheritedMethod(ctx, source, i);
+			// walk up to next superclass
 			sc = source.scPathParams;
+		}
+
+		for(f in ctx.methods) {
+			if(f.isOverride) {
+				var ctx2 = getMethodOriginator(ctx, f.name);
+				if(ctx2 != null) {
+					//trace("In " + ctx.nameDots + " method "+ f.name + " originated in " + ctx2.nameDots);
+					f.inheritance.owner = ctx2;
+					makeInheritedFieldLink(ctx, f);
+				}
+			}
 		}
 
 		// private vars and methods do not need to be removed
@@ -97,6 +115,28 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 			if(i.name == name)
 				return i;
 		return null;
+	}
+
+	/**
+	 * Gets the first superclass that contains a definition for a method.
+	 * @param ctx a class where the superclass will be the first to be checked
+	 * @param name A method name
+	 */
+	static function getMethodOriginator(ctx : ClassCtx, name:String) : ClassCtx {
+		var rv : ClassCtx = null;
+		var sc = ctx.scPathParams;
+		while(sc != null && rv == null) {
+			ctx = cast ChxDocMain.findType(sc.path);
+			var f : FieldCtx = getMethod(ctx, name);
+			if(f != null) {
+				if((!f.isInherited && f.isOverride) || (!f.isInherited && !f.isOverride)) {
+					rv = ctx;
+				}
+			} else {
+			}
+			sc = ctx.scPathParams;
+		}
+		return rv;
 	}
 
 	function addSubclass(superClass : ClassCtx, subClass : ClassCtx) : Void {
@@ -132,6 +172,7 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 		f.isMethod = field.isMethod;
 		f.isInherited = true;
 		f.isOverride = false;
+		f.isInline = field.isInline;
 		f.inheritance = {
 			owner : ownerCtx,
 			link :
@@ -187,9 +228,12 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 
 	function makeInheritedMethod(ctx : ClassCtx, srcCtx:ClassCtx, field : FieldCtx) {
 		var cur = getMethod(ctx, field.name);
-		if(cur != null && (cur.isInherited || cur.isOverride))
+		if(cur != null && (cur.isInherited || cur.isOverride)) {
+			ChxDocMain.logDebug(cur.name + (cur.isInherited?" is inherited":"") + (cur.isOverride?" is an override":""));
 			return;
+		}
 
+		ChxDocMain.logDebug("Creating inherited method " + field.name);
 		var f = createInheritedField(srcCtx, field);
 		if(cur != null) {
 			f.isInherited = false;
@@ -290,6 +334,7 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 		var me = this;
 		var ctx : FieldCtx = createField(c, f.name, !f.isPublic, f.platforms, f.doc);
 		ctx.isStatic = isStatic;
+		ctx.isOverride = f.isOverride;
 
 		var oldParams = TypeHandler.typeParams;
 		if( f.params != null )
@@ -297,9 +342,25 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 
 		switch( f.type ) {
 		case CFunction(args,ret):
-			//trace("Examining method " + f.name + " in " + current.nameDots + " f.get: " + Std.string(f.get));
-			if( f.get == RNormal && (f.set == RNormal || f.set == RDynamic) ) {
+			//trace("Examining method " + f.name + " in " + c.nameDots + " f.get: " + Std.string(f.get) + " f.set: " + Std.string(f.set));
+			// sqrt in Math f.get: RNormal f.set: RMethod (Standard methods)
+			// new in chx.sys.C f.get: RNormal f.set: RMethod 
+			// dynamicMethod in chx.sys.Layer1 f.get: RNormal f.set: RDynamic
+			// method onerror in js.Lib f.get: RNormal f.set: RNormal (which is a static var)
+			//      static var onerror : String -> Array<String> -> Bool = null
+			//
+			// Normal methods: ( f.get == RNormal && f.set == RMethod )
+			// Inline methods: ( f.get == RInline && f.set = RNo )
+			// Dynamic methods: ( f.get == RNormal && f.set = RDynamic )
+			// Variables (f.get == RNormal && f.set == RNormal )
+			
+			//if( f.get == RNormal && (f.set == RNormal || f.set == RDynamic) ) {
+			if( f.set != RNormal ) {
+				//trace("is a method");
 				ctx.isMethod = true;
+
+				if( f.get == RInline )
+					ctx.isInline = true;
 
 				if( f.set == RDynamic )
 					ctx.isDynamic = true;
@@ -344,8 +405,6 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 			if(!ctx.isMethod && !ChxDocMain.config.showPrivateVars)
 				return null;
 		}
-
-
 
 		if( f.params != null )
 			TypeHandler.typeParams = oldParams;

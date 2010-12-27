@@ -71,12 +71,30 @@ class TestDeleteMe extends Layer1, implements Dynamic {
 	public static var sa : Int;
 	private static var sb : String;
 
+	inline public static var staticInlineVarPublic : Int = 5;
+	inline private static var staticInlineVarPrivate : Int = 6;
 
 	static function iAmAPrivateStaticMethod(gg:Int) {
 	}
 
 	public static function iAmAPublicStaticMethod(gg:Int) : Array<String> {
 		return new Array();
+	}
+
+	private static inline function iAmAPrivateStaticInlineMethod() {
+		return 1;
+	}
+
+	public static inline function iAmAPublicStaticInlineMethod() {
+		return 2;
+	}
+
+	public inline function iAmAPublicInlineMethod() {
+		return 3;
+	}
+
+	private inline function iAmAPrivateInlineMethod() {
+		return 4;
 	}
 
 	public override function baseOver2() {}

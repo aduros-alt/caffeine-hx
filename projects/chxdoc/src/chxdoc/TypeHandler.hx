@@ -292,6 +292,7 @@ class TypeHandler<T> {
 			isMethod		: false,
 			isInherited		: false,
 			isOverride		: false,
+			isInline		: false,
 			inheritance		: { owner :null, link : null },
 			isStatic		: false,
 			isDynamic		: false,

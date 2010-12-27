@@ -10,10 +10,10 @@
 
 	<macro name="methodHeader(m)">
 		<h3>
-			<a name="::raw m.name::()"></a>$$showAccess(::m::)$$showDynamic(::m::)<span class="name">::raw m.name::</span>::m.params::(::if m.args != null::::raw m.args::::end::) : ::raw m.returns::
+			<a name="::raw m.name::()"></a>$$showAccess(::m::)$$showDynamic(::m::)$$showInline(::m::)<span class="name">::raw m.name::</span>::m.params::(::if m.args != null::::raw m.args::::end::) : ::raw m.returns::
 		</h3>
 			::if m.isOverride::
-				<div class="overrides">overrides</div>
+				<div class="overrides">overrides <a href="::raw m.inheritance.link.href::#::m.name::()">::raw m.inheritance.link.text::</a></div>
 			::elseif m.isInherited::
 				<div class="inherited">inherited from <a href="::raw m.inheritance.link.href::#::m.name::()">::raw m.inheritance.link.text::</a></div>
 			::end::
@@ -100,7 +100,6 @@
 		::end::
 	</macro>
 
-
 	<macro name="varHeader(f)">
 		<h3>
 			<a name="::f.name::"></a>$$showAccess(::f::)<span class="name">::f.name::</span>::raw f.rights:: : ::raw f.returns::
@@ -149,6 +148,12 @@
 	<macro name="showDynamic(m)">
 		::if m.isDynamic::
 		<span class="dynamic">dynamic</span>
+		::end::
+	</macro>
+
+	<macro name="showInline(f)">
+		::if f.isInline::
+		<span class="inline">inline</span>
 		::end::
 	</macro>
 
