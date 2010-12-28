@@ -273,8 +273,7 @@ class Utils {
 			s = ~/</g.replace(s, "&lt;");
 			s = ~/>/g.replace(s, "&gt;");
 			if(doQuotes) {
-				s = ~/\\\"/g.replace(s, "&quot;");
-				s = ~/\"/g.replace(s, "&quot;");
+				s = ~/"/g.replace(s, "&quot;");
 			}
 		#else
 			s = StringTools.replace(s, "&", "&amp;");
@@ -282,7 +281,6 @@ class Utils {
 			s = StringTools.replace(s, "<", "&lt;");
 			s = StringTools.replace(s, ">", "&gt;");
 			if(doQuotes) {
-				s = StringTools.replace(s, "\\\"", "&quot;");
 				s = StringTools.replace(s, "\"", "&quot;");
 			}
 		#end

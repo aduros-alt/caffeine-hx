@@ -115,6 +115,7 @@ class TestDeleteMe extends Layer1, implements Dynamic {
 but this is an example of
 			a multiline tag that should
 				      format nicely.
+		And here are some "quotes" for you
 	**/
 	public function new(v:Int) {
 	}
