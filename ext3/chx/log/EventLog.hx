@@ -29,6 +29,7 @@ package chx.log;
 
 import chx.log.LogLevel;
 import haxe.PosInfos;
+import haxe.Stack;
 
 /**
 * This is the system EventLog. Multiple loggers can be added to the chain
@@ -95,6 +96,23 @@ class EventLog {
 		}
 		for (i in loggers) {
 			i.log(s, lvl, pos);
+		}
+	}
+
+	/**
+	 * Log an exception, which will also log the exception stack. This method is
+	 * dynamic, so it may be replace with a custom handler.
+	 * @param	e The exception
+	 * @param	lvl The log level will default to WARN if not set
+	 * @param	?pos Automatic haxe position information
+	 */
+	public static dynamic function logException(e:Dynamic, lvl:LogLevel=null, ?pos:PosInfos) : Void {
+		if (lvl == null)
+			lvl = WARN;
+		log("Exception: " + Std.string(e), lvl);
+		var a:Array<haxe.StackItem> = Stack.exceptionStack();
+		for (i in a) {
+			log("    " + i, lvl);
 		}
 	}
 }
