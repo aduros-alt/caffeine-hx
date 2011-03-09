@@ -55,9 +55,10 @@ class Lock {
 		Wait for the lock for the specified number of milliseconds.
 		@param waitMs milliseconds to wait, 500 being 500 ms. (1/2 second)
 	**/
-	public function wait( ?waitMs : Int ) : Bool {
+	public function wait( waitMs : Null<Int> = null ) : Bool {
 		#if (neko || cpp)
-			return lock_wait(lock, waitMs);
+			var w : Float = waitMs;
+			return lock_wait(lock, (w / 1000));
 		#else
 			var checktime = true;
 			var limit = 0.0;
