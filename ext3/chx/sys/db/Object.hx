@@ -24,60 +24,8 @@
  */
 package chx.sys.db;
 
-#if neko
-/**
-	SPOD Object : the persistent object base type. See the tutorial on haXe
-	website to learn how to use SPOD.
-**/
-class Object #if spod_rtti implements haxe.rtti.Infos #end {
+#if php
 
-/*
-	(optional)
-	static var TABLE_NAME = "TableName";
-	static var TABLE_IDS = ["id"];
-	static var PRIVATE_FIELDS = ["my_priv_field"];
-	static function RELATIONS() {
-		return [{ key : "uid", prop : "user", manager : User.manager }];
-	}
-
-	static var manager = new neko.db.Manager();
-*/
-
-	var local_manager : {
-		private function doUpdate( o : Object ) : Void;
-		private function doInsert( o : Object ) : Void;
-		private function doSync( o : Object ) : Void;
-		private function doDelete( o : Object ) : Void;
-		private function objectToString( o : Object ) : String;
-	};
-
-
-	public function new() {
-	}
-
-	public function insert() {
-		local_manager.doInsert(this);
-	}
-
-	public dynamic function update() {
-		local_manager.doUpdate(this);
-	}
-
-	public function sync() {
-		local_manager.doSync(this);
-	}
-
-	public function delete() {
-		local_manager.doDelete(this);
-	}
-
-	public function toString() {
-		return local_manager.objectToString(this);
-	}
-
-}
-
-#else
 /**
 	SPOD Object : the persistent object base type. See the tutorial on haXe
 	website to learn how to use SPOD.
@@ -142,12 +90,66 @@ class Object #if spod_rtti implements haxe.rtti.Infos #end {
 		return __manager__.objectToString(this);
 	}
 
-	function __unserialize( s : chx.Unserializer ) {
+	function hxUnserialize( s : chx.Unserializer ) {
 		s.unserializeObject(this);
 		var nu = __noupdate__;
 		this.__init_object();
 		__noupdate__ = nu;
     }
+
+}
+
+#else
+
+/**
+	SPOD Object : the persistent object base type. See the tutorial on haXe
+	website to learn how to use SPOD.
+**/
+class Object #if spod_rtti implements haxe.rtti.Infos #end {
+
+/*
+	(optional)
+	static var TABLE_NAME = "TableName";
+	static var TABLE_IDS = ["id"];
+	static var PRIVATE_FIELDS = ["my_priv_field"];
+	static function RELATIONS() {
+		return [{ key : "uid", prop : "user", manager : User.manager }];
+	}
+
+	static var manager = new neko.db.Manager();
+*/
+
+	var local_manager : {
+		private function doUpdate( o : Object ) : Void;
+		private function doInsert( o : Object ) : Void;
+		private function doSync( o : Object ) : Void;
+		private function doDelete( o : Object ) : Void;
+		private function objectToString( o : Object ) : String;
+	};
+
+
+	public function new() {
+	}
+
+	public function insert() {
+		local_manager.doInsert(this);
+	}
+
+	public dynamic function update() {
+		local_manager.doUpdate(this);
+	}
+
+	public function sync() {
+		local_manager.doSync(this);
+	}
+
+	public function delete() {
+		local_manager.doDelete(this);
+	}
+
+	public function toString() {
+		return local_manager.objectToString(this);
+	}
 
 }
 #end
