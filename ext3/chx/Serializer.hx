@@ -52,6 +52,7 @@ class Serializer {
 		This is less reliable but more compact.
 	**/
 	public static var USE_ENUM_INDEX = false;
+	public static var USE_OBJECT_CACHE = false;
 
 	static var BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789%:";
 
@@ -147,6 +148,7 @@ class Serializer {
 	}
 
 	function serializeRef(v) {
+		if(!USE_OBJECT_CACHE) return false;
 		var key : String = null;
 		var isClass = false;
 		var isObject = false;
@@ -389,11 +391,11 @@ class Serializer {
 				buf.writeString(chars);
 			default:
 				cache.pop();
-				if( #if flash9 try v.__serialize != null catch( e : Dynamic ) false #else v.__serialize != null #end  ) {
+				if( #if flash9 try v.hxSerialize != null catch( e : Dynamic ) false #else v.hxSerialize != null #end  ) {
 					buf.writeString("C");
 					serializeString(Type.getClassName(c));
 					cache.push(v);
-					v.__serialize(this);
+					v.hxSerialize(this);
 					buf.writeString("g");
 				} else {
 					buf.writeString("c");

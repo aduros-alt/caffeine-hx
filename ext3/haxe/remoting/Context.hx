@@ -49,6 +49,14 @@ class Context {
 		objects.set(name,{ obj : obj, rec : recursive });
 	}
 
+	/**
+	 * Remove an object from the share with the remote connection.
+	 * @param	name Name of the share
+	 */
+	public function removeObject( name : String ) {
+		objects.remove(name);
+	}
+	
 	public function call( path : Array<String>, params : Array<Dynamic> ) : Dynamic {
 		if( path.length < 2 ) throw "Invalid path '"+path.join(".")+"'";
 		var inf = objects.get(path[0]);

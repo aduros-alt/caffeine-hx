@@ -4,16 +4,18 @@ import chx.log.BaseLogger;
 import chx.log.IEventLog;
 import chx.log.LogFormat;
 import chx.log.LogLevel;
+import flash.events.Event;
+import flash.events.IEventDispatcher;
 import flash.text.TextField;
 import flash.text.TextFormat;
 import haxe.PosInfos;
 
 /**
- * ...
+ * Logs to a flash text field. On each log entry, an event of type Event.ADDED wil be fired.
+ * The IEventDispatcher is a passthrough to the underlying textfield.
  * @author Russell Weir
  */
-
-class TextFieldLogger extends BaseLogger, implements IEventLog
+class TextFieldLogger extends BaseLogger, implements IEventLog, implements IEventDispatcher
 {
 	/** the default format for Syslog type loggers */
 	public static var defaultFormat : LogFormat = new LogFormat(LogFormat.formatShort);
@@ -57,6 +59,7 @@ class TextFieldLogger extends BaseLogger, implements IEventLog
 		f.color = color;
 		return f;
 	}
+	
 	override public function log(s:String, ?lvl:LogLevel, ?pos:PosInfos) {
 		if (this.textField == null) return;
 		if(Type.enumIndex(lvl) >= Type.enumIndex(level)) {
@@ -74,8 +77,28 @@ class TextFieldLogger extends BaseLogger, implements IEventLog
 			format.writeLogMessage(so, this.serviceName, lvl, s, pos);
 			//textField.setTextFormat(tf);
 			textField.defaultTextFormat = tf;
-			textField.appendText(so.toString()+"\n");
+			textField.appendText(so.toString() + "\n");
+			dispatchEvent(new Event(Event.ADDED));
 		}
 	}
 	
+	public function addEventListener(type:String, listener:Dynamic->Void, useCapture:Bool = false, priority:Int = 0, useWeakReference:Bool = false):Void {
+		return textField.addEventListener(type, listener, useCapture, priority, useWeakReference);
+	}
+
+	public function dispatchEvent(event:Event):Bool {
+		return textField.dispatchEvent(event);
+	}
+	
+	public function hasEventListener(type:String):Bool {
+		return textField.hasEventListener(type);
+	}
+	
+	public function removeEventListener(type:String, listener:Dynamic->Void, useCapture:Bool = false):Void {
+		textField.removeEventListener(type, listener, useCapture);
+	}
+	
+	public function willTrigger(type:String) : Bool {
+		return textField.willTrigger(type);
+	}
 }

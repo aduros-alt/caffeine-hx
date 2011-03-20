@@ -207,7 +207,7 @@ class ThreadServer<Client,Message> {
 		work(callback(addClient,s));
 	}
 
-	public function run( host, port ) {
+	public function run( host:String, port:Int ) {
 		sock = new chx.net.TcpSocket();
 		sock.bind(host,port);
 		sock.listen(listen);

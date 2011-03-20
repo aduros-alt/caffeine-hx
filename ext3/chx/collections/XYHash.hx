@@ -25,7 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-pacakge chx.collections;
+package chx.collections;
 
 /**
 	A two dimensional IntHash.

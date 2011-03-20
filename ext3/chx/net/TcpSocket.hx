@@ -154,7 +154,7 @@ class TcpSocket implements chx.net.Socket {
 			try {
 				socket_bind(__handle, h.ip, port);
 			} catch(e : Dynamic) {
-				throw new chx.lang.IOException("unable to bind to " + h.ip + ":" + port);
+				throw new chx.lang.IOException("unable to bind to " + h.toString() + ":" + port);
 			}
 		#elseif flash9
 			throw new FatalException("not implemented");

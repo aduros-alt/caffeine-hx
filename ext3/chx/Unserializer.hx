@@ -348,7 +348,7 @@ class Unserializer {
 				throw "Class not found " + name;
 			var o : Dynamic = Type.createEmptyInstance(cl);
 			cache.push(o);
-			o.__unserialize(this);
+			o.hxUnserialize(this);
 			if( get(pos++) != "g".code )
 				throw "Invalid custom data";
 			return o;
