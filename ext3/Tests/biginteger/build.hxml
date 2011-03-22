@@ -1,0 +1,27 @@
+-cp ../../
+-js test.js
+-main BigIntegerTest
+
+--next
+
+-cp ../../
+-neko test.n
+-main BigIntegerTest
+
+--next
+
+-cp ../../
+-main BigIntegerTest
+-swf-version 8
+-swf test8.swf
+-debug
+
+--next
+
+-cp ../../
+-main BigIntegerTest
+-swf-version 9
+-swf test9.swf
+-debug
+
+

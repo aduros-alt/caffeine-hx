@@ -1543,7 +1543,7 @@ class BigInteger {
 			// JavaScript engine analysis
 			var j_lm : Bool;
 			untyped {
-				var canary : Int = 0xdeadbeefcafe;
+				var canary : Int = __js__('0xdeadbeefcafe');
 				j_lm = ((canary&0xffffff)==0xefcafe);
 			}
 			var browser: String = untyped window.navigator.appName;
@@ -1809,8 +1809,9 @@ class BigInteger {
 			len = max - pos;
 		}
 		var bb = new BytesBuffer();
-		while (pos++ < max) {
+		while (pos < max) {
 			bb.addByte(a[pos]);
+			pos++;
 		}
 		return ofBytes(bb.getBytes(), 0, len);
 	}
