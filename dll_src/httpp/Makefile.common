@@ -18,7 +18,7 @@ http11neko.o: src/http11neko.c
 	gcc $(CFLAGS) -c src/http11neko.c -o http11neko.o
 
 install:
-	cp $(NDLL) ../../ext2/ndll/$(ARCH)/
+	cp $(NDLL) ../../ext3/ndll/$(ARCH)/
 
 install-dev:
 	cp $(NDLL) $(CAFFEINE_NDLL_DIR)

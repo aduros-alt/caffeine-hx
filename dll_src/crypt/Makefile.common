@@ -35,7 +35,7 @@ luatests:
 	cd tests && lua lua_test.lua
 
 install:
-	cp $(NDLL) ../../ext2/ndll/$(ARCH)/
+	cp $(NDLL) ../../ext3/ndll/$(ARCH)/
 
 install-dev: $(NDLL)
 	cp $(NDLL) $(CAFFEINE_NDLL_DIR)

@@ -41,7 +41,8 @@ DEFINE_KIND(k_biginteger);
 #define val_biginteger(o) (BIGNUM *)val_data(o)
 //#DEFINE_ENTRY_POINT(bi_init)
 #define NEW_CTX(a) BN_CTX* a = BN_CTX_new()
-#define FREE_CTX(a) BN_CTX_end(a); BN_CTX_free(a)
+//#define FREE_CTX(a) BN_CTX_end(a); BN_CTX_free(a)
+#define FREE_CTX(a) BN_CTX_free(a)
 
 //static void bi_init() {
 //The PRNG must be seeded prior to calling BN_rand() or BN_rand_range().
@@ -226,6 +227,9 @@ static value bi_sqr_to(value A, value R) {
 // 	if(R == val_null)
 // 		value R = bi_new();
 	NEW_CTX(ctx);
+	if(ctx == NULL) { 
+		THROW("ctx error");
+	}
 	if(!BN_sqr(val_biginteger(R), val_biginteger(A), ctx)) {
 		FREE_CTX(ctx);
 		THROW("bi_sqr_to: error");

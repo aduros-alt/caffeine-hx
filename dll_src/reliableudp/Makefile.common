@@ -45,7 +45,7 @@ $(HXCLIENT): $(HX_SRCS)
 	haxe build.hmxl
 
 install:
-	cp $(NDLL) ../../ext2/ndll/$(ARCH)/
+	cp $(NDLL) ../../ext3/ndll/$(ARCH)/
 
 install-dev:
 	cp $(NDLL) $(CAFFEINE_NDLL_DIR)
