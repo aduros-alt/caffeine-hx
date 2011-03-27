@@ -29,15 +29,14 @@ import chx.lang.OutsideBoundsException;
 import chx.lang.OverflowException;
 
 class BytesInput extends Input {
-
+	public var position(getPosition, setPosition) : Int;
 	var b : chx.io.BytesData;
 	#if !flash9
 	var pos : Int;
 	var len : Int;
 	#end
 
-	public function new( b : Bytes, ?pos : Int, ?len : Int ) {
-		if( pos == null ) pos = 0;
+	public function new( b : Bytes, pos : Int=0, len : Null<Int>=null ) {
 		if( len == null ) len = b.length - pos;
 		if( pos < 0 || len < 0 || pos + len > b.length ) throw new OutsideBoundsException();
 		#if flash9
@@ -55,6 +54,29 @@ class BytesInput extends Input {
 		this.pos = pos;
 		this.len = len;
 		#end
+		bigEndian = false;
+	}
+
+	/**
+	 * Returns a copy of the underlying Bytes object
+	 **/
+	public function getBytesCopy() : Bytes {
+		var orig = position;
+		var rv : Bytes = null;
+		#if neko
+		rv = try Bytes.ofData(untyped __dollar__ssub(b,0,len)) catch( e : Dynamic ) throw new OutsideBoundsException();
+		#elseif flash9
+		//b.position = pos;
+		var b2 = new flash.utils.ByteArray();
+		b.readBytes(b2,0,b.length);
+		rv = Bytes.ofData(b2);
+		#elseif php
+		rv = Bytes.ofData(untyped __call__("substr", b, 0, len));
+		#else // js and php
+		rv = Bytes.ofData(b.slice(0,b.length));
+		#end
+		position = orig;
+		return rv;
 	}
 
 	override public function readByte() : Int {
@@ -82,7 +104,8 @@ class BytesInput extends Input {
 				throw new OutsideBoundsException();
 		#end
 		#if flash9
-			if( len > b.bytesAvailable && b.bytesAvailable > 0 ) len = b.bytesAvailable;
+			var l : UInt = len;
+			if( l > b.bytesAvailable && b.bytesAvailable > 0 ) len = b.bytesAvailable;
 			try b.readBytes(buf.getData(),pos,len) catch( e : Dynamic ) throw new EofException();
 		#else
 			if( this.len == 0 && len > 0 )
@@ -113,7 +136,41 @@ class BytesInput extends Input {
 			return r >= 0 ? r : 0;
 		#end
 	}
-	
+
+	/**
+	* Returns the unsigned byte at the current or alternate position, without changing
+	* the position of the input stream.
+	* @param pos A position in the stream, or null for current position
+	**/
+	public function peek(pos:Null<Int> = null) : Int {
+		if(pos == null)
+			pos = getPosition();
+		var orig = getPosition();
+		setPosition(pos);
+		var d = readByte();
+		setPosition(orig);
+		return d;
+	}
+
+	public function setPosition(p:Int) : Int {
+		#if flash9
+			b.position = p;
+		#else
+			len = len + (getPosition() - p);
+			pos = p;
+		#end
+		return p;
+	}
+
+	public function getPosition() : Int {
+		#if flash9
+			return b.position;
+		#else
+			return pos;
+		#end
+	}
+
+
 	#if flash9
 	override function __setEndian(e) {
 		bigEndian = e;

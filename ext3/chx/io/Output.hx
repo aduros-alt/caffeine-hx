@@ -39,7 +39,7 @@ import chx.vm.Lock;
 **/
 class Output {
 
-	public var bigEndian(default,setEndian) : Bool;
+	public var bigEndian(default,setBigEndian) : Bool;
 	/** A chx.vm.Lock may be added to the Output and available for use **/
 	public var lock : Lock;
 
@@ -79,7 +79,7 @@ class Output {
 	public function close() : Void {
 	}
 
-	function setEndian( b ) : Bool {
+	function setBigEndian( b ) : Bool {
 		bigEndian = b;
 		return b;
 	}

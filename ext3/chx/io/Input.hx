@@ -203,14 +203,20 @@ class Input {
 	}
 
 	/**
-		Read a single byte as a signed Int (-128 to +128). For an unsigned
-		value, use readByte()
+		Read a single byte as a signed Int (-128 to +128).
 	**/
 	public function readInt8() : Int {
 		var n = readByte();
 		if( n >= 128 )
 			return n - 256;
 		return n;
+	}
+
+	/**
+	* Read an unsigned 8 bit value. Same as readByte
+	**/
+	public inline function readUInt8() : Int {
+		return readByte();
 	}
 
 	/**
@@ -320,6 +326,21 @@ class Input {
 	**/
 	public function readUTF() : String {
 		var len = readUInt16();
+		return readString(len);
+	}
+
+	/**
+	 * Read from the buffer using the specified multibyte char set.
+	 * @todo Lots.
+	 **/
+	public function readMultiByteString(len : Int, charset:String) : String {
+		var cset = charset.toLowerCase();
+		switch(cset) {
+		case "latin1":
+		case "us-ascii":
+		default:
+			throw new chx.lang.UnsupportedException(cset+" not supported");
+		}
 		return readString(len);
 	}
 
