@@ -35,12 +35,16 @@
 
 package chx.hash;
 
+#if !neko
 import BytesUtil;
 import I32;
 import chx.HexUtil;
+#end
 
 class Sha1 implements IHash {
+#if !neko
 	static var K : Array<Int> = [0x5a827999, 0x6ed9eba1, 0x8f1bbcdc, 0xca62c1d6];
+#end
 
 	public function new() {
 #if neko
@@ -101,7 +105,7 @@ class Sha1 implements IHash {
 	public function final(?binary : Bool) {
 		value = new String(sha_final(_ctx));
 		if(!binary)
-			value = StringTools.baseEncode(value, Constants.DIGITS_HEXL);
+			value = math.BaseCode.encode(value, Constants.DIGITS_HEXL);
 		return value;
 	}
 
@@ -115,7 +119,7 @@ class Sha1 implements IHash {
 		else
 			m = Bytes.ofData(nsha1(o)).toString();
 		if(!binary)
-			m = StringTools.baseEncode(m, Constants.DIGITS_HEXL);
+			m = math.BaseCode.encode(m, Constants.DIGITS_HEXL);
 		return m;
 	}
 #end
