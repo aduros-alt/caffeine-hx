@@ -1,23 +1,35 @@
 -cp ../../
 -neko test.n
 -main X509
+#--dead-code-elimination
+-v
 
 --next
 
 -cp ../../
 -js test.js
 -main X509
+-debug
+-D FIREBUG
+-D CAFFEINE_DEBUG
 
 --next
 
 -cp ../../
+-debug
 -swf test9.swf
 -swf-version 9
 -main X509
+-swf-header 1280:800:20:FFFFFF
+-D FIREBUG
+-D CAFFEINE_DEBUG
 
 --next
 
 -cp ../../
+-debug
 -swf test8.swf
 -swf-version 8
 -main X509
+-D FIREBUG
+-D CAFFEINE_DEBUG

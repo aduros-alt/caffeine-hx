@@ -28,16 +28,16 @@
 /*
  * Derived from AS3 implementation Copyright (c) 2007 Henri Torgemane
  */
+
+package chx.formats.der;
+
 /**
  * IAsn1Type
  */
-
-package chx.formats.der;
-import ByteString;
-
 interface IAsn1Type
 {
+	var length(default,null) : Int;
 	function getType():Int;
-	function getLength():Int;
-	function toDER() : ByteString;
+	//function getLength():Int;
+	function toDER() : Bytes;
 }

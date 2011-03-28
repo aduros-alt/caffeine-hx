@@ -1,6 +1,6 @@
-import formats.der.PEM;
-import crypt.RSA;
-import crypt.cert.X509Certificate;
+import chx.formats.der.PEM;
+import chx.crypt.RSA;
+import chx.crypt.cert.X509Certificate;
 
 class Global {
 	static public var CaKeyPem : String =
@@ -88,7 +88,6 @@ class X509 {
 			haxe.Firebug.redirectTraces();
 		}
 #end
-
 		var x = new X509Certificate(Global.Verisign);
 		//var x = new X509Certificate(Global.Thawte);
 		//var x = new X509Certificate(Global.CaCertPem);

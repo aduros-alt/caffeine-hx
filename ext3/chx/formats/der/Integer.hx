@@ -35,23 +35,22 @@
  */
 package chx.formats.der;
 import math.BigInteger;
-import ByteString;
 
 class Integer extends BigInteger, implements IAsn1Type
 {
+	public var length(default,null):Int;
 	private var type:Int;
-	private var len:Int;
 
-	public function new(type:Int, length:Int, b:ByteString) {
-		this.type = type;
-		this.len = length;
+	public function new(type:Int, length:Int, b:Bytes) {
 		super();
+		this.type = type;
+		this.length = length;
 		#if CAFFEINE_DEBUG
 		if(b.length <50) {
-			trace(DER.indent + ByteString.hexDump(b));
+			trace(DER.indent + b.toHex());
 		}
 		#end
-		var bi = BigInteger.ofByteString(b);
+		var bi = BigInteger.ofBytes(b);
 		bi.copyTo(this);
 		#if CAFFEINE_DEBUG
 		trace(DER.indent + this.toRadix(16));
@@ -60,7 +59,7 @@ class Integer extends BigInteger, implements IAsn1Type
 
 	public function getLength():Int
 	{
-		return len;
+		return length;
 	}
 
 	public function getType():Int
@@ -69,10 +68,14 @@ class Integer extends BigInteger, implements IAsn1Type
 	}
 
 	override public function toString():String {
-		return DER.indent+"Integer["+type+"]["+len+"]["+super.toRadix(16)+"]";
+		return DER.indent+"Integer["+type+"]["+length+"]["+super.toRadix(16)+"]";
 	}
 
-	public function toDER():ByteString {
+	/**
+	 * @todo implementation
+	 **/
+	public function toDER():Bytes {
+		throw new chx.lang.UnsupportedException("not implemented");
 		return null;
 	}
 

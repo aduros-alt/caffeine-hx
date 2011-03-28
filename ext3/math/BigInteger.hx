@@ -1753,9 +1753,7 @@ class BigInteger {
 	* Construct from a bigendian byte array in base 256. First byte high bit, if set,
 	* indicates a negative number.
 	**/
-	public static function ofBytes(r:Bytes, ?pos:Int, ?len:Int) : BigInteger {
-		if(pos == null)
-			pos = 0;
+	public static function ofBytes(r:Bytes, pos:Int=0, len:Null<Int>=null) : BigInteger {
 		if(len == null)
 			len = r.length - pos;
 		if(len == 0)
@@ -1905,7 +1903,8 @@ class BigInteger {
 
 	static function intAt(s : String, i: Int) : Int {
 		var c : Null<Int> = BI_RC[s.charCodeAt(i)];
-		return (c==null)?-1:c;
+		if(c == null) return -1;
+		return c;
 	}
 
 // 	static function int2char(n: Int) : String {

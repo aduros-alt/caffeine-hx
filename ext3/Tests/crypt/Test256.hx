@@ -1,4 +1,4 @@
-import crypt.RSA;
+import chx.crypt.RSA;
 
 /*
 	Test of a 256 bit RSA key
@@ -24,8 +24,8 @@ class Test256 {
 		rsa.setPrivateEx(n, e,d, p, q, null, null, coeff);
 		trace(rsa);
 
-		var e = rsa.encrypt(msg);
-		var u = rsa.decrypt(e);
+		var e = rsa.encrypt(Bytes.ofString(msg));
+		var u = rsa.decrypt(e).toString();
 		if(msg != u)
 			trace("failed");
 		else

@@ -210,6 +210,32 @@ class Bytes {
 		return b;
 	}
 
+	/**
+	* Return a hex representation of the data.
+	* @param sep Character to use to separate each pair
+	* @param pos Starting position in this Bytes
+	* @param len Number of bytes to use, null for all from pos
+	**/
+	public function toHex(sep:String="", pos:Int=0, len:Null<Int>=null) : String {
+		//if(sep == null)
+		//	sep = new String("");
+		if(len == null)
+			len = length - pos;
+
+		var data : Bytes = sub( pos, len );
+		var sb = new StringBuf();
+		var l = data.length;
+		for(i in 0...l) {
+			sb.add(StringTools.hex(get(i),2).toLowerCase());
+			sb.add(sep);
+		}
+
+		var s : String = StringTools.rtrim(sb.toString());
+		if(sep == "" && s.length % 2 != 0)
+			s = "0"+s;
+		return s;
+	}
+
 	public static function alloc( length : Int ) : Bytes {
 		#if neko
 		return new Bytes(length,untyped __dollar__smake(length));
@@ -288,4 +314,24 @@ class Bytes {
 		#end
 	}
 
+	/**
+	 * Parse a hex string into a Bytes. The hex string
+	 * may start with 0x, may contain spaces, and may contain
+	 * : delimiters.
+	 **/
+	public static function ofHex(hs : String) : Bytes {
+		var s : String = StringTools.stripWhite(hs);
+		s = StringTools.replaceRecurse(s, "|", "").toLowerCase();
+		if(StringTools.startsWith(s, "0x"))
+			s = s.substr(2);
+		if (s.length&1==1) s="0"+s;
+
+		var b = new BytesBuffer();
+		var l = Std.int(s.length/2);
+		for(x in 0...l) {
+			var ch = s.substr(x * 2, 2);
+			b.addByte(Std.parseInt("0x"+ch));
+		}
+		return b.getBytes();
+	}
 }

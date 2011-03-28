@@ -34,23 +34,23 @@
  **/
 package chx.crypt.cert;
 
-import hash.IHash;
-import hash.Md2;
-import hash.Md5;
-import hash.Sha1;
-import crypt.RSA;
-import crypt.RSAEncrypt;
-import formats.Base64;
-import formats.der.DERByteString;
-import formats.der.DER;
-import formats.der.IAsn1Type;
-import formats.der.IContainer;
-import formats.der.OID;
-import formats.der.ObjectIdentifier;
-import formats.der.PEM;
-import formats.der.PrintableString;
-import formats.der.Sequence;
-import formats.der.Types;
+import chx.hash.IHash;
+import chx.hash.Md2;
+import chx.hash.Md5;
+import chx.hash.Sha1;
+import chx.crypt.RSA;
+import chx.crypt.RSAEncrypt;
+import chx.formats.Base64;
+import chx.formats.der.DERByteString;
+import chx.formats.der.DER;
+import chx.formats.der.IAsn1Type;
+import chx.formats.der.IContainer;
+import chx.formats.der.OID;
+import chx.formats.der.ObjectIdentifier;
+import chx.formats.der.PEM;
+import chx.formats.der.PrintableString;
+import chx.formats.der.Sequence;
+import chx.formats.der.Types;
 
 class X509Certificate {
 
@@ -62,8 +62,8 @@ class X509Certificate {
 		_loaded = false;
 		_param = p;
 		// avoid unnecessary parsing of every builtin CA at start-up.
-		if(!Std.is(_param, String) && !Std.is(_param, ByteString))
-			throw("Must be a string or bytestring");
+		if(!Std.is(_param, String) && !Std.is(_param, Bytes))
+			throw new chx.lang.UnsupportedException("Must be a string or bytes");
 	}
 
 	/**
@@ -136,17 +136,18 @@ class X509Certificate {
 		default:
 			return false;
 		}
-		var data:ByteString = cast _obj.getKey("signedCertificate_bin");
-		var bs : ByteString = cast _obj.getKey("encrypted");
-		var rv = key.verify(bs.toHex());
-		var buf:ByteString = ByteString.ofString(rv);
-		buf.position=0;
+		var data:Bytes = cast _obj.getKey("signedCertificate_bin");
+		var bs : Bytes = cast _obj.getKey("encrypted");
+		var rv = key.verify(bs);//.toHex());
+		var buf:Bytes = rv;// = Byte.ofString(rv);
+		//buf.position=0;
 		data = fHash.calcBin(data);
-		var obj:IContainer = cast DER.parse(buf, Types.RSA_SIGNATURE);
+		var obj:IContainer = cast DER.read(buf, Types.RSA_SIGNATURE);
 		if (obj.getKey("algorithm").getKey("algorithmId").toString() != oid) {
 			return false; // wrong algorithm
 		}
-		if (!ByteString.eq(obj.getKey("hash"), data))
+		//if (!ByteString.eq(obj.getKey("hash"), data))
+		if(data.compare(obj.getKey("hash")) != 0)
 			return false; // hashes don't match
 		return true;
 	}
@@ -159,9 +160,9 @@ class X509Certificate {
 	* @param key
 	* @param algo
 	* @return
-	*
+	* @todo test
 	*/
-	private function signCertificate(key:RSA, algo:String):ByteString {
+	private function signCertificate(key:RSA, algo:String):Bytes {
 		var fHash:IHash;
 		var oid:String;
 		switch (algo) {
@@ -177,7 +178,7 @@ class X509Certificate {
 		default:
 			return null;
 		}
-		var data:ByteString = cast _obj.getKey("signedCertificate_bin");
+		var data:Bytes = cast _obj.getKey("signedCertificate_bin");
 		data = fHash.calcBin(data);
 		var seq1:Sequence = new Sequence();
 		seq1.set(0, new Sequence());
@@ -186,8 +187,9 @@ class X509Certificate {
 		seq1.set(1, new DERByteString());
 		seq1.get(1).writeBytes(data);
 		data = seq1.toDER();
-		var buf:ByteString = ByteString.ofString(key.sign(data));
-		return buf;
+		//var buf:ByteString = ByteString.ofString(key.sign(data));
+		//return buf;
+		return key.sign(data);
 	}
 
 	/**
@@ -196,9 +198,9 @@ class X509Certificate {
 	public function getPublicKey():RSAEncrypt {
 		load();
 		var o = _obj.getKey("signedCertificate").getKey("subjectPublicKeyInfo").getKey("subjectPublicKey");
-		var pk:ByteString = cast o;
-		pk.position = 0;
-		var rsaKey:Dynamic = DER.parse(pk, [{name:"N"},{name:"E"}]);
+		var pk:Bytes = cast o;
+		//pk.position = 0;
+		var rsaKey:Dynamic = DER.read(pk, cast [{name:"N"},{name:"E"}]);
 		var n : String = rsaKey.getKey("N").toRadix(16);
 		var e : String = rsaKey.getKey("E").toRadix(16);
 		return new RSAEncrypt(n, e);
@@ -250,9 +252,9 @@ class X509Certificate {
 
 	public function getCommonName():String {
 		var subject:Sequence = cast _obj.getKey("signedCertificate").getKey("subject");
-		var ps : PrintableString;
+		var ps : PrintableString = null;
 		try {
-			ps = cast( subject.findAttributeValue(OID.COMMON_NAME), PrintableString);
+			ps = cast subject.findAttributeValue(OID.COMMON_NAME);
 		} catch(e:Dynamic) {}
 		if(ps == null)
 			return null;
@@ -264,14 +266,17 @@ class X509Certificate {
 	////////////////////////////////////////////////////////
 	private function load():Void {
 		if (_loaded) return;
-		var b:ByteString;
+		var b:Bytes = null;
 		if (Std.is(_param, String))
-			b = PEM.readCertIntoArray(cast _param);
-		else if ( Std.is(_param, ByteString))
+			b = PEM.readCertIntoBytes(cast _param);
+		else if ( Std.is(_param, Bytes))
 			b = cast _param;
 
 		if (b != null) {
-			_obj = cast DER.parse(b, Types.TLS_CERT);
+			_obj = cast DER.read(b, Types.TLS_CERT);
+			#if CAFFEINE_DEBUG
+				trace(_obj);
+			#end
 			_loaded = true;
 		}
 		else {

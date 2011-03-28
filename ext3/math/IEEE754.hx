@@ -158,7 +158,7 @@ class IEEE754 {
 
 	function infinity(negative:Bool) {
 		if(negative) {
-			var bb = new haxe.io.BytesBuffer();
+			var bb = new BytesBuffer();
 			var cnt = 2;
 			if(this.Size == 32) {
 				bb.addByte(0xFF);
@@ -174,7 +174,7 @@ class IEEE754 {
 			return bufToEndian(bb.getBytes());
 		}
 		else {
-			var bb = new haxe.io.BytesBuffer();
+			var bb = new BytesBuffer();
 			var cnt = 2;
 			if(this.Size == 32) {
 				bb.addByte(0x7F);
@@ -209,7 +209,7 @@ class IEEE754 {
 			return infinity(true);
 		}
 		else if(Math.isNaN(input)) {
-			var bb = new haxe.io.BytesBuffer();
+			var bb = new BytesBuffer();
 			var cnt = 2;
 			if(this.Size == 32) {
 				bb.addByte(0xFF);

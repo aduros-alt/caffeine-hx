@@ -34,17 +34,18 @@
  * An ASN1 type for an ObjectIdentifier
  */
 package chx.formats.der;
+import chx.io.BytesInput;
 
 class ObjectIdentifier implements IAsn1Type
 {
+	public var length(default,null):Int;
 	private var type:Int;
-	private var len:Int;
 	private var oid:Array<Int>;
 
 	public function new(type:Int, length:Int, b:Dynamic) {
 		this.type = type;
-		this.len = length;
-		if (Std.is(b, ByteString)) {
+		this.length = length;
+		if (Std.is(b, Bytes)) {
 			parse(cast b);
 		} else if (Std.is(b, String)) {
 			generate(cast b);
@@ -61,16 +62,17 @@ class ObjectIdentifier implements IAsn1Type
 		}
 	}
 
-	private function parse(b:ByteString):Void {
+	private function parse(b:Bytes):Void {
 		// parse stuff
 		// first byte = 40*value1 + value2
-		var o:Int = b.readUnsignedByte();
+		var bi = new BytesInput(b);
+		var o:Int = bi.readUInt8();
 		var a:Array<Int> = [];
 		a.push(Std.int(o/40));
 		a.push(Std.int(o%40));
 		var v:Int = 0;
-		while (b.bytesAvailable>0) {
-			o = b.readUnsignedByte();
+		while (bi.bytesAvailable>0) {
+			o = bi.readUInt8();
 			var last:Bool = (o&0x80)==0;
 			o &= 0x7f;
 			v = v*128 + o;
@@ -84,7 +86,7 @@ class ObjectIdentifier implements IAsn1Type
 
 	public function getLength():Int
 	{
-		return len;
+		return length;
 	}
 
 	public function getType():Int
@@ -92,7 +94,7 @@ class ObjectIdentifier implements IAsn1Type
 		return type;
 	}
 
-	public function toDER():ByteString {
+	public function toDER():Bytes {
 		var tmp:Array<Int> = [];
 		tmp[0] = oid[0]*40 + oid[1];
 		for(i in 2 ... oid.length) {
@@ -115,17 +117,17 @@ class ObjectIdentifier implements IAsn1Type
 				throw "OID element to large.";
 			}
 		}
-		len = tmp.length;
+		length = tmp.length;
 		if (type==0) {
 			type = 6;
 		}
-		tmp.unshift(len); // assume length is small enough to fit here.
+		tmp.unshift(length); // assume length is small enough to fit here.
 		tmp.unshift(type);
-		var b:ByteString = new ByteString();
+		var b:BytesBuffer = new BytesBuffer();
 		var l = tmp.length;
 		for(i in 0...l)
-			b.set(i, tmp[i]);
-		return b;
+			b.addByte(tmp[i]);
+		return b.getBytes();
 	}
 
 	public function toString():String {
@@ -133,6 +135,6 @@ class ObjectIdentifier implements IAsn1Type
 	}
 
 	public function dump():String {
-		return "OID["+type+"]["+len+"]["+toString()+"]";
+		return "OID["+type+"]["+length+"]["+toString()+"]";
 	}
 }

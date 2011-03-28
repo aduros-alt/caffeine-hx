@@ -38,19 +38,19 @@ package chx.formats.der;
 
 class UTCTime implements IAsn1Type
 {
-	private var type:Int;
-	private var len:Int;
 	public var date:Date;
+	public var length(default,null):Int;
+	private var type:Int;
 
 	public function new(type:Int, len:Int)
 	{
 		this.type = type;
-		this.len = len;
+		this.length = len;
 	}
 
 	public function getLength():Int
 	{
-		return len;
+		return length;
 	}
 
 	public function getType():Int
@@ -75,10 +75,14 @@ class UTCTime implements IAsn1Type
 
 
 	public function toString():String {
-		return DER.indent+"UTCTime["+type+"]["+len+"]["+date+"]";
+		return DER.indent+"UTCTime["+type+"]["+length+"]["+date+"]";
 	}
 
-	public function toDER():ByteString {
-		return null; // XXX not implemented
+	/**
+	 * @todo implementation
+	 **/
+	public function toDER():Bytes {
+		throw new chx.lang.UnsupportedException("not implemented");
+		return null;
 	}
 }

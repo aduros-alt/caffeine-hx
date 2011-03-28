@@ -173,7 +173,9 @@ class RSAEncrypt implements IBlockCipher {
 		var idx : Int = 0;
 		var msg = new BytesBuffer();
 		while(idx < src.length) {
-			var m:BigInteger = BigInteger.ofBytes( pf.pad(src.sub(idx,ts)) );
+			if(idx + ts > src.length)
+				ts = src.length - idx;
+			var m:BigInteger = BigInteger.ofBytes(pf.pad(src.sub(idx,ts)) );
 			//trace("padded: " + m.toRadix(16).toString());
 			if(m == null) return null;
 			var c:BigInteger = f(m);
@@ -196,6 +198,8 @@ class RSAEncrypt implements IBlockCipher {
 		var idx : Int = 0;
 		var msg = new BytesBuffer();
 		while(idx < src.length) {
+			if(idx + bs > src.length)
+				bs = src.length - idx;
 			var c : BigInteger = BigInteger.ofBytes(src.sub(idx,bs));
 			var m = f(c);
 			if(m == null)

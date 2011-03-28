@@ -1,25 +1,25 @@
 #
-# Crypt
-#
---next
+# XXTea
 -cp ../../
 -neko test.n
--main CryptTest
+-main TeaTest
 
 --next
 -cp ../../
 -js test.js
--main CryptTest
+-main TeaTest
 
 --next
 -cp ../../
 -D FIREBUG
 -swf test9.swf
 -swf-version 9
--main CryptTest
+-main TeaTest
 
 --next
 -cp ../../
 -swf test8.swf
 -swf-version 8
--main CryptTest
+-main TeaTest
+-debug
+

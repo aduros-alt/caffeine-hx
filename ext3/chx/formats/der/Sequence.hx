@@ -28,37 +28,31 @@
 /*
  * Derived from AS3 implementation Copyright (c) 2007 Henri Torgemane
  */
+
+package chx.formats.der;
+
 /**
  * Sequence
  *
  * An ASN1 type for a Sequence, implemented as an Array
  */
-
-package chx.formats.der;
-import ByteString;
-
-
 class Sequence implements IAsn1Type, implements IContainer
 {
+	public var length(default,null):Int;
 	var type:Int;
-	var len:Int;
 	var _buf : Array<Dynamic>;
 	var _hash : Hash<Dynamic>;
 
-	public function new(?iType:Int, ?length:Int) {
-		if(iType == null)
-			iType = 0x30;
-		if(length == null)
-			length = 0x00;
+	public function new(iType:Int=0x30, length:Int=0) {
 		type = iType;
-		len = length;
+		this.length = length;
 		_buf = new Array();
 		_hash = new Hash();
 	}
 
 	public function getLength():Int
 	{
-		return len;
+		return length;
 	}
 
 	public function getType():Int
@@ -66,18 +60,18 @@ class Sequence implements IAsn1Type, implements IContainer
 		return type;
 	}
 
-	public function toDER():ByteString {
-		var tmp:ByteString = new ByteString();
-		for ( i in 0 ... len) {
+	public function toDER():Bytes {
+		var tmp:BytesBuffer = new BytesBuffer();
+		for ( i in 0 ... length) {
 			var e:IAsn1Type = _buf[i];
 			if (e == null) { // XXX Arguably, I could have a der.Null class instead
-				tmp.writeByte(0x05);
-				tmp.writeByte(0x00);
+				tmp.addByte(0x05);
+				tmp.addByte(0x00);
 			} else {
-				tmp.writeBytes(e.toDER());
+				tmp.add(e.toDER());
 			}
 		}
-		return DER.wrapDER(type, tmp);
+		return DER.wrapDER(type, tmp.getBytes());
 	}
 
 	public function toString():String {
@@ -97,7 +91,7 @@ class Sequence implements IAsn1Type, implements IContainer
 			if (!found) t+=Std.string(_buf[i])+"\n";
 		}
 		DER.indent= s;
-		return DER.indent+"Sequence["+type+"]["+len+"][\n"+t+"\n"+s+"]";
+		return DER.indent+"Sequence["+type+"]["+length+"][\n"+t+"\n"+s+"]";
 	}
 
 	/////////

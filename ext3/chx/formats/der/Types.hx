@@ -60,7 +60,7 @@ class Types
 				],
 				defaultValue: function():Sequence{
 					var s:Sequence = new Sequence(0, 0);
-					var v:Integer = new Integer(2,1, ByteString.ofHex("00"));
+					var v:Integer = new Integer(2,1, Bytes.ofHex("00"));
 					s.push(v);
 					s.setKey("version", v);
 					return s;

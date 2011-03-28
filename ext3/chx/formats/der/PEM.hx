@@ -32,38 +32,36 @@
  * PEM
  */
 package chx.formats.der;
-import crypt.RSA;
-import crypt.RSAEncrypt;
+import chx.crypt.RSA;
+import chx.crypt.RSAEncrypt;
 import math.BigInteger;
-import formats.Base64;
-import ByteString;
+import chx.formats.Base64;
 
 class PEM
 {
-	private static var RSA_PRIVATE_KEY_HEADER:String = "-----BEGIN RSA PRIVATE KEY-----";
-	private static var RSA_PRIVATE_KEY_FOOTER:String = "-----END RSA PRIVATE KEY-----";
-	private static var RSA_PUBLIC_KEY_HEADER:String = "-----BEGIN PUBLIC KEY-----";
-	private static var RSA_PUBLIC_KEY_FOOTER:String = "-----END PUBLIC KEY-----";
-	private static var CERTIFICATE_HEADER:String = "-----BEGIN CERTIFICATE-----";
-	private static var CERTIFICATE_FOOTER:String = "-----END CERTIFICATE-----";
+	public static var RSA_PRIVATE_KEY_HEADER:String = "-----BEGIN RSA PRIVATE KEY-----";
+	public static var RSA_PRIVATE_KEY_FOOTER:String = "-----END RSA PRIVATE KEY-----";
+	public static var RSA_PUBLIC_KEY_HEADER:String = "-----BEGIN PUBLIC KEY-----";
+	public static var RSA_PUBLIC_KEY_FOOTER:String = "-----END PUBLIC KEY-----";
+	public static var CERTIFICATE_HEADER:String = "-----BEGIN CERTIFICATE-----";
+	public static var CERTIFICATE_FOOTER:String = "-----END CERTIFICATE-----";
 
 	/**
-		*
-		* Read a structure encoded according to
-		* ftp://ftp.rsasecurity.com/pub/pkcs/ascii/pkcs-1v2.asc
-		* section 11.1.2
-		*
-		* @param str
-		* @return
-		*
-		*/
+	 *
+	 * Read an RSA private key structure encoded according to
+	 * ftp://ftp.rsasecurity.com/pub/pkcs/ascii/pkcs-1v2.asc
+	 * section 11.1.2
+	 *
+	 * @param str A text with base64 encoded RSAPrivateKey with a standard header and footer
+	 * @return RSA private key
+	 **/
 	public static function readRSAPrivateKey(str:String):RSA {
-		var der:ByteString = extractBinary(RSA_PRIVATE_KEY_HEADER, RSA_PRIVATE_KEY_FOOTER, str);
+		var der:Bytes = extractBinary(RSA_PRIVATE_KEY_HEADER, RSA_PRIVATE_KEY_FOOTER, str);
 		if (der==null) return null;
-		var obj : IAsn1Type = DER.parse(der);
+		var obj : IAsn1Type = DER.read(der);
 		if (Std.is(obj,Set) || Std.is(obj, Sequence))
 		{
-			var arr:Sequence = cast(obj, Sequence);
+			var arr:Sequence = cast Sequence;
 			var rsa = new RSA();
 			// arr[0] is Version. should be 0. should be checked.
 			rsa.setPrivateEx(
@@ -83,31 +81,29 @@ class PEM
 
 
 	/**
-		* Read a structure encoded according to some spec somewhere
-		* Also, follows some chunk from
-		* ftp://ftp.rsasecurity.com/pub/pkcs/ascii/pkcs-1v2.asc
-		* section 11.1
-		*
-		* @param str
-		* @return
-		*
-		*/
+	 * Read an RSA public key structure encoded according to
+	 * ftp://ftp.rsasecurity.com/pub/pkcs/ascii/pkcs-1v2.asc
+	 * section 11.1
+	 *
+	 * @param str A text with base64 encoded RSAPublicKey with a standard header and footer
+	 * @return RSA public key
+	 **/
 	public static function readRSAPublicKey(str:String) : RSAEncrypt
 	{
-		try {
-		var der:ByteString = extractBinary(RSA_PUBLIC_KEY_HEADER, RSA_PUBLIC_KEY_FOOTER, str);
+		//try {
+		var der:Bytes = extractBinary(RSA_PUBLIC_KEY_HEADER, RSA_PUBLIC_KEY_FOOTER, str);
 		if (der==null || der.length == 0) return null;
-		var obj : IAsn1Type = DER.parse(der);
+		var obj : IAsn1Type = DER.read(der);
 		if (Std.is(obj,Set) || Std.is(obj, Sequence)) {
 			var seq:Sequence = cast obj;
 			// seq[0] = [ <some crap that means "rsaEncryption">, null ]; ( apparently, that's an X-509 Algorithm Identifier.
 			if (seq.getContainer(0).get(0).toString() != OID.RSA_ENCRYPTION)
 				return null;
 
-			// seq[1] is a ByteString begging to be parsed as DER
+			// seq[1] is a Bytes begging to be parsed as DER
 			// there's a 0x00 byte up front. find out why later.
-			untyped seq.get(1).position = 0;
-			obj = DER.parse(seq.get(1));
+			//untyped seq.get(1).position = 0;
+			obj = DER.read(seq.get(1));
 			if (Std.is(obj,Set) || Std.is(obj, Sequence))
 			{
 				seq = cast obj;
@@ -121,24 +117,29 @@ class PEM
 			// dunno
 			return null;
 		}
-		}
-		catch(e:Dynamic) {
-			return null;
-		}
+		//}
+		//catch(e:Dynamic) {
+		//	return null;
+		//}
 	}
 
-	public static function readCertIntoArray(str:String):ByteString {
-		var tmp:ByteString = extractBinary(CERTIFICATE_HEADER, CERTIFICATE_FOOTER, str);
-		return tmp;
+	/**
+	 * Takes a Base64 certificate with a header and footer and
+	 * decodes the cert data into a new Bytes
+	 **/
+	public static function readCertIntoBytes(str:String):Bytes {
+		return extractBinary(CERTIFICATE_HEADER, CERTIFICATE_FOOTER, str);
 	}
 
-	private static function extractBinary(header:String, footer:String, str:String) : ByteString {
+	private static function extractBinary(header:String, footer:String, str:String) : Bytes {
 		var i:Int = str.indexOf(header);
 		if (i==-1) return null;
 		i += header.length;
 		var j:Int = str.indexOf(footer);
 		if (j==-1) return null;
-		return ByteString.ofString(formats.Base64.decode(str.substr(i, j-i)));
+		var a = chx.formats.Base64.decode(str.substr(i, j-i));
+		trace(a.length);
+		return a;
 	}
 }
 

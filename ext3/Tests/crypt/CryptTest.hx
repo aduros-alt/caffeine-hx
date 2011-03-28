@@ -238,7 +238,7 @@ class RSAFunctions extends haxe.unit.TestCase {
 */
 
 	function test02() {
-trace(here.methodName);
+//trace(here.methodName);
 		var msg = "Hello";
 		var rsa:RSA = RSA.generate(512, "3");
 trace(rsa);

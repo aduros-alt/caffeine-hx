@@ -35,36 +35,35 @@
  */
 package chx.formats.der;
 
-class DERByteString extends ByteString,  implements IAsn1Type {
+class DERByteString extends Bytes, implements IAsn1Type {
 	private var type:Int;
-	private var len:Int;
+	//private var len:Int;
 
-	public function new(?type:Int, ?length:Int) {
-		super();
+	public function new(type:Null<Int> = null, len:Int = 0) {
+		var b : Bytes = Bytes.alloc(len);
+		super(len, b.getData());
 		if(type == null)
 			type = 0x04;
-		if(length == null)
-			length = 0x00;
 		this.type = type;
-		this.len = length;
+		//this.len = length;
 	}
 
-	override public function getLength():Int
-	{
-		return len;
-	}
+	//override public function getLength():Int
+	//{
+	//	return len;
+	//}
 
 	public function getType():Int
 	{
 		return type;
 	}
 
-	public function toDER() : ByteString {
+	public function toDER() : Bytes {
 		return DER.wrapDER(type, this);
 	}
 
 	override public function toString() : String {
-		return DER.indent+"ByteString["+type+"]["+len+"]["+toHex()+"]";
+		return DER.indent+"Bytes["+type+"]["+length+"]["+toHex()+"]";
 	}
 
 }

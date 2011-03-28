@@ -34,23 +34,21 @@
  * An ASN1 type for a PrintableString, held within a String
  */
 package chx.formats.der;
-import ByteString;
-
 
 class PrintableString implements IAsn1Type
 {
 	private var type:Int;
-	private var len:Int;
+	public var length(default,null):Int;
 	private var str:String;
 
 	public function new(type:Int, length:Int) {
 		this.type = type;
-		this.len = length;
+		this.length = length;
 	}
 
 	public function getLength():Int
 	{
-		return len;
+		return length;
 	}
 
 	public function getType():Int
@@ -69,7 +67,11 @@ class PrintableString implements IAsn1Type
 		return DER.indent+str;
 	}
 
-	public function toDER():ByteString {
+	/**
+	 * @todo implementation
+	 **/
+	public function toDER():Bytes {
+		throw new chx.lang.UnsupportedException("not implemented");
 		return null; // XXX not implemented
 	}
 }

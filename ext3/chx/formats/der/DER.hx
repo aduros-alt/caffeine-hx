@@ -37,8 +37,10 @@
  */
 package chx.formats.der;
 import math.BigInteger;
-import formats.der.Sequence;
-import formats.der.Types.AsnStruct;
+import chx.formats.der.Sequence;
+import chx.formats.der.Types.AsnStruct;
+import chx.io.BytesOutput;
+import chx.io.BytesInput;
 
 class DER {
 	// goal 1: to be able to parse an RSA Private Key PEM file.
@@ -54,40 +56,61 @@ class DER {
 	public static var indent:String = "";
 
 	/**
-		Parse DER encoded ByteString into component Asn1 types. Optional structures
-		are defined in Types.hx
-	**/
-	public static function parse(der:ByteString, ?structure:Dynamic):IAsn1Type
+	 * Parse DER encoded ByteString into component Asn1 types. Optional structures
+	 * are defined in Types.hx
+	 * @param der Bytes object containing der encoded object
+	 **/
+	public static function read( der : Bytes, structure:Array<AsnStruct>=null ):IAsn1Type {
+		var bi = new BytesInput(der);
+		bi.bigEndian = true;
+		//#if CAFFEINE_DEBUG
+		//trace("DER.read: der.length: " + der.length + " position: " + bi.position);
+		//#end
+		return parse(bi, structure);
+	}
+
+	/**
+	 * Parse DER encoded ByteString into component Asn1 types. Optional structures
+	 * are defined in Types.hx
+	 * @todo Neko may fail on determining packet length due to integer overflow. Extremely unlikely considering what comes DER packaged ;)
+	 **/
+	private static function parse(der:BytesInput, structure:Array<AsnStruct>=null):IAsn1Type
 	{
 		#if CAFFEINE_DEBUG
+		//trace("DER.parse " + der.position);
 		if (der.position == 0) {
-			trace("DER.parse: "+ByteString.hexDump(der));
-			trace("DERlength: "+der.length);
+			trace("DER.parse: "+der.getBytesCopy().toHex());
+			trace("DERlength: "+der.getBytesCopy().length);
 		}
 		#end
-		var type:Int = der.readUnsignedByte();
+		var type:Int = der.readUInt8();
 		var otype  = type;
 		var constructed:Bool = (type&0x20)!=0;
 		type &=0x1F;
 		// length
-		var len:Int = der.readUnsignedByte();
-		if (len>=0x80) {
+		var len:Int = der.readUInt8();
+		var ocount:Int = 1;
+		if (len>=0x80) { // long form of length
 			// TODO: may fail in neko.
-			// long form of length
 			var count:Int = len & 0x7f;
+			ocount = 1 + count;
 			len = 0;
 			while (count>0) {
-				len = (len<<8) | der.readUnsignedByte();
+				len = (len<<8) | der.readUInt8();
 				count--;
+				#if CAFFEINE_DEBUG
+				trace("len: 0x" + StringTools.hex(len));
+				#end
 			}
 		}
 		#if CAFFEINE_DEBUG
 		var ts = indent + "TYPE: 0x"+StringTools.hex(otype,2)+"/0x" + StringTools.hex(type,2) + " Len: "+len;
 		if(constructed) ts += " constructed ";
+		ts += ". Used " + ocount + " bytes for length. Current position: " + der.position;
 		trace(ts);
 		#end
 		// data
-		var b:ByteString;
+		var b:Bytes = null;
 		switch (type) {
 		//case 0x00: // WHAT IS THIS THINGY? (seen as 0xa0)
 			// (note to self: read a spec someday.)
@@ -104,12 +127,12 @@ class DER {
 			var arrayStruct:Array<AsnStruct> = null;
 
 			// copy the array, as we destroy it later.
-			if (structure != null && Std.is(structure, Array))
-				arrayStruct = cast structure.concat([]);
+			if (structure != null)// && Std.is(structure, Array))
+				arrayStruct = /*cast*/ structure.concat([]);
 
 			while (der.position < p+len) {
 				#if CAFFEINE_DEBUG
-				trace(indent + "SEQUENCE LOOP pos: " +der.position + "/" + Std.string(p+len));
+				trace(indent + "SEQUENCE LOOP pos: " + der.position + "/" + Std.string(p+len));
 				#end
 				var tmpStruct:AsnStruct = null;
 				if (arrayStruct != null)
@@ -121,6 +144,9 @@ class DER {
 					// XXX I'm winging it here..
 					var wantConstructed:Bool = Std.is(tmpStruct.value, Array);
 					var isConstructed:Bool = isConstructedType(der);
+					#if CAFFEINE_DEBUG
+					trace("Checking " + tmpStruct.name + " " + ((wantConstructed == isConstructed)?"matched":"not equal"));
+					#end
 					if (wantConstructed != isConstructed) {
 						// not found. put default stuff, or null
 						o.push(tmpStruct.defaultValue);
@@ -135,12 +161,26 @@ class DER {
 				if (tmpStruct != null) {
 					var name:String = tmpStruct.name;
 					var value:Dynamic = tmpStruct.value;
+					#if CAFFEINE_DEBUG
+					trace("Found object '" + name + "'. " + (tmpStruct.extract?"Must extract":"No data to extract"));
+					#end
 					// do we need to keep a binary copy of this element
 					if (tmpStruct.extract) {
+/*
 						var size:Int = getLengthOfNextElement(der);
 						var ba:ByteString = new ByteString();
 						ba.writeBytes(der, der.position, size);
 						o.setKey(name+"_bin", ba);
+*/
+						var vo = der.peek();
+						var op:Int = der.position;
+						var size:Int = getLengthOfNextElement(der);
+						var buf:Bytes = Bytes.alloc(size);
+						//der.readBytes(buf, 0, size);
+						o.setKey(name+"_bin", buf);
+						der.position = op;
+						if(vo != der.peek() || der.position != op)
+							throw "Access error";
 					}
 					var obj:IAsn1Type = DER.parse(der, value);
 					o.push(obj);
@@ -179,17 +219,15 @@ class DER {
 			return s;
 		case 0x02: // INTEGER
 			// put in a BigInteger
-			b = new ByteString();
 			#if CAFFEINE_DEBUG
-			trace(indent + "INTEGER of length "+len + " buf rem: " +der.bytesAvailable);
+			trace(indent + "INTEGER of length "+len + " buf rem: " + der.bytesAvailable);
 			#end
+			b = Bytes.alloc(len);
 			der.readBytes(b,0,len);
-			b.position=0;
 			return new Integer(type, len, b);
 		case 0x06: // OBJECT IDENTIFIER:
-			b = new ByteString();
+			b = Bytes.alloc(len);
 			der.readBytes(b,0,len);
-			b.position=0;
 			var oi = new ObjectIdentifier(type, len, b);
 			#if CAFFEINE_DEBUG
 			trace(indent + " OID " + oi.toString());
@@ -200,7 +238,7 @@ class DER {
 			if(type != 0x03 && type != 0x04) {
 				trace(indent + "Cannot process DER TYPE "+type + " at position " + der.position);
 			}
-			if (type != 0x04 && der.get(der.position) == 0) {
+			if (type != 0x04 && der.peek() == 0) {
 				//trace("Horrible Bit String pre-padding removal hack.");
 				// I wish I had the patience to find a spec for this.
 				der.position++;
@@ -210,7 +248,7 @@ class DER {
 			var bs:DERByteString = new DERByteString(type, len);
 			der.readBytes(bs,0,len);
 			#if CAFFEINE_DEBUG
-			trace(indent + ByteString.hexDump(bs,":"));
+			trace(indent + bs.toHex(":"));
 			#end
 			return bs;
 		case 0x05: // NULL
@@ -227,7 +265,7 @@ class DER {
 			//trace(indent + der.toHex(":",der.position,len));
 			#end
 			var ps:PrintableString = new PrintableString(type, len);
-			ps.setString(der.readMultiByte(len, "US-ASCII"));
+			ps.setString(der.readMultiByteString(len, "US-ASCII"));
 			#if CAFFEINE_DEBUG
 			trace(ps.toString());
 			#end
@@ -238,7 +276,7 @@ class DER {
 			trace(indent + "T61STRING");
 			#end
 			var ps = new PrintableString(type, len);
-			ps.setString(der.readMultiByte(len, "latin1"));
+			ps.setString(der.readMultiByteString(len, "latin1"));
 			#if CAFFEINE_DEBUG
 			trace(ps.toString());
 			#end
@@ -248,7 +286,7 @@ class DER {
 			trace(indent + "UTCTIME");
 			#end
 			var ut:UTCTime = new UTCTime(type, len);
-			ut.setUTCTime(der.readMultiByte(len, "US-ASCII"));
+			ut.setUTCTime(der.readMultiByteString(len, "US-ASCII"));
 			#if CAFFEINE_DEBUG
 			trace(ut.toString());
 			#end
@@ -256,18 +294,18 @@ class DER {
 		}
 	}
 
-	private static function getLengthOfNextElement(b:ByteString):Int {
+	private static function getLengthOfNextElement(b:BytesInput):Int {
 		var p:Int = b.position;
 		// length
 		b.position++;
-		var len:Int = b.readUnsignedByte();
+		var len:Int = b.readUInt8();
 		if (len>=0x80) {
 			// long form of length
 			// TODO: neko may fail
 			var count:Int = len & 0x7f;
 			len = 0;
 			while (count>0) {
-				len = (len<<8) | b.readUnsignedByte();
+				len = (len<<8) | b.readUInt8();
 				count--;
 			}
 		}
@@ -276,16 +314,17 @@ class DER {
 		return len;
 	}
 
-	private static function isConstructedType(b:ByteString):Bool {
-		var type:Int = b.get(b.position);
+	private static function isConstructedType(b:BytesInput):Bool {
+		var type:Int = b.peek();
 		return (type&0x20) != 0;
 	}
 
 	/**
 		Create a DER buffer from byte data.
 	**/
-	public static function wrapDER(type:Int, data:ByteString):ByteString {
-		var d:ByteString = new ByteString();
+	public static function wrapDER(type:Int, data:Bytes):Bytes {
+		var d:BytesOutput = new BytesOutput();
+		d.bigEndian = true;
 		d.writeByte(type);
 		var len:Int = data.length;
 		if (len<128) {
@@ -309,8 +348,8 @@ class DER {
 			d.writeByte(len>>8);
 			d.writeByte(len);
 		}
-		d.writeBytes(data);
-		d.position=0;
-		return d;
+		d.writeBytes(data,0,data.length);
+		//d.position=0;
+		return d.getBytes();
 	}
 }

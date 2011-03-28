@@ -51,6 +51,7 @@ class Vectors {
 	}
 }
 
+/*
 class Sha1TestFunctions extends haxe.unit.TestCase {
 
 	public function testSha() {
@@ -135,6 +136,7 @@ class Sha1TestFunctions extends haxe.unit.TestCase {
 #end
 
 }
+*/
 
 class Sha256TestFunctions extends haxe.unit.TestCase {
 	public function testSha256() {
@@ -200,7 +202,7 @@ class HashTest {
 #end
 
 		var r = new haxe.unit.TestRunner();
-		r.add(new Sha1TestFunctions());
+		//r.add(new Sha1TestFunctions());
 		r.add(new Sha256TestFunctions());
 		r.add(new Md5TestFunctions());
 		r.add(new Md2Test());

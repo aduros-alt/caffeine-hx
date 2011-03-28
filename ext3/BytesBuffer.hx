@@ -119,4 +119,11 @@ class BytesBuffer {
 		return bytes;
 	}
 
+	public inline function writeByte( b : Int ) {
+		addByte(b);
+	}
+
+	public inline function writeBytes( src : Bytes, pos : Int, len : Int ) {
+		addBytes(src, pos, len);
+	}
 }

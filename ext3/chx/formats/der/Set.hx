@@ -37,11 +37,7 @@ package chx.formats.der;
 
 class Set extends Sequence, implements IAsn1Type, implements IContainer
 {
-	public function new(?type:Int, ?length:Int) {
-		if(type == null)
-			type = 0x31;
-		if(length == null)
-			length = 0x00;
+	public function new(type:Int=0x31, length:Int=0) {
 		super(type, length);
 	}
 
@@ -50,7 +46,7 @@ class Set extends Sequence, implements IAsn1Type, implements IContainer
 		DER.indent += "    ";
 		var t:String = _buf.join("\n");
 		DER.indent= s;
-		return DER.indent+"Set["+type+"]["+len+"][\n"+t+"\n"+s+"]";
+		return DER.indent+"Set["+type+"]["+length+"][\n"+t+"\n"+s+"]";
 	}
 
 }
