@@ -537,19 +537,41 @@ static value bi_from_decimal(value s) {
 }
 DEFINE_PRIM(bi_from_decimal,1);
 
-/** A -> BigEndian base 256 string. First character will be 0 (+) or 0x80 (-) **/
+/** abs(A) -> BigEndian unsigned base 256 string. **/
 static value bi_to_bin(value A) {
 	val_check_kind(A, k_biginteger);
 	BIGNUM *a = val_biginteger(A);
-/*
-	value buf = alloc_empty_string(BN_num_bytes(a) + 1);
-	if(a->neg != 0)
-		val_string(buf)[0] = 0x80;
-	else
-		val_string(buf)[0] = 0x00;
-	BN_bn2bin(a, val_string(buf)+1);
-	return buf;
-*/
+
+	unsigned char *to = (unsigned char *) malloc(BN_num_bytes(a));
+	int len = BN_bn2bin(a, to);
+	value rv = copy_string(&(to[0]), len);
+	free(to);
+	return rv;
+}
+DEFINE_PRIM(bi_to_bin,1);
+
+/** BigEndian unsigned base 256 string -> R BigInteger **/
+static value bi_from_bin(value S) {
+	val_check(S, string);
+	BIGNUM *bi = NULL;
+	int neg = 0;
+
+	if(val_strlen(S) == 0)
+		return bi_ZERO();
+	const unsigned char *sp = (const unsigned char *)val_string(S);
+
+	bi = BN_bin2bn(sp, (int)val_strlen(S), NULL);
+	if(bi == NULL)
+		THROW("b256 decode error");
+	return bi_allocate(bi);
+
+}
+DEFINE_PRIM(bi_from_bin,1);
+
+/** A -> BigEndian base 256 string. First character will have 0x80 set for negative **/
+static value bi_to_mpi(value A) {
+	val_check_kind(A, k_biginteger);
+	BIGNUM *a = val_biginteger(A);
 	unsigned char *to = (unsigned char *) malloc(BN_num_bytes(a) + 10);
 	int buflen = BN_bn2mpi(a, to);
 	if(buflen <= 4) {
@@ -560,10 +582,11 @@ static value bi_to_bin(value A) {
 	free(to);
 	return rv;
 }
-DEFINE_PRIM(bi_to_bin,1);
+DEFINE_PRIM(bi_to_mpi,1);
 
-/** BigEndian base 256 string -> R BigInteger where first char is 0 or 0x80 (-) **/
-static value bi_from_bin(value S) {
+
+/** BigEndian base 256 string -> R BigInteger where first char will have 0x80 set for negative **/
+static value bi_from_mpi(value S) {
 	val_check(S, string);
 	BIGNUM *bi = NULL;
 	int neg = 0;
@@ -571,19 +594,6 @@ static value bi_from_bin(value S) {
 	if(val_strlen(S) == 0)
 		return bi_ZERO();
 	const unsigned char *sp = (const unsigned char *)val_string(S);
-/*
-	if(val_strlen(S) > 1) {
-		bi = BN_bin2bn(sp+1, (int)val_strlen(S)-1, NULL);
-		if(bi == NULL)
-			THROW("b256 decode error");
-	}
-	else {
-		bi = BN_new();
-		BN_zero_ex(bi);
-	}
-	if(sp[0] & 0x80)
-		bi->neg = 1;
-*/
 	unsigned int slen = (unsigned int)val_strlen(S);
 	unsigned char *buf = (unsigned char *) malloc(slen + 4);
 	buf[0] = (slen >> 24) & 0xff;
@@ -599,7 +609,7 @@ static value bi_from_bin(value S) {
 	free(buf);
 	return bi_allocate(bi);
 }
-DEFINE_PRIM(bi_from_bin,1);
+DEFINE_PRIM(bi_from_mpi,1);
 
 /**
 	BigInteger A = (int)I

@@ -51,6 +51,8 @@ static value bi_to_decimal(value A);
 static value bi_from_decimal(value s);
 static value bi_to_bin(value A);
 static value bi_from_bin(value S);
+static value bi_to_mpi(value A);
+static value bi_from_mpi(value S);
 static value bi_from_int(value A, value I);
 static value bi_to_int(value A);
 // bitwise
