@@ -321,6 +321,29 @@ class RSAFunctions extends haxe.unit.TestCase {
 		assertEquals(msg,u.substr(u.length-msg.length));
 	}
 */
+
+#if neko
+	function testRsa128Generate() {
+		var num : Int = 10;
+		var bits : Int = 128;
+		var exp : String = "10001";
+		trace("Generating " + num +" " + bits + " bit RSA keys");
+		var msg = "Hello";
+		for(x in 0...num) {
+			var rsa:RSA = RSA.generate(bits, exp);
+			var e = rsa.encrypt(Bytes.ofString("Hello"));
+			if(e == null)
+				throw "e is null";
+			var u = rsa.decrypt(e);
+			if (u == null) {
+				trace(e);
+				trace(u);
+				throw "u is null";
+			}
+			assertEquals(msg, u.toString().substr(u.length-msg.length));
+		}
+	}
+#end
 }
 
 class CryptTest {
@@ -331,33 +354,6 @@ class CryptTest {
 			haxe.Firebug.redirectTraces();
 		}
 #end
-#if nekogg
-	//function testZGenerate() {
-		var num : Int = 10;
-		var bits : Int = 128;
-		var exp : String = "10001";
-		trace("Generating " + num +" " + bits + " bit RSA keys");
-		var msg = "Hello";
-		for(x in 0...num) {
-			var rsa:RSA = RSA.generate(bits, exp);
-			var e = rsa.encrypt("Hello");
-			if(e == null)
-				throw "e is null";
-			var u = rsa.decrypt(e);
-			if (u == null) {
-				trace(e);
-				trace(u);
-				throw "u is null";
-			}
-			if(msg != u.substr(u.length-msg.length)) {
-				throw "message mismatch";
-			}
-			//neko.Lib.print(".");
-		}
-		//neko.Lib.println("");
-	//}
-#end
-
 		var r = new haxe.unit.TestRunner();
 //		r.add(new PadFunctions());
 //

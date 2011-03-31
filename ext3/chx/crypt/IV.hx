@@ -76,12 +76,15 @@ class IV {
 	}
 
 	public function getIV() : Bytes {
-		// trace(here.methodName);
-		// trace("Cipher blockSize " + cipher.blockSize);
-		// trace("curValue: "  + curValue);
-		// trace("nextValue: " + nextValue);
-		// if(nextValue != null)
-		// trace(nextValue.length);
+		#if CAFFEINE_DEBUG
+		trace("Cipher blockSize " + cipher.blockSize);
+		if(curValue != null)
+			trace("curValue: "  + curValue.toHex()); 
+		if(nextValue != null) {
+			trace(nextValue.length);
+			trace("nextValue: " + nextValue.toHex());
+		}
+		#end
 		if(curValue == null) {
 			if(nextValue == null) {
 				var sb = new BytesBuffer();
@@ -121,13 +124,17 @@ class IV {
 		in preparation for next crypt function.
 	**/
 	function finishEncrypt( sb : Bytes ) : Bytes {
-		var buf : BytesBuffer = new BytesBuffer();
-		if(prepend)
+		var rv : Bytes = sb;
+		if(prepend) {
+			var buf : BytesBuffer = new BytesBuffer();
 			buf.add(getIV());
-		buf.add(sb);
-		// don't destroy before call to getIV!
+			buf.add(sb);
+			rv = buf.getBytes();
+		}
+		// don't destroy before call to getIV above
 		curValue = null;
-		return buf.getBytes();
+		//trace("Finished buffer: "+rv.toHex());
+		return rv;
 	}
 
 	function prepareDecrypt( s : Bytes ) : Bytes {

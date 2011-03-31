@@ -46,16 +46,17 @@ class ModeCBC extends IV, implements IMode {
 		var sb = new BytesBuffer();
 
 		var curIV = iv;
+		//trace("Starting IV: " + curIV.toHex());
 		for (i in 0...numBlocks) {
-			var sb2 = new BytesBuffer();
+			var tb = Bytes.alloc(cipher.blockSize);
 			for(x in 0...cipher.blockSize) {
 				var bc : Int = buf.get(offset + x);
 				var ic : Int = curIV.get(x);
-				sb2.addByte( bc ^ ic );
+				tb.set(x, bc ^ ic );
 			}
-			var outBuffer = cipher.encryptBlock(sb2.getBytes());
-			sb.add(outBuffer);
-			curIV = outBuffer;
+			var crypted = cipher.encryptBlock(tb);
+			sb.add(crypted);
+			curIV = crypted;
 			offset += cipher.blockSize;
 		}
 		return finishEncrypt(sb.getBytes());
@@ -72,11 +73,11 @@ class ModeCBC extends IV, implements IMode {
 
 		for (i in 0...numBlocks) {
 			var rv = cipher.decryptBlock(buf.sub(offset, bsize));
-			var sb2 = new BytesBuffer();
+			var tb = Bytes.alloc(bsize);
 			for(x in 0...cipher.blockSize) {
-				sb2.addByte( rv.get(x) ^ currentIV.get(x));
+				tb.set(x, rv.get(x) ^ currentIV.get(x));
 			}
-			sb.add(sb2.getBytes());
+			sb.add(tb);
 			currentIV = buf.sub(offset, cipher.blockSize);
 			offset += bsize;
 		}

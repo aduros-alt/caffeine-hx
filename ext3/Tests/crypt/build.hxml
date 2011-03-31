@@ -4,7 +4,8 @@
 -cp ../../
 -neko test.n
 -main CryptTest
-#-D CAFFEINE_DEBUG
+-D CAFFEINE_DEBUG
+-D nekogg
 -debug
 
 --next

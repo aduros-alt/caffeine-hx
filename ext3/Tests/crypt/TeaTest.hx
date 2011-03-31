@@ -51,7 +51,7 @@ class TeaTestFunctions extends haxe.unit.TestCase {
 		var t = new Tea(phrase);
 		var tea : IMode;
 		switch(mode) {
-		case CBC: tea = cast { var c = new ModeCBC(t); c.iv = BytesUtil.nullBytes(16); c; }
+		case CBC: tea = cast { var c = new ModeCBC(t); /*c.iv = BytesUtil.nullBytes(16);*/ c; }
 		case ECB: tea = cast new ModeECB(t);
 		}
 		var enc = tea.encrypt(msg);
