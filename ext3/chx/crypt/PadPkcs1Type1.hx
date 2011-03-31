@@ -58,7 +58,11 @@ class PadPkcs1Type1 implements IPad {
 		sb.addByte(0);
 		sb.add(s);
 
-		return sb.getBytes();
+		var rv = sb.getBytes();
+		#if CAFFEINE_DEBUG
+		trace("==Padded: " + BytesUtil.hexDump(rv));
+		#end
+		return rv;
 	}
 
 	public function unpad( s : Bytes ) : Bytes {
@@ -67,7 +71,7 @@ class PadPkcs1Type1 implements IPad {
 		// unpad.
 		var i : Int = 0;
 		#if CAFFEINE_DEBUG
-		trace(BytesUtil.hexDump(s));
+		trace("==Unpadding Padded: " + BytesUtil.hexDump(s));
 		#end
 		var sb = new BytesBuffer();
 		while(i < s.length) {
@@ -89,7 +93,7 @@ class PadPkcs1Type1 implements IPad {
 	}
 
 	public function calcNumBlocks(len : Int) : Int {
-		return Math.ceil(len/blockSize);
+		return Math.ceil(len/textSize);
 	}
 
 	/** pads by block? **/

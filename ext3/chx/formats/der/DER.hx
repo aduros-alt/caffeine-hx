@@ -99,7 +99,7 @@ class DER {
 				len = (len<<8) | der.readUInt8();
 				count--;
 				#if CAFFEINE_DEBUG
-				trace("len: 0x" + StringTools.hex(len));
+				trace(indent + "len: 0x" + StringTools.hex(len));
 				#end
 			}
 		}
@@ -145,7 +145,7 @@ class DER {
 					var wantConstructed:Bool = Std.is(tmpStruct.value, Array);
 					var isConstructed:Bool = isConstructedType(der);
 					#if CAFFEINE_DEBUG
-					trace("Checking " + tmpStruct.name + " " + ((wantConstructed == isConstructed)?"matched":"not equal"));
+					trace(indent + "Checking " + tmpStruct.name + " " + ((wantConstructed == isConstructed)?"matched":"not equal"));
 					#end
 					if (wantConstructed != isConstructed) {
 						// not found. put default stuff, or null
@@ -162,7 +162,7 @@ class DER {
 					var name:String = tmpStruct.name;
 					var value:Dynamic = tmpStruct.value;
 					#if CAFFEINE_DEBUG
-					trace("Found object '" + name + "'. " + (tmpStruct.extract?"Must extract":"No data to extract"));
+					trace(indent + "Found object '" + name + "'. " + (tmpStruct.extract?"Must extract":"No data to extract"));
 					#end
 					// do we need to keep a binary copy of this element
 					if (tmpStruct.extract) {
@@ -172,15 +172,12 @@ class DER {
 						ba.writeBytes(der, der.position, size);
 						o.setKey(name+"_bin", ba);
 */
-						var vo = der.peek();
 						var op:Int = der.position;
 						var size:Int = getLengthOfNextElement(der);
 						var buf:Bytes = Bytes.alloc(size);
 						//der.readBytes(buf, 0, size);
 						o.setKey(name+"_bin", buf);
 						der.position = op;
-						if(vo != der.peek() || der.position != op)
-							throw "Access error";
 					}
 					var obj:IAsn1Type = DER.parse(der, value);
 					o.push(obj);
@@ -224,7 +221,11 @@ class DER {
 			#end
 			b = Bytes.alloc(len);
 			der.readBytes(b,0,len);
-			return new Integer(type, len, b);
+			var bi = new Integer(type, len, b);
+			#if CAFFEINE_DEBUG
+			trace(indent + "  " + bi.toHex());
+			#end
+			return bi;
 		case 0x06: // OBJECT IDENTIFIER:
 			b = Bytes.alloc(len);
 			der.readBytes(b,0,len);
@@ -233,30 +234,11 @@ class DER {
 			trace(indent + " OID " + oi.toString());
 			#end
 			return oi;
-		default: // 0x03, 0x04: // BIT STRING, OCTET STRING
-			// see case 0x03, 0x04
-			if(type != 0x03 && type != 0x04) {
-				trace(indent + "Cannot process DER TYPE "+type + " at position " + der.position);
-			}
-			if (type != 0x04 && der.peek() == 0) {
-				//trace("Horrible Bit String pre-padding removal hack.");
-				// I wish I had the patience to find a spec for this.
-				der.position++;
-				len--;
-			}
-			// stuff in a ByteString for now.
-			var bs:DERByteString = new DERByteString(type, len);
-			der.readBytes(bs,0,len);
-			#if CAFFEINE_DEBUG
-			trace(indent + bs.toHex(":"));
-			#end
-			return bs;
 		case 0x05: // NULL
 			#if CAFFEINE_DEBUG
 			trace(indent + "NULL TYPE");
 			#end
-			// if len!=0, something's horribly wrong.
-			if(len != 0)
+			if(len != 0) // if len!=0, something's horribly wrong.
 				throw "unexpected length: type 0x05";
 			return null;
 		case 0x13: // PrintableString
@@ -291,6 +273,23 @@ class DER {
 			trace(ut.toString());
 			#end
 			return ut;
+		default: // 0x03, 0x04: // BIT STRING, OCTET STRING
+			if(type != 0x03 && type != 0x04) {
+				trace(indent + "Cannot process DER TYPE "+type + " at position " + der.position);
+			}
+			if (type != 0x04 && der.peek() == 0) {
+				//trace("Horrible Bit String pre-padding removal hack.");
+				// I wish I had the patience to find a spec for this.
+				der.position++;
+				len--;
+			}
+			// stuff in a ByteString for now.
+			var bs:DERByteString = new DERByteString(type, len);
+			der.readBytes(bs,0,len);
+			#if CAFFEINE_DEBUG
+			trace(indent + bs.toHex(":"));
+			#end
+			return bs;
 		}
 	}
 

@@ -47,7 +47,17 @@ class RSAEncrypt implements IBlockCipher {
 	public var e : Int;
 	public var blockSize(__getBlockSize,null) : Int;
 
-	public function new(?nHex:String,?eHex:String) {
+	public function new(nHex:String,eHex:String) {
+		#if CAFFEINE_DEBUG
+		if(nHex != null && !Std.is(nHex, String)) {
+			trace(Type.getClassName(Type.getClass(nHex)));
+			throw "Arg ";
+		}
+		if(eHex != null && !Std.is(eHex, String)) {
+			trace(Type.getClassName(Type.getClass(eHex)));
+			throw "Arg "; 
+		}
+		#end
 		this.n = null;
 		this.e = 0;
 		if(nHex != null)
@@ -86,30 +96,37 @@ class RSAEncrypt implements IBlockCipher {
 		if(block.length != bsize)
 			throw("bad block size");
 
-		var biv:BigInteger = BigInteger.ofBytes(block);
-// 		trace("BI of Block: " + biv.toRadix(16));
+		var biv:BigInteger = BigInteger.ofBytes(block, true);
+// 		trace("BI of Block: " + biv.toHex());
 // 		trace("e: " + StringTools.hex(e));
-// 		trace("n: " + n.toRadix(16));
+// 		trace("n: " + n.toHex());
 // 		trace(n.bitLength());
-		var biRes = doPublic(biv);
-// 		trace("result: " + biRes.toRadix(16));
-		var ba = biRes.toIntArray();
+		var biRes = doPublic(biv).toBytesUnsigned();
+// 		trace("result: " + biRes.toHex());
 // 		trace(ba);
 
-		while(ba.length > bsize) {
-			if(ba[0] == 0)
-				ba.shift();
-			else {
-				trace(BytesUtil.hexDump(BytesUtil.ofIntArray(ba)));
-				throw("encoded length was "+ba.length);
+		var l = biRes.length;
+		var i = 0;
+		while(l > bsize) {
+			if(biRes.get(i) != 0) {
+				//trace(BytesUtil.hexDump(BytesUtil.ofIntArray(ba)));
+				throw new chx.lang.FatalException("encoded length was "+biRes.length);
 			}
+			i++; l--;
 		}
-		while(ba.length < bsize)
-			ba.unshift(0); // = Std.chr(0) + buf;
+		if(i != 0) {
+			biRes = biRes.sub(i, l);
+		}
 
-		var rv = BytesUtil.ofIntArray(ba);
-		trace(BytesUtil.hexDump(rv));
-		return rv;
+		if(biRes.length < bsize) {
+			var bb = new BytesBuffer();
+			l = bsize - biRes.length;
+			for(i in 0...l)
+				bb.addByte(0);
+			bb.addBytes(biRes, 0, biRes.length);
+			biRes = bb.getBytes();
+		}
+		return biRes;
 	}
 
 	/**
@@ -130,18 +147,20 @@ class RSAEncrypt implements IBlockCipher {
 	* from hex strings.
 	**/
 	public function setPublic(nHex : String, eHex:String) : Void {
-		try {
-			if(nHex == null || eHex == null || nHex.length == 0 || eHex.length == 0)
-				throw 1;
+		if(nHex == null || nHex.length == 0)
+			throw new chx.lang.NullPointerException("nHex not set: " + nHex);
+		if(eHex == null || eHex.length == 0)
+			throw new chx.lang.NullPointerException("eHex not set: " + eHex);
+		//try {
 			var s : String = BytesUtil.cleanHexFormat(nHex);
 			n = BigInteger.ofString(s, 16);
 			if(n == null) throw 2;
 			var ie : Null<Int> = Std.parseInt("0x" +  BytesUtil.cleanHexFormat(eHex));
 			if(ie == null || ie == 0) throw 3;
 			e = ie;
-		}
-		catch(e:Dynamic)
-			throw("Invalid RSA public key: " + e);
+		//}
+		//catch(e:Dynamic)
+		//	throw("Invalid RSA public key: " + e);
 	}
 
 	/**
@@ -150,8 +169,8 @@ class RSAEncrypt implements IBlockCipher {
 	* @todo http://www.imc.org/ietf-openpgp/mail-archive/msg14307.html
 	* @todo verify implementation
 	**/
-	public function verify( text : Bytes ) : Bytes {
-		return doBufferDecrypt(text, doPublic, new PadPkcs1Type1(blockSize));
+	public function verify( data : Bytes ) : Bytes {
+		return doBufferDecrypt(data, doPublic, new PadPkcs1Type1(blockSize));
 	}
 
 
@@ -159,31 +178,43 @@ class RSAEncrypt implements IBlockCipher {
 	//               Private                        //
 	//////////////////////////////////////////////////
 	/**
-	* Encrypts a hex string to a hex string
+	* Encrypts a bytes buffer
 	*
-	* @param src Input hex string
+	* @param src Input bytes
 	* @param f Callback for encryption
 	* @param pf Padding method
 	**/
 	private function doBufferEncrypt(src:Bytes, f : BigInteger->BigInteger, pf : IPad) : Bytes
 	{
-		//trace("source: " + src);
+		//trace("source: " + src.toHex());
 		var bs = blockSize;
 		var ts : Int = bs - 11;
+		#if CAFFEINE_DEBUG
+		trace(">>>> Encrypting. Blocksize is "+bs + " src length:"+src.length + "["+src.toHex()+"]");
+		#end
 		var idx : Int = 0;
 		var msg = new BytesBuffer();
 		while(idx < src.length) {
 			if(idx + ts > src.length)
 				ts = src.length - idx;
-			var m:BigInteger = BigInteger.ofBytes(pf.pad(src.sub(idx,ts)) );
-			//trace("padded: " + m.toRadix(16).toString());
+			var m:BigInteger = BigInteger.ofBytes(pf.pad(src.sub(idx,ts)), true);
+			//trace("padded: " + m.toHex());
 			if(m == null) return null;
 			var c:BigInteger = f(m);
 			if(c == null) return null;
-			var h = c.toRadix(256);
+			#if CAFFEINE_DEBUG
+			var d = m.toBytesUnsigned();
+			var e = c.toBytesUnsigned();
+			trace("m len " + d.length + " "+d.toHex(":"));
+			trace("c len " + e.length + " "+e.toHex(":"));
+			#end
+			var h = c.toBytesUnsigned();
+			//var
 			if((h.length & 1) != 0)
 				msg.addByte( 0 );
-			//trace("crypted: " + h.toString());
+			#if CAFFEINE_DEBUG
+			trace(">>>> crypted ("+h.length+"): " + h.toHex());
+			#end
 			msg.add(h);
 			idx += ts;
 		}
@@ -192,19 +223,23 @@ class RSAEncrypt implements IBlockCipher {
 
 	private function doBufferDecrypt(src: Bytes, f : BigInteger->BigInteger, pf : IPad) : Bytes
 	{
+		//trace("source: " + src.toHex());
 		var bs = blockSize;
-		bs *= 2; // hex string, 2 bytes per char
+		//bs *= 2; // hex string, 2 bytes per char
 		var ts : Int = bs - 11;
+		#if CAFFEINE_DEBUG
+		trace(">>>> Decrypting. Blocksize is "+bs + " src length:"+src.length + "["+src.toHex()+"]");
+		#end
 		var idx : Int = 0;
 		var msg = new BytesBuffer();
 		while(idx < src.length) {
 			if(idx + bs > src.length)
 				bs = src.length - idx;
-			var c : BigInteger = BigInteger.ofBytes(src.sub(idx,bs));
+			var c : BigInteger = BigInteger.ofBytes(src.sub(idx,bs), true);
 			var m = f(c);
 			if(m == null)
 				return null;
-			var up : Bytes = pf.unpad(m.toRadix(256));
+			var up : Bytes = pf.unpad(m.toBytesUnsigned());
 			if(up.length > ts)
 				throw "block text length error";
 			msg.add(up);
@@ -235,8 +270,8 @@ class RSAEncrypt implements IBlockCipher {
 	public function toString() {
 		var sb = new StringBuf();
 		sb.add("Public:\n");
-		sb.add("N:\t" + n.toRadix(16).toString() + "\n");
-		sb.add("E:\t" + BigInteger.ofInt(e).toRadix(16).toString() + "\n");
+		sb.add("N:\t" + n.toHex() + "\n");
+		sb.add("E:\t" + BigInteger.ofInt(e).toHex() + "\n");
 		return sb.toString();
 	}
 }

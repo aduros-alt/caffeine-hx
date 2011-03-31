@@ -28,10 +28,7 @@
 /*
  * Derived from AS3 implementation Copyright (c) 2007 Henri Torgemane
  */
-/**
- * X509Certificate
- *
- **/
+
 package chx.crypt.cert;
 
 import chx.hash.IHash;
@@ -52,6 +49,10 @@ import chx.formats.der.PrintableString;
 import chx.formats.der.Sequence;
 import chx.formats.der.Types;
 
+/**
+ * X509Certificate
+ *
+ **/
 class X509Certificate {
 
 	private var _loaded:Bool;
@@ -109,7 +110,6 @@ class X509Certificate {
 	**/
 	public function isSelfSigned():Bool {
 		load();
-
 		var key:RSAEncrypt = getPublicKey();
 		return verifyCertificate(key);
 	}
@@ -120,6 +120,7 @@ class X509Certificate {
 		of CA's, use isSigned()
 	**/
 	public function verifyCertificate(key:RSAEncrypt):Bool {
+		load();
 		var algo:String = getAlgorithmIdentifier();
 		var fHash:IHash;
 		var oid:String;
@@ -201,8 +202,8 @@ class X509Certificate {
 		var pk:Bytes = cast o;
 		//pk.position = 0;
 		var rsaKey:Dynamic = DER.read(pk, cast [{name:"N"},{name:"E"}]);
-		var n : String = rsaKey.getKey("N").toRadix(16);
-		var e : String = rsaKey.getKey("E").toRadix(16);
+		var n : String = rsaKey.getKey("N").toHex();
+		var e : String = rsaKey.getKey("E").toHex();
 		return new RSAEncrypt(n, e);
 	}
 
@@ -233,6 +234,7 @@ class X509Certificate {
 	}
 
 	public function getAlgorithmIdentifier():String {
+		load();
 		return _obj.getKey("algorithmIdentifier").getKey("algorithmId").toString();
 	}
 
@@ -240,6 +242,7 @@ class X509Certificate {
 		Returns the starting date for a cert.
 	**/
 	public function getNotBefore():Date {
+		load();
 		return _obj.getKey("signedCertificate").getKey("validity").getKey("notBefore").getKey("date");
 	}
 
@@ -247,15 +250,18 @@ class X509Certificate {
 		Returns the expiry date of a cert.
 	**/
 	public function getNotAfter():Date {
+		load();
 		return _obj.getKey("signedCertificate").getKey("validity").getKey("notAfter").getKey("date");
 	}
 
 	public function getCommonName():String {
+		load();
 		var subject:Sequence = cast _obj.getKey("signedCertificate").getKey("subject");
+		if(subject == null) throw "No subject";
 		var ps : PrintableString = null;
-		try {
+		//try {
 			ps = cast subject.findAttributeValue(OID.COMMON_NAME);
-		} catch(e:Dynamic) {}
+		//} catch(e:Dynamic) {}
 		if(ps == null)
 			return null;
 		return ps.getString();

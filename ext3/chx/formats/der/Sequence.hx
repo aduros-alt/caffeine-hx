@@ -97,6 +97,7 @@ class Sequence implements IAsn1Type, implements IContainer
 	/////////
 
 	public function findAttributeValue(oid:String):IAsn1Type {
+trace("Searching for " + oid);
 		for(set in _buf) {
 			if ( Std.is(set, Set) ) {
 				var child:IAsn1Type = set.get(0);
@@ -105,6 +106,7 @@ class Sequence implements IAsn1Type, implements IContainer
 					var tmp:IAsn1Type = sc.get(0);
 					if ( Std.is(tmp, ObjectIdentifier)) {
 						var id:ObjectIdentifier = cast tmp;
+trace("Found " + id);
 						if (id.toString()==oid) {
 							return sc.get(1);
 						}

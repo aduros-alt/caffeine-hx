@@ -4,6 +4,7 @@ import chx.crypt.ModeCBC;
 import chx.crypt.IMode;
 import chx.crypt.RSA;
 import chx.crypt.PadPkcs1Type1;
+import chx.crypt.PadPkcs1Type2;
 
 enum CryptMode {
 	CBC;
@@ -150,7 +151,7 @@ class AesTestFunctions extends haxe.unit.TestCase {
 
 
 class PadFunctions extends haxe.unit.TestCase {
-	function testPkcs1() {
+	function testPkcs1Type1() {
 		var msg = Bytes.ofString("Hello");
 		var padWith : Int = 0xFF; // Std.ord("A")
 		var pad = new PadPkcs1Type1(16);
@@ -172,9 +173,24 @@ class PadFunctions extends haxe.unit.TestCase {
 
 		var res = sb.getBytes();
 		assertEquals(16, res.length);
-
+		//trace(res.toHex());
 		assertTrue(BytesUtil.eq(s, res));
 		assertTrue(BytesUtil.eq(pad.unpad(s), msg));
+	}
+
+	function testPkcs1Type2() {
+		var msg = Bytes.ofString("Hello");
+		var padWith : Int = 0xFF; // Std.ord("A")
+		var pad = new PadPkcs1Type2(16);
+		pad.padByte = padWith;
+
+		var s = pad.pad(msg);
+		assertEquals(16, s.length);
+
+		//trace(s.toHex());
+		var rv : Bytes = pad.unpad(s);
+		trace(rv.toString());
+		assertTrue(BytesUtil.eq(rv, msg));
 	}
 }
 
@@ -197,28 +213,24 @@ class RSAFunctions extends haxe.unit.TestCase {
 	static var coefficient:String = "48:ba:40:c3:e7:ce:91:1c:c5:51:3b:e1:3c:72:31:12:07:1b:20:5e:c2:2d:c6:d2:7c:68:62:85:3b:95:4a:49:86:fa:23:fa:ed:24:e9:40:4e:04:56:f9:4a:f2:48:4e:39:ca:05:75:a5:11:5f:5e:d3:c1:36:bd:fa:71:b5:19";
 
 
-/*
+
 	function test0() {
+		//trace('===== test0 =====');
 		var r = new RSA(modulus, publicExponent, privateExponent);
 		//r.setPrivateEx(modulus, publicExponent,privateExponent,prime1,prime2,null,null,coefficient);
-#if neko
-		for(s in AesTestFunctions.msgs) {
-#else true
-		var s = AesTestFunctions.msgs[0];
-#end
-			var e = r.encrypt(s);
-			//trace(BytesUtil.hexDump(e));
+
+		for(s in CommonData.msgs) {
+			var e = r.encrypt(Bytes.ofString(s));
 			var u = r.decrypt(e);
-			assertTrue(u == s);
-#if neko
+			assertTrue(u.toString() == s);
+			// expensive and slow, RSA will timeout flash or JS
+			#if flash break; #end
 		}
-#end
 	}
-*/
-/*
-	function test1() {
+
+	function testECB() {
 		var s = "Message";
-		var r = new RSA(modulus, exp, pexp);
+		var r = new RSA(modulus, publicExponent, privateExponent);
 // trace('');
 // var te = t.encryptBlock( s );
 // trace("Hex dump");
@@ -229,28 +241,50 @@ class RSAFunctions extends haxe.unit.TestCase {
 // trace("Hex dump");
 // trace(BytesUtil.hexDump(td));
 		var rsa = new ModeECB( r, new PadPkcs1Type1(r.blockSize) );
-		for(s in AesTestFunctions.msgs) {
-			var e = rsa.encrypt(s);
+		for(s in CommonData.msgs) {
+			//trace(s);
+			//trace(s.length);
+			var e = rsa.encrypt(Bytes.ofString(s));
+			//trace(e.length);
 			var u = rsa.decrypt(e);
-			assertTrue(u == s);
+			//trace(u.toString());
+			assertTrue(u.toString() == s);
+			// expensive and slow, RSA will timeout flash or JS
+			#if flash break; #end
 		}
 	}
-*/
+
+	function testCBC() {
+		var s = "Message";
+		var r = new RSA(modulus, publicExponent, privateExponent);
+		var rsa = new ModeCBC( r, new PadPkcs1Type1(r.blockSize) );
+		for(s in CommonData.msgs) {
+			trace(s);
+			trace(s.length);
+			var e = rsa.encrypt(Bytes.ofString(s));
+			trace(e.length);
+			var u = rsa.decrypt(e);
+			trace(u.toString());
+			assertTrue(u.toString() == s);
+			// expensive and slow, RSA will timeout flash or JS
+			#if flash break; #end
+		}
+	}
+
+
 
 	function test02() {
-//trace(here.methodName);
 		var msg = "Hello";
 		var rsa:RSA = RSA.generate(512, "3");
-trace(rsa);
-//		var e = rsa.encrypt(msg);
-//		var u = rsa.decrypt(e);
-//		assertEquals(msg,u);
+		//trace(rsa);
+		var e = rsa.encrypt(Bytes.ofString(msg));
+		var u = rsa.decrypt(e);
+		assertEquals(msg,u.toString());
 		assertEquals(true, true);
 	}
 
-/*
+
 	function test03() {
-trace(here.methodName);
 		var msg = "Hello";
 		// { dmp1 => 3, dmq1 => 3, coeff => 3e5323aa1e3c5ac2860f6b389d08d885, d => 7911b7cc5b6501e30c69945bce1ffe3fe21e66ee5d4c6a77297904d2e1daeb23, e => 3, n => b59a93b2891782d4929e5e89b52ffd61852704c3ee7b15643ffe53910d3bad19, p => f155e239a68fb5a0208e2abe6787d1d7, q => c0a38824bbf8c011613aa19652eb7a8f }
 
@@ -267,14 +301,14 @@ trace(here.methodName);
 
 		var rsa = new RSA();
 		rsa.setPrivateEx(n, e,d, p, q, null, null, coeff);
-trace(rsa);
+		//trace(rsa);
 
-		var e = rsa.encrypt(msg);
+		var e = rsa.encrypt(Bytes.ofString(msg));
 		var u = rsa.decrypt(e);
-		assertEquals(msg,u);
+		assertEquals(msg,u.toString());
 
 	}
-*/
+
 /*
 	// this is a 1024bit key
 	function test3() {
@@ -325,7 +359,7 @@ class CryptTest {
 #end
 
 		var r = new haxe.unit.TestRunner();
-// 		r.add(new PadFunctions());
+//		r.add(new PadFunctions());
 //
 // 		r.add(new I32Functions());
 // 		r.add(new AesTestFunctions());

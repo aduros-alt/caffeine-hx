@@ -174,8 +174,9 @@ class BigInteger {
 	}
 
 	/**
-		convert to bigendian Int array
-	**/
+	 * convert to bigendian Int array
+	 * @deprecated Use toBytes
+	 **
 	public function toIntArray() : Array<Int> {
 		#if (neko || cpp)
 			var i = toRadix(256);
@@ -214,6 +215,7 @@ class BigInteger {
 			return r;
 		#end
 	}
+	**/
 
 	//////////////////////////////////////////////////////////////
 	//            String conversion methods                     //
@@ -233,39 +235,118 @@ class BigInteger {
 	}
 
 	/**
-		Return Bytes. Convenience wrapper for toRadix(256)
-	**/
+	 * Return signed bigendian Bytes.
+	 **/
 	public function toBytes() : Bytes {
-		return toRadix(256);
+		#if (neko || cpp)
+			return Bytes.ofData(cast bi_to_mpi(_hnd));
+		#else
+			var i:Int = t;
+			var r:Array<Int> = new Array();
+			r[0] = sign;
+			var p:Int = DB-(i*DB)%8;
+			var d:Int;
+			var k:Int=0;
+			if (i-->0) {
+				if (p<DB && (d=chunks[i]>>p)!=(sign&DM)>>p) {
+					r[k] = d|(sign<<(DB-p));
+					k++;
+				}
+				while (i>=0) {
+					if(p < 8) {
+						d = (chunks[i]&((1<<p)-1))<<(8-p);
+						--i;
+						d |= chunks[i]>>(p+=DB-8);
+					} else {
+						d = (chunks[i]>>(p-=8))&0xff;
+						if (p<=0) {
+							p += DB;
+							--i;
+						}
+					}
+					if ((d&0x80)!=0) d |=-256;
+					if (k==0 && (sign&0x80) != (d&0x80)) ++k;
+					if (k>0 || d!=sign) { r[k] = d; k++; }
+				}
+			}
+			var bb = new BytesBuffer();
+			for(i in 0...r.length) {
+				bb.addByte(r[i]);
+			}
+			return bb.getBytes();
+		#end
 	}
 
 	/**
-	* Return bytes representation in given radix.
-	* This function handles radix values 2-36 and 256.
-	* In radix 256, the first byte is either 0x00 for
-	* a positive number, or 0x80 for a negative value.
+	* Returns a bigendian bytes with no sign
 	**/
-	public function toRadix(b : Int) : Bytes {
-		var bb = new BytesBuffer();
-		bb.addByte(0);
-		bb.addByte(0);
-		var zero = bb.getBytes();
-		/*
-		* convert to radix string, handles any base 2-36
-		*/
-		var toRadixExt = function(bi:BigInteger, ?b : Int) : Bytes {
-			if(b < 2 || b > 36) {
-				throw("invalid base for conversion");
+	public function toBytesUnsigned():Bytes {
+		#if (neko || cpp)
+			return Bytes.ofData(cast bi_to_bin(_hnd));
+		#else
+			var bb:BytesBuffer = new BytesBuffer();
+			var k:Int = 8;
+			var km:Int = (1<<8)-1;
+			var d:Int = 0;
+			var i:Int = t;
+			var p:Int = DB-(i*DB)%k;
+			var m:Bool = false;
+			var c:Int = 0;
+			if (i-->0) {
+					if (p<DB && (d=chunks[i]>>p)>0) {
+							m = true;
+							bb.writeByte(d);
+							c++;
+					}
+					while (i >= 0) {
+							if (p<k) {
+									d = (chunks[i]&((1<<p)-1))<<(k-p);
+									d|= chunks[--i]>>(p+=DB-k);
+							} else {
+									d = (chunks[i]>>(p-=k))&km;
+									if (p<=0) {
+											p += DB;
+											--i;
+									}
+							}
+							if (d>0) {
+									m = true;
+							}
+							if (m) {
+									bb.addByte(d);
+									c++;
+							}
+					}
 			}
-			if(bi.sigNum() == 0) return zero;
-			if(b == null) b = 10;
+			return bb.getBytes();
+		#end
+	}
+
+	/**
+	 * Convert to base 10 or 16 (2 through 36 in flash or JS)
+	 * @param b Base to encode to
+	 * @returns signed string
+	 **/
+	public function toRadix(b : Int=10) : String {
+		if(b < 2 || b > 36) {
+			throw new chx.lang.UnsupportedException("invalid base for conversion");
+		}
+		if(sigNum() == 0) return "0";
+		#if (neko || cpp)
+			switch(b) {
+			case 10: return new String(bi_to_decimal(_hnd));
+			case 16: return new String(bi_to_hex(_hnd)).toLowerCase();
+			//case 256: return new String(bi_to_mpi(_hnd));
+			}
+			throw "conversion to base "+b+" not yet supported";
+		#else
 			var cs: Int = Math.floor(0.6931471805599453*DB/Math.log(b));
 			var a:Int = Std.int(Math.pow(b,cs));
 			var d:BigInteger = nbv(a);
 			var y:BigInteger = nbi();
 			var z:BigInteger = nbi();
 			var r:String = "";
-			bi.divRemTo(d,y,z);
+			divRemTo(d,y,z);
 			while(y.sigNum() > 0) {
 				r = I32.baseEncode(
 						I32.add(
@@ -274,27 +355,26 @@ class BigInteger {
 						), b).substr(1) + r;
 				y.divRemTo(d,y,z);
 			}
-			return Bytes.ofString(I32.baseEncode(z.toInt32(), b) + r);
-		}
+			return I32.baseEncode(z.toInt32(), b) + r;
+		#end
+	}
 
+	/**
+	* Return bytes representation in given radix.
+	* This function handles radix values 2, 4, 8, 32.
+	**
+	public function toRadix(b : Int) : String {
+		/*
+		* convert to radix string, handles any base 2-36
+		*
 		if((b < 2 || b > 36) && b != 256) {
 			throw("invalid base for conversion");
-		}
-		if(sigNum() == 0) {
-			var rv = new BytesBuffer();
-			if(b == 256) {
-				rv.addByte(0);
-				rv.addByte(0);
-			}
-			else
-				rv.addByte("0".charCodeAt(0));
-			return rv.getBytes();
 		}
 		#if (neko || cpp)
 			switch(b) {
 			case 10: return Bytes.ofData(cast bi_to_decimal(_hnd));
 			case 16: return Bytes.ofString(new String(bi_to_hex(_hnd)).toLowerCase() );
-			case 256: return Bytes.ofData(cast bi_to_bin(_hnd));
+			case 256: return Bytes.ofData(cast bi_to_mpi(_hnd));
 			}
 			throw "conversion to base "+b+" not yet supported";
 		#else
@@ -344,7 +424,7 @@ class BigInteger {
 			}
 			return m ? r.getBytes() : zero;
 		#end
-	}
+	}*/
 
 
 	//////////////////////////////////////////////////////////////
@@ -1750,16 +1830,23 @@ class BigInteger {
 	*/
 
 	/**
-	* Construct from a bigendian byte array in base 256. First byte high bit, if set,
+	* Construct from a bigendian byte array in base 256. If signed, first byte high bit, if set,
 	* indicates a negative number.
+	* @param r Base 256 bytes
+	* @param unsigned True to treat buffer as an unsigned array
+	* @param pos Starting position of start buffer.
+	* @param len Length of buffer to use. Set to null to use all remaining
 	**/
-	public static function ofBytes(r:Bytes, pos:Int=0, len:Null<Int>=null) : BigInteger {
+	public static function ofBytes(r:Bytes, unsigned:Bool, pos:Int=0, len:Null<Int>=null) : BigInteger {
 		if(len == null)
 			len = r.length - pos;
 		if(len == 0)
 			return ZERO;
 		#if (neko || cpp)
-			return hndToBigInt(bi_from_bin(r.sub(pos,len).getData()));
+			if(unsigned)
+				return hndToBigInt(bi_from_bin(r.sub(pos,len).getData()));
+			else
+				return hndToBigInt(bi_from_mpi(r.sub(pos,len).getData()));
 		#else
 			var bi : BigInteger = nbi();
 			bi.sign = 0;
@@ -1784,7 +1871,7 @@ class BigInteger {
 				if (sh >= DB)
 					sh -= DB;
 			}
-			if((r.get(0) & 0x80) != 0) {
+			if(!unsigned && (r.get(0) & 0x80) != 0) {
 				bi.sign = -1;
 				if(sh > 0) bi.chunks[bi.t-1] |= ((1<<(DB-sh))-1)<<sh;
 			}
@@ -1793,6 +1880,7 @@ class BigInteger {
 		#end
 	}
 
+	/** deprecated
 	public static function ofIntArray(a:Array<Int>, ?pos:Int, ?len:Int) {
 		if(pos == null)
 			pos = 0;
@@ -1813,6 +1901,7 @@ class BigInteger {
 		}
 		return ofBytes(bb.getBytes(), 0, len);
 	}
+	**/
 
 	/**
 		Generate a random BigInteger of 'bits' length
@@ -1985,6 +2074,8 @@ class BigInteger {
 	private static var bi_from_decimal=neko.Lib.load("openssl","bi_from_decimal",1);
 	private static var bi_to_bin=neko.Lib.load("openssl","bi_to_bin",1);
 	private static var bi_from_bin=neko.Lib.load("openssl","bi_from_bin",1);
+	private static var bi_to_mpi=neko.Lib.load("openssl","bi_to_mpi",1);
+	private static var bi_from_mpi=neko.Lib.load("openssl","bi_from_mpi",1);
 	private static var bi_from_int=neko.Lib.load("openssl","bi_from_int",2);
 	private static var bi_from_int32=neko.Lib.load("openssl","bi_from_int32",2);
 	private static var bi_to_int=neko.Lib.load("openssl","bi_to_int",1);

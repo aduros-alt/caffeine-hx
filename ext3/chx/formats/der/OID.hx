@@ -41,6 +41,7 @@ class OID
 	public static var MD2_WITH_RSA_ENCRYPTION:String	= "1.2.840.113549.1.1.2";
 	public static var MD5_WITH_RSA_ENCRYPTION:String 	= "1.2.840.113549.1.1.4";
 	public static var SHA1_WITH_RSA_ENCRYPTION:String	= "1.2.840.113549.1.1.5";
+	public static var EMAIL_ADDRESS:String				= "1.2.840.113549.1.9.1";
 	public static var MD2_ALGORITHM:String 				= "1.2.840.113549.2.2";
 	public static var MD5_ALGORITHM:String				= "1.2.840.113549.2.5";
 	public static var DSA:String						= "1.2.840.10040.4.1";

@@ -97,7 +97,6 @@ class BytesUtil {
 	* @return compacted hexadecimal string, with no leading 0x
 	**/
 	public static function cleanHexFormat(hex : String) : String {
-
 		var e : String = StringTools.replace(hex, ":", "");
 		e = e.split("|").join("");
 #if (neko || flash9 || js)

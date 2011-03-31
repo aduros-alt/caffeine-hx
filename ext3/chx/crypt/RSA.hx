@@ -45,16 +45,26 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 	public var dmq1 : BigInteger;
 	public var coeff: BigInteger;
 
-	public function new(?N:String,?E:String,?D:String) {
+	public function new(nHex:String=null,eHex:String=null,dHex:String=null) {
 		super(null,null);
+		#if CAFFEINE_DEBUG
+		if(nHex != null && !Std.is(nHex, String)) {
+			trace(Type.getClassName(Type.getClass(nHex)));
+			throw "Arg";
+		}
+		if(eHex != null && !Std.is(eHex, String)) {
+			trace(Type.getClassName(Type.getClass(eHex)));
+			throw "Arg";
+		}
+		#end
 		this.d = null;		// private exponent
 		this.p = null;		// prime 1
 		this.q = null;		// prime 2
 		this.dmp1 = null;	// d % (p-1)
 		this.dmq1 = null;	// d % (q -1)
 		this.coeff = null;
-		if(N != null)
-			setPrivate(N,E,D);
+		if(nHex != null)
+			setPrivate(nHex,eHex,dHex);
 	}
 
 	/**
@@ -67,22 +77,22 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 	}
 
 	/**
-	* @todo Double check that enc is sign byted, if there are errors here
+	* 
 	**/
 	override public function decryptBlock( enc : Bytes ) : Bytes {
-		var c : BigInteger = BigInteger.ofBytes(enc);
+		var c : BigInteger = BigInteger.ofBytes(enc, true);
 		var m : BigInteger = doPrivate(c);
 		if(m == null)
 			throw "doPrivate error";
 
 		// the encrypted block is a BigInteger, so any leading
 		// 0's will have been truncated. Push them back in.
-		var ba = m.toBytes();
+		var ba = m.toBytesUnsigned();
 		if(ba.length < blockSize) {
 			var b2 = Bytes.alloc(blockSize);
-			for(i in 0...blockSize)
+			for(i in 0...blockSize - ba.length + 1)
 				b2.set(i, 0);
-			b2.blit(ba.length - blockSize, ba, 0, ba.length);
+			b2.blit(blockSize - ba.length, ba, 0, ba.length);
 			ba = b2;
 		}
 		else {
@@ -262,12 +272,12 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 		var sb = new StringBuf();
 		sb.add(super.toString());
 		sb.add("Private:\n");
-		sb.add("D:\t" + d.toRadix(16) + "\n");
-		sb.add("P:\t" + p.toRadix(16) + "\n");
-		sb.add("Q:\t" + q.toRadix(16) + "\n");
-		sb.add("DMP1:\t" + dmp1.toRadix(16) + "\n");
-		sb.add("DMQ1:\t" + dmq1.toRadix(16) + "\n");
-		sb.add("COEFF:\t" + coeff.toRadix(16) + "\n");
+		sb.add("D:\t" + d.toHex() + "\n");
+		sb.add("P:\t" + p.toHex() + "\n");
+		sb.add("Q:\t" + q.toHex() + "\n");
+		sb.add("DMP1:\t" + dmp1.toHex() + "\n");
+		sb.add("DMQ1:\t" + dmq1.toHex() + "\n");
+		sb.add("COEFF:\t" + coeff.toHex() + "\n");
 		return sb.toString();
 	}
 }

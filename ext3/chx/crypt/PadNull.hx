@@ -36,7 +36,15 @@ class PadNull implements IPad {
 	}
 
 	public function pad( s : Bytes ) : Bytes {
-		return ByteString.nullPadString(s, blockSize);
+		var r = chunkLen - (s.length % blockSize);
+		if(r == chunkLen)
+			return s;
+		var sb = new BytesBuffer();
+		sb.add(s);
+		for(x in 0...r) {
+			sb.addByte(0);
+		}
+		return sb.getBytes();
 	}
 
 	/**

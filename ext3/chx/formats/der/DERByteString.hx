@@ -37,21 +37,12 @@ package chx.formats.der;
 
 class DERByteString extends Bytes, implements IAsn1Type {
 	private var type:Int;
-	//private var len:Int;
 
-	public function new(type:Null<Int> = null, len:Int = 0) {
+	public function new(type:Int = 0x04, len:Int = 0) {
 		var b : Bytes = Bytes.alloc(len);
 		super(len, b.getData());
-		if(type == null)
-			type = 0x04;
 		this.type = type;
-		//this.len = length;
 	}
-
-	//override public function getLength():Int
-	//{
-	//	return len;
-	//}
 
 	public function getType():Int
 	{

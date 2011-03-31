@@ -132,8 +132,8 @@ class BytesInput extends Input {
 		#if flash9
 			return b.bytesAvailable;
 		#else
-			var r = len - pos;
-			return r >= 0 ? r : 0;
+			//var r = len - pos;
+			return len >= 0 ? len : 0;
 		#end
 	}
 

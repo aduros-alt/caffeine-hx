@@ -64,7 +64,11 @@ class Bytes {
 		#end
 	}
 
-	public function blit( pos : Int, src : Bytes, srcpos : Int, len : Int ) : Void {
+	public function blit( pos : Int, src : Bytes, srcpos : Int, len : Null<Int> ) : Void {
+		if(len == null)
+			len = src.length - srcpos;
+		if(srcpos + len > src.length)
+			len = src.length - srcpos;
 		#if !neko
 		if( pos < 0 || srcpos < 0 || len < 0 || pos + len > length || srcpos + len > src.length ) throw new OutsideBoundsException();
 		#end
@@ -92,9 +96,18 @@ class Bytes {
 		#end
 	}
 
-	public function sub( pos : Int, len : Int ) : Bytes {
+	/**
+	 * Read a range of bytes. If len is null, the remaining bytes will be read
+	 * @param pos Position to read from, >= 0
+	 * @param len length to read. If more than remaining bytes, will return only remaining bytes
+	 **/
+	public function sub( pos : Int, len : Null<Int> = null ) : Bytes {
+		if(len == null)
+			len = length - pos;
+		if(pos + len > length)
+			len = length - pos;
 		#if !neko
-		if( pos < 0 || len < 0 || pos + len > length ) throw new OutsideBoundsException();
+		if( pos < 0 || len < 0 ) throw new OutsideBoundsException();
 		#end
 		#if neko
 		return try new Bytes(len,untyped __dollar__ssub(b,pos,len)) catch( e : Dynamic ) throw new OutsideBoundsException();

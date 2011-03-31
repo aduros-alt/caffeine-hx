@@ -65,14 +65,14 @@ class PEM
 			var rsa = new RSA();
 			// arr[0] is Version. should be 0. should be checked.
 			rsa.setPrivateEx(
-				arr.get(1).toRadix(16),		// N
-				arr.get(2).toRadix(16),		// E
-				arr.get(3).toRadix(16),		// D
-				arr.get(4).toRadix(16),		// P
-				arr.get(5).toRadix(16),		// Q
-				arr.get(6).toRadix(16),		// DMP1
-				arr.get(7).toRadix(16),		// DMQ1
-				arr.get(8).toRadix(16)		// IQMP
+				arr.get(1).toHex(),		// N
+				arr.get(2).toHex(),		// E
+				arr.get(3).toHex(),		// D
+				arr.get(4).toHex(),		// P
+				arr.get(5).toHex(),		// Q
+				arr.get(6).toHex(),		// DMP1
+				arr.get(7).toHex(),		// DMQ1
+				arr.get(8).toHex()		// IQMP
 			);
 			return rsa;
 		}
@@ -109,7 +109,7 @@ class PEM
 				seq = cast obj;
 				// seq[0] = modulus
 				// seq[1] = public expt.
-				return new RSAEncrypt(seq.get(0).toRadix(16), seq.get(1).toRadix(16));
+				return new RSAEncrypt(seq.get(0).toHex(), seq.get(1).toHex());
 			} else {
 				return null;
 			}

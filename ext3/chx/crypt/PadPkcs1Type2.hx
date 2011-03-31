@@ -30,8 +30,8 @@ package chx.crypt;
 import math.prng.Random;
 
 /**
-	Pads string with random bytes
-**/
+ * Pads buffer with random bytes
+ **/
 class PadPkcs1Type2 extends PadPkcs1Type1, implements IPad {
 	var rng : Random;
 

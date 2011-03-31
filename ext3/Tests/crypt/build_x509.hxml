@@ -1,8 +1,11 @@
 -cp ../../
 -neko test.n
 -main X509
+-debug
+-D CAFFEINE_DEBUG
+#-v
+#--neko-source
 #--dead-code-elimination
--v
 
 --next
 
@@ -21,6 +24,7 @@
 -swf-version 9
 -main X509
 -swf-header 1280:800:20:FFFFFF
+--flash-strict
 -D FIREBUG
 -D CAFFEINE_DEBUG
 

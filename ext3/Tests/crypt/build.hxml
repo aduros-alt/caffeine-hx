@@ -1,25 +1,31 @@
 #
 # Crypt
 #
---next
 -cp ../../
 -neko test.n
 -main CryptTest
+#-D CAFFEINE_DEBUG
+-debug
 
 --next
 -cp ../../
 -js test.js
 -main CryptTest
+-debug
+-D FIREBUG
 
 --next
 -cp ../../
--D FIREBUG
 -swf test9.swf
 -swf-version 9
 -main CryptTest
+-debug
+-D FIREBUG
 
 --next
 -cp ../../
 -swf test8.swf
 -swf-version 8
 -main CryptTest
+-debug
+-D FIREBUG

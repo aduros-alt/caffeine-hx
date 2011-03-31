@@ -46,14 +46,14 @@ class Integer extends BigInteger, implements IAsn1Type
 		this.type = type;
 		this.length = length;
 		#if CAFFEINE_DEBUG
-		if(b.length <50) {
-			trace(DER.indent + b.toHex());
-		}
+		//if(b.length <50) {
+		//	trace(DER.indent + b.toHex());
+		//}
 		#end
 		var bi = BigInteger.ofBytes(b);
 		bi.copyTo(this);
 		#if CAFFEINE_DEBUG
-		trace(DER.indent + this.toRadix(16));
+		//trace(DER.indent + this.toHex());
 		#end
 	}
 
@@ -67,9 +67,9 @@ class Integer extends BigInteger, implements IAsn1Type
 		return type;
 	}
 
-	override public function toString():String {
-		return DER.indent+"Integer["+type+"]["+length+"]["+super.toRadix(16)+"]";
-	}
+	//override public function toString():String {
+	//	return DER.indent+"Integer["+type+"]["+length+"]["+super.toHex()+"]";
+	//}
 
 	/**
 	 * @todo implementation
