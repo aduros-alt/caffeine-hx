@@ -334,7 +334,7 @@ class Bytes {
 	 **/
 	public static function ofHex(hs : String) : Bytes {
 		var s : String = StringTools.stripWhite(hs);
-		s = StringTools.replaceRecurse(s, "|", "").toLowerCase();
+		s = StringTools.replaceRecurse(s, ":", "").toLowerCase();
 		if(StringTools.startsWith(s, "0x"))
 			s = s.substr(2);
 		if (s.length&1==1) s="0"+s;
