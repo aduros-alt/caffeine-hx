@@ -1,0 +1,2 @@
+
+typedef BaseCode = math.BaseCode;
