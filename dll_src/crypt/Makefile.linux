@@ -1,7 +1,7 @@
 ARCH=Linux
 ARCH_PATHS:=
 
-CC:=gcc -Isrc
+CC:=i686-pc-linux-gnu-gcc -Isrc
 NEKO_FLAGS:=-fPIC -shared -L/usr/lib -L$(HOME)/neko -lneko -lz -ldl
 LOCAL_FLAGS:=-I../include -Iinclude -Isrc/linux -DLINUX
 STRIP:=strip

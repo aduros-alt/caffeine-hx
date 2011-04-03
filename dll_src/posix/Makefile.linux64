@@ -1,10 +1,11 @@
+ARCH=Linux64
 PROJECT:=sys_posix
 NDLL:=ndll/Linux64/$(PROJECT).ndll
 ARCH_PATHS:=
 
-CC:=gcc -Isrc -D _GNU_SOURCE
+CC:=x86_64-pc-linux-gnu-gcc -Isrc -D _GNU_SOURCE
 NEKO_FLAGS:=-fPIC -shared -L/usr/lib -lneko -lz -ldl
-LOCAL_FLAGS:=$(CFLAGS) -Iinclude -Isrc/linux -DLINUX
+LOCAL_FLAGS:=$(CFLAGS) -I../include -Isrc/linux -DLINUX
 STRIP:=strip
 
 include Makefile.common

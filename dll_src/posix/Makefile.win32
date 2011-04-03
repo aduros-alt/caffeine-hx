@@ -1,10 +1,11 @@
+ARCH=Windows
 PROJECT:=sys_posix
 NDLL:=ndll/Windows/$(PROJECT).ndll
 ARCH_PATHS:=
 
 CC:=i686-mingw32-gcc -Isrc -DWIN32
 STRIP:=i686-mingw32-strip
-NEKO_FLAGS:=-shared -L/usr/lib -lneko -lz -lws2_32
+NEKO_FLAGS:=-shared -I../include -L/usr/lib -lneko -lz -lws2_32
 LOCAL_FLAGS:=-Iinclude -Isrc/windows
 
 include Makefile.common

@@ -16,6 +16,9 @@ $(NDLL): $(SRCS) $(HEADERS)
 $(LUADLL): $(SRCS) $(HEADERS)
 	$(CC) -DLUA $(LUA_FLAGS) $(LOCAL_FLAGS) -o $@ $(SRCS)
 
+install:
+	cp $(NDLL) ../../ext3/NDLL/$(ARCH)/
+
 clean:
 	$(RM) $(NDLL)
 	$(RM) $(HXTEST)

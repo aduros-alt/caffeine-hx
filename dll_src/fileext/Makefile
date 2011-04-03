@@ -14,7 +14,7 @@ src/%.o: src/%.c
 	$(CC) -fPIC -c $(INCPATH) -O3 -o $@ $<
 
 install:
-	@mv *.ndll ../../ext3/ndll/$(ARCH_CAP)/
+	mv *.ndll ../../ext3/NDLL/$(ARCH_CAP)/
 
 clean:
 	@rm -f *.o

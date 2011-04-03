@@ -1,7 +1,7 @@
 ARCH=Linux64
 ARCH_PATHS:=
 
-CC:=gcc -Isrc
+CC:=x86_64-pc-linux-gnu-gcc -Isrc
 NEKO_FLAGS:=-fPIC -shared -L/usr/lib -lneko -ldl
 LOCAL_FLAGS:=-I../include -Iinclude -Isrc/linux -DLINUX
 STRIP:=strip
