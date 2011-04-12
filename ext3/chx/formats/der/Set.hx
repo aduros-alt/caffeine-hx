@@ -35,7 +35,7 @@
  */
 package chx.formats.der;
 
-class Set extends Sequence, implements IAsn1Type, implements IContainer
+class Set extends Sequence, implements IAsn1Type
 {
 	public static inline var TYPE : Int = 0x11;
 	public function new() {

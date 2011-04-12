@@ -74,9 +74,6 @@ class Sequence extends AssociativeArray<IAsn1Type>, implements IAsn1Type
 		return DER.wrapDER(type, tmp.getBytes());
 	}
 
-	/**
-	 * @todo repair
-	 **/
 	public function toString():String {
 		var s:String = DER.indent;
 		var t:String = getTypeName()+"["+length+"][";
@@ -128,9 +125,4 @@ class Sequence extends AssociativeArray<IAsn1Type>, implements IAsn1Type
 		}
 		return null;
 	}
-
-	public function getContainer(i : Int ) : IContainer {
-		return cast _buf[i];
-	}
-
 }

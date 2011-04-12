@@ -31,6 +31,7 @@
 
 package chx.crypt.cert;
 
+import chx.collections.AssociativeArray;
 import chx.hash.IHash;
 import chx.hash.Md2;
 import chx.hash.Md5;
@@ -41,7 +42,6 @@ import chx.formats.Base64;
 import chx.formats.der.DER;
 import chx.formats.der.ExtractedBytes;
 import chx.formats.der.IAsn1Type;
-import chx.formats.der.IContainer;
 import chx.formats.der.OctetString;
 import chx.formats.der.OID;
 import chx.formats.der.ObjectIdentifier;
@@ -59,7 +59,7 @@ class X509Certificate {
 
 	private var _loaded:Bool;
 	private var _param:Dynamic;
-	private var _obj:IContainer;
+	private var _obj:chx.collections.AssociativeArray<IAsn1Type>;
 
 	public function new(p:Dynamic) {
 		_loaded = false;
@@ -145,7 +145,7 @@ class X509Certificate {
 		var buf:Bytes = rv;// = Byte.ofString(rv);
 		//buf.position=0;
 		data = fHash.calcBin(data);
-		var obj:IContainer = cast DER.read(buf, Types.RSA_SIGNATURE);
+		var obj:AssociativeArray<IAsn1Type> = cast DER.read(buf, Types.RSA_SIGNATURE);
 		if (untyped obj.get("algorithm").get("algorithmId").toString() != oid) {
 			return false; // wrong algorithm
 		}
@@ -200,7 +200,7 @@ class X509Certificate {
 		load();
 		var o = untyped _obj.get("signedCertificate").get("subjectPublicKeyInfo").get("subjectPublicKey");
 		var pk:OctetString = cast o;
-		var rsaKey:IContainer = cast DER.read(pk, cast [{name:"N"},{name:"E"}]);
+		var rsaKey:AssociativeArray<IAsn1Type> = cast DER.read(pk, cast [{name:"N"},{name:"E"}]);
 		var n : String = untyped rsaKey.get("N").toHex();
 		var e : String = untyped rsaKey.get("E").toHex();
 		return new RSAEncrypt(n, e);
