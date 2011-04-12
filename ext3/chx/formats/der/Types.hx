@@ -59,10 +59,10 @@ class Types
 				{name:"version"}
 				],
 				defaultValue: function():Sequence{
-					var s:Sequence = new Sequence(0, 0);
-					var v:Integer = new Integer(2,1, Bytes.ofHex("00"));
-					s.push(v);
-					s.setKey("version", v);
+					var s:Sequence = new Sequence();
+					var v:Integer = new Integer(Bytes.ofHex("00"));
+					//s.push(v);
+					s.set("version", v);
 					return s;
 				}()
 			},

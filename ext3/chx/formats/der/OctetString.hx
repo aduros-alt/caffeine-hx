@@ -29,32 +29,30 @@
  * Derived from AS3 implementation Copyright (c) 2007 Henri Torgemane
  */
 /**
- * ByteString
+ * OctetString
  *
- * An ASN1 type for a ByteString, represented with a ByteString
+ * An ASN1 type for a OctetString, represented with as Bytes
  */
 package chx.formats.der;
 
-class DERByteString extends Bytes, implements IAsn1Type {
-	private var type:Int;
+class OctetString extends Bytes, implements IAsn1Type {
+	public static inline var TYPE : Int = 0x04;
 
-	public function new(type:Int = 0x04, len:Int = 0) {
-		var b : Bytes = Bytes.alloc(len);
-		super(len, b.getData());
-		this.type = type;
+	public function new(b:Bytes) {
+		super(b.length, b.getData());
 	}
 
 	public function getType():Int
 	{
-		return type;
+		return TYPE;
 	}
 
 	public function toDER() : Bytes {
-		return DER.wrapDER(type, this);
+		return DER.wrapDER(TYPE, this);
 	}
 
 	override public function toString() : String {
-		return DER.indent+"Bytes["+type+"]["+length+"]["+toHex()+"]";
+		return "OctetString["+toHex().toUpperCase()+"]";
 	}
 
 }

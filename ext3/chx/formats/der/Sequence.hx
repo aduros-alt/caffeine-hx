@@ -31,28 +31,21 @@
 
 package chx.formats.der;
 
+import chx.collections.AssociativeArray;
+
 /**
  * Sequence
  *
  * An ASN1 type for a Sequence, implemented as an Array
  */
-class Sequence implements IAsn1Type, implements IContainer
+class Sequence extends AssociativeArray<IAsn1Type>, implements IAsn1Type
 {
-	public var length(default,null):Int;
+	public static inline var TYPE : Int = 0x10;
 	var type:Int;
-	var _buf : Array<Dynamic>;
-	var _hash : Hash<Dynamic>;
 
-	public function new(iType:Int=0x30, length:Int=0) {
+	public function new(iType:Int=0x10) {
+		super();
 		type = iType;
-		this.length = length;
-		_buf = new Array();
-		_hash = new Hash();
-	}
-
-	public function getLength():Int
-	{
-		return length;
 	}
 
 	public function getType():Int
@@ -60,6 +53,13 @@ class Sequence implements IAsn1Type, implements IContainer
 		return type;
 	}
 
+	private function getTypeName() : String {
+		return "Sequence";
+	}
+
+	/**
+	 * @todo Repair
+	 **/
 	public function toDER():Bytes {
 		var tmp:BytesBuffer = new BytesBuffer();
 		for ( i in 0 ... length) {
@@ -74,39 +74,51 @@ class Sequence implements IAsn1Type, implements IContainer
 		return DER.wrapDER(type, tmp.getBytes());
 	}
 
+	/**
+	 * @todo repair
+	 **/
 	public function toString():String {
 		var s:String = DER.indent;
+		var t:String = getTypeName()+"["+length+"][";
 		DER.indent += "    ";
-		var t:String = "";
+		///var first = true;
 		for(i in 0..._buf.length) {
-			if (_buf[i]==null) continue;
+			//if(first) first = false; else t += "\n";
+			//if (_buf[i]==null) continue;
+			t += "\n" + DER.indent;
 			var found:Bool = false;
 			for(key in _hash.keys()) {
 				if ( (Std.string(i) != key) && _buf[i] == _hash.get(key)) {
-					t += DER.indent + key+": "+_buf[i]+"\n";
+					if(Std.is(_buf[i], Sequence) || Std.is(_buf[i], Set)) {
+						t+= key + ":\n" + DER.indent + Std.string(_buf[i]);
+					} else {
+						t += key + ": "+ Std.string(_buf[i]);
+					}
 					found = true;
 					break;
 				}
 			}
-			if (!found) t+=Std.string(_buf[i])+"\n";
+			if (!found) {
+				if(Std.is(_buf[i], Sequence) || Std.is(_buf[i], Set)) {
+					t+= /*"\n" + DER.indent +*/ Std.string(_buf[i]);
+				} else {
+					t += Std.string(_buf[i]);
+				}
+			}
 		}
 		DER.indent= s;
-		return DER.indent+"Sequence["+type+"]["+length+"][\n"+t+"\n"+s+"]";
+		return t+"\n"+DER.indent+"]";
 	}
 
-	/////////
-
 	public function findAttributeValue(oid:String):IAsn1Type {
-trace("Searching for " + oid);
-		for(set in _buf) {
+		for(set in this) {
 			if ( Std.is(set, Set) ) {
-				var child:IAsn1Type = set.get(0);
+				var child:IAsn1Type = cast(set, Set).get(0);
 				if ( Std.is(child, Sequence)) {
 					var sc:Sequence = cast child;
 					var tmp:IAsn1Type = sc.get(0);
 					if ( Std.is(tmp, ObjectIdentifier)) {
 						var id:ObjectIdentifier = cast tmp;
-trace("Found " + id);
 						if (id.toString()==oid) {
 							return sc.get(1);
 						}
@@ -117,28 +129,8 @@ trace("Found " + id);
 		return null;
 	}
 
-	public function push(v:Dynamic) : Void {
-		_buf.push(v);
-	}
-
-	public function get(i : Int) : Dynamic {
-		return _buf[i];
-	}
-
-	public function set(i : Int, v:Dynamic) : Void {
-		_buf[i] = v;
-	}
-
 	public function getContainer(i : Int ) : IContainer {
 		return cast _buf[i];
-	}
-
-	public function setKey(k:String, v:Dynamic) : Void {
-		_hash.set(k, v);
-	}
-
-	public function getKey(k:String) : Dynamic {
-		return _hash.get(k);
 	}
 
 }

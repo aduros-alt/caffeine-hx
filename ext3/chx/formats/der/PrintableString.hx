@@ -37,41 +37,31 @@ package chx.formats.der;
 
 class PrintableString implements IAsn1Type
 {
-	private var type:Int;
-	public var length(default,null):Int;
+	public static inline var TYPE:Int = 0x13;
 	private var str:String;
 
-	public function new(type:Int, length:Int) {
-		this.type = type;
-		this.length = length;
-	}
-
-	public function getLength():Int
-	{
-		return length;
+	public function new(value:String = "") {
+		setString(value);
 	}
 
 	public function getType():Int
 	{
-		return type;
+		return TYPE;
 	}
 
 	public function setString(s:String):Void {
 		str = s;
 	}
+
 	public function getString():String {
 		return str;
 	}
 
 	public function toString():String {
-		return DER.indent+str;
+		return str;
 	}
 
-	/**
-	 * @todo implementation
-	 **/
 	public function toDER():Bytes {
-		throw new chx.lang.UnsupportedException("not implemented");
-		return null; // XXX not implemented
+		return DER.wrapDER(TYPE, Bytes.ofString(str));
 	}
 }

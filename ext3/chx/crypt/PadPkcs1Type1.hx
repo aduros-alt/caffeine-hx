@@ -45,6 +45,10 @@ class PadPkcs1Type1 implements IPad {
 		padByte = 0xFF;
 	}
 
+	public function getBytesReadPerBlock() : Int {
+		return textSize;
+	}
+
 	public function pad( s : Bytes ) : Bytes {
 		if(s.length > textSize)
 			throw "Unable to pad block";

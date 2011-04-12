@@ -123,7 +123,7 @@ class DER {
 			#end
 			// treat as an array
 			var p:Int = der.position;
-			var o:Sequence = new Sequence(type, len);
+			var o:Sequence = new Sequence(type);
 			var arrayStruct:Array<AsnStruct> = null;
 
 			// copy the array, as we destroy it later.
@@ -150,7 +150,7 @@ class DER {
 					if (wantConstructed != isConstructed) {
 						// not found. put default stuff, or null
 						o.push(tmpStruct.defaultValue);
-						o.setKey(tmpStruct.name, tmpStruct.defaultValue);
+						o.set(tmpStruct.name, tmpStruct.defaultValue);
 						// try the next thing
 						tmpStruct = arrayStruct.shift();
 					}
@@ -166,22 +166,16 @@ class DER {
 					#end
 					// do we need to keep a binary copy of this element
 					if (tmpStruct.extract) {
-/*
-						var size:Int = getLengthOfNextElement(der);
-						var ba:ByteString = new ByteString();
-						ba.writeBytes(der, der.position, size);
-						o.setKey(name+"_bin", ba);
-*/
 						var op:Int = der.position;
 						var size:Int = getLengthOfNextElement(der);
 						var buf:Bytes = Bytes.alloc(size);
-						//der.readBytes(buf, 0, size);
-						o.setKey(name+"_bin", buf);
+						der.readBytes(buf, 0, size);
+						o.set(name+"_bin", new ExtractedBytes(buf));
 						der.position = op;
 					}
 					var obj:IAsn1Type = DER.parse(der, value);
 					o.push(obj);
-					o.setKey(name, obj);
+					o.set(name, obj);
 				}
 				else {
 					#if CAFFEINE_DEBUG
@@ -205,7 +199,7 @@ class DER {
 			indent += "    ";
 			#end
 			var p:Int = der.position;
-			var s:Set = new Set(type, len);
+			var s:Set = new Set();
 			while (der.position < p+len) {
 				s.push(DER.parse(der));
 			}
@@ -216,61 +210,59 @@ class DER {
 			return s;
 		case 0x02: // INTEGER
 			// put in a BigInteger
-			#if CAFFEINE_DEBUG
-			trace(indent + "INTEGER of length "+len + " buf rem: " + der.bytesAvailable);
-			#end
 			b = Bytes.alloc(len);
 			der.readBytes(b,0,len);
-			var bi = new Integer(type, len, b);
+			var bi = new Integer(b);
 			#if CAFFEINE_DEBUG
-			trace(indent + "  " + bi.toHex());
+			trace(indent + "INTEGER: " + bi.toHex());
 			#end
 			return bi;
 		case 0x06: // OBJECT IDENTIFIER:
 			b = Bytes.alloc(len);
 			der.readBytes(b,0,len);
-			var oi = new ObjectIdentifier(type, len, b);
+			var oi = new ObjectIdentifier(b);
 			#if CAFFEINE_DEBUG
-			trace(indent + " OID " + oi.toString());
+			trace(indent + "OID: " + oi.toString());
 			#end
 			return oi;
 		case 0x05: // NULL
 			#if CAFFEINE_DEBUG
-			trace(indent + "NULL TYPE");
+			trace(indent + "NULL TYPE:");
 			#end
 			if(len != 0) // if len!=0, something's horribly wrong.
 				throw "unexpected length: type 0x05";
 			return null;
 		case 0x13: // PrintableString
+			var ps:PrintableString = new PrintableString(der.readMultiByteString(len, "US-ASCII"));
 			#if CAFFEINE_DEBUG
-			trace(indent + "PRINTABLE STRING");
-			//trace(indent + der.toHex(":",der.position,len));
-			#end
-			var ps:PrintableString = new PrintableString(type, len);
-			ps.setString(der.readMultiByteString(len, "US-ASCII"));
-			#if CAFFEINE_DEBUG
-			trace(ps.toString());
+			trace(indent + "PRINTABLE STRING: " + ps.toString());
 			#end
 			return ps;
 		//case 0x22: // XXX look up what this is. openssl uses this to store my email.
 		case 0x22, 0x14: // T61String - an horrible format we don't even pretend to support correctly
+			var ps : PrintableString = null;
+			var nm = "T61String";
+			if(type == 0x22) {
+				nm = "OpenSSLString";
+				ps = new OpenSSLString(der.readMultiByteString(len, "latin1"));
+			}
+			else
+				ps = new T61String(der.readMultiByteString(len, "latin1"));
 			#if CAFFEINE_DEBUG
-			trace(indent + "T61STRING");
+			trace(indent + nm + ": " + ps.toString());
 			#end
-			var ps = new PrintableString(type, len);
-			ps.setString(der.readMultiByteString(len, "latin1"));
+			return ps;
+		case 0x16:
+			var ps = new IA5String(der.readMultiByteString(len, "latin1"));
 			#if CAFFEINE_DEBUG
-			trace(ps.toString());
+			trace(indent + "IA5STRING: " + ps.toString());
 			#end
 			return ps;
 		case 0x17: // UTCTime
-			#if CAFFEINE_DEBUG
-			trace(indent + "UTCTIME");
-			#end
-			var ut:UTCTime = new UTCTime(type, len);
+			var ut:UTCTime = new UTCTime();
 			ut.setUTCTime(der.readMultiByteString(len, "US-ASCII"));
 			#if CAFFEINE_DEBUG
-			trace(ut.toString());
+			trace(indent + "UTCTIME: " + ut.toString());
 			#end
 			return ut;
 		default: // 0x03, 0x04: // BIT STRING, OCTET STRING
@@ -280,12 +272,14 @@ class DER {
 			if (type != 0x04 && der.peek() == 0) {
 				//trace("Horrible Bit String pre-padding removal hack.");
 				// I wish I had the patience to find a spec for this.
+				// byte is # of bits of padding
 				der.position++;
 				len--;
 			}
-			// stuff in a ByteString for now.
-			var bs:DERByteString = new DERByteString(type, len);
-			der.readBytes(bs,0,len);
+			// stuff in a OctetString for now.
+			var bytes = Bytes.alloc(len);
+			der.readBytes(bytes,0,len);
+			var bs:OctetString = new OctetString(bytes);
 			#if CAFFEINE_DEBUG
 			trace(indent + bs.toHex(":"));
 			#end

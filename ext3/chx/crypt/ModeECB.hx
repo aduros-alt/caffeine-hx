@@ -51,13 +51,12 @@ class ModeECB implements IMode {
 	public function encrypt( s : Bytes ) : Bytes {
 		var buf : Bytes = null;
 		var padBlocks : Bool = padding.isBlockPad();
-		var tsize = padding.textSize;
+		var tsize = padding.getBytesReadPerBlock();
 		var bsize = padding.blockSize;
 		var numBlocks = padding.calcNumBlocks(s.length);
 		var offset : Int = 0;
 		var len : Int = 0;
 		var rem : Int = s.length;
-
 		var sb = new BytesBuffer();
  		if(!padBlocks)
 			buf = padding.pad(s);

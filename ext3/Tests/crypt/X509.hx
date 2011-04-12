@@ -89,8 +89,8 @@ class X509 {
 		}
 #end
 		//var x = new X509Certificate(Global.Verisign);
-		var x = new X509Certificate(Global.Thawte);
-		//var x = new X509Certificate(Global.CaCertPem);
+		//var x = new X509Certificate(Global.Thawte);
+		var x = new X509Certificate(Global.CaCertPem);
 		trace(x.isSelfSigned());
 		trace(x.getSubjectPrincipal());
 		trace(x.getCommonName());

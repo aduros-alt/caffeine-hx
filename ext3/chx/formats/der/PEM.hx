@@ -39,12 +39,12 @@ import chx.formats.Base64;
 
 class PEM
 {
-	public static var RSA_PRIVATE_KEY_HEADER:String = "-----BEGIN RSA PRIVATE KEY-----";
-	public static var RSA_PRIVATE_KEY_FOOTER:String = "-----END RSA PRIVATE KEY-----";
-	public static var RSA_PUBLIC_KEY_HEADER:String = "-----BEGIN PUBLIC KEY-----";
-	public static var RSA_PUBLIC_KEY_FOOTER:String = "-----END PUBLIC KEY-----";
-	public static var CERTIFICATE_HEADER:String = "-----BEGIN CERTIFICATE-----";
-	public static var CERTIFICATE_FOOTER:String = "-----END CERTIFICATE-----";
+	public static inline var RSA_PRIVATE_KEY_HEADER:String = "-----BEGIN RSA PRIVATE KEY-----";
+	public static inline var RSA_PRIVATE_KEY_FOOTER:String = "-----END RSA PRIVATE KEY-----";
+	public static inline var RSA_PUBLIC_KEY_HEADER:String = "-----BEGIN PUBLIC KEY-----";
+	public static inline var RSA_PUBLIC_KEY_FOOTER:String = "-----END PUBLIC KEY-----";
+	public static inline var CERTIFICATE_HEADER:String = "-----BEGIN CERTIFICATE-----";
+	public static inline var CERTIFICATE_FOOTER:String = "-----END CERTIFICATE-----";
 
 	/**
 	 *
@@ -61,18 +61,18 @@ class PEM
 		var obj : IAsn1Type = DER.read(der);
 		if (Std.is(obj,Set) || Std.is(obj, Sequence))
 		{
-			var arr:Sequence = cast Sequence;
+			var arr:Sequence = cast obj;
 			var rsa = new RSA();
 			// arr[0] is Version. should be 0. should be checked.
 			rsa.setPrivateEx(
-				arr.get(1).toHex(),		// N
-				arr.get(2).toHex(),		// E
-				arr.get(3).toHex(),		// D
-				arr.get(4).toHex(),		// P
-				arr.get(5).toHex(),		// Q
-				arr.get(6).toHex(),		// DMP1
-				arr.get(7).toHex(),		// DMQ1
-				arr.get(8).toHex()		// IQMP
+				untyped arr.get(1).toHex(),		// N
+				untyped arr.get(2).toHex(),		// E
+				untyped arr.get(3).toHex(),		// D
+				untyped arr.get(4).toHex(),		// P
+				untyped arr.get(5).toHex(),		// Q
+				untyped arr.get(6).toHex(),		// DMP1
+				untyped arr.get(7).toHex(),		// DMQ1
+				untyped arr.get(8).toHex()		// IQMP
 			);
 			return rsa;
 		}
@@ -97,19 +97,20 @@ class PEM
 		if (Std.is(obj,Set) || Std.is(obj, Sequence)) {
 			var seq:Sequence = cast obj;
 			// seq[0] = [ <some crap that means "rsaEncryption">, null ]; ( apparently, that's an X-509 Algorithm Identifier.
-			if (seq.getContainer(0).get(0).toString() != OID.RSA_ENCRYPTION)
+			if (untyped seq.getContainer(0).get(0).toString() != OID.RSA_ENCRYPTION)
 				return null;
 
-			// seq[1] is a Bytes begging to be parsed as DER
+			// seq[1] is a ExtractedBytes begging to be parsed as DER
 			// there's a 0x00 byte up front. find out why later.
 			//untyped seq.get(1).position = 0;
-			obj = DER.read(seq.get(1));
+			var eb : ExtractedBytes = cast seq.get(1);
+			obj = DER.read(eb.toDER());
 			if (Std.is(obj,Set) || Std.is(obj, Sequence))
 			{
 				seq = cast obj;
 				// seq[0] = modulus
 				// seq[1] = public expt.
-				return new RSAEncrypt(seq.get(0).toHex(), seq.get(1).toHex());
+				return new RSAEncrypt(untyped seq.get(0).toHex(), untyped seq.get(1).toHex());
 			} else {
 				return null;
 			}
@@ -138,7 +139,7 @@ class PEM
 		var j:Int = str.indexOf(footer);
 		if (j==-1) return null;
 		var a = chx.formats.Base64.decode(str.substr(i, j-i));
-		trace(a.length);
+		//trace(a.length);
 		return a;
 	}
 }

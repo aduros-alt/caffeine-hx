@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, The Caffeine-hx project contributors
+ * Copyright (c) 2011, The Caffeine-hx project contributors
  * Original author : Russell Weir
  * Contributors:
  * All rights reserved.
@@ -27,41 +27,43 @@
 
 package chx.crypt;
 
-class PadPkcs5 extends PadBase, implements IPad {
+class PadBase implements IPad {
 
-	override public function calcNumBlocks(len : Int) : Int {
-		var chr : Int = blockSize - (len % blockSize);
-		Assert.isEqual(0, (len + chr) % blockSize);
-		return Math.floor((len + chr) / blockSize);
+	public var blockSize(default,setBlockSize) : Int;
+
+	public function new( blockLen : Int ) {
+		setBlockSize(blockLen);
 	}
 
-	override public function pad( s : Bytes ) : Bytes {
-		var sb = new BytesBuffer();
-		sb.add ( s );
-		var chr : Int = blockSize - (s.length % blockSize);
-		if(s.length == blockSize)
-			chr = blockSize;
-		for( i in 0...chr) {
-			sb.addByte( chr );
-		}
-		var rv = sb.getBytes();
-		return rv;
+	public function pad( s : Bytes ) : Bytes {
+		return throw new chx.lang.FatalException("not implemented");
+	}
+	
+	public function unpad( s : Bytes ) : Bytes {
+		return throw new chx.lang.FatalException("not implemented");
 	}
 
-	override public function unpad( s : Bytes ) : Bytes {
-		if( s.length % blockSize != 0)
-			throw "crypt.padpkcs5 unpad: buffer length "+s.length+" not multiple of block size " + blockSize;
-		var c : Int = s.get(s.length-1);
-		var i = c;
-		var pos = s.length - 1;
-		while(i > 0) {
-			var n = s.get(pos);
-			if (c != n)
-				throw "crypt.padpkcs5 unpad: invalid byte";
-			pos--;
-			i--;
-		}
-		return s.sub(0, s.length - c);
+	function setBlockSize(len : Int) : Int {
+		blockSize = len;
+		return len;
 	}
+
+	public function calcNumBlocks(len : Int) : Int {
+		if(len == 0) return 0;
+		var n : Int = Math.ceil(len/blockSize);
+		// most pads will require an extra block if the input length
+		// is an exact multiple of the block size
+ 		if(len % blockSize == 0)
+ 			n++;
+		return n;
+	}
+
+	public function getBytesReadPerBlock() : Int {
+		return blockSize;
+	}
+
+	/** pads by block? **/
+	public function isBlockPad() : Bool { return false; }
+	public function blockOverhead() : Int { return 0; }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, The Caffeine-hx project contributors
+ * Copyright (c) 2011, The Caffeine-hx project contributors
  * Original author : Russell Weir
  * Contributors:
  * All rights reserved.
@@ -27,41 +27,31 @@
 
 package chx.crypt;
 
-class PadPkcs5 extends PadBase, implements IPad {
+/**
+ * Pads that work on blocks, and not on the full buffer.
+ **/
+class PadBlockBase extends PadBase {
+	/** the number of bytes that can fit in each block **/
+	public var textSize(default,null) : Int;
+
+	override public function isBlockPad() : Bool { return true; }
 
 	override public function calcNumBlocks(len : Int) : Int {
-		var chr : Int = blockSize - (len % blockSize);
-		Assert.isEqual(0, (len + chr) % blockSize);
-		return Math.floor((len + chr) / blockSize);
+		var ch : Int = blockSize - blockOverhead();
+		var n : Int = Math.ceil(len/ch);
+		if(len % blockSize == 0)
+			n++;
+		return n;
 	}
 
-	override public function pad( s : Bytes ) : Bytes {
-		var sb = new BytesBuffer();
-		sb.add ( s );
-		var chr : Int = blockSize - (s.length % blockSize);
-		if(s.length == blockSize)
-			chr = blockSize;
-		for( i in 0...chr) {
-			sb.addByte( chr );
-		}
-		var rv = sb.getBytes();
-		return rv;
+	override public function getBytesReadPerBlock() : Int {
+		return blockSize - blockOverhead;
 	}
 
-	override public function unpad( s : Bytes ) : Bytes {
-		if( s.length % blockSize != 0)
-			throw "crypt.padpkcs5 unpad: buffer length "+s.length+" not multiple of block size " + blockSize;
-		var c : Int = s.get(s.length-1);
-		var i = c;
-		var pos = s.length - 1;
-		while(i > 0) {
-			var n = s.get(pos);
-			if (c != n)
-				throw "crypt.padpkcs5 unpad: invalid byte";
-			pos--;
-			i--;
-		}
-		return s.sub(0, s.length - c);
+	/**
+	 * Returns the number of bytes padding needs per block
+	 **/
+	public function blockOverhead() : Int {
+		return throw new chx.lang.FatalException("not implemented");
 	}
-
 }

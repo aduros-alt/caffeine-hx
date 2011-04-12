@@ -37,10 +37,16 @@ package chx.formats.der;
 
 class Set extends Sequence, implements IAsn1Type, implements IContainer
 {
-	public function new(type:Int=0x31, length:Int=0) {
-		super(type, length);
+	public static inline var TYPE : Int = 0x11;
+	public function new() {
+		super(0x11);
 	}
 
+	override private function getTypeName() : String {
+		return "Set";
+	}
+
+	/*
 	public override function toString():String {
 		var s:String = DER.indent;
 		DER.indent += "    ";
@@ -48,5 +54,5 @@ class Set extends Sequence, implements IAsn1Type, implements IContainer
 		DER.indent= s;
 		return DER.indent+"Set["+type+"]["+length+"][\n"+t+"\n"+s+"]";
 	}
-
+	*/
 }

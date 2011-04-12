@@ -38,16 +38,18 @@ import chx.hash.Sha1;
 import chx.crypt.RSA;
 import chx.crypt.RSAEncrypt;
 import chx.formats.Base64;
-import chx.formats.der.DERByteString;
 import chx.formats.der.DER;
+import chx.formats.der.ExtractedBytes;
 import chx.formats.der.IAsn1Type;
 import chx.formats.der.IContainer;
+import chx.formats.der.OctetString;
 import chx.formats.der.OID;
 import chx.formats.der.ObjectIdentifier;
 import chx.formats.der.PEM;
 import chx.formats.der.PrintableString;
 import chx.formats.der.Sequence;
 import chx.formats.der.Types;
+import chx.formats.der.UTCTime;
 
 /**
  * X509Certificate
@@ -137,18 +139,18 @@ class X509Certificate {
 		default:
 			return false;
 		}
-		var data:Bytes = cast _obj.getKey("signedCertificate_bin");
-		var bs : Bytes = cast _obj.getKey("encrypted");
+		var data:Bytes = cast(_obj.get("signedCertificate_bin"), ExtractedBytes).toDER();
+		var bs : Bytes = cast _obj.get("encrypted");
 		var rv = key.verify(bs);//.toHex());
 		var buf:Bytes = rv;// = Byte.ofString(rv);
 		//buf.position=0;
 		data = fHash.calcBin(data);
 		var obj:IContainer = cast DER.read(buf, Types.RSA_SIGNATURE);
-		if (obj.getKey("algorithm").getKey("algorithmId").toString() != oid) {
+		if (untyped obj.get("algorithm").get("algorithmId").toString() != oid) {
 			return false; // wrong algorithm
 		}
 		//if (!ByteString.eq(obj.getKey("hash"), data))
-		if(data.compare(obj.getKey("hash")) != 0)
+		if(data.compare(cast obj.get("hash")) != 0)
 			return false; // hashes don't match
 		return true;
 	}
@@ -179,18 +181,16 @@ class X509Certificate {
 		default:
 			return null;
 		}
-		var data:Bytes = cast _obj.getKey("signedCertificate_bin");
+		var data:Bytes = cast(_obj.get("signedCertificate_bin"),ExtractedBytes).toDER() ;
 		data = fHash.calcBin(data);
+		var seq2:Sequence = new Sequence();
+		seq2.set(0, new ObjectIdentifier(oid));
+		seq2.set(1, null);
+		var dbs = new OctetString(data);
 		var seq1:Sequence = new Sequence();
-		seq1.set(0, new Sequence());
-		seq1.get(0).set(0, new ObjectIdentifier(0,0, oid));
-		seq1.get(0).set(1, null);
-		seq1.set(1, new DERByteString());
-		seq1.get(1).writeBytes(data);
-		data = seq1.toDER();
-		//var buf:ByteString = ByteString.ofString(key.sign(data));
-		//return buf;
-		return key.sign(data);
+		seq1.set(0, seq2);
+		seq1.set(1, dbs);
+		return key.sign(seq1.toDER());
 	}
 
 	/**
@@ -198,12 +198,11 @@ class X509Certificate {
 	**/
 	public function getPublicKey():RSAEncrypt {
 		load();
-		var o = _obj.getKey("signedCertificate").getKey("subjectPublicKeyInfo").getKey("subjectPublicKey");
-		var pk:Bytes = cast o;
-		//pk.position = 0;
-		var rsaKey:Dynamic = DER.read(pk, cast [{name:"N"},{name:"E"}]);
-		var n : String = rsaKey.getKey("N").toHex();
-		var e : String = rsaKey.getKey("E").toHex();
+		var o = untyped _obj.get("signedCertificate").get("subjectPublicKeyInfo").get("subjectPublicKey");
+		var pk:OctetString = cast o;
+		var rsaKey:IContainer = cast DER.read(pk, cast [{name:"N"},{name:"E"}]);
+		var n : String = untyped rsaKey.get("N").toHex();
+		var e : String = untyped rsaKey.get("E").toHex();
 		return new RSAEncrypt(n, e);
 	}
 
@@ -217,7 +216,8 @@ class X509Certificate {
 	*/
 	public function getSubjectPrincipal():String {
 		load();
-		return Base64.encode(_obj.getKey("signedCertificate").getKey("subject_bin"));
+		var eb:ExtractedBytes = cast untyped _obj.get("signedCertificate").get("subject_bin");
+		return Base64.encode(eb.toDER());
 	}
 
 	/**
@@ -230,12 +230,13 @@ class X509Certificate {
 	*/
 	public function getIssuerPrincipal():String {
 		load();
-		return Base64.encode(_obj.getKey("signedCertificate").getKey("issuer_bin"));
+		var eb:ExtractedBytes = cast untyped _obj.get("signedCertificate").get("issuer_bin");
+		return Base64.encode(eb.toDER());
 	}
 
 	public function getAlgorithmIdentifier():String {
 		load();
-		return _obj.getKey("algorithmIdentifier").getKey("algorithmId").toString();
+		return untyped _obj.get("algorithmIdentifier").get("algorithmId").toString();
 	}
 
 	/**
@@ -243,7 +244,8 @@ class X509Certificate {
 	**/
 	public function getNotBefore():Date {
 		load();
-		return _obj.getKey("signedCertificate").getKey("validity").getKey("notBefore").getKey("date");
+		var d : UTCTime = cast untyped _obj.get("signedCertificate").get("validity").get("notBefore").get("date");
+		return d.getDate();
 	}
 
 	/**
@@ -251,12 +253,13 @@ class X509Certificate {
 	**/
 	public function getNotAfter():Date {
 		load();
-		return _obj.getKey("signedCertificate").getKey("validity").getKey("notAfter").getKey("date");
+		var d : UTCTime = cast untyped _obj.get("signedCertificate").get("validity").get("notAfter").get("date");
+		return d.getDate();
 	}
 
 	public function getCommonName():String {
 		load();
-		var subject:Sequence = cast _obj.getKey("signedCertificate").getKey("subject");
+		var subject:Sequence = cast untyped _obj.get("signedCertificate").get("subject");
 		if(subject == null) throw "No subject";
 		var ps : PrintableString = null;
 		//try {

@@ -38,13 +38,13 @@ import chx.io.BytesInput;
 
 class ObjectIdentifier implements IAsn1Type
 {
-	public var length(default,null):Int;
-	private var type:Int;
+	public static inline var TYPE : Int = 0x06;
 	private var oid:Array<Int>;
 
-	public function new(type:Int, length:Int, b:Dynamic) {
-		this.type = type;
-		this.length = length;
+	/**
+	 * Create a new OID from either a String or Bytes
+	 **/
+	public function new(b:Dynamic) {
 		if (Std.is(b, Bytes)) {
 			parse(cast b);
 		} else if (Std.is(b, String)) {
@@ -84,14 +84,9 @@ class ObjectIdentifier implements IAsn1Type
 		oid = a;
 	}
 
-	public function getLength():Int
-	{
-		return length;
-	}
-
 	public function getType():Int
 	{
-		return type;
+		return TYPE;
 	}
 
 	public function toDER():Bytes {
@@ -117,12 +112,9 @@ class ObjectIdentifier implements IAsn1Type
 				throw "OID element to large.";
 			}
 		}
-		length = tmp.length;
-		if (type==0) {
-			type = 6;
-		}
+		var length = tmp.length;
 		tmp.unshift(length); // assume length is small enough to fit here.
-		tmp.unshift(type);
+		tmp.unshift(TYPE);
 		var b:BytesBuffer = new BytesBuffer();
 		var l = tmp.length;
 		for(i in 0...l)
@@ -131,10 +123,10 @@ class ObjectIdentifier implements IAsn1Type
 	}
 
 	public function toString():String {
-		return DER.indent+oid.join(".");
+		return oid.join(".");
 	}
 
 	public function dump():String {
-		return "OID["+type+"]["+length+"]["+toString()+"]";
+		return "OID["+toString()+"]";
 	}
 }

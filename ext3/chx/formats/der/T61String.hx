@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, The Caffeine-hx project contributors
+ * Copyright (c) 2011, The Caffeine-hx project contributors
  * Original author : Russell Weir
  * Contributors:
  * All rights reserved.
@@ -25,43 +25,33 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package chx.crypt;
+/*
+ * Derived from AS3 implementation Copyright (c) 2007 Henri Torgemane
+ */
+/**
+ * T61String
+ *
+ * An ASN1 type for a T61String, held within a String
+ * @todo Not implemented correctly here or in DER.hx
+ */
+package chx.formats.der;
 
-class PadPkcs5 extends PadBase, implements IPad {
+class T61String extends PrintableString, implements IAsn1Type
+{
+	public static inline var TYPE:Int = 0x14;
 
-	override public function calcNumBlocks(len : Int) : Int {
-		var chr : Int = blockSize - (len % blockSize);
-		Assert.isEqual(0, (len + chr) % blockSize);
-		return Math.floor((len + chr) / blockSize);
+	public function new(value:String = "") {
+		super(value);
 	}
 
-	override public function pad( s : Bytes ) : Bytes {
-		var sb = new BytesBuffer();
-		sb.add ( s );
-		var chr : Int = blockSize - (s.length % blockSize);
-		if(s.length == blockSize)
-			chr = blockSize;
-		for( i in 0...chr) {
-			sb.addByte( chr );
-		}
-		var rv = sb.getBytes();
-		return rv;
+	override public function getType():Int
+	{
+		return TYPE;
 	}
 
-	override public function unpad( s : Bytes ) : Bytes {
-		if( s.length % blockSize != 0)
-			throw "crypt.padpkcs5 unpad: buffer length "+s.length+" not multiple of block size " + blockSize;
-		var c : Int = s.get(s.length-1);
-		var i = c;
-		var pos = s.length - 1;
-		while(i > 0) {
-			var n = s.get(pos);
-			if (c != n)
-				throw "crypt.padpkcs5 unpad: invalid byte";
-			pos--;
-			i--;
-		}
-		return s.sub(0, s.length - c);
+	/* obviously must be written
+	public function toDER():Bytes {
+		return DER.wrapDER(TYPE, Bytes.ofString(str));
 	}
-
+	*/
 }

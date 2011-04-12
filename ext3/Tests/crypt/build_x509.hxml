@@ -2,7 +2,7 @@
 -neko test.n
 -main X509
 -debug
--D CAFFEINE_DEBUG
+#-D CAFFEINE_DEBUG
 #-v
 #--neko-source
 #--dead-code-elimination

@@ -238,9 +238,14 @@ class Bytes {
 		var data : Bytes = sub( pos, len );
 		var sb = new StringBuf();
 		var l = data.length;
+		var first = true;
 		for(i in 0...l) {
+			if(first) {
+				first = false;
+			} else {
+				sb.add(sep);
+			}
 			sb.add(StringTools.hex(get(i),2).toLowerCase());
-			sb.add(sep);
 		}
 
 		var s : String = StringTools.rtrim(sb.toString());

@@ -36,7 +36,7 @@ package chx.formats.der;
  */
 interface IAsn1Type
 {
-	var length(default,null) : Int;
+	//var length(default,null) : Int;
 	function getType():Int;
 	//function getLength():Int;
 	function toDER() : Bytes;

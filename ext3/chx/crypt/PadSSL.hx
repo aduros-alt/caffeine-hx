@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, The Caffeine-hx project contributors
+ * Copyright (c) 2011, The Caffeine-hx project contributors
  * Original author : Russell Weir
  * Contributors:
  * All rights reserved.
@@ -27,41 +27,15 @@
 
 package chx.crypt;
 
-class PadPkcs5 extends PadBase, implements IPad {
-
-	override public function calcNumBlocks(len : Int) : Int {
-		var chr : Int = blockSize - (len % blockSize);
-		Assert.isEqual(0, (len + chr) % blockSize);
-		return Math.floor((len + chr) / blockSize);
-	}
-
-	override public function pad( s : Bytes ) : Bytes {
-		var sb = new BytesBuffer();
-		sb.add ( s );
-		var chr : Int = blockSize - (s.length % blockSize);
-		if(s.length == blockSize)
-			chr = blockSize;
-		for( i in 0...chr) {
-			sb.addByte( chr );
-		}
-		var rv = sb.getBytes();
-		return rv;
-	}
-
+/**
+ * SSL padding. Just like TLS padding, but bytes other than last one
+ * are arbitrary.
+ * @todo pad could insert random data, other than last byte
+ **/
+class PadSSL extends PadTLS, implements IPad {
 	override public function unpad( s : Bytes ) : Bytes {
 		if( s.length % blockSize != 0)
-			throw "crypt.padpkcs5 unpad: buffer length "+s.length+" not multiple of block size " + blockSize;
-		var c : Int = s.get(s.length-1);
-		var i = c;
-		var pos = s.length - 1;
-		while(i > 0) {
-			var n = s.get(pos);
-			if (c != n)
-				throw "crypt.padpkcs5 unpad: invalid byte";
-			pos--;
-			i--;
-		}
-		return s.sub(0, s.length - c);
+			throw new chx.lang.Exception("PadTLS unpad: buffer length "+s.length+" not multiple of block size " + blockSize);
+		return s.sub(0, s.length - s.get(s.length-1) - 1);
 	}
-
 }

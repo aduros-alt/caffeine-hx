@@ -28,9 +28,8 @@
 package chx.formats.der;
 
 interface IContainer {
-	function push(v:Dynamic) : Void;
-	function get(i : Int) : Dynamic;
+	function push(v:IAsn1Type) : Void;
 	function getContainer(i : Int ) : IContainer;
-	function setKey(k:String, v:Dynamic) : Void;
-	function getKey(k:String) : Dynamic;
+	function set(k:Dynamic, v:IAsn1Type) : Void;
+	function get(k:Dynamic) : IAsn1Type;
 }
