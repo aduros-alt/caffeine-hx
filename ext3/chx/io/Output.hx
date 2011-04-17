@@ -150,14 +150,18 @@ class Output {
 	}
 
 	/**
-		Write a signed 8 bit integer
-		@throws chx.lang.OverflowException if value has too many bits.
-	**/
+	 * Write a signed 8 bit integer
+	 * @throws chx.lang.OverflowException if value has too many bits.
+	 **/
 	public function writeInt8( x : Int ) : Output {
 		if( x < -0x80 || x >= 0x80 )
 			throw new OverflowException();
 		writeByte(x & 0xFF);
 		return this;
+	}
+
+	public function writeUInt8( x : Int ) : Output {
+		return writeByte(x);
 	}
 
 	/**

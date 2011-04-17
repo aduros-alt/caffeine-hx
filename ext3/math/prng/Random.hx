@@ -30,9 +30,12 @@
  */
 
 /**
-	Random number generator - requires a Prng backend, e.g. ArcFour
-**/
+ * Random number generator. By default, a Prng backend of ArcFour will be created,
+ * but any IPrng backend can be used.
+ **/
 package math.prng;
+
+import chx.io.Output;
 
 class Random {
 	var state : #if as3gen Dynamic #else IPrng #end;
@@ -46,9 +49,9 @@ class Random {
 	}
 
 	/**
-		Get one random byte value
-	**/
-	public function getByte() : Int {
+	 * Get one random byte value
+	 **/
+	public function next() : Int {
 		if(initialized == false) {
 			createState();
 			state.init(pool);
@@ -62,21 +65,24 @@ class Random {
 	}
 
 	/**
-		Fill the provided ByteString with random bytes
-	**/
-	public function nextBytes(ba : Bytes) : Void {
-		var i;
-		for(i in 0...ba.length)
-			ba.set(i, getByte());
+	 * Fill the provided Bytes with random bytes, starting at position pos for len bytes
+	 * @param bytes Bytes array to put random bytes into
+	 * @param pos Starting position in output bytes
+	 * @param len Number of bytes to write
+	 **/
+	public function nextBytes(bytes : Bytes, pos:Int, len:Int) : Void {
+		for(i in 0...len)
+			bytes.set(pos+i, next());
 	}
 
 	/**
-		Fill the provided Array with random bytes
-	**/
-	public function nextBytesArray(ba : Array<Int>) : Void {
-		var i;
-		for(i in 0...ba.length)
-			ba[i] = getByte();
+	 * Stream to the provided Output a certain number of random bytes
+	 * @param out An output stream
+	 * @param count Number of bytes to write
+	 **/
+	public function nextBytesStream(out:Output, count:Int) : Void {
+		for(i in 0...count)
+			out.writeUInt8(next());
 	}
 
 	/**

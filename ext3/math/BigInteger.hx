@@ -1916,9 +1916,10 @@ class BigInteger {
 			var hrnd : Dynamic = bi_rand(bits, -1, 0);
 			return hndToBigInt(hrnd);
 		#else
-			var x = Bytes.alloc((bits>>3)+1);
+			var len = (bits>>3)+1;
+			var x = Bytes.alloc(len);
 			var t : Int = bits&7;
-			rng.nextBytes(x);
+			rng.nextBytes(x, 0, len);
 			if(t > 0) {
 				var v = x.get(0);
 				v &= ((1<<t)-1);
@@ -2033,8 +2034,9 @@ class BigInteger {
 	}
 
 	static function seedRandom(bits:Int, b:math.prng.Random) : Void {
-		var x = Bytes.alloc((bits>>3)+1);
-		b.nextBytes(x);
+		var len = (bits>>3) + 1;
+		var x = Bytes.alloc(len);
+		b.nextBytes(x,0,len);
 		bi_rand_seed(untyped x.toString().__s);
 	}
 
