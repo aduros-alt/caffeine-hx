@@ -134,7 +134,7 @@ class ThreadServer<Client,Message> {
 		}
 	}
 
-	function doClientDisconnected(s,c) {
+	function doClientDisconnected(s:chx.net.Socket,c) {
 		try s.close() catch( e : Dynamic ) {};
 		clientDisconnected(c);
 	}

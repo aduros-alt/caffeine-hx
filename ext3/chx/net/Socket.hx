@@ -63,8 +63,9 @@ interface Socket {
 
 	/**
 	 * Closes the socket.
+	 * @param errCondition Condition that caused the closure
 	 */
-	function close() : Void;
+	function close(errCondition:Dynamic=null) : Void;
 
 	/**
 	 * Returns information on the local portion of the socket

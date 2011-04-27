@@ -165,7 +165,12 @@ class TcpSocket implements chx.net.Socket {
 		#end
 	}
 
-	public function close() : Void {
+	/**
+	 * Closes the socket. The errCondition is not used in normal TCP sockets
+	 * but may be in derived classes.
+	 * @param errCondition Condition that caused the closure
+	 **/
+	public function close(errCondition:Dynamic=null) : Void {
 		#if (neko || cpp)
 			socket_close(__handle);
 		#elseif flash9

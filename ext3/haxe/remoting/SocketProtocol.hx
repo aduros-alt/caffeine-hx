@@ -125,7 +125,7 @@ class SocketProtocol {
 		s.serialize(true);
 		s.serialize(path);
 		s.serialize(params);
-		sendMessage(out.toString());
+		sendMessage(encodeData(out.toString()));
 	}
 
 	public function sendAnswer( answer : Dynamic, ?isException : Bool ) {
@@ -136,7 +136,7 @@ class SocketProtocol {
 			s.serializeException(answer);
 		else
 			s.serialize(answer);
-		sendMessage(out.toString());
+		sendMessage(encodeData(out.toString()));
 	}
 
 	public function sendMessage( msg : String ) {
@@ -150,6 +150,10 @@ class SocketProtocol {
 		#else
 		socket.send(String.fromCharCode(e.c1)+String.fromCharCode(e.c2)+msg);
 		#end
+	}
+
+	public dynamic function encodeData( data : String ) : String {
+		return data;
 	}
 
 	public dynamic function decodeData( data : String ) {

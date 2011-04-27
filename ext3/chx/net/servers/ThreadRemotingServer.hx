@@ -24,8 +24,11 @@
  */
 package chx.net.servers;
 
-class ThreadRemotingServer extends ThreadServer<haxe.remoting.SocketConnection,String> {
+import haxe.remoting.Context;
+import haxe.remoting.SocketConnection;
 
+class ThreadRemotingServer extends ThreadServer<haxe.remoting.SocketConnection,String> {
+	var scCreate : chx.net.Socket -> Context -> haxe.remoting.SocketConnection;
 	var domains : Array<String>;
 	var port : Int;
 
@@ -33,6 +36,14 @@ class ThreadRemotingServer extends ThreadServer<haxe.remoting.SocketConnection,S
 		super();
 		messageHeaderSize = 2;
 		this.domains = domains;
+	}
+
+	/**
+	 * Called before initClientApi, this method must create a SocketConnection of some sort. By
+	 * default it is a haxe.remoting.SocketConnection.
+	 */
+	public dynamic function createSocketConnection(s:chx.net.Socket, ctx:Context) : SocketConnection {
+		return haxe.remoting.SocketConnection.create(s,ctx);
 	}
 
 	public dynamic function initClientApi( cnx : haxe.remoting.SocketConnection, ctx : haxe.remoting.Context ) {
@@ -58,7 +69,7 @@ class ThreadRemotingServer extends ThreadServer<haxe.remoting.SocketConnection,S
 
 	public override function clientConnected( s : chx.net.Socket ) {
 		var ctx = new haxe.remoting.Context();
-		var cnx = haxe.remoting.SocketConnection.create(s,ctx);
+		var cnx = createSocketConnection(s, ctx);
 		var me = this;
 		cnx.setErrorHandler(function(e) {
 			if( !Std.is(e,chx.lang.EofException) && !Std.is(e,chx.lang.IOException) )
