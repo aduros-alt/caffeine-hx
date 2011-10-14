@@ -114,7 +114,7 @@ class Template {
 		var p = new mtwin.templo.Parser(isXhtml == true);
 		var s = p.parse(x);
 
-		s = "// generated from " + id + "\n// temploc v"+mtwin.templo.Template.VERSION+"\n" + s;
+		s = "// generated from " + id + "\n// chxtemploc v"+mtwin.templo.Template.VERSION+"\n" + s;
 
 		var f = neko.io.File.write(path, false);
 		f.writeString(s);

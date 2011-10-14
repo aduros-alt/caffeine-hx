@@ -38,10 +38,10 @@ class ChxDocMain {
 
 	public static var config : Config =
 	{
-		versionMajor		: 0,
-		versionMinor		: 9,
+		versionMajor		: 1,
+		versionMinor		: 0,
 		versionRevision		: 2,
-		buildNumber			: 606,
+		buildNumber			: 633,
 		verbose				: false,
 		rootTypesPackage	: null,
 		allPackages			: new Array(),
@@ -57,15 +57,15 @@ class ChxDocMain {
 		showPrivateVars		: false,
 		showTodoTags		: false,
 		temploBaseDir		: Settings.defaultTemplate,
-		temploTmpDir		: "./tmp/",
+		temploTmpDir		: "./__chxdoctmp/",
 		temploMacros		: "macros.mtt",
 		htmlFileExtension	: ".html",
 
 		stylesheet			: "stylesheet.css",
 
-		baseDirectory		: "./html/",
-		packageDirectory	: "./html/packages/",
-		typeDirectory		: "./html/types/",
+		baseDirectory		: "./docs/",
+		packageDirectory	: "./docs/packages/",
+		typeDirectory		: "./docs/types/",
 
 		noPrompt			: false, // not implemented
 		installImagesDir	: true,
@@ -89,12 +89,10 @@ class ChxDocMain {
 	};
 
 	static var parser = new haxe.rtti.XmlParser();
-	//static var todoLines : Array<{link: Link, message:String}> = new Array();
 
 	/** the one instance of PackageHandler that crawls the TypeTree **/
 	static var packageHandler	: PackageHandler;
-	/** the root context, named "root types" in pkg.full */
-// 	static var packageRoot		: PackageContext;
+
 	/**
 		all package contexts below the root,
 		before being transformed into config in stage3
@@ -385,15 +383,18 @@ class ChxDocMain {
 
 		parseArgs();
 
-		checkAllPaths();
+		initTemplo();
 
 		if( neko.Web.isModNeko ) {
+			checkAllPaths();
 			neko.Web.cacheModule(webHandler);
 			webHandler();
 		}
 		else {
 			loadXmlFiles();
+			checkAllPaths();
 			generate();
+			installTemplate();
 		}
 	}
 
@@ -519,7 +520,7 @@ class ChxDocMain {
 
 
 	static function initDefaultPaths() {
-		config.baseDirectory = neko.Sys.getCwd() + "html/";
+		config.baseDirectory = neko.Sys.getCwd() + "docs/";
 		config.packageDirectory = config.baseDirectory + "packages/";
 		config.typeDirectory = config.baseDirectory + "types/";
 	}
@@ -538,7 +539,9 @@ class ChxDocMain {
 		Utils.createOutputDirectory(config.baseDirectory);
 		Utils.createOutputDirectory(config.packageDirectory);
 		Utils.createOutputDirectory(config.typeDirectory);
+	}
 
+	static function installTemplate() {
 		var targetImgDir = config.baseDirectory + "images";
 		/*
 		if(!neko.FileSystem.exists(targetImgDir)) {
@@ -554,6 +557,7 @@ class ChxDocMain {
 			}
 		}
 		*/
+
 		if(config.installImagesDir) {
 			Utils.createOutputDirectory(targetImgDir);
 			var srcDir = config.temploBaseDir + "images";
@@ -731,7 +735,7 @@ class ChxDocMain {
 				case "--showTodoTags": config.showTodoTags = getBool(parts[1]);
 				case "--stylesheet": config.stylesheet = parts[1];
 				case "--subtitle": config.subtitle = parts[1];
-				case "--templateDir": config.temploBaseDir = parts[1];
+				case "--templateDir", "--template": config.temploBaseDir = parts[1];
 				case "--title": config.title = parts[1];
 				case "--tmpDir": config.temploTmpDir = parts[1];
 				case "--webPassword": config.webPassword = parts[1];
@@ -798,7 +802,7 @@ class ChxDocMain {
 		println("\t--showTodoTags=[true|false] Toggle showing @todo tags in type documentation");
 		println("\t--stylesheet=file Sets the stylesheet relative to the outputdir");
 		println("\t--subtitle=string Set the package subtitle");
-		println("\t--templateDir=path Path to template (.mtt) directory (default ./templates)");
+		println("\t--template=path Path to template (.mtt) directory (default ./templates)");
 		println("\t--title=string Set the package title");
 		println("\t--tmpDir=path Path for tempory file generation (default ./tmp)");
 		println("\t-v Turns on verbose mode");
@@ -834,6 +838,7 @@ class ChxDocMain {
 		}
 		parser.sort();
 		if( parser.root.length == 0 ) {
+			println("Error: no xml data loaded");
 			usage(1);
 		}
 	}
@@ -858,8 +863,8 @@ class ChxDocMain {
 		switch( x.nodeType ) {
 		case Xml.Element:
 			var p = x.get("path");
-			if( p != null && p.substr(0,6) == remap + "." )
-				x.set("path", platform + "." + p.substr(6));
+			if( p != null && p.length > platform.length && p.substr(0,platform.length) == platform )
+				x.set("path", remap + "." + p.substr(platform.length+1));
 			for( x in x.elements() )
 				transformPackage(x, remap, platform);
 		default:

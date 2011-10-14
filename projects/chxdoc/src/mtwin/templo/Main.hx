@@ -26,8 +26,8 @@ package mtwin.templo;
 
 class Main {
 
-	static var VERSION = "0.2 -- haxe flavoured";
-	static var USAGE = "Usage: temploc -o </destination/dir> -m <macrofile.xml> -r </templates/repository> <files...>\n";
+	static var VERSION = "0.2 -- chxdoc flavoured";
+	static var USAGE = "Usage: chxtemploc -o </destination/dir> -m <macrofile.xml> -r </templates/repository> <files...>\n";
 	static var args : Array<String>;
 	static var files : List<String>;
 	static var silence : Bool = false;
@@ -75,11 +75,11 @@ class Main {
 		if( macros != null )
 			files.remove(macros);
 		if (args.length == 0){
-			neko.Lib.print("temploc - v"+VERSION+"\n");
+			neko.Lib.print("chxtemploc - v"+VERSION+"\n");
 			neko.Lib.print(USAGE);
 		}
 		else if (files.length == 0){
-			neko.Lib.print("temploc - v"+VERSION+"\n");
+			neko.Lib.print("chxtemploc - v"+VERSION+"\n");
 			neko.Lib.print(USAGE);
 		}
 		else if (Loader.BASE_DIR == null){

@@ -8,7 +8,7 @@ class Run {
 	static var println:Dynamic->Void = neko.Lib.println;
 
 	static function main() {
-		var args = neko.Sys.args();
+		var args = neko.Sys.args().slice(0);
 		//trace(args);
 		installdir = args.pop();
 		curdir = installdir;
@@ -20,9 +20,12 @@ class Run {
 		//trace("Environment:");
 		//trace(neko.Sys.environment());
 		switch(cmd) {
+		case "--help":
+			usage();
 		case "compile":
 			compile();
 		case "install":
+			compile();
 			var p = args.shift();
 			if(p != null) {
 				installdir = makePath(p);
@@ -32,7 +35,7 @@ class Run {
 			try {
 				installdir = makePath(installdir);
 				compile();
-				makeExe("temploc");
+				makeExe("chxtemploc");
 				makeExe("chxdoc");
 			} catch(e:Dynamic) {
 				neko.Sys.setCwd(curdir);
@@ -62,10 +65,12 @@ class Run {
 
 	static function compile() {
 		neko.Sys.setCwd(builddir);
-		print(">> Creating Settings.hx...");
-		var sp = builddir + "chxdoc/Settings.hx";
-		var fp = neko.io.File.write(sp, false);
-		var data : String =
+
+		if(!neko.FileSystem.exists("chxdoc/Settings.hx")) {
+			print(">> Creating Settings.hx...");
+			var sp = builddir + "chxdoc/Settings.hx";
+			var fp = neko.io.File.write(sp, false);
+			var data : String =
 "/**
 	This class is automatically generated when installing with haxelib
 **/
@@ -75,10 +80,11 @@ class Settings {
 	public static var defaultTemplate : String = \""+builddir+"templates/default/\";
 }
 ";
-		fp.writeString(data);
-		fp.flush();
-		fp.close();
-		println(" complete");
+			fp.writeString(data);
+			fp.flush();
+			fp.close();
+			println(" complete");
+		}
 
 
 		print(">> Compiling in " + neko.Sys.getCwd() + "...");

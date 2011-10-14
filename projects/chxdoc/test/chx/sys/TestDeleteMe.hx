@@ -67,7 +67,7 @@ class Layer1 extends Base {
 	This is the class documentation for TestDeleteMe
 	@author Russell Weir
 **/
-class TestDeleteMe extends Layer1, implements Dynamic {
+class TestDeleteMe<M,N> extends Layer1, implements Dynamic {
 	public static var sa : Int;
 	private static var sb : String;
 
@@ -128,7 +128,7 @@ but this is an example of
 		@throws chx.lang.Exception Every single time
 		@returns Null always
 	**/
-	public function myTemplateMethod<T>(a: TestDeleteMe, b : T) : Int {
+	public function myTemplateMethod<T>(a: TestDeleteMe<M,N>, b : T) : Int {
 		return null;
 	}
 

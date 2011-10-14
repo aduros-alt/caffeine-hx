@@ -5,6 +5,25 @@ Targets:
 	- Add --showSourceFilePath for hard link to source files
 	- Import docs for methods etc. in classes if they implement an interface
 			and have no docs
+
+1.0.2
+	- Fixed Run.hx overwriting Settings.hx 
+
+1.0.1
+	- Fixed remapping
+
+1.0.0
+	- Updated installer
+	- fixed class types not shown on default template
+	- installs custom chxtemploc compiler
+	- fix template installed when bad cmd args passed
+	- change default temp directory to "__chxdoctmp"
+	- change default output directory to "docs"
+	- change command line --templateDir to just --template (--templateDir deprecated, still works)
+
+0.9.2
+	- Updated for current haxe compiler
+
 0.9.1
 	- Fixed methods showing as vars bug
 	- Completed method inheritance

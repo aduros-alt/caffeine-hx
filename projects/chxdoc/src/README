@@ -25,15 +25,15 @@ haxelib run chxdoc install [optional path]
 
 If the optional path parameter is omitted, chxdoc will be installed to the current directory.
 
-CHXDOC uses temploc, the template compiler system by Nicolas Cannasse. A compiled
+CHXDOC uses a modified version of temploc, the template compiler system by Nicolas Cannasse. A compiled
 copy is created when installing from haxelib.
 
-For source code checkouts, there is a neko compiled temploc.n in the ./utils/
-subdirectory. Simply run 'nekotools boot utils/temploc.n' to generate the binary,
-which will be in the utils/ directory, named either "temploc.exe" or "temploc",
+For source code checkouts, there is a neko compiled chxtemploc.n in the ./utils/
+subdirectory. Simply run 'nekotools boot utils/chxtemploc.n' to generate the binary,
+which will be in the utils/ directory, named either "chxtemploc.exe" or "chxtemploc",
 depending on your platform.
 
-Install both the temploc.exe and the chxdoc.exe file to somewhere on your executable
+Install both the chxtemploc.exe and the chxdoc.exe file to somewhere on your executable
 path. The templates directory can be placed anywhere.
 
 

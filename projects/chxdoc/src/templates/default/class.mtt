@@ -22,7 +22,7 @@ function windowTitle()
 	<script language="javascript" type="text/javascript" src="::rootRelative::../chxdoc.js"></script>
 	<div id="class-frame" class="type-frame">
 	<!-- ======== START OF class DATA ======== -->
-	<h1 class="::type::">::nameDots::::raw params::</h1>
+	<h1 class="::type::">::nameDots::::params::</h1>
 	<dl>
 		<dt>type</dt>
 		<dd>::type::</dd>
