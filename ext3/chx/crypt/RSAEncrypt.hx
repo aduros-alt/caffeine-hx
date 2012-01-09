@@ -48,20 +48,14 @@ class RSAEncrypt implements IBlockCipher {
 	public var blockSize(__getBlockSize,null) : Int;
 
 	public function new(nHex:String,eHex:String) {
-		#if CAFFEINE_DEBUG
-		if(nHex != null && !Std.is(nHex, String)) {
-			trace(Type.getClassName(Type.getClass(nHex)));
-			throw "Arg ";
-		}
-		if(eHex != null && !Std.is(eHex, String)) {
-			trace(Type.getClassName(Type.getClass(eHex)));
-			throw "Arg "; 
-		}
-		#end
-		this.n = null;
-		this.e = 0;
+		init();
 		if(nHex != null)
 			setPublic(nHex, eHex);
+	}
+
+	private function init() {
+		this.n = null;
+		this.e = 0;
 	}
 
 	/**
@@ -147,6 +141,7 @@ class RSAEncrypt implements IBlockCipher {
 	* from hex strings.
 	**/
 	public function setPublic(nHex : String, eHex:String) : Void {
+		init();
 		if(nHex == null || nHex.length == 0)
 			throw new chx.lang.NullPointerException("nHex not set: " + nHex);
 		if(eHex == null || eHex.length == 0)
@@ -198,23 +193,24 @@ class RSAEncrypt implements IBlockCipher {
 			if(idx + ts > src.length)
 				ts = src.length - idx;
 			var m:BigInteger = BigInteger.ofBytes(pf.pad(src.sub(idx,ts)), true);
-			//trace("padded: " + m.toHex());
-			if(m == null) return null;
 			var c:BigInteger = f(m);
-			if(c == null) return null;
+
 			#if CAFFEINE_DEBUG
 			var d = m.toBytesUnsigned();
 			var e = c.toBytesUnsigned();
-			trace("m len " + d.length + " "+d.toHex(":"));
-			trace("c len " + e.length + " "+e.toHex(":"));
+			trace("m (padded) len " + d.length + " "+d.toHex(":"));
+			trace("c (crypted) len " + e.length + " "+e.toHex(":"));
 			#end
+
 			var h = c.toBytesUnsigned();
 			//var
 			if((h.length & 1) != 0)
 				msg.addByte( 0 );
+
 			#if CAFFEINE_DEBUG
 			trace(">>>> crypted ("+h.length+"): " + h.toHex());
 			#end
+
 			msg.add(h);
 			idx += ts;
 		}
@@ -228,7 +224,7 @@ class RSAEncrypt implements IBlockCipher {
 		//bs *= 2; // hex string, 2 bytes per char
 		var ts : Int = bs - 11;
 		#if CAFFEINE_DEBUG
-		trace(">>>> Decrypting. Blocksize is "+bs + " src length:"+src.length + "["+src.toHex()+"]");
+		trace(">>>> Decrypting. Blocksize is "+ bs + " src length:"+src.length + "["+src.toHex()+"]");
 		#end
 		var idx : Int = 0;
 		var msg = new BytesBuffer();
@@ -239,6 +235,14 @@ class RSAEncrypt implements IBlockCipher {
 			var m = f(c);
 			if(m == null)
 				return null;
+
+			#if CAFFEINE_DEBUG
+			var d = m.toBytesUnsigned();
+			var e = c.toBytesUnsigned();
+			trace("c (crypted) len " + e.length + " "+e.toHex(":"));
+			trace("m (padded) len " + d.length + " "+d.toHex(":"));
+			#end
+
 			var up : Bytes = pf.unpad(m.toBytesUnsigned());
 			if(up.length > ts)
 				throw "block text length error";

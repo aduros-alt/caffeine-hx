@@ -38,6 +38,9 @@ class ModeCBC extends IV, implements IMode {
 		return "???-???-cbc";
 	}
 
+	/**
+	 * @TODO proper block padding, refer to ModeECB
+	 **/
 	public function encrypt( s : Bytes ) : Bytes {
 		var buf = prepareEncrypt( s );
 		var bsize = cipher.blockSize;

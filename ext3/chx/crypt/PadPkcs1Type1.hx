@@ -51,7 +51,7 @@ class PadPkcs1Type1 implements IPad {
 
 	public function pad( s : Bytes ) : Bytes {
 		if(s.length > textSize)
-			throw "Unable to pad block";
+			throw "Unable to pad block: provided buffer is " + s.length + " max is " + textSize;
 		var sb = new BytesBuffer();
 		sb.addByte(0);
 		sb.addByte(typeByte);

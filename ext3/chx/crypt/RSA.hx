@@ -37,34 +37,28 @@ import math.BigInteger;
 	RSAEncrypt can be used instead.
 **/
 class RSA extends RSAEncrypt, implements IBlockCipher {
-	// private key
-	public var d : BigInteger;
+	public var d : BigInteger;		// private key
 	public var p : BigInteger;		// prime 1
 	public var q : BigInteger;		// prime 2
-	public var dmp1 : BigInteger;
-	public var dmq1 : BigInteger;
+	public var dmp1 : BigInteger;	// d % (p-1)
+	public var dmq1 : BigInteger;	// d % (q -1)
 	public var coeff: BigInteger;
 
 	public function new(nHex:String=null,eHex:String=null,dHex:String=null) {
 		super(null,null);
-		#if CAFFEINE_DEBUG
-		if(nHex != null && !Std.is(nHex, String)) {
-			trace(Type.getClassName(Type.getClass(nHex)));
-			throw "Arg";
-		}
-		if(eHex != null && !Std.is(eHex, String)) {
-			trace(Type.getClassName(Type.getClass(eHex)));
-			throw "Arg";
-		}
-		#end
+		init();
+		if(nHex != null)
+			setPrivate(nHex,eHex,dHex);
+	}
+
+	override private function init() {
+		super.init();
 		this.d = null;		// private exponent
 		this.p = null;		// prime 1
 		this.q = null;		// prime 2
 		this.dmp1 = null;	// d % (p-1)
 		this.dmq1 = null;	// d % (q -1)
 		this.coeff = null;
-		if(nHex != null)
-			setPrivate(nHex,eHex,dHex);
 	}
 
 	/**
@@ -134,7 +128,7 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 	*/
 	public static function generate(B:Int, E:String) : RSA {
 		var rng = new math.prng.Random();
-		var key:RSA = new RSA(); // new RSA(null,0,null);
+		var key:RSA = new RSA();
 		var qs : Int = B>>1;
 		key.e = Std.parseInt(StringTools.startsWith(E, "0x") ? E : "0x" + E);
 		var ee : BigInteger = BigInteger.ofInt(key.e);
@@ -180,6 +174,7 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 	* @throws String on errors
 	**/
 	public function setPrivate(N:String,E:String,D:String) : Void {
+		init();
 		super.setPublic(N, E);
 		if(D != null && D.length > 0) {
 			var s = BytesUtil.cleanHexFormat(D);
@@ -196,46 +191,52 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 	* @param N modulus, a hexadecimal string
 	* @param E public exponent, a hexadecimal string
 	* @param D private exponent, a hexadecimal string
-	* @param P , a hexadecimal string
-	* @param Q , a hexadecimal string
-	* @param DP , a hexadecimal string
-	* @param DQ , a hexadecimal string
-	* @param C , a hexadecimal string
+	* @param P prime1, a hexadecimal string
+	* @param Q prime2, a hexadecimal string
+	* @param DP d % (p-1), a hexadecimal string or null
+	* @param DQ d % (q-1), a hexadecimal string or null
+	* @param C coefficient, a hexadecimal string
 	* @throws String on errors
 	**/
 	public function setPrivateEx(
-			N:String,E:String,D:String,P:String,
-			Q:String,DP:String,DQ:String,C:String) : Void
+			N:String,E:String,D:String,P:String,Q:String,
+			DP:String=null,DQ:String=null,C:String=null) : Void
 	{
+		init();
 		setPrivate(N, E, D);
-		if(P != null && Q != null && C != null &&
-			P.length > 0 && Q.length > 0 && C.length > 0)
+		if(P != null && Q != null)
 		{
-			var s : String = BytesUtil.cleanHexFormat(P);
-			p = BigInteger.ofString(s, 16);
-			s = BytesUtil.cleanHexFormat(Q);
-			q = BigInteger.ofString(s,16);
-			if(DP == null) {
-				var pm1 : BigInteger = p.sub(BigInteger.ONE);
-				dmp1 = d.mod(pm1);
-			}
-			else {
-				s = BytesUtil.cleanHexFormat(DP);
-				dmp1 = BigInteger.ofString(s,16);
-			}
-			if(DQ == null) {
-				var pq1 = q.sub(BigInteger.ONE);
-				dmq1 = d.mod(pq1);
-			}
-			else {
-				s = BytesUtil.cleanHexFormat(DQ);
-				dmq1 = BigInteger.ofString(s,16);
-			}
-			s = BytesUtil.cleanHexFormat(C);
-			coeff = BigInteger.ofString(s,16);
+			p = BigInteger.ofString(BytesUtil.cleanHexFormat(P), 16);
+			q = BigInteger.ofString(BytesUtil.cleanHexFormat(Q), 16);
+
+			dmp1 = null;
+			dmq1 = null;
+			coeff = null;
+
+			if(DP != null)
+				dmp1 = BigInteger.ofString(BytesUtil.cleanHexFormat(DP),16);
+
+			if(DQ != null)
+				dmq1 = BigInteger.ofString(BytesUtil.cleanHexFormat(DQ),16);
+
+			if(C != null)
+				coeff = BigInteger.ofString(BytesUtil.cleanHexFormat(C), 16);
+
+			recalcCRT();
 		}
 		else
 			throw("Invalid RSA private key ex");
+	}
+
+	function recalcCRT() {
+		if(p != null && q != null) {
+			if(dmp1 == null)
+				dmp1 = d.mod(p.sub(BigInteger.ONE));
+			if(dmq1 == null)
+				dmq1 = d.mod(q.sub(BigInteger.ONE));
+			if(coeff == null)
+				coeff = q.modInverse(p);
+		}
 	}
 
 	//////////////////////////////////////////////////
@@ -249,17 +250,6 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 			return x.modPow(this.d, this.n);
 		}
 
-		/* CRT where p > q
-		dP = (1/e) mod (p-1)
-		dQ = (1/e) mod (q-1)
-		qInv = (1/q) mod p
-
-		m1 = c^dP mod p
-		m2 = c^dQ mod q
-		h = qInv(m1 - m2) mod p
-		m = m2 + hq
-		*/
-		// TODO: re-calculate any missing CRT params
 		var xp = x.mod(this.p).modPow(this.dmp1, this.p);
 		var xq = x.mod(this.q).modPow(this.dmq1, this.q);
 
@@ -273,11 +263,11 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 		sb.add(super.toString());
 		sb.add("Private:\n");
 		sb.add("D:\t" + d.toHex() + "\n");
-		sb.add("P:\t" + p.toHex() + "\n");
-		sb.add("Q:\t" + q.toHex() + "\n");
-		sb.add("DMP1:\t" + dmp1.toHex() + "\n");
-		sb.add("DMQ1:\t" + dmq1.toHex() + "\n");
-		sb.add("COEFF:\t" + coeff.toHex() + "\n");
+		if(p != null) sb.add("P:\t" + p.toHex() + "\n");
+		if(q != null) sb.add("Q:\t" + q.toHex() + "\n");
+		if(dmp1 != null) sb.add("DMP1:\t" + dmp1.toHex() + "\n");
+		if(dmq1 != null) sb.add("DMQ1:\t" + dmq1.toHex() + "\n");
+		if(coeff != null) sb.add("COEFF:\t" + coeff.toHex() + "\n");
 		return sb.toString();
 	}
 }
