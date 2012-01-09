@@ -287,9 +287,11 @@ class BytesUtil {
 			separator = " ";
 		var sb = new StringBuf();
 		var l = b.length;
+		var first = true;
 		for(i in 0...l) {
+			if(first) first = false;
+			else sb.add(separator);
 			sb.add(StringTools.hex(b.get(i),2).toLowerCase());
-			sb.add(separator);
 		}
 		return StringTools.rtrim(sb.toString());
 	}
