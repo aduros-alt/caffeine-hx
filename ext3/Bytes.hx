@@ -320,6 +320,34 @@ class Bytes {
 		#end
 	}
 
+	/**
+	 * This method copies the provided string without any UTF conversion. Use
+	 * where the string passed is binary data.
+	 **/
+	public static function ofStringData( s : String ) : Bytes {
+		#if neko
+			return new Bytes(s.length,untyped __dollar__ssub(s.__s,0,s.length));
+		#elseif flash9
+			var b = new flash.utils.ByteArray();
+			for(i in 0...s.length)
+				b.writeByte(s.charCodeAt(i));
+			return new Bytes(b.length,b);
+		#elseif php
+			return new Bytes(untyped __call__("strlen", s), cast s);
+		#elseif cpp
+			var a = new BytesData();
+			untyped __global__.__hxcpp_bytes_of_string(a,s);
+			return new Bytes(a.length,a);
+		#else
+			var a = new Array();
+			// utf8-decode
+			for( i in 0...s.length ) {
+				a.push(s.charCodeAt(i));
+			}
+			return new Bytes(a.length,a);
+		#end
+	}
+
 	public static function ofData( b : BytesData ) {
 		#if flash9
 		return new Bytes(b.length,b);
