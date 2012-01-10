@@ -1,0 +1,32 @@
+-cp ../../
+-cp src
+-neko test.n
+-main AESKeyTest
+-debug
+
+--next
+-cp ../../
+-cp src
+-js test.js
+-main AESKeyTest
+-debug
+-D FIREBUG
+
+--next
+-cp ../../
+-cp src
+-swf test9.swf
+-swf-version 9
+-main AESKeyTest
+-debug
+-D FIREBUG
+
+--next
+-cp ../../
+-cp src
+-swf test8.swf
+-swf-version 8
+-main AESKeyTest
+-debug
+-D FIREBUG
+

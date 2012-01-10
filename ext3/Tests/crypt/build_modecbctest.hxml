@@ -1,0 +1,34 @@
+#
+# XXTea
+-cp ../../
+-cp src
+-neko test.n
+-main ModeCBCTest
+-debug
+
+--next
+-cp ../../
+-cp src
+-js test.js
+-main ModeCBCTest
+-debug
+-D FIREBUG
+
+--next
+-cp ../../
+-cp src
+-swf test9.swf
+-swf-version 9
+-main ModeCBCTest
+-debug
+-D FIREBUG
+
+--next
+-cp ../../
+-cp src
+-swf test8.swf
+-swf-version 8
+-main ModeCBCTest
+-debug
+-D FIREBUG
+
