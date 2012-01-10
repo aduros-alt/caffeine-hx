@@ -31,8 +31,9 @@ class PadBase implements IPad {
 
 	public var blockSize(default,setBlockSize) : Int;
 
-	public function new( blockLen : Int ) {
-		setBlockSize(blockLen);
+	public function new( blockSize : Null<Int> = null ) {
+		if(blockSize != null)
+			setBlockSize(blockSize);
 	}
 
 	public function pad( s : Bytes ) : Bytes {
@@ -57,13 +58,5 @@ class PadBase implements IPad {
  			n++;
 		return n;
 	}
-
-	public function getBytesReadPerBlock() : Int {
-		return blockSize;
-	}
-
-	/** pads by block? **/
-	public function isBlockPad() : Bool { return false; }
-	public function blockOverhead() : Int { return 0; }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, The Caffeine-hx project contributors
+ * Copyright (c) 2012, The Caffeine-hx project contributors
  * Original author : Russell Weir
  * Contributors:
  * All rights reserved.
@@ -28,45 +28,20 @@
 package chx.crypt;
 
 /**
- * Pads with NULL (0) bytes
+ * Perform no padding. 
  **/
-class PadNull implements IPad {
-	public var blockSize(default,setBlockSize) : Int;
-	public var textSize(default,null) : Int;
+class PadNone extends PadBase, implements IPad {
 
-	public function new( blockSize : Null<Int> = null ) {
-		if(blockSize != null)
-			setBlockSize(blockSize);
-	}
-
-	public function pad( s : Bytes ) : Bytes {
-		var r = blockSize - (s.length % blockSize);
-		if(r == blockSize)
-			return s;
-		var sb = new BytesBuffer();
-		sb.add(s);
-		for(x in 0...r) {
-			sb.addByte(0);
-		}
-		return sb.getBytes();
-	}
-
-	/**
-	 * Null padded strings can't be reliably unpadded, since the
-	 * source may contain nulls. It is up to the implementation to
-	 * keep track of how many bytes in the packet are used.
-	 **/
-	public function unpad( s : Bytes ) : Bytes {
+	override public function pad( s : Bytes ) : Bytes {
 		return s;
 	}
 
-	public function calcNumBlocks(len : Int) : Int {
+	override public function unpad( s : Bytes ) : Bytes {
+		return s;
+	}
+
+	override public function calcNumBlocks(len : Int) : Int {
 		return Math.ceil(len/blockSize);
 	}
 
-	private function setBlockSize( x : Int ) : Int {
-		this.blockSize = x;
-		this.textSize = x;
-		return x;
-	}
 }

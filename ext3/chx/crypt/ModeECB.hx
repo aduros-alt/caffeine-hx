@@ -50,27 +50,18 @@ class ModeECB implements IMode {
 
 	public function encrypt( s : Bytes ) : Bytes {
 		var buf : Bytes = null;
-		var padBlocks : Bool = padding.isBlockPad();
-		var tsize = padding.getBytesReadPerBlock();
 		var bsize = padding.blockSize;
 		var numBlocks = padding.calcNumBlocks(s.length);
 		var offset : Int = 0;
 		var len : Int = 0;
 		var rem : Int = s.length;
 		var sb = new BytesBuffer();
- 		if(!padBlocks)
-			buf = padding.pad(s);
+
+		buf = padding.pad(s);
 		for (i in 0...numBlocks) {
 			var rv : Bytes = null;
-			if(padBlocks) {
-				rv = padding.pad(s.sub(offset, tsize));
-				offset += tsize;
-			}
-			else {
-				rv = buf.sub(offset, tsize);
-				offset += bsize;
-			}
-
+			rv = buf.sub(offset, bsize);
+			offset += bsize;
 			var enc = cipher.encryptBlock(rv);
 			if(enc.length != bsize)
 				throw("block encryption to wrong block size");
@@ -80,7 +71,6 @@ class ModeECB implements IMode {
 	}
 
 	public function decrypt( s : Bytes ) : Bytes {
-		var padBlocks : Bool = padding.isBlockPad();
 		var bsize = padding.blockSize;
 		if(s.length % bsize != 0)
 			throw "Invalid message length " + s.length;
@@ -89,15 +79,11 @@ class ModeECB implements IMode {
 		var sb = new BytesBuffer();
 		for (i in 0...numBlocks) {
 			var rv : Bytes = cipher.decryptBlock(s.sub(offset, bsize));
-			if(padBlocks)
-				rv = padding.unpad(rv);
 			sb.add(rv);
 			offset += bsize;
 		}
 		var b = sb.getBytes();
-		if(!padBlocks)
-			return padding.unpad(b);
-		return b;
+		return padding.unpad(b);
 	}
 
 	// These have no effect when using ECB mode.

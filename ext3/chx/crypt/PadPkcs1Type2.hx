@@ -32,7 +32,7 @@ import math.prng.Random;
 /**
  * Pads buffer with random bytes
  **/
-class PadPkcs1Type2 extends PadPkcs1Type1, implements IPad {
+class PadPkcs1Type2 extends PadPkcs1Type1, implements IBlockPad {
 	var rng : Random;
 
 	public function new( size : Int ) {

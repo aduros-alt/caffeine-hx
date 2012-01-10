@@ -258,6 +258,7 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 		return xp.sub(xq).mul(this.coeff).mod(this.p).mul(this.q).add(xq);
 	}
 
+	/*
 	override public function toString() {
 		var sb = new StringBuf();
 		sb.add(super.toString());
@@ -270,5 +271,6 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 		if(coeff != null) sb.add("COEFF:\t" + coeff.toHex() + "\n");
 		return sb.toString();
 	}
+	*/
 }
 

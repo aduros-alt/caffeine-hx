@@ -28,6 +28,7 @@
 package chx.crypt;
 
 interface IPad {
+
 	/** finished padded block size **/
 	var blockSize(default,setBlockSize) : Int;
 
@@ -35,19 +36,7 @@ interface IPad {
 
 	function unpad( s : Bytes ) : Bytes;
 
-	/** pads by block? **/
-	function isBlockPad() : Bool;
-
 	/** returns the number of blocks for message length len **/
 	function calcNumBlocks(len : Int) : Int;
-
-	/** number of bytes padding needs per block **/
-	function blockOverhead() : Int;
-
-	/**
-	 * Number of bytes of source material that will actually be written into each block.
-	 * On block pads, this will be less than the block size. (blockSize-blockOverhead)
-	 **/
-	function getBytesReadPerBlock() : Int;
 
 }

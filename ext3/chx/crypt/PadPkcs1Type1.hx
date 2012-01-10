@@ -30,7 +30,7 @@ package chx.crypt;
 /**
 	Pads string with 0xFF bytes
 **/
-class PadPkcs1Type1 implements IPad {
+class PadPkcs1Type1 implements IBlockPad {
 	public var blockSize(default,setBlockSize) : Int;
 	public var textSize(default,null) : Int;
 	/** only for Type1, the byte to pad with, default 0xFF **/

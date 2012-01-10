@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, The Caffeine-hx project contributors
+ * Copyright (c) 2012, The Caffeine-hx project contributors
  * Original author : Russell Weir
  * Contributors:
  * All rights reserved.
@@ -27,46 +27,24 @@
 
 package chx.crypt;
 
-/**
- * Pads with NULL (0) bytes
- **/
-class PadNull implements IPad {
-	public var blockSize(default,setBlockSize) : Int;
-	public var textSize(default,null) : Int;
+interface IBlockPad {
+	/** finished padded block size **/
+	var blockSize(default,setBlockSize) : Int;
 
-	public function new( blockSize : Null<Int> = null ) {
-		if(blockSize != null)
-			setBlockSize(blockSize);
-	}
+	function pad( s : Bytes ) : Bytes;
 
-	public function pad( s : Bytes ) : Bytes {
-		var r = blockSize - (s.length % blockSize);
-		if(r == blockSize)
-			return s;
-		var sb = new BytesBuffer();
-		sb.add(s);
-		for(x in 0...r) {
-			sb.addByte(0);
-		}
-		return sb.getBytes();
-	}
+	function unpad( s : Bytes ) : Bytes;
+
+	/** returns the number of blocks for message length len **/
+	function calcNumBlocks(len : Int) : Int;
+
+	/** number of bytes padding needs per block **/
+	function blockOverhead() : Int;
 
 	/**
-	 * Null padded strings can't be reliably unpadded, since the
-	 * source may contain nulls. It is up to the implementation to
-	 * keep track of how many bytes in the packet are used.
+	 * Number of bytes of source material that will actually be written into each block.
+	 * On block pads, this will be less than the block size. (blockSize-blockOverhead)
 	 **/
-	public function unpad( s : Bytes ) : Bytes {
-		return s;
-	}
+	function getBytesReadPerBlock() : Int;
 
-	public function calcNumBlocks(len : Int) : Int {
-		return Math.ceil(len/blockSize);
-	}
-
-	private function setBlockSize( x : Int ) : Int {
-		this.blockSize = x;
-		this.textSize = x;
-		return x;
-	}
 }

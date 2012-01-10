@@ -91,19 +91,12 @@ class RSAEncrypt implements IBlockCipher {
 			throw("bad block size");
 
 		var biv:BigInteger = BigInteger.ofBytes(block, true);
-// 		trace("BI of Block: " + biv.toHex());
-// 		trace("e: " + StringTools.hex(e));
-// 		trace("n: " + n.toHex());
-// 		trace(n.bitLength());
 		var biRes = doPublic(biv).toBytesUnsigned();
-// 		trace("result: " + biRes.toHex());
-// 		trace(ba);
 
 		var l = biRes.length;
 		var i = 0;
 		while(l > bsize) {
 			if(biRes.get(i) != 0) {
-				//trace(BytesUtil.hexDump(BytesUtil.ofIntArray(ba)));
 				throw new chx.lang.FatalException("encoded length was "+biRes.length);
 			}
 			i++; l--;
@@ -179,7 +172,7 @@ class RSAEncrypt implements IBlockCipher {
 	* @param f Callback for encryption
 	* @param pf Padding method
 	**/
-	private function doBufferEncrypt(src:Bytes, f : BigInteger->BigInteger, pf : IPad) : Bytes
+	private function doBufferEncrypt(src:Bytes, f : BigInteger->BigInteger, pf : IBlockPad) : Bytes
 	{
 		//trace("source: " + src.toHex());
 		var bs = blockSize;
@@ -217,7 +210,7 @@ class RSAEncrypt implements IBlockCipher {
 		return msg.getBytes();
 	}
 
-	private function doBufferDecrypt(src: Bytes, f : BigInteger->BigInteger, pf : IPad) : Bytes
+	private function doBufferDecrypt(src: Bytes, f : BigInteger->BigInteger, pf : IBlockPad) : Bytes
 	{
 		//trace("source: " + src.toHex());
 		var bs = blockSize;
@@ -272,11 +265,14 @@ class RSAEncrypt implements IBlockCipher {
 
 
 	public function toString() {
+		return "rsa";
+		/*
 		var sb = new StringBuf();
 		sb.add("Public:\n");
 		sb.add("N:\t" + n.toHex() + "\n");
 		sb.add("E:\t" + BigInteger.ofInt(e).toHex() + "\n");
 		return sb.toString();
+		*/
 	}
 }
 
