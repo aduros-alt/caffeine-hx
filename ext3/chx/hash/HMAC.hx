@@ -59,7 +59,7 @@ class HMAC {
 	}
 
 	public function toString() : String {
-		return "hmac-" + Std.string(bits) + Std.string(hash);
+		return "hmac-" + (bits>0 ? Std.string(bits)+"-" : "") + Std.string(hash);
 	}
 
 	public function calculate(key : Bytes, msg : Bytes ) : Bytes {
