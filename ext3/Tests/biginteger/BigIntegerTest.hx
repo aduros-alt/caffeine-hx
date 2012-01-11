@@ -36,6 +36,14 @@ class DecimalConversion extends haxe.unit.TestCase {
 		b.fromInt32(I32.ofInt(-1));
 		assertEquals("-1", b.toString());
 	}
+
+	function test07() {
+		var i = "08:f1:62:60:59:54:0a:b8:74:1f:89:7e:d0:08:01:44:dd:fb:26:19:49:e8:b1:7a:30:21:e8:0d:71:44:69:4e:97:2d:eb:3b:66:24:0a:32:f1:ff:78:1e:b7:26:4c:10:b5:f5:39:db:b8:3e:01:2b:e5:67:1f:34:4f:7a:14:ae:eb:77:a1:7c:bf:45:60:fb:10:60:00:5d:f5:f3:05:51:a5:75:ff:71:48:fb:ee:8a:ba:e1:8d:2a:0f:31:ed:a5:65:7d:e6:d5:ae:f5:78:3e:4d:93:00:01:ba:8b:59:23:8e:e9:2f:5c:5c:79:46:94:54:84:0b:66:17:b9:e6:ce";
+		var b = BigInteger.ofString(BytesUtil.cleanHexFormat(i), 16);
+		var u = b.toBytesUnsigned();
+
+		assertEquals(i, BytesUtil.toHex(u,":"));
+	}
 }
 
 class Shifts extends haxe.unit.TestCase {
@@ -246,8 +254,8 @@ class Functions extends haxe.unit.TestCase {
 		assertEquals(bufh, res.modPow(biPriv,biMod).toRadix(16).toString());
 
 		// to IntArray and back
-		var ba = BigInteger.ofString(bufh,16).toIntArray();
-		assertEquals(bufh, BigInteger.ofIntArray(ba).toRadix(16).toString());
+		//var ba = BigInteger.ofString(bufh,16).toIntArray();
+		//assertEquals(bufh, BigInteger.ofIntArray(ba).toRadix(16).toString());
 
 		// buf 2 test
 		var biBuf2 = BigInteger.ofString(bufh2,16);

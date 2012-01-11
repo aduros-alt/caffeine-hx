@@ -33,45 +33,45 @@ package chx.hash;
 **/
 class HMAC {
 	var hash : IHash;
-	var bytes : Int;
+	var bits : Int;
 
-	public function new(hashMethod : IHash, ?bytes : Int) {
+	public function new(hashMethod : IHash, bits : Null<Int>=0) {
 		this.hash = hashMethod;
-		var hb = hashMethod.getLengthBytes();
-		if(bytes == null) {
-			bytes = hb;
+		var hb = hashMethod.getLengthBits();
+		if(bits == 0) {
+			bits = hb;
 		}
-		else if(bytes > hb){
-			bytes = hb;
+		else if(bits > hb){
+			bits = hb;
 		}
-		else if(bytes <= 0) {
+		else if(bits <= 0) {
 			throw "Invalid HMAC length";
 		}
 	}
 
 	public function toString() : String {
-		return "hmac-" + Std.string(bytes*8) + Std.string(hash);
+		return "hmac-" + Std.string(bits) + Std.string(hash);
 	}
 
-	public function calculate(key : String, msg : String ) {
+	public function calculate(key : Bytes, msg : Bytes ) : Bytes {
 		var B = hash.getBlockSizeBytes();
-		var K : String = key;
+		var K : Bytes = key;
 
 		if(K.length > B) {
-			K = hash.calculate(K);
+			K = hash.calcBin(K);
 		}
-		K = ByteString.nullPadString(K, B).substr(0, B);
+		K = BytesUtil.nullPad(K, B).sub(0, B);
 
-		var Ki = new StringBuf();
-		var Ko = new StringBuf();
+		var Ki = new BytesBuffer();
+		var Ko = new BytesBuffer();
 		for (i in 0...K.length) {
-			Ki.addChar(K.charCodeAt(i) ^ 0x36);
-			Ko.addChar(K.charCodeAt(i) ^ 0x5c);
+			Ki.addByte(K.get(i) ^ 0x36);
+			Ko.addByte(K.get(i) ^ 0x5c);
 		}
 		// hash(Ko + hash(Ki + message))
 		Ki.add(msg);
-		Ko.add(hash.calculate(Ki.toString()));
-		return hash.calculate(Ko.toString());
+		Ko.add(hash.calcBin(Ki.getBytes()));
+		return hash.calcBin(Ko.getBytes());
 	}
 
 }

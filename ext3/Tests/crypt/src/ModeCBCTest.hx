@@ -10,7 +10,7 @@
 import chx.crypt.Aes;
 import chx.crypt.ModeCBC;
 import chx.crypt.PadNone;
-import chx.crypt.Tea;
+import chx.crypt.XXTea;
 
 import haxe.unit.TestCase;
 
@@ -47,6 +47,7 @@ class ModeCBCTest extends TestCase
 			"3ff1caa1681fac09120eca307586e1a7");
 		var cbc:ModeCBC = new ModeCBC(new Aes(128,key), new PadNone());
 		cbc.iv = Bytes.ofHex("000102030405060708090a0b0c0d0e0f");
+		cbc.setPrependMode(false);
 
 		var src : Bytes = cbc.encrypt(pt);
 		assertEquals(src.toHex(), ct.toHex());
@@ -68,6 +69,7 @@ class ModeCBCTest extends TestCase
 			"08b0e27988598881d920a9e64f5615cd");
 		var cbc:ModeCBC = new ModeCBC(new Aes(192,key), new PadNone());
 		cbc.iv = Bytes.ofHex("000102030405060708090a0b0c0d0e0f");
+		cbc.setPrependMode(false);
 
 		var src = cbc.encrypt(pt);
 		assertEquals( src.toHex(), ct.toHex());
@@ -91,6 +93,7 @@ class ModeCBCTest extends TestCase
 			"b2eb05e2c39be9fcda6c19078c6a9d1b");
 		var cbc:ModeCBC = new ModeCBC(new Aes(256,key), new PadNone());
 		cbc.iv = Bytes.ofHex("000102030405060708090a0b0c0d0e0f");
+		cbc.setPrependMode(false);
 
 		var src = cbc.encrypt(pt);
 		assertEquals( src.toHex(), ct.toHex());
@@ -120,6 +123,7 @@ class ModeCBCTest extends TestCase
 			var aes:Aes = new Aes(key.length*8, key);
 			var cbc:ModeCBC = new ModeCBC(aes);
 			cbc.iv = Bytes.ofHex("00000000000000000000000000000000");
+			cbc.setPrependMode(false);
 			var crypted = cbc.encrypt(pt);
 			var str:String = crypted.toHex().toUpperCase();
 			assertEquals( cts[i], str);
@@ -145,16 +149,16 @@ class ModeCBCTest extends TestCase
 		for (i in 0...keys.length) {
 			var key:Bytes = Bytes.ofHex(keys[i]);
 			var pt:Bytes = Bytes.ofHex(pts[i]);
-			var tea:XTeaKey = new XTeaKey(key);
+			var tea:XTea = new XTea(key);
 			var cbc:ModeCBC = new ModeCBC(tea);
 			cbc.iv = Bytes.ofHex("0000000000000000");
-			cbc.encrypt(pt);
-			var str:String = pt.toHex();
-			assertEquals("comparing "+cts[i]+" to "+str, cts[i]==str);
+			cbc.setPrependMode(false);
+			
+			var str:String = cbc.encrypt(pt).toHex();
+			assertEquals(cts[i], str);
 			// now go back to plaintext.
-			cbc.decrypt(pt);
-			str = pt.toHex();
-			assertEquals("comparing "+pts[i]+" to "+str, pts[i]==str);
+			str = cbc.decrypt(Bytes.ofHex(str)).toHex();
+			assertEquals(pts[i], str);
 		}
 	}
 	*/

@@ -1,0 +1,36 @@
+#
+# Crypt RSA
+#
+-cp ../../
+-cp src
+-neko test.n
+-main RsaTest
+-D CAFFEINE_DEBUG
+-D nekogg
+-debug
+
+--next
+-cp ../../
+-cp src
+-js test.js
+-main RsaTest
+-debug
+-D FIREBUG
+
+--next
+-cp ../../
+-cp src
+-swf test9.swf
+-swf-version 9
+-main RsaTest
+-debug
+-D FIREBUG
+
+--next
+-cp ../../
+-cp src
+-swf test8.swf
+-swf-version 8
+-main RsaTest
+-debug
+-D FIREBUG
