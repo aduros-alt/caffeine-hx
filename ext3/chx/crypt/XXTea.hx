@@ -29,7 +29,7 @@ package chx.crypt;
 
 import I32;
 
-class Tea implements IBlockCipher {
+class XXTea implements IBlockCipher {
 #if neko
 	var k : Void;
 #else
