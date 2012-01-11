@@ -35,6 +35,12 @@ class HMAC {
 	var hash : IHash;
 	var bits : Int;
 
+	/**
+	 * Construct a new hmac using the provided hashing method.
+	 * @param hashMethod
+	 * @param bits If greater than 0, output will be truncated
+	 * @todo Bits is only a multiple of 8, but theoretically could implemented with a BigInteger
+	 **/
 	public function new(hashMethod : IHash, bits : Null<Int>=0) {
 		this.hash = hashMethod;
 		var hb = hashMethod.getLengthBits();
@@ -44,9 +50,12 @@ class HMAC {
 		else if(bits > hb){
 			bits = hb;
 		}
-		else if(bits <= 0) {
+		if(bits <= 0) {
 			throw "Invalid HMAC length";
 		}
+		else if(bits % 8 != 0)
+			throw "Bits must be a multiple of 8";
+		this.bits = bits;
 	}
 
 	public function toString() : String {
@@ -60,18 +69,25 @@ class HMAC {
 		if(K.length > B) {
 			K = hash.calculate(K);
 		}
-		K = BytesUtil.nullPad(K, B).sub(0, B);
+		K = BytesUtil.nullPad(K, B);
+		Assert.isEqual(K.length, B);
 
 		var Ki = new BytesBuffer();
 		var Ko = new BytesBuffer();
 		for (i in 0...K.length) {
-			Ki.addByte(K.get(i) ^ 0x36);
 			Ko.addByte(K.get(i) ^ 0x5c);
+			Ki.addByte(K.get(i) ^ 0x36);
 		}
 		// hash(Ko + hash(Ki + message))
 		Ki.add(msg);
 		Ko.add(hash.calculate(Ki.getBytes()));
-		return hash.calculate(Ko.getBytes());
+
+		// truncated output
+		var outer = Ko.getBytes();
+		var rv = hash.calculate(outer);
+		if(bits > 0 && bits < outer.length * 8)
+			rv = rv.sub(0, Std.int(bits/8));
+		return rv;
 	}
 
 }

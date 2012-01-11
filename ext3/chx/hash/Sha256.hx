@@ -75,7 +75,7 @@ class Sha256 implements IHash {
 #if !neko
 	private static var charSize : Int = 8;
 	public static function encode(s : Bytes) : Bytes {
-		var pb : Array<Int> = cast I32.unpackBE(s);
+		var pb : Array<Int> = cast I32.unpackBE(BytesUtil.nullPad(s,4));
 		var res = core_sha256(pb, s.length * charSize);
 		return I32.packBE(cast res);
 	}

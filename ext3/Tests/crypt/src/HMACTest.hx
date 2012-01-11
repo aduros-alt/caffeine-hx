@@ -64,7 +64,7 @@ class HMACTest extends haxe.unit.TestCase
 			var key = Bytes.ofHex(keys[i]);
 			var pt = Bytes.ofHex(pts[i]);
 			var digest = hmac.calculate(key, pt);
-			assertEquals(digest.toHex(), cts[i]);
+			assertEquals(cts[i], digest.toHex());
 		}
 	}
 
@@ -74,7 +74,7 @@ class HMACTest extends haxe.unit.TestCase
 		var pt = Bytes.ofHex(hexFromString("Test With Truncation"));
 		var ct:String = "4c1a03424b55e07fe7f27be1";
 		var digest = hmac.calculate(key, pt);
-		assertEquals(digest.toHex(), ct);
+		assertEquals(ct, digest.toHex());
 	}
 
 	public function testHMAC_MD5() {
@@ -108,7 +108,7 @@ class HMACTest extends haxe.unit.TestCase
 			var key = Bytes.ofHex(keys[i]);
 			var pt = Bytes.ofHex(pts[i]);
 			var digest = hmac.calculate(key, pt);
-			assertEquals(digest.toHex(), cts[i]);
+			assertEquals(cts[i], digest.toHex() );
 		}
 	}
 
@@ -118,7 +118,7 @@ class HMACTest extends haxe.unit.TestCase
 		var pt = Bytes.ofHex(hexFromString("Test With Truncation"));
 		var ct:String = "56461ef2342edc00f9bab995";
 		var digest = hmac.calculate(key, pt);
-		assertEquals(digest.toHex(), ct);
+		assertEquals(ct, digest.toHex());
 	}
 
 	/**
@@ -165,7 +165,7 @@ class HMACTest extends haxe.unit.TestCase
 			//var digest224 = hmac224.compute(key, pt);
 			//assertEquals("HMAC-SHA-224 test "+i, Hex.fromArray(digest224) == cts224[i]);
 			var digest256 = hmac256.calculate(key, pt);
-			assertEquals(digest256.toHex(), cts256[i]);
+			assertEquals(cts256[i], digest256.toHex());
 		}
 	}
 
@@ -179,7 +179,7 @@ class HMACTest extends haxe.unit.TestCase
 		//var digest224 = hmac224.compute(key, pt);
 		//assertEquals(digest224.toHex(), ct224);
 		var digest256 = hmac256.calculate(key, pt);
-		assertEquals(digest256.toHex(), ct256);
+		assertEquals(ct256, digest256.toHex());
 	}
 
 	function hexFromString(s) {
