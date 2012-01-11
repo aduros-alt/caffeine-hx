@@ -58,7 +58,7 @@ class HMAC {
 		var K : Bytes = key;
 
 		if(K.length > B) {
-			K = hash.calcBin(K);
+			K = hash.calculate(K);
 		}
 		K = BytesUtil.nullPad(K, B).sub(0, B);
 
@@ -70,8 +70,8 @@ class HMAC {
 		}
 		// hash(Ko + hash(Ki + message))
 		Ki.add(msg);
-		Ko.add(hash.calcBin(Ki.getBytes()));
-		return hash.calcBin(Ko.getBytes());
+		Ko.add(hash.calculate(Ki.getBytes()));
+		return hash.calculate(Ko.getBytes());
 	}
 
 }

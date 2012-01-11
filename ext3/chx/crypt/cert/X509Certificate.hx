@@ -144,7 +144,7 @@ class X509Certificate {
 		var rv = key.verify(bs);//.toHex());
 		var buf:Bytes = rv;// = Byte.ofString(rv);
 		//buf.position=0;
-		data = fHash.calcBin(data);
+		data = fHash.calculate(data);
 		var obj:AssociativeArray<IAsn1Type> = cast DER.read(buf, Types.RSA_SIGNATURE);
 		if (untyped obj.get("algorithm").get("algorithmId").toString() != oid) {
 			return false; // wrong algorithm
@@ -182,7 +182,7 @@ class X509Certificate {
 			return null;
 		}
 		var data:Bytes = cast(_obj.get("signedCertificate_bin"),ExtractedBytes).toDER() ;
-		data = fHash.calcBin(data);
+		data = fHash.calculate(data);
 		var seq2:Sequence = new Sequence();
 		seq2.set(0, new ObjectIdentifier(oid));
 		seq2.set(1, null);

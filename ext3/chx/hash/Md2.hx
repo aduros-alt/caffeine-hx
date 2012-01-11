@@ -36,14 +36,14 @@ class Md2 implements IHash {
 		return "md2";
 	}
 
-	public function calculate( msg:Bytes ) : String {
-		return encode(msg).toHex();
-	}
-
-	public function calcBin( msg:Bytes ) : Bytes {
+	public function calculate( msg:Bytes ) : Bytes {
 		init();
 		update(msg);
 		return(final());
+	}
+
+	public function calcHex( msg:Bytes ) : String {
+		return encode(msg).toHex();
 	}
 
 	public function getLengthBytes() : Int {

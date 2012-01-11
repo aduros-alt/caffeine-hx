@@ -39,12 +39,12 @@ class Md5 implements IHash {
 		return "md5";
 	}
 
-	public function calculate( msg:Bytes ) : String {
-		return encode(msg).toHex();
+	public function calculate( msg:Bytes ) : Bytes {
+		return encode(msg);
 	}
 
-	public function calcBin( msg: Bytes ) : Bytes {
-		return encode(msg);
+	public function calcHex( msg: Bytes ) : String {
+		return encode(msg).toHex();
 	}
 
 	public function getLengthBytes() : Int {

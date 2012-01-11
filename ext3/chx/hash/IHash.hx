@@ -31,12 +31,12 @@ interface IHash {
 	/**
 		Returns the hex string hash value
 	**/
-	function calculate( msg:Bytes ) : String;
+	function calculate( msg:Bytes ) : Bytes;
 
 	/**
 		Return the binary hash value
 	**/
-	function calcBin( msg:Bytes ) : Bytes;
+	function calcHex( msg:Bytes ) : String;
 
 	/**
 		Returns the length of the hash in bytes

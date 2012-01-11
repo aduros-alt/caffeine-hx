@@ -38,7 +38,6 @@ package chx.hash;
 #if !neko
 import BytesUtil;
 import I32;
-import chx.HexUtil;
 #end
 
 class Sha1 implements IHash {
@@ -56,12 +55,12 @@ class Sha1 implements IHash {
 		return "sha1";
 	}
 
-	public function calculate( msg:Bytes ) : String {
-		return encode(msg).toHex();
+	public function calculate( msg:Bytes ) : Bytes {
+		return encode(msg);
 	}
 
-	public function calcBin( msg:Bytes ) : Bytes {
-		return encode(msg);
+	public function calcHex( msg:Bytes ) : String {
+		return encode(msg).toHex();
 	}
 
 	public function getLengthBytes() : Int {
