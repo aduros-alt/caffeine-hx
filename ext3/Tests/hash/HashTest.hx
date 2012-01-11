@@ -3,7 +3,6 @@ import chx.hash.Md5;
 import chx.hash.Sha1;
 import chx.hash.Sha256;
 
-import chx.HexUtil;
 
 class Vectors {
 	public static function Sha1() {
@@ -51,21 +50,20 @@ class Vectors {
 	}
 }
 
-/*
 class Sha1TestFunctions extends haxe.unit.TestCase {
 
 	public function testSha() {
 		assertEquals(
 			"a9993e364706816aba3e25717850c26c9cd0d89d",
-			HexUtil.bytesToHex(Sha1.encode(Bytes.ofString("abc")))
+			Sha1.encode(Bytes.ofString("abc")).toHex()
 		);
 		assertEquals(
 			"03cfd743661f07975fa2f1220c5194cbaff48451",
-			HexUtil.bytesToHex(Sha1.encode(Bytes.ofString("abc\n")))
+			Sha1.encode(Bytes.ofString("abc\n")).toHex()
 		);
 		assertEquals(
 			"84983e441c3bd26ebaae4aa1f95129e5e54670f1",
-			HexUtil.bytesToHex(Sha1.encode(Bytes.ofString("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq")))
+			Sha1.encode(Bytes.ofString("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq")).toHex()
 		);
 	}
 
@@ -73,7 +71,7 @@ class Sha1TestFunctions extends haxe.unit.TestCase {
 		var o = Vectors.Sha1();
 		for(x in 0...o.messages.length) {
 			try {
-				assertEquals(o.hashes[x], HexUtil.bytesToHex(Sha1.encode(Bytes.ofString(o.messages[x]))));
+				assertEquals(o.hashes[x], Sha1.encode(Bytes.ofString(o.messages[x])).toHex());
 			}
 			catch(e:Dynamic) {
 				trace("Error on Sha1 Test Vector # " + Std.string(x+1));
@@ -87,7 +85,7 @@ class Sha1TestFunctions extends haxe.unit.TestCase {
 		var blah = BytesUtil.nullBytes(30);
 		var res = "deb6c11e1971aa61dbbcbc76e5ea7553a5bea7b7";
 
-		assertEquals(res, HexUtil.bytesToHex(Sha1.encode(blah)));
+		assertEquals(res, Sha1.encode(blah).toHex());
 	}
 
 #if neko
@@ -136,13 +134,12 @@ class Sha1TestFunctions extends haxe.unit.TestCase {
 #end
 
 }
-*/
 
 class Sha256TestFunctions extends haxe.unit.TestCase {
 	public function testSha256() {
 		assertEquals(
 			"248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1",
-			HexUtil.bytesToHex(Sha256.encode(Bytes.ofString("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq")))
+			Sha256.encode(Bytes.ofString("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq")).toHex()
 		);
 	}
 }
@@ -150,44 +147,44 @@ class Sha256TestFunctions extends haxe.unit.TestCase {
 class Md5TestFunctions extends haxe.unit.TestCase {
 	function testMd5() {
 		assertEquals("098f6bcd4621d373cade4e832627b4f6",
-			HexUtil.bytesToHex(Md5.encode(Bytes.ofString("test"))));
+			Md5.encode(Bytes.ofString("test")).toHex());
 	}
 
 	function testMd5Empty() {
 		assertEquals("d41d8cd98f00b204e9800998ecf8427e",
-			HexUtil.bytesToHex(Md5.encode(Bytes.ofString(""))));
+			Md5.encode(Bytes.ofString("")).toHex());
 	}
 }
 
 class Md2Test extends haxe.unit.TestCase {
 	function test01() {
 		assertEquals("8350e5a3e24c153df2275c9f80692773",
-			HexUtil.bytesToHex(Md2.encode(Bytes.ofString(""))));
+			Md2.encode(Bytes.ofString("")).toHex());
 	}
 
 	function test02() {
 		assertEquals("32ec01ec4a6dac72c0ab96fb34c0b5d1",
-			HexUtil.bytesToHex(Md2.encode(Bytes.ofString("a"))));
+			Md2.encode(Bytes.ofString("a")).toHex());
 	}
 
 	function test03() {
 		assertEquals("da853b0d3f88d99b30283a69e6ded6bb",
-			HexUtil.bytesToHex(Md2.encode(Bytes.ofString("abc"))));
+			Md2.encode(Bytes.ofString("abc")).toHex());
 	}
 
 	function test04() {
 		assertEquals("ab4f496bfb2a530b219ff33031fe06b0",
-			HexUtil.bytesToHex(Md2.encode(Bytes.ofString("message digest"))));
+			Md2.encode(Bytes.ofString("message digest")).toHex());
 	}
 
 	function test05() {
 		assertEquals("4e8ddff3650292ab5a4108c3aa47940b",
-			HexUtil.bytesToHex(Md2.encode(Bytes.ofString("abcdefghijklmnopqrstuvwxyz"))));
+			Md2.encode(Bytes.ofString("abcdefghijklmnopqrstuvwxyz")).toHex());
 	}
 
 	function test06() {
 		assertEquals("da33def2a42df13975352846c30338cd",
-			HexUtil.bytesToHex(Md2.encode(Bytes.ofString("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"))));
+			Md2.encode(Bytes.ofString("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")).toHex());
 	}
 
 }

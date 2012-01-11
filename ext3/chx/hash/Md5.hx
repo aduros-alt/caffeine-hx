@@ -28,7 +28,6 @@
 package chx.hash;
 
 import BytesUtil;
-import chx.HexUtil;
 import I32;
 
 class Md5 implements IHash {
@@ -41,7 +40,7 @@ class Md5 implements IHash {
 	}
 
 	public function calculate( msg:Bytes ) : String {
-		return HexUtil.bytesToHex(encode(msg));
+		return encode(msg).toHex();
 	}
 
 	public function calcBin( msg: Bytes ) : Bytes {

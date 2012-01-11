@@ -603,6 +603,28 @@ class I32 {
 		return #if neko untyped __i32__xor(a,b) #else a ^ b #end;
 	}
 
+	public static function intToHex(j:Int)
+	{
+		var sb = new StringBuf();
+		var i : Int = 8;
+		while(i-- > 0) {
+			var v : Int = (j>>>(i*4)) & 0xf;
+			sb.add(StringTools.hex(v).toLowerCase());
+		}
+		return sb.toString();
+	}
+
+	public static function int32ToHex(j:Int32)
+	{
+		var sb = new StringBuf();
+		var i : Int = 8;
+		var f = I32.ofInt(0xf);
+		while(i-- > 0) {
+			var v : Int = I32.toInt(I32.and(I32.ushr(j,(i*4)), f));
+			sb.add(StringTools.hex(v).toLowerCase());
+		}
+		return sb.toString();
+	}
 
 	#if neko
 	static function __init__() untyped {

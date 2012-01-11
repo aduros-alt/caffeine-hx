@@ -27,8 +27,6 @@
 
 package chx.hash;
 
-import chx.HexUtil;
-
 class Md2 implements IHash {
 
 	public function new() {
@@ -39,7 +37,7 @@ class Md2 implements IHash {
 	}
 
 	public function calculate( msg:Bytes ) : String {
-		return HexUtil.bytesToHex(encode(msg));
+		return encode(msg).toHex();
 	}
 
 	public function calcBin( msg:Bytes ) : Bytes {

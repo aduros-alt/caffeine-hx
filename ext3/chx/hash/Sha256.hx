@@ -50,7 +50,7 @@ class Sha256 implements IHash {
 	}
 
 	public function calculate( msg:Bytes ) : String {
-		return HexUtil.bytesToHex(encode(msg));
+		return encode(msg).toHex();
 	}
 
 	public function calcBin( msg:Bytes ) : Bytes {
