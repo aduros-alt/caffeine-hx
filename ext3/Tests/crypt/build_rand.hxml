@@ -1,16 +1,19 @@
 -cp ../../
+-cp src
 -neko test.n
 -main RandTest
 
 --next
 
 -cp ../../
+-cp src
 -js test.js
 -main RandTest
 
 --next
 
 -cp ../../
+-cp src
 -D FIREBUG
 -swf test9.swf
 -swf-version 9
@@ -19,6 +22,7 @@
 --next
 
 -cp ../../
+-cp src
 -swf test8.swf
 -swf-version 8
 -main RandTest

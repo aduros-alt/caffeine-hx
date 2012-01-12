@@ -3,7 +3,7 @@ import chx.crypt.RSA;
 /*
 	Test of a 256 bit RSA key
 */
-class Test256 {
+class TestRSA256 {
 	public static function main() {
 #if !neko
 		if(haxe.Firebug.detect()) {
