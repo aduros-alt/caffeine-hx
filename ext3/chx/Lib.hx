@@ -42,12 +42,6 @@ class Lib {
 	 * @todo JS: possibilities?
 	 */
 	public static function load( lib : String, prim : String, nargs : Int ) : Dynamic {
-		#if (neko || cpp)
-		return untyped __dollar__loader.loadprim((lib+"@"+prim).__s,nargs);
-		#else
-		return null;
-		#end
-		
 		#if cpp
 			#if iphone
 				return loadLazy(lib,prim,nargs);

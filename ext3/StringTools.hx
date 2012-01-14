@@ -231,13 +231,30 @@ class StringTools {
 		#if flash9
 			var n : UInt = n;
 			var s : String = untyped n.toString(16);
-			s = s.toUpperCase();
 		#else
 			var s = "";
-			var hexChars = "0123456789ABCDEF";
+			var hexChars = "0123456789abcdef";
 			do {
 				s = hexChars.charAt(n&15) + s;
 				n >>>= 4;
+			} while( n > 0 );
+		#end
+		if( digits != null )
+			while( s.length < digits )
+				s = "0"+s;
+		return s;
+	}
+
+	public static function octal(n : Int, ?digits : Int) {
+		#if flash9
+			var n : UInt = n;
+			var s : String = untyped n.toString(8);
+		#else
+			var s = "";
+			var octChars = "01234567";
+			do {
+				s = octChars.charAt(n&7) + s;
+				n >>>= 3;
 			} while( n > 0 );
 		#end
 		if( digits != null )
@@ -290,7 +307,7 @@ class StringTools {
 			return replace(s, sub, by);
 		if(by.indexOf(sub) >= 0)
 			throw "Infinite recursion";
-		var ns : String = s.toString();
+		var ns : String = Std.string(s);
 		var olen = 0;
 		var nlen = ns.length;
 		while(olen != nlen) {

@@ -327,9 +327,10 @@ class Sprintf
 		var output = '';
 		var prefix = '';
 		value = number(value);
+		var intVal = Std.int(value);
 
 		if ((precision != 0) && (value != 0)) {
-			output = value.toString(8);
+			output = StringTools.octal(intVal);
 		}
 
 		if (properties & kALT_FORM != 0) {
@@ -348,9 +349,10 @@ class Sprintf
 		var output = '';
 		var prefix = '';
 		value = number(value);
+		var intVal = Std.int(value);
 
 		if ((precision != 0) && (value != 0)) {
-			output = value.toString(16);
+			output = StringTools.hex(intVal);
 		}
 
 		if (properties & kALT_FORM != 0) {

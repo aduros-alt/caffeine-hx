@@ -1,0 +1,57 @@
+<xml>
+	<!-- Install hxcpp and run with 'haxelib run hxcpp build.xml' -->
+	<!-- To build 64bit 'haxelib run hxcpp build.xml' -DHXCPP_M64 -->
+	
+	<include name="${HXCPP}/build-tool/BuildCommon.xml"/>
+
+    <!-- Set library search paths -->
+	<set name="LIB_DIR" value="-Llib" unless="windows"/>
+	<set name="LIB_DIR" value="-libpath:lib" if="windows"/>
+
+	<set name="DEBUG" value="d" if="debug"/>
+	
+    <!-- Define all cpp files that need to be compiled into the openssl.ndll -->
+	<files id="files">
+		<compilerflag value = "-DNEKO" />
+		
+        <!-- Set up include folder paths -->
+		<compilerflag value = "-I../include"/>
+
+        <!-- Special flags for compiling on MacOSX 64 bit. May need for linux 64bit too?  -->
+		<compilerflag value = "-D_FILE_OFFSET_BITS=64" if="macos"/>
+	    <compilerflag value = "-D_LARGE_FILES=64" if="macos"/>
+
+        <!-- <compilerflag value = "-DDEBUG"/>  -->
+
+        <!-- List of c files to be compiled -->
+		<file name="src/bn_neko.c"/>
+		<file name="src/des_lua_neko.c"/>
+		
+</files>
+
+<!-- define compiler build & linking target -->
+<target id="openssl.ndll" tool="linker" toolid="dll" output="openssl">
+	<ext value=".ndll"/>
+    
+    <!-- output directory for linker. -->
+    <!-- ${BINDIR} substituted by hxcpp build tool for your platform e.g. "Windows", "Mac64" -->
+	<outdir name="../../ext3/NDLL/${BINDIR}"/>
+	
+    <!-- specific previously defined list of files to compile -->
+	<files id="files"/>
+	
+    <!-- Dependent library name for linker -->
+	<lib name="libssl.lib" if="windows" />
+	<lib name="-ldl" unless="windows" />
+	<lib name="-lssl" unless="windows" />
+	<lib name="-lcrypto" unless="windows" />
+	<lib name="-lneko" unless="windows" />
+
+</target>
+
+<!-- specifies default hxcpp build tool target -->
+<target id="default">
+	<target id="openssl.ndll"/>
+</target>
+
+</xml>

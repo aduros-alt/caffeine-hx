@@ -193,12 +193,12 @@ class I32 {
 	**/
 	public static function encodeBE(i : Int32) : Bytes
 	{
-		var sb = new BytesBuffer();
-		sb.addByte( B4(i) );
-		sb.addByte( B3(i) );
-		sb.addByte( B2(i) );
-		sb.addByte( B1(i) );
-		return sb.getBytes();
+		var b = Bytes.alloc(4);
+		b.set(0, untyped B4(i));
+		b.set(1, untyped B3(i));
+		b.set(2, untyped B2(i));
+		b.set(3, untyped B1(i));
+		return b;
 	}
 
 	/**
@@ -207,12 +207,12 @@ class I32 {
 	**/
 	public static function encodeLE(i : Int32) : Bytes
 	{
-		var sb = new BytesBuffer();
-		sb.addByte( B1(i) );
-		sb.addByte( B2(i) );
-		sb.addByte( B3(i) );
-		sb.addByte( B4(i) );
-		return sb.getBytes();
+		var b = Bytes.alloc(4);
+		b.set(0, untyped B1(i));
+		b.set(1, untyped B2(i));
+		b.set(2, untyped B3(i));
+		b.set(3, untyped B4(i));
+		return b;
 	}
 
 	/**

@@ -63,6 +63,8 @@ class Output {
 				writeByte(untyped __dollar__sget(b,pos));
 			#elseif php
 				writeByte(untyped __call__("ord", b[pos]));
+			#elseif cpp
+				writeByte(untyped b[pos]);
 			#else
 				writeByte(b[pos]);
 			#end
@@ -117,6 +119,8 @@ class Output {
 	public function writeFloat( x : Float ) : Output {
 		#if neko
 			write(untyped new Bytes(4,_float_bytes(x,bigEndian)));
+		#elseif cpp
+			write(Bytes.ofData(_float_bytes(x,bigEndian)));
 		#elseif php
 			write(untyped Bytes.ofString(__call__('pack', 'f', x)));
 		#elseif flash9
@@ -136,6 +140,8 @@ class Output {
 	public function writeDouble( x : Float ) : Output {
 		#if neko
 			write(untyped new Bytes(8,_double_bytes(x,bigEndian)));
+		#elseif cpp
+			write(Bytes.ofData(_double_bytes(x,bigEndian)));
 		#elseif php
 			write(untyped Bytes.ofString(__call__('pack', 'd', x)));
 		#elseif flash9
@@ -371,12 +377,14 @@ class Output {
 		return Type.getClassName(Type.getClass(this));
 	}
 	
-#if neko
+#if (neko || cpp)
 	static var _float_bytes = chx.Lib.load("std","float_bytes",2);
 	static var _double_bytes = chx.Lib.load("std","double_bytes",2);
+	#if neko
 	static function __init__() untyped {
 		Output.prototype.bigEndian = false;
 	}
+	#end
 #end
 
 }

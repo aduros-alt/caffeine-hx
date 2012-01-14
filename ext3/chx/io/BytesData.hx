@@ -31,8 +31,9 @@ package chx.io;
 #elseif php
 	typedef BytesData =	php.NativeString;
 #elseif cpp
-	extern class Unsigned_char__ { }
-	typedef BytesData = Array<Unsigned_char__>;
+	//extern class Unsigned_char__ { }
+	//typedef BytesData = Array<Unsigned_char__>;
+	typedef BytesData = haxe.io.BytesData;
 #else
 	typedef BytesData = Array<Int>;
 #end
