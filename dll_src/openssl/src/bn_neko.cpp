@@ -34,7 +34,7 @@
 #include <assert.h>
 #include <openssl/bn.h>
 #include <openssl/crypto.h>
-#include <neko/neko.h>
+#include <openssl/rand.h>
 #include "bn_neko.h"
 
 DEFINE_KIND(k_biginteger);
@@ -247,8 +247,13 @@ static value bi_div(value A, value B) {
 	value REM = bi_new();
 	bi_div_rem_to(A, B, DV, REM);
 	value v = alloc_array(2);
-	val_array_ptr(v)[0] = DV;
-	val_array_ptr(v)[1] = REM;
+	#ifdef TARGET_HXCPP
+		val_array_push(v, DV);
+		val_array_push(v, REM);
+	#else
+		val_array_ptr(v)[0] = DV;
+		val_array_ptr(v)[1] = REM;
+	#endif
 	return v;
 }
 DEFINE_PRIM(bi_div,2);
@@ -263,8 +268,13 @@ static value bi_div_rem_to(value A, value B, value DV, value REM) {
 	BN_div(val_biginteger(DV), val_biginteger(REM), val_biginteger(A), val_biginteger(B), ctx);
 	FREE_CTX(ctx);
 	value v = alloc_array(2);
-	val_array_ptr(v)[0] = DV;
-	val_array_ptr(v)[1] = REM;
+	#ifdef TARGET_HXCPP
+		val_array_push(v, DV);
+		val_array_push(v, REM);
+	#else
+		val_array_ptr(v)[0] = DV;
+		val_array_ptr(v)[1] = REM;
+	#endif
 	return v;
 }
 DEFINE_PRIM(bi_div_rem_to,4);
@@ -487,7 +497,7 @@ DEFINE_PRIM(bi_pseudo_rand,3);
 /**
 	Truncates leading 0 chars from BN_bn2dec()
 **/
-static char *bi_dec_string(char *v) {
+static const char *bi_dec_string(char *v) {
 	int i;
 	if(v == NULL)
 		return "0";
@@ -501,7 +511,7 @@ static char *bi_dec_string(char *v) {
 static value bi_to_hex(value A) {
 	val_check_kind(A, k_biginteger);
 	char *h = BN_bn2hex(val_biginteger(A));
-	char *h1 = bi_dec_string(h);
+	const char *h1 = bi_dec_string(h);
 	value v = copy_string(h1, strlen(h1));
 	OPENSSL_free(h);
 	return v;
@@ -521,7 +531,7 @@ DEFINE_PRIM(bi_from_hex,1);
 static value bi_to_decimal(value A) {
 	val_check_kind(A, k_biginteger);
 	char *h = BN_bn2dec(val_biginteger(A));
-	char *h1 = bi_dec_string(h);
+	const char *h1 = bi_dec_string(h);
 	value v = copy_string(h1, strlen(h1));
 	OPENSSL_free(h);
 	return v;
@@ -544,7 +554,7 @@ static value bi_to_bin(value A) {
 
 	unsigned char *to = (unsigned char *) malloc(BN_num_bytes(a));
 	int len = BN_bn2bin(a, to);
-	value rv = copy_string(&(to[0]), len);
+	value rv = copy_string((const char *)&(to[0]), len);
 	free(to);
 	return rv;
 }
@@ -578,7 +588,7 @@ static value bi_to_mpi(value A) {
 		free(to);
 		THROW("bi_to_bin conversion error");
 	}
-	value rv = copy_string(&(to[4]), buflen-4);
+	value rv = copy_string((const char *)&(to[4]), buflen-4);
 	free(to);
 	return rv;
 }
@@ -638,7 +648,11 @@ static value bi_from_int32(value A, value I) {
 		A = bi_new();
 	BIGNUM *bi = val_biginteger(A);
 
-	int i = val_int32(I);
+	#ifdef TARGET_HXCPP
+		int i = val_int(I);
+	#else
+		int i = val_int32(I);
+	#endif
 	BN_set_word(bi, (unsigned long) abs(i));
 	if(i < 0)
 		bi->neg = 1;

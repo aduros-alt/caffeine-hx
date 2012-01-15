@@ -36,7 +36,10 @@
 #	endif
 #endif
 
-#ifdef NEKO
+#ifdef TARGET_HXCPP
+//#	define IMPLEMENT_API
+#	include <hx/CFFI.h>
+#elif defined(NEKO)
 #	include <neko/neko.h>
 #elif defined(LUA)
 #	include "lua.h"
@@ -52,7 +55,6 @@ DEFINE_KIND(k_deskey);
 
 #define val_deskey(o)		(DES_key_schedule *)val_data(o)
 #define val_const_cblock(o)	(const_DES_cblock *)val_string(o)
-//#define val_cblock(o)		(DES_cblock *)val_string(o)
 
 #define DES_BLOCK_SIZE		sizeof(DES_cblock)
 
@@ -62,10 +64,10 @@ DEFINE_KIND(k_deskey);
 static value des_destroy_key(value nekoKey) {
 	DES_key_schedule *schedule;
 	if(!val_is_kind(nekoKey, k_deskey))
-		return;
+		return 0;
 	schedule = val_deskey(nekoKey);
 	memset(schedule, 0, sizeof(DES_key_schedule));
-	return VAL_NULL;
+	return 0;
 }
 DEFINE_PRIM(des_destroy_key,1);
 
@@ -79,7 +81,9 @@ static void des_gc_key(value nekoKey) {
 	des_destroy_key(nekoKey);
 	schedule = val_deskey(nekoKey);
 	free(schedule);
-	val_kind(nekoKey) = NULL;
+	#ifndef TARGET_HXCPP
+		val_kind(nekoKey) = NULL;
+	#endif
 }
 // no DEFINE_PRIM, this is a GC function
 

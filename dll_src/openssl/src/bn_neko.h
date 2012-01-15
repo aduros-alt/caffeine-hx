@@ -2,7 +2,21 @@
 #define _BN_NEKO_H
 
 #include <openssl/bn.h>
-#include <neko/neko.h>
+#ifdef TARGET_HXCPP
+#	define IMPLEMENT_API
+#	include <hx/CFFI.h>
+#elif defined(NEKO)
+#	include <neko/neko.h>
+#elif defined(LUA)
+#	include "lua.h"
+#	include "lauxlib.h"
+#endif
+
+#ifdef NEKO
+#ifndef val_array_ptr
+#define val_array_ptr(v)        (&((varray*)(v))->ptr)
+#endif
+#endif
 
 // Bitwise operators for bi_bitwise_to
 #define BW_AND			1
@@ -44,7 +58,7 @@ static value bi_rand_seed(value data);
 static value bi_rand(value bits, value top, value bottom);
 static value bi_pseudo_rand(value bits, value top, value bottom);
 // conversion
-static char *bi_dec_string(char *v);
+static const char *bi_dec_string(char *v);
 static value bi_to_hex(value A);
 static value bi_from_hex(value s);
 static value bi_to_decimal(value A);
