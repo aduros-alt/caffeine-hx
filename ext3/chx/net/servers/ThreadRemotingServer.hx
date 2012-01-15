@@ -81,8 +81,8 @@ class ThreadRemotingServer extends ThreadServer<haxe.remoting.SocketConnection,S
 	}
 
 	override function readClientMessage( cnx : haxe.remoting.SocketConnection, buf : Bytes, pos : Int, len : Int ) {
-		var msgLen = cnx.getProtocol().messageLength(buf.get(pos),buf.get(pos+1));
-		if( msgLen == null ) {
+		var o = cnx.getProtocol().decodeMessageLength(buf, pos, len);
+		if( o.length == null ) {
 			if( buf.get(pos) != 60 )
 				throw "Invalid remoting message '"+buf.readString(pos,len)+"'";
 			var p = pos;
@@ -99,13 +99,13 @@ class ThreadRemotingServer extends ThreadServer<haxe.remoting.SocketConnection,S
 				bytes : p + 1,
 			};
 		}
-		if( len < msgLen )
+		if( len < o.length )
 			return null;
-		if( buf.get(pos + msgLen-1) != 0 )
+		if( buf.get(pos + o.bytesUsed + o.length-1) != 0 )
 			throw "Truncated message";
 		return {
-			msg : buf.readString(pos+2,msgLen-3),
-			bytes : msgLen,
+			msg : buf.readString(pos+o.bytesUsed, o.length-1),
+			bytes : o.length + o.bytesUsed,
 		};
 	}
 

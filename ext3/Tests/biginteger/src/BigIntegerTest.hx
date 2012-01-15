@@ -25,7 +25,7 @@ class DecimalConversion extends haxe.unit.TestCase {
 
 	function test05() {
 		var b = BigInteger.ofInt(-45);
-#if !neko
+#if !(neko || useOpenSSL)
 		assertEquals(-1, b.sign);
 #end
 		assertEquals("-45", b.toString());
@@ -50,7 +50,7 @@ class Shifts extends haxe.unit.TestCase {
 	public function test03_Lsh36ToRadix() {
 		var i = BigInteger.ONE;
 		i = i.shl(36);
-		assertEquals("1000000000", i.toRadix(16).toString()); // 68,719,476,736
+		assertEquals("1000000000", i.toRadix(16)); // 68,719,476,736
 		//trace(i.toRadix(16));
 		//trace(i.toRadix(2));
 		//trace(i.toString());
@@ -66,7 +66,7 @@ class Shifts extends haxe.unit.TestCase {
 			i = i.shl(1);
 			//trace(Std.string(x) + " " + i.toRadix(2));
 		}
-		assertEquals("1000000000000000", i.toRadix(16).toString());
+		assertEquals("1000000000000000", i.toRadix(16));
 		//trace(i.toRadix(16));
 		for(x in 0...60) {
 			i = i.shr(1);
@@ -82,7 +82,7 @@ class Shifts extends haxe.unit.TestCase {
 		for(x in 0...60) {
 			i = i.shl(1);
 		}
-		assertEquals("1000000000000000", i.toRadix(16).toString());
+		assertEquals("1000000000000000", i.toRadix(16));
 		//trace(i.toRadix(16));
 		for(x in 0...60) {
 			i = i.shr(1);
@@ -100,9 +100,9 @@ class MathFuncs extends haxe.unit.TestCase {
 	function test02() {
 		var n = BigInteger.ofInt(46);
 		//assertEquals("-2e", n.toRadix(16));
-		assertEquals("2e", n.toRadix(16).toString());
+		assertEquals("2e", n.toRadix(16));
 		n = n.shl(32);
-		assertEquals(n.toRadix(16).toString(), n.abs().toRadix(16).toString());
+		assertEquals(n.toRadix(16), n.abs().toRadix(16));
 	}
 }
 
@@ -119,7 +119,7 @@ class Functions extends haxe.unit.TestCase {
 	public function test00() {
 		var i = BigInteger.ONE.add(BigInteger.ofInt(9));
 		var b = BigInteger.ofString("10",10);
-#if !neko
+#if !(neko || useOpenSSL)
 		assertEquals(10, b.chunks[0]);
 #end
 		//trace("toRadix>>");
@@ -142,20 +142,20 @@ class Functions extends haxe.unit.TestCase {
 	public function test02_Sub() {
 		var n = BigInteger.ofInt(10000);
 		n = n.sub(BigInteger.ofInt(1000));
-#if !neko
+#if !(neko || useOpenSSL)
 		assertEquals(n.chunks[0], 9000);
 #end
 		for(x in 0...9) {
 			n = n.sub(BigInteger.ofInt(1000));
 		}
-		assertEquals("0", n.toRadix(16).toString());
+		assertEquals("0", n.toRadix(16));
 	}
 
 	public function test03_Square() {
 		var n = BigInteger.ofInt(5);
 		var i = BigInteger.ONE;
 		n.squareTo(i);
-		assertEquals("19", i.toRadix(16).toString());
+		assertEquals("19", i.toRadix(16));
 	}
 
 	public function test04_ZDiv1() {
@@ -176,7 +176,7 @@ class Functions extends haxe.unit.TestCase {
 		var q = BigInteger.nbi();
 		var r = BigInteger.nbi();
 		var rv = i.div(m);
-		assertEquals("3333333", rv.toRadix(16).toString());
+		assertEquals("3333333", rv.toRadix(16));
 	}
 
 	public function test06_ZDivRemTo2() {
@@ -195,7 +195,7 @@ class Functions extends haxe.unit.TestCase {
 	public function test07_SubOne() {
 		var i = BigInteger.nbv(1000000000);
 		var b = i.sub(BigInteger.ONE);
-		assertEquals("3b9ac9ff", b.toRadix(16).toString());
+		assertEquals("3b9ac9ff", b.toRadix(16));
 		assertEquals( "999999999",
 			b.toString()
 		);
@@ -250,17 +250,17 @@ class Functions extends haxe.unit.TestCase {
 		var target="b2ffd8b2cabdce4c08b6aa358d27f3f8652ffbe0ffb5824bd0c598da85d53f9cf30dd5cd5fb537b3ccfc4499a5abdfd2ef0ad3c135fb4557073543bb90026bf6f848998e48dd1ea24ae6026cffd96c3558791d431fb0fa1557333478b43e08aef8afca3f708e4840c82555c64c00076ed0f4d0f135965ebd150ada191afd8b0d";
 
 		var res = biBuf.modPowInt(65537, biMod);
-		assertEquals(target, res.toRadix(16).toString());
-		assertEquals(bufh, res.modPow(biPriv,biMod).toRadix(16).toString());
+		assertEquals(target, res.toRadix(16));
+		assertEquals(bufh, res.modPow(biPriv,biMod).toRadix(16));
 
 		// to IntArray and back
 		//var ba = BigInteger.ofString(bufh,16).toIntArray();
-		//assertEquals(bufh, BigInteger.ofIntArray(ba).toRadix(16).toString());
+		//assertEquals(bufh, BigInteger.ofIntArray(ba).toRadix(16));
 
 		// buf 2 test
 		var biBuf2 = BigInteger.ofString(bufh2,16);
 		res = biBuf2.modPowInt(65537, biMod);
-		assertEquals(bufh2, res.modPow(biPriv,biMod).toRadix(16).toString());
+		assertEquals(bufh2, res.modPow(biPriv,biMod).toRadix(16));
 
 // 		trace("");
 // 		for(x in 0...100) {

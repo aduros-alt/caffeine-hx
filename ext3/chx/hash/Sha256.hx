@@ -40,6 +40,10 @@ import BytesUtil;
 import I32;
 
 class Sha256 implements IHash {
+	/**
+	 * Length of Sha256 hashes
+	 **/
+	public static inline var BYTES : Int = 32;
 
 	public function new() {
 	}
@@ -72,7 +76,12 @@ class Sha256 implements IHash {
 		return 512;
 	}
 
-#if !neko
+	public function dispose() : Void {
+		#if !(neko || useOpenSSL)
+		#end
+	}
+
+#if !(neko || useOpenSSL)
 	private static var charSize : Int = 8;
 	public static function encode(s : Bytes) : Bytes {
 		var pb : Array<Int> = cast I32.unpackBE(BytesUtil.nullPad(s,4));
@@ -140,7 +149,7 @@ class Sha256 implements IHash {
 		}
 		return HASH;
 	}
-#elseif true
+#else
 	public static function encode(s : Bytes) : Bytes {
 		var _ctx : Void = sha_init(256);
 		sha_update(_ctx, s.getData());

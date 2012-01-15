@@ -53,7 +53,19 @@ class RSAK3 {
 	public static var coefficient : String = "3e5323aa1e3c5ac2860f6b389d08d885";
 }
 
-class RSAFunctions extends haxe.unit.TestCase {
+class RsaTest extends haxe.unit.TestCase {
+
+	public static function main() {
+#if (FIREBUG && ! neko)
+		if(haxe.Firebug.detect()) {
+			haxe.Firebug.redirectTraces();
+		}
+#end
+		var r = new haxe.unit.TestRunner();
+		r.add(new RsaTest());
+		r.run();
+	}
+
 	function test0() {
 		//trace('===== test0 =====');
 		var r = new RSA(RSAK1.modulus, RSAK1.publicExponent, RSAK1.privateExponent);
@@ -99,12 +111,12 @@ class RSAFunctions extends haxe.unit.TestCase {
 		var r = new RSA(RSAK1.modulus, RSAK1.publicExponent, RSAK1.privateExponent);
 		var rsa = new ModeCBC( r, new PadPkcs5(r.blockSize) );
 		for(s in CommonData.msgs) {
-			trace(s);
-			trace(s.length);
+			//trace(s);
+			//trace(s.length);
 			var e = rsa.encrypt(Bytes.ofString(s));
-			trace(e.length);
+			//trace(e.length);
 			var u = rsa.decrypt(e);
-			trace(u.toString());
+			//trace(u.toString());
 			assertTrue(u.toString() == s);
 			// expensive and slow, RSA will timeout flash or JS
 			#if flash break; #end
@@ -129,12 +141,60 @@ class RSAFunctions extends haxe.unit.TestCase {
 		rsa.setPrivate(RSAK3.modulus, RSAK3.publicExponent, RSAK3.privateExponent);
 		//rsa.setPrivateEx(RSAK3.modulus, RSAK3.publicExponent, RSAK3.privateExponent,
 		//				RSAK3.prime1, RSAK3.prime2, null, null, RSAK3.coefficient);
-		trace(rsa);
 
 		var e = rsa.encrypt(Bytes.ofString(msg));
 		var u = rsa.decrypt(e);
 		assertEquals(msg,u.toString());
 
+	}
+
+	function testSigning() {
+		var msg = "Hello";
+		var md5 = new chx.hash.Md5();
+		var hashed = md5.calculate(Bytes.ofString(msg));
+
+		var rsa = new RSA();
+		//rsa.setPrivate(RSAK3.modulus, RSAK3.publicExponent, RSAK3.privateExponent);
+		rsa.setPrivateEx(RSAK2.modulus, RSAK2.publicExponent, RSAK2.privateExponent,
+						RSAK2.prime1, RSAK2.prime2, RSAK2.exponent1, RSAK2.exponent2, RSAK2.coefficient);
+		//rsa.setPrivateEx(RSAK3.modulus, RSAK3.publicExponent, RSAK3.privateExponent,
+		//				RSAK3.prime1, RSAK3.prime2, RSAK3.exponent1, RSAK3.exponent2, RSAK3.coefficient);
+		trace(rsa);
+		trace(rsa.blockSize);
+		trace(rsa.n.bitLength());
+
+		var e : Bytes = rsa.sign(hashed);
+
+		var rsa2 = new RSAEncrypt(RSAK2.modulus, RSAK2.publicExponent);
+		trace(rsa2.blockSize);
+		trace(rsa2.n.bitLength());
+		var u = rsa2.verify(e);
+		//assertEquals(msg,u.toString());
+
+		trace(hashed);
+		assertEquals(hashed.toHex(), u.toHex());
+	}
+
+	function testSpeed() {
+		var msg = "Hello";
+		var rsa = new RSA();
+		rsa.setPrivate(RSAK3.modulus, RSAK3.publicExponent, RSAK3.privateExponent);
+
+		var start = haxe.Timer.stamp();
+		for(x in 0...100) {
+			var e = rsa.sign(Bytes.ofString(msg));
+		}
+		var time = haxe.Timer.stamp() - start;
+
+		rsa.setPrivateEx(RSAK3.modulus, RSAK3.publicExponent, RSAK3.privateExponent,
+						RSAK3.prime1, RSAK3.prime2, null, null, RSAK3.coefficient);
+		start = haxe.Timer.stamp();
+		for(x in 0...100) {
+			var e = rsa.sign(Bytes.ofString(msg));
+		}
+		var time2 = haxe.Timer.stamp() - start;
+		trace("Normal time: " + time + " CRT time: " + time2);
+		assertEquals(1,1);
 	}
 
 #if neko
@@ -162,74 +222,3 @@ class RSAFunctions extends haxe.unit.TestCase {
 #end
 }
 
-class SpeedTests extends haxe.unit.TestCase {
-	function test01() {
-		var msg = "Hello";
-		var rsa = new RSA();
-		rsa.setPrivate(RSAK3.modulus, RSAK3.publicExponent, RSAK3.privateExponent);
-
-		var start = haxe.Timer.stamp();
-		for(x in 0...100) {
-			var e = rsa.sign(Bytes.ofString(msg));
-		}
-		var time = haxe.Timer.stamp() - start;
-
-		rsa.setPrivateEx(RSAK3.modulus, RSAK3.publicExponent, RSAK3.privateExponent,
-						RSAK3.prime1, RSAK3.prime2, null, null, RSAK3.coefficient);
-		start = haxe.Timer.stamp();
-		for(x in 0...100) {
-			var e = rsa.sign(Bytes.ofString(msg));
-		}
-		var time2 = haxe.Timer.stamp() - start;
-		trace("Normal time: " + time + " CRT time: " + time2);
-		assertEquals(1,1);
-	}
-}
-
-class SignFunctions extends haxe.unit.TestCase {
-	function test01() {
-		var msg = "Hello";
-		var md5 = new chx.hash.Md5();
-		var hashed = md5.calculate(Bytes.ofString(msg));
-
-		var rsa = new RSA();
-		//rsa.setPrivate(RSAK3.modulus, RSAK3.publicExponent, RSAK3.privateExponent);
-		rsa.setPrivateEx(RSAK2.modulus, RSAK2.publicExponent, RSAK2.privateExponent,
-						RSAK2.prime1, RSAK2.prime2, RSAK2.exponent1, RSAK2.exponent2, RSAK2.coefficient);
-		//rsa.setPrivateEx(RSAK3.modulus, RSAK3.publicExponent, RSAK3.privateExponent,
-		//				RSAK3.prime1, RSAK3.prime2, RSAK3.exponent1, RSAK3.exponent2, RSAK3.coefficient);
-		trace(rsa);
-		trace(rsa.blockSize);
-		trace(rsa.n.bitLength());
-
-		var e = rsa.sign(Bytes.ofString(hashed));
-
-		var rsa2 = new RSAEncrypt(RSAK2.modulus, RSAK2.publicExponent);
-		trace(rsa2.blockSize);
-		trace(rsa2.n.bitLength());
-		var u = rsa2.verify(e);
-		//assertEquals(msg,u.toString());
-		
-		trace(hashed);
-		assertEquals(hashed, u.toString());
-	}
-}
-
-
-class RsaTest {
-
-	public static function main() {
-#if (FIREBUG && ! neko)
-		if(haxe.Firebug.detect()) {
-			haxe.Firebug.redirectTraces();
-		}
-#end
-		var r = new haxe.unit.TestRunner();
-
-		r.add(new RSAFunctions());
-		r.add(new SignFunctions());
-		r.add(new SpeedTests());
-
-		r.run();
-	}
-}

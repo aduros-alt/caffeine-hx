@@ -35,9 +35,11 @@ package math;
 import haxe.io.BytesData;
 import I32;
 
-#if (neko || cpp)
+#if neko
 enum HndBI {
 }
+#elseif useOpenSSL
+typedef HndBI = Dynamic;
 #else
 import math.reduction.ModularReduction;
 import math.reduction.Barrett;
@@ -47,7 +49,7 @@ import math.reduction.Montgomery;
 
 
 class BigInteger {
-#if (neko || cpp)
+#if (neko || useOpenSSL)
 	private var _hnd : HndBI;
 	private static var op_and 		: Int = 1;
 	private static var op_andnot 	: Int = 2;
@@ -68,7 +70,8 @@ class BigInteger {
 			initBiRc();
 		if(BI_RM.length == 0)
 			throw("BI_RM not initialized");
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
+			Assert.isNotNull(bi_new);
 			_hnd = bi_new();
 		#else
 			chunks = new Array<Int>();
@@ -117,8 +120,8 @@ class BigInteger {
 	//                 Conversion methods                       //
 	//////////////////////////////////////////////////////////////
 	private function fromInt(x : Int) : Void {
-		#if (neko || cpp)
-			bi_from_int(_hnd, x);
+		#if (neko || useOpenSSL)
+			_hnd = bi_from_int(_hnd, x);
 		#else
 			t = 1;
 			chunks[0] = 0;
@@ -138,15 +141,15 @@ class BigInteger {
 		be parsed through fromString.
 	**/
 	public function fromInt32(x : Int32) : Void {
-		#if (neko || cpp)
-			bi_from_int32(_hnd, x);
+		#if (neko || useOpenSSL)
+			_hnd = bi_from_int32(_hnd, x);
 		#else
 			fromInt(x);
 		#end
 	}
 
 	private function toInt() : Int {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			return bi_to_int(_hnd);
 		#else
 			if(sign < 0) {
@@ -166,7 +169,7 @@ class BigInteger {
 		values will occur.
 	**/
 	public function toInt32() : Int32 {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			return bi_to_int32(_hnd);
 		#else
 			return toInt();
@@ -178,7 +181,7 @@ class BigInteger {
 	 * @deprecated Use toBytes
 	 **
 	public function toIntArray() : Array<Int> {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			var i = toRadix(256);
 			var a = new Array<Int>();
 			for(x in 0...i.length) {
@@ -224,22 +227,24 @@ class BigInteger {
 		Return a base 10 string
 	**/
 	public function toString() : String {
-		return toRadix(10).toString();
+		return toRadix(10);
 	}
 
 	/**
 		Return a hex string
 	**/
 	public function toHex() : String {
-		return toRadix(16).toString();
+		return toRadix(16);
 	}
 
 	/**
 	 * Return signed bigendian Bytes.
 	 **/
 	public function toBytes() : Bytes {
-		#if (neko || cpp)
+		#if neko
 			return Bytes.ofData(cast bi_to_mpi(_hnd));
+		#elseif useOpenSSL
+			return Bytes.ofStringData(bi_to_mpi(_hnd));
 		#else
 			var i:Int = t;
 			var r:Array<Int> = new Array();
@@ -281,8 +286,10 @@ class BigInteger {
 	* Returns a bigendian bytes with no sign
 	**/
 	public function toBytesUnsigned():Bytes {
-		#if (neko || cpp)
+		#if neko
 			return Bytes.ofData(cast bi_to_bin(_hnd));
+		#elseif useOpenSSL
+			return Bytes.ofStringData(bi_to_bin(_hnd));
 		#else
 			var bb:BytesBuffer = new BytesBuffer();
 			var k:Int = 8;
@@ -332,7 +339,7 @@ class BigInteger {
 			throw new chx.lang.UnsupportedException("invalid base for conversion");
 		}
 		if(sigNum() == 0) return "0";
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			switch(b) {
 			case 10: return new String(bi_to_decimal(_hnd));
 			case 16: return new String(bi_to_hex(_hnd)).toLowerCase();
@@ -370,7 +377,7 @@ class BigInteger {
 		if((b < 2 || b > 36) && b != 256) {
 			throw("invalid base for conversion");
 		}
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			switch(b) {
 			case 10: return Bytes.ofData(cast bi_to_decimal(_hnd));
 			case 16: return Bytes.ofString(new String(bi_to_hex(_hnd)).toLowerCase() );
@@ -432,7 +439,7 @@ class BigInteger {
 	//////////////////////////////////////////////////////////////
 	/** Absolute value **/
 	public function abs() : BigInteger {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			var h = bi_abs(_hnd);
 			return hndToBigInt(h);
 		#else
@@ -450,7 +457,7 @@ class BigInteger {
 		<pre>return + if this > a, - if this < a, 0 if equal</pre>
 	**/
 	public function compare(a:BigInteger) : Int {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			return bi_cmp(this._hnd, a._hnd);
 		#else
 			var r = sign-a.sign;
@@ -485,7 +492,7 @@ class BigInteger {
 
 	/** true if this is even **/
 	public function isEven() :Bool {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			var i : Int = bi_is_odd(this._hnd);
 			return (i==0)?true:false;
 		#else
@@ -505,7 +512,7 @@ class BigInteger {
 
 	/** Modulus division bn % bn **/
 	public function mod(a:BigInteger) : BigInteger {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			return hndToBigInt(bi_mod(this._hnd, a._hnd));
 		#else
 			var r:BigInteger = nbi();
@@ -517,7 +524,7 @@ class BigInteger {
 
 	/** <pre>this % n, n < 2^26</pre> **/
 	public function modInt(n : Int) : Int {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			var b = BigInteger.ofInt(n);
 			return hndToBigInt(bi_mod(this._hnd, b._hnd)).toInt();
 		#else
@@ -541,7 +548,7 @@ class BigInteger {
 		1/this % m (HAC 14.61)
 	**/
 	public function modInverse(m:BigInteger) : BigInteger {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			return hndToBigInt(bi_mod_inverse(this._hnd, m._hnd));
 		#else
 			var ac = m.isEven();
@@ -600,7 +607,7 @@ class BigInteger {
 
 	/** <pre>this^e % m (HAC 14.85)</pre> **/
 	public function modPow(e:BigInteger, m:BigInteger) : BigInteger {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			var h : HndBI = bi_mod_exp(_hnd, e._hnd, m._hnd);
 			return hndToBigInt(h);
 		#else
@@ -683,7 +690,7 @@ class BigInteger {
 	public function modPowInt(e:Int, m:BigInteger) : BigInteger {
 		if(m == null)
 			throw "m is null";
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			var ebi = BigInteger.ofInt(e);
 			return modPow(ebi, m);
 		#else
@@ -709,7 +716,7 @@ class BigInteger {
 
 	/** this^e **/
 	public function pow(e : Int) : BigInteger {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			var h = bi_pow(_hnd, BigInteger.ofInt(e)._hnd);
 			return hndToBigInt(h);
 		#else
@@ -745,7 +752,7 @@ class BigInteger {
 
 	/** return number of set bits **/
 	public function bitCount() : Int {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			return bi_bits_set(_hnd);
 		#else
 			var r = 0, x = sign&DM;
@@ -758,7 +765,7 @@ class BigInteger {
 		return the number of bits in "this"
 	**/
 	public function bitLength() : Int {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			return bi_bitlength(_hnd);
 		#else
 			if(t <= 0) return 0;
@@ -766,47 +773,9 @@ class BigInteger {
 		#end
 	}
 
-	/** alias for not() **/
-	public function complement() : BigInteger { return not(); }
-
-	/** <pre>this & ~(1<<n)</pre> **/
-	public function clearBit(n) : BigInteger {
-		#if (neko || cpp)
-			var bi:BigInteger = clone();
-			bi_clear_bit(bi._hnd, n);
-			return bi;
-		#else
-			return changeBit(n,op_andnot);
-		#end
-	}
-
-	/** <pre>this ^ (1<<n)</pre> **/
-	public function flipBit(n) : BigInteger {
-		#if (neko || cpp)
-			var bi:BigInteger = nbi();
-			bi_copy(bi._hnd, cast _hnd);
-			bi_flip_bit(bi._hnd, n);
-			return bi;
-		#else
-			return changeBit(n,op_xor);
-		#end
-	}
-
-	/** returns index of lowest 1-bit (or -1 if none) **/
-	public function getLowestSetBit() : Int {
-		#if (neko || cpp)
-			return bi_lowest_bit_set(_hnd);
-		#else
-			for(i in 0...t)
-				if(chunks[i] != 0) return i*DB+lbit(chunks[i]);
-			if(sign < 0) return t*DB;
-			return -1;
-		#end
-	}
-
 	/** ~this **/
-	public function not():BigInteger {
-		#if (neko || cpp)
+	public function complement() : BigInteger {
+		#if (neko || useOpenSSL)
 			var h = bi_not(_hnd);
 			return hndToBigInt(h);
 		#else
@@ -818,6 +787,51 @@ class BigInteger {
 		#end
 	}
 
+	/** <pre>this & ~(1<<n)</pre> **/
+	public function clearBit(n) : BigInteger {
+		#if (neko || useOpenSSL)
+			var bi:BigInteger = clone();
+			bi_clear_bit(bi._hnd, n);
+			return bi;
+		#else
+			return changeBit(n,op_andnot);
+		#end
+	}
+
+	/** <pre>this ^ (1<<n)</pre> **/
+	public function flipBit(n) : BigInteger {
+		#if (neko || useOpenSSL)
+			var bi:BigInteger = nbi();
+			bi_copy(bi._hnd, cast _hnd);
+			bi_flip_bit(bi._hnd, n);
+			return bi;
+		#else
+			return changeBit(n,op_xor);
+		#end
+	}
+
+	/** returns index of lowest 1-bit (or -1 if none) **/
+	public function getLowestSetBit() : Int {
+		#if (neko || useOpenSSL)
+			return bi_lowest_bit_set(_hnd);
+		#else
+			for(i in 0...t)
+				if(chunks[i] != 0) return i*DB+lbit(chunks[i]);
+			if(sign < 0) return t*DB;
+			return -1;
+		#end
+	}
+
+	#if !(cpp)
+	/**
+	 * ~this. Alias for complement
+	 * @deprecated Can not use in cpp currently, as 'not' is not treated as reserved word
+	 **/
+	public function not():BigInteger {
+		return complement();
+	}
+	#end
+
 	/** this | a **/
 	public function or(a:BigInteger) : BigInteger {
 		var r = nbi(); bitwiseTo(a,op_or,r); return r;
@@ -825,7 +839,7 @@ class BigInteger {
 
 	/** <pre>this | (1<<n)</pre> **/
 	public function setBit(n:Int) : BigInteger {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			var r : BigInteger = clone();
 			bi_set_bit(r._hnd, n);
 			return r;
@@ -854,7 +868,7 @@ class BigInteger {
 
 	/** <pre>true iff nth bit is set</pre> **/
 	public function testBit(n:Int) : Bool {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			return bi_test_bit(_hnd, n);
 		#else
 			var j = Math.floor(n/DB);
@@ -878,7 +892,7 @@ class BigInteger {
 	//////////////////////////////////////////////////////////////
 	/** r = this + a **/
 	public function addTo(a:BigInteger,r:BigInteger) : Void {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			bi_add_to(_hnd, a._hnd, r._hnd);
 			return;
 		#else
@@ -921,7 +935,7 @@ class BigInteger {
 
 	/** copy this to r **/
 	public function copyTo(r:BigInteger) : Void {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			bi_copy(r._hnd, cast _hnd);
 		#else
 			for(i in 0...chunks.length)
@@ -937,7 +951,7 @@ class BigInteger {
 	**/
 	public function divRemTo(m:BigInteger, q:Null<BigInteger>, ?r:Null<BigInteger>) : Void
 	{
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			if(r == null) r = nbi();
 			if(q == null) q = nbi();
 			bi_div_rem_to(this._hnd, m._hnd, q._hnd, r._hnd);
@@ -1021,7 +1035,7 @@ class BigInteger {
 		#end
 	}
 
-#if !(neko || cpp)
+#if !(neko || useOpenSSL)
 	/**
 		(protected) r = lower n words of "this * a", <pre>a.t <= n</pre>
 		"this" should be the larger one if appropriate.
@@ -1050,7 +1064,7 @@ class BigInteger {
 		"this" should be the larger one if appropriate.
 	**/
 	public function multiplyTo(a:BigInteger, r:BigInteger) : Void {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			var h = bi_mul_to(_hnd, a._hnd, r._hnd);
 			return;
 		#else
@@ -1065,7 +1079,7 @@ class BigInteger {
 		#end
 	}
 
-#if !(neko || cpp)
+#if !(neko || useOpenSSL)
 	/**
 		(protected) r = "this * a" without lower n words, <pre>n > 0</pre>
 		"this" should be the larger one if appropriate.
@@ -1086,7 +1100,7 @@ class BigInteger {
 
 	/** <pre>r = this^2, r != this (HAC 14.16)</pre> **/
 	public function squareTo(r:BigInteger) : Void {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			bi_sqr_to(_hnd, r._hnd);
 			return;
 		#else
@@ -1115,7 +1129,7 @@ class BigInteger {
 
 	/** <pre>r = this - a</pre> **/
 	public function subTo(a:BigInteger, r:BigInteger) : Void {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			var h = bi_sub_to(_hnd, a._hnd, r._hnd);
 			return;
 		#else
@@ -1161,7 +1175,7 @@ class BigInteger {
 	//                    Misc methods                          //
 	//////////////////////////////////////////////////////////////
 	/** clamp off excess high words **/
-#if !(neko || cpp)
+#if !(neko || useOpenSSL)
 	public function clamp() : Void {
 		var c = sign&DM;
 		while(t > 0 && chunks[t-1] == c) --t;
@@ -1177,7 +1191,7 @@ class BigInteger {
 
 	// (public) gcd(this,a) (HAC 14.54)
 	public function gcd(a:BigInteger):BigInteger {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			var h = bi_gcd(_hnd, a._hnd);
 			return hndToBigInt(h);
 		#else
@@ -1211,7 +1225,7 @@ class BigInteger {
 	/**
 		Pads the chunk buffer to n chunks, left fill with 0.
 	**/
-#if !(neko || cpp)
+#if !(neko || useOpenSSL)
 	public function padTo ( n : Int ) : Void {
 		while( t < n )	{ chunks[ t ] = 0; t++; }
 	}
@@ -1219,7 +1233,7 @@ class BigInteger {
 
 	/** return value as short (assumes DB &gt;= 16) **/
 	public function shortValue() : Int {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			return toInt() & 0xffff;
 		#else
 			return (t==0)?sign:(chunks[0]<<16)>>16;
@@ -1228,7 +1242,7 @@ class BigInteger {
 
 	/** return value as byte **/
 	function byteValue() : Int {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			return toInt() & 0xff;
 		#else
 			return (t==0)?sign:(chunks[0]<<24)>>24;
@@ -1237,7 +1251,7 @@ class BigInteger {
 
 	/** <pre>0 if this == 0, 1 if this > 0</pre>**/
 	public function sigNum() : Int {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			return bi_signum(_hnd);
 		#else
 			if(sign < 0) return -1;
@@ -1254,7 +1268,7 @@ class BigInteger {
 		<pre>this += n << w words, this >= 0</pre>
 	**/
 	public function dAddOffset(n : Int, w : Int) :Void {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			var bi:BigInteger = BigInteger.ofInt(w);
 			if(w != 0)
 				bi = bi.shl(w*32);
@@ -1270,7 +1284,7 @@ class BigInteger {
 		#end
 	}
 
-#if !(neko || cpp)
+#if !(neko || useOpenSSL)
 	/** <pre> r = this << n*DB </pre> **/
 	public function dlShiftTo(n : Int, r:BigInteger) :Void {
 		if(r == null) return;
@@ -1330,7 +1344,7 @@ class BigInteger {
 
 	/** <pre>test primality with certainty >= 1-.5^t</pre> **/
 	public function isProbablePrime(v : Int) : Bool {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			return bi_is_prime(_hnd, v, true);
 		#else
 			var i:Int;
@@ -1369,7 +1383,7 @@ class BigInteger {
 	//					Private methods							//
 	//////////////////////////////////////////////////////////////
 	// (protected) r = this op a (bitwise)
-#if (neko || cpp)
+#if (neko || useOpenSSL)
 	function bitwiseTo(a:BigInteger, op:Int, r:BigInteger) : Void {
 		bi_bitwise_to(_hnd, a._hnd, op, r._hnd);
 	}
@@ -1394,7 +1408,7 @@ class BigInteger {
 	}
 #end
 
-#if !(neko || cpp)
+#if !(neko || useOpenSSL)
 	/** this op (1<<n) 	**/
 	function changeBit(n,op) : BigInteger {
 		var r = ONE.shl(n);
@@ -1474,7 +1488,7 @@ class BigInteger {
 	//////////////////////////////////////////////////////////////
 	/** <pre>r = this << n </pre> **/
 	function lShiftTo(n:Int, r:BigInteger) : Void {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			var h = bi_shl_to(_hnd, n, r._hnd);
 			return;
 		#else
@@ -1501,7 +1515,7 @@ class BigInteger {
 
 	/** <pre>r = this >> n</pre> **/
 	function rShiftTo(n : Int, r:BigInteger) : Void {
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			var h = bi_shr_to(_hnd, n, r._hnd);
 			return;
 		#else
@@ -1523,7 +1537,7 @@ class BigInteger {
 		#end
 	}
 
-#if !(neko || cpp)
+#if !(neko || useOpenSSL)
 #if js
 	// am1: use a single mult and divide to get the high bits,
 	// max digit bits should be 26 because
@@ -1539,7 +1553,7 @@ class BigInteger {
 		return c;
 	}
 #end
-#if !(neko || cpp)
+#if !(neko || useOpenSSL)
 	// am: Compute w_j += (x*this_i), propagate carries,
 	// c is initial carry, returns final carry.
 	// c < 3*dvalue, x < 2*dvalue, this_i < dvalue
@@ -1718,13 +1732,15 @@ class BigInteger {
 	* with a 0 byte.
 	**/
 	public static function ofString(s : String, base : Int) : BigInteger {
-		#if (neko || cpp)
-			return switch(base) {
-			case 10: hndToBigInt(bi_from_decimal(untyped  s.__s));
-			case 16: hndToBigInt(bi_from_hex(untyped s.__s));
-			case 256:hndToBigInt(bi_from_bin(untyped s.__s));
+		#if (neko || useOpenSSL)
+			var sn = #if neko Bytes.ofString(s).getData() #else s #end;
+			switch(base) {
+			case 10: return hndToBigInt(bi_from_decimal(sn));
+			case 16: return hndToBigInt(bi_from_hex(sn));
+			case 256: return hndToBigInt(bi_from_bin(sn));
 			default:
 				throw "conversion from base "+base+" not yet supported";
+				return null;
 			}
 		#else
 			var me:BigInteger = nbi();
@@ -1842,11 +1858,16 @@ class BigInteger {
 			len = r.length - pos;
 		if(len == 0)
 			return ZERO;
-		#if (neko || cpp)
+		#if neko
 			if(unsigned)
 				return hndToBigInt(bi_from_bin(r.sub(pos,len).getData()));
 			else
 				return hndToBigInt(bi_from_mpi(r.sub(pos,len).getData()));
+		#elseif useOpenSSL
+			if(unsigned)
+				return hndToBigInt(bi_from_bin(r.toString().substr(pos,len)));
+			else
+				return hndToBigInt(bi_from_mpi(r.toString().substr(pos,len)));
 		#else
 			var bi : BigInteger = nbi();
 			bi.sign = 0;
@@ -1911,7 +1932,7 @@ class BigInteger {
 			rng = new math.prng.Random();
 		if(bits < 2)
 			return ofInt(1);
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			seedRandom(bits, rng);
 			var hrnd : Dynamic = bi_rand(bits, -1, 0);
 			return hndToBigInt(hrnd);
@@ -1933,11 +1954,11 @@ class BigInteger {
 	public static function randomPrime(bits:Int, gcdExp:BigInteger, iterations:Int, forceLength:Bool, ?rng:math.prng.Random) : BigInteger {
 		if(rng == null)
 			rng = new math.prng.Random();
-		#if (neko || cpp) seedRandom(bits, rng); #end
+		#if (neko || useOpenSSL) seedRandom(bits, rng); #end
 		if(iterations < 1)
 			iterations = 1;
 		while(true) {
-			#if (neko || cpp)
+			#if (neko || useOpenSSL)
 				var i:BigInteger = hndToBigInt(bi_generate_prime(bits, false));
 			#else
 				var i:BigInteger = BigInteger.random(bits, rng);
@@ -1962,7 +1983,7 @@ class BigInteger {
 	//////////////////////////////////////////////////////////////
 	//                  Operator functions                      //
 	//////////////////////////////////////////////////////////////
-#if !(neko || cpp)
+#if !(neko || useOpenSSL)
 	public static function op_and(x:Int, y:Int) : Int { return x&y; }
 	public static function op_or(x:Int, y:Int) : Int { return x|y; }
 	public static function op_xor(x:Int, y:Int) : Int { return x^y; }
@@ -2017,7 +2038,7 @@ class BigInteger {
 		return r;
 	}
 
-#if !(neko || cpp)
+#if !(neko || useOpenSSL)
 	static function dumpBi(r:BigInteger) : String {
 		var s = "sign: " + Std.string(r.sign);
 		s += " t: "+r.t;
@@ -2026,7 +2047,7 @@ class BigInteger {
 	}
 #end
 
-#if (neko || cpp)
+#if (neko || useOpenSSL)
 	static function hndToBigInt(h:HndBI) : BigInteger {
 		var rv = BigInteger.nbi();
 		rv._hnd = h;
@@ -2037,65 +2058,65 @@ class BigInteger {
 		var len = (bits>>3) + 1;
 		var x = Bytes.alloc(len);
 		b.nextBytes(x,0,len);
-		bi_rand_seed(untyped x.toString().__s);
+		bi_rand_seed(x.getData());
 	}
 
-	private static var bi_new=neko.Lib.load("openssl","bi_new",0);
-	private static var destroy_biginteger=neko.Lib.load("openssl","destroy_biginteger",1);
-	private static var bi_ZERO=neko.Lib.load("openssl","bi_ZERO",0);
-	private static var bi_ONE=neko.Lib.load("openssl","bi_ONE",0);
-	private static var bi_copy=neko.Lib.load("openssl","bi_copy",2);
-	private static var bi_generate_prime=neko.Lib.load("openssl","bi_generate_prime",2);
-	private static var bi_is_prime=neko.Lib.load("openssl","bi_is_prime",3);
-	private static var bi_abs=neko.Lib.load("openssl","bi_abs",1);
-	private static var bi_add_to=neko.Lib.load("openssl","bi_add_to",3);
-	private static var bi_sub_to=neko.Lib.load("openssl","bi_sub_to",3);
-	private static var bi_mul_to=neko.Lib.load("openssl","bi_mul_to",3);
-	private static var bi_sqr_to=neko.Lib.load("openssl","bi_sqr_to",2);
-	private static var bi_div=neko.Lib.load("openssl","bi_div",2);
-	private static var bi_div_rem_to=neko.Lib.load("openssl","bi_div_rem_to",4);
-	private static var bi_mod=neko.Lib.load("openssl","bi_mod",2);
-	private static var bi_mod_exp=neko.Lib.load("openssl","bi_mod_exp",3);
-	private static var bi_mod_inverse=neko.Lib.load("openssl","bi_mod_inverse",2);
-	private static var bi_pow=neko.Lib.load("openssl","bi_pow",2);
-	private static var bi_gcd=neko.Lib.load("openssl","bi_gcd",2);
-	private static var bi_signum=neko.Lib.load("openssl","bi_signum",1);
-	private static var bi_cmp=neko.Lib.load("openssl","bi_cmp",2);
-	private static var bi_ucmp=neko.Lib.load("openssl","bi_ucmp",2);
-	private static var bi_is_zero=neko.Lib.load("openssl","bi_is_zero",1);
-	private static var bi_is_one=neko.Lib.load("openssl","bi_is_one",1);
-	private static var bi_is_odd=neko.Lib.load("openssl","bi_is_odd",1);
+	private static var bi_new=chx.Lib.load("openssl","bi_new",0);
+	private static var destroy_biginteger=chx.Lib.load("openssl","destroy_biginteger",1);
+	private static var bi_ZERO=chx.Lib.load("openssl","bi_ZERO",0);
+	private static var bi_ONE=chx.Lib.load("openssl","bi_ONE",0);
+	private static var bi_copy=chx.Lib.load("openssl","bi_copy",2);
+	private static var bi_generate_prime=chx.Lib.load("openssl","bi_generate_prime",2);
+	private static var bi_is_prime=chx.Lib.load("openssl","bi_is_prime",3);
+	private static var bi_abs=chx.Lib.load("openssl","bi_abs",1);
+	private static var bi_add_to=chx.Lib.load("openssl","bi_add_to",3);
+	private static var bi_sub_to=chx.Lib.load("openssl","bi_sub_to",3);
+	private static var bi_mul_to=chx.Lib.load("openssl","bi_mul_to",3);
+	private static var bi_sqr_to=chx.Lib.load("openssl","bi_sqr_to",2);
+	private static var bi_div=chx.Lib.load("openssl","bi_div",2);
+	private static var bi_div_rem_to=chx.Lib.load("openssl","bi_div_rem_to",4);
+	private static var bi_mod=chx.Lib.load("openssl","bi_mod",2);
+	private static var bi_mod_exp=chx.Lib.load("openssl","bi_mod_exp",3);
+	private static var bi_mod_inverse=chx.Lib.load("openssl","bi_mod_inverse",2);
+	private static var bi_pow=chx.Lib.load("openssl","bi_pow",2);
+	private static var bi_gcd=chx.Lib.load("openssl","bi_gcd",2);
+	private static var bi_signum=chx.Lib.load("openssl","bi_signum",1);
+	private static var bi_cmp=chx.Lib.load("openssl","bi_cmp",2);
+	private static var bi_ucmp=chx.Lib.load("openssl","bi_ucmp",2);
+	private static var bi_is_zero=chx.Lib.load("openssl","bi_is_zero",1);
+	private static var bi_is_one=chx.Lib.load("openssl","bi_is_one",1);
+	private static var bi_is_odd=chx.Lib.load("openssl","bi_is_odd",1);
 	// random
-	private static var bi_rand_seed=neko.Lib.load("openssl","bi_rand_seed",1);
-	private static var bi_rand=neko.Lib.load("openssl","bi_rand",3);
-	private static var bi_pseudo_rand=neko.Lib.load("openssl","bi_pseudo_rand",3);
+	private static var bi_rand_seed=chx.Lib.load("openssl","bi_rand_seed",1);
+	private static var bi_rand=chx.Lib.load("openssl","bi_rand",3);
+	private static var bi_pseudo_rand=chx.Lib.load("openssl","bi_pseudo_rand",3);
 	// conversion
-	private static var bi_to_hex=neko.Lib.load("openssl","bi_to_hex",1);
-	private static var bi_from_hex=neko.Lib.load("openssl","bi_from_hex",1);
-	private static var bi_to_decimal=neko.Lib.load("openssl","bi_to_decimal",1);
-	private static var bi_from_decimal=neko.Lib.load("openssl","bi_from_decimal",1);
-	private static var bi_to_bin=neko.Lib.load("openssl","bi_to_bin",1);
-	private static var bi_from_bin=neko.Lib.load("openssl","bi_from_bin",1);
-	private static var bi_to_mpi=neko.Lib.load("openssl","bi_to_mpi",1);
-	private static var bi_from_mpi=neko.Lib.load("openssl","bi_from_mpi",1);
-	private static var bi_from_int=neko.Lib.load("openssl","bi_from_int",2);
-	private static var bi_from_int32=neko.Lib.load("openssl","bi_from_int32",2);
-	private static var bi_to_int=neko.Lib.load("openssl","bi_to_int",1);
-	private static var bi_to_int32=neko.Lib.load("openssl","bi_to_int32",1);
+	private static var bi_to_hex=chx.Lib.load("openssl","bi_to_hex",1);
+	private static var bi_from_hex=chx.Lib.load("openssl","bi_from_hex",1);
+	private static var bi_to_decimal=chx.Lib.load("openssl","bi_to_decimal",1);
+	private static var bi_from_decimal=chx.Lib.load("openssl","bi_from_decimal",1);
+	private static var bi_to_bin=chx.Lib.load("openssl","bi_to_bin",1);
+	private static var bi_from_bin=chx.Lib.load("openssl","bi_from_bin",1);
+	private static var bi_to_mpi=chx.Lib.load("openssl","bi_to_mpi",1);
+	private static var bi_from_mpi=chx.Lib.load("openssl","bi_from_mpi",1);
+	private static var bi_from_int=chx.Lib.load("openssl","bi_from_int",2);
+	private static var bi_from_int32=chx.Lib.load("openssl","bi_from_int32",2);
+	private static var bi_to_int=chx.Lib.load("openssl","bi_to_int",1);
+	private static var bi_to_int32=chx.Lib.load("openssl","bi_to_int32",1);
 
 	// bitwise
-	private static var bi_shl_to=neko.Lib.load("openssl","bi_shl_to",3);
-	private static var bi_shr_to=neko.Lib.load("openssl","bi_shr_to",3);
-	private static var bi_bitlength=neko.Lib.load("openssl","bi_bitlength",1);
-	private static var bi_bytelength=neko.Lib.load("openssl","bi_bytelength",1);
-	private static var bi_bits_set=neko.Lib.load("openssl","bi_bits_set",1);
-	private static var bi_lowest_bit_set=neko.Lib.load("openssl","bi_lowest_bit_set",1);
-	private static var bi_set_bit=neko.Lib.load("openssl","bi_set_bit",2);
-	private static var bi_clear_bit=neko.Lib.load("openssl","bi_clear_bit",2);
-	private static var bi_flip_bit=neko.Lib.load("openssl","bi_flip_bit",2);
-	private static var bi_bitwise_to=neko.Lib.load("openssl","bi_bitwise_to",4);
-	private static var bi_not=neko.Lib.load("openssl","bi_not",1);
-	private static var bi_test_bit=neko.Lib.load("openssl","bi_test_bit",2);
+	private static var bi_shl_to=chx.Lib.load("openssl","bi_shl_to",3);
+	private static var bi_shr_to=chx.Lib.load("openssl","bi_shr_to",3);
+	private static var bi_bitlength=chx.Lib.load("openssl","bi_bitlength",1);
+	private static var bi_bytelength=chx.Lib.load("openssl","bi_bytelength",1);
+	private static var bi_bits_set=chx.Lib.load("openssl","bi_bits_set",1);
+	private static var bi_lowest_bit_set=chx.Lib.load("openssl","bi_lowest_bit_set",1);
+	private static var bi_set_bit=chx.Lib.load("openssl","bi_set_bit",2);
+	private static var bi_clear_bit=chx.Lib.load("openssl","bi_clear_bit",2);
+	private static var bi_flip_bit=chx.Lib.load("openssl","bi_flip_bit",2);
+	private static var bi_bitwise_to=chx.Lib.load("openssl","bi_bitwise_to",4);
+	private static var bi_not=chx.Lib.load("openssl","bi_not",1);
+	private static var bi_test_bit=chx.Lib.load("openssl","bi_test_bit",2);
 
 #end
 }

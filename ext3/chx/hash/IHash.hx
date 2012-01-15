@@ -59,6 +59,11 @@ interface IHash {
 	function getBlockSizeBits() : Int;
 
 	/**
+	 * Dispose of private data. Hash is unusable after.
+	 **/
+	function dispose() : Void;
+
+	/**
 		Just to enforce method.
 	**/
 	function toString() : String;

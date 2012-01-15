@@ -81,7 +81,7 @@
 #	include <stdint.h>
 #endif
 
-#define NEKO_VERSION	181
+#define NEKO_VERSION	182
 
 typedef intptr_t int_val;
 
@@ -262,7 +262,7 @@ typedef struct _mt_lock mt_lock;
 
 #define neko_error()		return NULL
 #define failure(msg)		_neko_failure(alloc_string(msg),__FILE__,__LINE__)
-#define bfailure(buf)		_neko_failure(buffer_to_string(b),__FILE__,__LINE__)
+#define bfailure(buf)		_neko_failure(buffer_to_string(buf),__FILE__,__LINE__)
 
 #ifndef CONV_FLOAT
 #	define CONV_FLOAT

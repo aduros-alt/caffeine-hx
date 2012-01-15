@@ -62,6 +62,11 @@ class HMAC {
 		return "hmac-" + (bits>0 ? Std.string(bits)+"-" : "") + Std.string(hash);
 	}
 
+	public function dispose() {
+		bits = 0;
+		hash.dispose();
+	}
+
 	public function calculate(key : Bytes, msg : Bytes ) : Bytes {
 		var B = hash.getBlockSizeBytes();
 		var K : Bytes = key;

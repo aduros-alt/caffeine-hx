@@ -35,20 +35,33 @@
 
 package chx.hash;
 
-#if !neko
+#if !(neko || useOpenSSL)
 import BytesUtil;
 import I32;
 #end
 
 class Sha1 implements IHash {
-#if !neko
+
+	/**
+	 * Length of Sha1 hashes
+	 **/
+	public static inline var BYTES : Int = 20;
+
+#if !(neko || useOpenSSL)
 	static var K : Array<Int> = [0x5a827999, 0x6ed9eba1, 0x8f1bbcdc, 0xca62c1d6];
 #end
 
 	public function new() {
-#if neko
+#if (neko || useOpenSSL)
 		init();
 #end
+	}
+
+	public function dispose() : Void {
+		#if !(neko || useOpenSSL)
+			for(i in 0...4)
+				K[i] = 0;
+		#end
 	}
 
 	public function toString() : String {
@@ -79,7 +92,7 @@ class Sha1 implements IHash {
 		return 512;
 	}
 
-#if neko
+#if (neko || useOpenSSL)
 	var _ctx : Void;
 	public var value(default, null) : String;
 
@@ -126,7 +139,7 @@ class Sha1 implements IHash {
 		Calculate the Sha1 for a string.
 	**/
 	public static function encode(msg : Bytes) : Bytes {
-#if neko
+#if (neko || useOpenSSL)
 		return Bytes.ofData(nsha1(msg.getData()));
 #else
 		//
@@ -226,7 +239,7 @@ class Sha1 implements IHash {
 #end
 	}
 
-#if neko
+#if (neko || useOpenSSL)
         private static var nsha1 = chx.Lib.load("hash","nsha1",1);
 		private static var sha_init = chx.Lib.load("hash","sha_init",1);
 		private static var sha_update = chx.Lib.load("hash","sha_update",2);

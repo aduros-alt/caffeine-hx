@@ -31,6 +31,10 @@ import BytesUtil;
 import I32;
 
 class Md5 implements IHash {
+	/**
+	 * Length of Md5 hashes
+	 **/
+	public static inline var BYTES : Int = 16;
 
 	public function new() {
 	}
@@ -69,6 +73,9 @@ class Md5 implements IHash {
 		#else
 			return inst.doEncode(msg);
 		#end
+	}
+
+	public function dispose() : Void {
 	}
 
 #if neko

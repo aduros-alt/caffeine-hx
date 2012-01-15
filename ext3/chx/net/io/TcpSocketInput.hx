@@ -68,7 +68,7 @@ class TcpSocketInput extends chx.io.Input {
 			if( e == "Blocking" )
 				throw new BlockedException();
 			else
-				throw new Exception("unhandled", e);
+				throw new Exception("Client socket in shutdown state", e);
 		}
 		if( r == 0 )
 			throw new EofException();

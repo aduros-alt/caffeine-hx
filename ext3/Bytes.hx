@@ -97,6 +97,14 @@ class Bytes {
 	}
 
 	/**
+	 * Disposes the bytes by setting everything to 0
+	 **/
+	public function dispose() {
+		for(i in 0...length)
+			set(i, 0);
+	}
+
+	/**
 	 * Read a range of bytes. If len is null, the remaining bytes will be read
 	 * @param pos Position to read from, >= 0
 	 * @param len length to read. If more than remaining bytes, will return only remaining bytes

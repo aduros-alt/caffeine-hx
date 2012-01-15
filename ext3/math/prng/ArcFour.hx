@@ -90,6 +90,6 @@ class ArcFour implements IPrng {
 	}
 
 	public function toString() : String {
-		return "ArcFour";
+		return "rc4";
 	}
 }

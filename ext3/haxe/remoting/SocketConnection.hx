@@ -102,7 +102,7 @@ class SocketConnection implements AsyncConnection, implements Dynamic<AsyncConne
 		// answer
 		var f = __data.results.pop();
 		if( f == null ) {
-			__data.error("No response excepted ("+data+")");
+			__data.error("No response expected ("+data+")");
 			return;
 		}
 		var ret;
@@ -148,14 +148,17 @@ class SocketConnection implements AsyncConnection, implements Dynamic<AsyncConne
 		var sc = new SocketConnection(data,[]);
 		data.log = sc.defaultLog;
 		#if flash9
+		var buf : String = "";
 		s.addEventListener(flash.events.DataEvent.DATA, function(e : flash.events.DataEvent) {
-			var data = e.data;
-			var msgLen = sc.__data.protocol.messageLength(data.charCodeAt(0),data.charCodeAt(1));
-			if( msgLen == null || data.length != msgLen - 1 ) {
-				sc.__data.error("Invalid message header");
+			var inData = buf + e.data;
+			var o = sc.__data.protocol.decodeMessageLength(Bytes.ofStringData(inData), 0, inData.length);
+			if ( o.length == null || inData.length - o.bytesUsed < o.length - 1 ) {
+				var msg = o.length == null ? "Null length" : "len: " + inData.length + " used: " + o.bytesUsed + " o.len: " + o.length;
+				sc.__data.error("Invalid message header: " + msg);
 				return;
 			}
-			sc.processMessage(e.data.substr(2,e.data.length-2));
+			sc.processMessage(inData.substr(o.bytesUsed, o.length - 1));
+			buf = inData.substr(o.bytesUsed + o.length - 1);
 		});
 		#elseif (flash || js)
 		// we can't deliver directly the message
@@ -165,12 +168,12 @@ class SocketConnection implements AsyncConnection, implements Dynamic<AsyncConne
 		// ...with the buffer of the previous onData (!)
 		s.onData = function( data : String ) {
 			sc.__data.queue.add(function() {
-				var msgLen = sc.__data.protocol.messageLength(data.charCodeAt(0),data.charCodeAt(1));
-				if( msgLen == null || data.length != msgLen - 1 ) {
+				var o = sc.__data.protocol.decodeMessageLength(Bytes.ofStringData(data), 0, data.length);
+				if( o.length == null || data.length - o.bytesUsed != o.length - 1 ) {
 					sc.__data.error("Invalid message header");
 					return;
 				}
-				sc.processMessage(data.substr(2,data.length-2));
+				sc.processMessage(data.substr(o.bytesUsed, e.data.length-o.bytesUsed));
 			});
 		};
 		#end

@@ -63,60 +63,44 @@ class SocketProtocol {
 		this.context = ctx;
 	}
 
-	function decodeChar(c) : Null<Int> {
-		// A...Z
-		if( c >= 65 && c <= 90 )
-			return c - 65;
-		// a...z
-		if( c >= 97 && c <= 122 )
-			return c - 97 + 26;
-		// 0...9
-		if( c >= 48 && c <= 57 )
-			return c - 48 + 52;
-		// +
-		if( c == 43 )
-			return 62;
-		// /
-		if( c == 47 )
-			return 63;
-		return null;
+	public function decodeMessageLength( buf : Bytes, pos : Int, len : Int ) : { bytesUsed:Int, length: Null<Int> } {
+		var rv = {
+			bytesUsed : 0,
+			length : null
+		}
+		if(len < 2) return rv;
+		var cnt = (buf.get(pos) & 0xC0) >> 6;
+		if(cnt == 0 /*|| (cnt + 1) > len */) return rv;
+
+		var l : Int = 0;
+		for(i in 0...cnt) {
+			pos++;
+			l = (l<<8) | buf.get(pos);
+		}
+		rv.bytesUsed = 1 + cnt;
+		rv.length = l - 1; // 1 was added in encodeMessageLength
+		return rv; 
 	}
 
-	function encodeChar(c) : Null<Int> {
-		if( c < 0 )
-			return null;
-		// A...Z
-		if( c < 26 )
-			return c + 65;
-		// a...z
-		if( c < 52 )
-			return (c - 26) + 97;
-		// 0...9
-		if( c < 62 )
-			return (c - 52) + 48;
-		// +
-		if( c == 62 )
-			return 43;
-		// /
-		if( c == 63 )
-			return 47;
-		return null;
-	}
-
-	public function messageLength( c1 : Int, c2 : Int ) : Null<Int> {
-		var e1 = decodeChar(c1);
-		var e2 = decodeChar(c2);
-		if( e1 == null || e2 == null )
-			return null;
-		return (e1 << 6) | e2;
-	}
-
-	public function encodeMessageLength( len : Int ) {
-		var c1 = encodeChar(len>>6);
-		if( c1 == null )
+	public function encodeMessageLength( len : Int ) : Array<Int> {
+		var a : Array<Int> = new Array();
+		len++; // this avoids an embedded null in js strings
+		if (len < 256) {
+			a[0] = 1 << 6;
+			a[1] = len;
+		} else if (len < 0x10000) {
+			a[0] = 2 << 6;
+			a[1] = (len >> 8) & 0xFF;
+			a[2] = (len & 0xFF);
+		} else if (len < 0x1000000) {
+			a[0] = 3 << 6;
+			a[1] = (len >> 16) & 0xFF;
+			a[2] = (len >> 8) & 0xFF;
+			a[3] = (len & 0xFF);
+		} else {
 			throw "Message is too big";
-		var c2 = encodeChar(len&63);
-		return { c1 : c1, c2 : c2 };
+		}
+		return a;
 	}
 
 	public function sendRequest( path : Array<String>, params : Array<Dynamic> ) {
@@ -140,15 +124,21 @@ class SocketProtocol {
 	}
 
 	public function sendMessage( msg : String ) {
-		var e = encodeMessageLength(msg.length + 3);
+		var ba = encodeMessageLength(msg.length + 1);
 		#if (neko || php || cpp)
 		var o = socket.output;
-		o.writeByte(e.c1);
-		o.writeByte(e.c2);
+		for(i in 0...ba.length) {
+			o.writeByte(ba[i]);
+		}
 		o.writeString(msg);
 		o.writeByte(0);
+		o.flush();
 		#else
-		socket.send(String.fromCharCode(e.c1)+String.fromCharCode(e.c2)+msg);
+		var s = "";
+		for(i in 0...ba.length) {
+			s += String.fromCharCode(ba[i]);
+		}
+		socket.send(s + msg);
 		#end
 	}
 
@@ -198,20 +188,27 @@ class SocketProtocol {
 	}
 
 	#if (neko || php || cpp)
-
 	public function readMessage() {
 		var i = socket.input;
-		var c1 = i.readByte();
-		var c2 = i.readByte();
-		var len = messageLength(c1,c2);
-		if( len == null )
+		var len:Int = i.readByte();
+		if (len & 0xC0 > 0) {
+			var count:Int = (len & 0xC0) >> 6;
+			len = 0;
+			while (count>0) {
+				len = (len<<8) | i.readByte();
+				count--;
+			}
+		} else {
 			throw "Invalid header";
-		var data = i.readString(len - 3);
+		}
+		len--;
+		if(len == 0)
+			throw "Invalid length";
+		var data = i.readString(len);
 		if( i.readByte() != 0 )
 			throw "Invalid message";
 		return decodeData(data);
 	}
-
 	#end
 
 }

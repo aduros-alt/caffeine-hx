@@ -14,7 +14,7 @@ $(TARGETS):
 	$(HAXE) $(COMMON) $(FLAGS) -swf test9.swf -swf-version 9 -main $@
 	$(HAXE) $(COMMON) $(FLAGS) -js test.js -main $@
 	$(HAXE) $(COMMON) $(FLAGS) -cpp cpp-native -main $@
-#	$(HAXE) $(COMMON) $(FLAGS) -D useOpenSSL -cpp cpp-openssl -main $@
+	$(HAXE) $(COMMON) $(FLAGS) -D useOpenSSL -cpp cpp-openssl -main $@
 
 .PHONY clean:
 	rm -f test.js
