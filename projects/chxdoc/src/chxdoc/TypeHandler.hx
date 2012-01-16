@@ -156,8 +156,12 @@ class TypeHandler<T> {
 		write(makePathUrl(path,"type"));
 		if( params != null && !params.isEmpty() ) {
 			write("&lt;");
-			for( t in params )
+			var first = true;
+			for( t in params ) {
+				if(first) first = false;
+				else write(", ");
 				processType(t);
+			}
 			write("&gt;");
 		}
 	}
