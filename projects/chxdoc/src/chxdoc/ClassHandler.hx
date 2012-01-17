@@ -59,7 +59,6 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 							f.docs.forcePrivate = false;
 						if (f.docs.forcePrivate)
 							f.isPrivate = true;
-trace(ctx.name+"." + f.name + " @private forcePrivate: " + f.docs.forcePrivate + " isPrivate: " + f.isPrivate );
 					}
 
 				}
@@ -150,9 +149,6 @@ trace(ctx.name+"." + f.name + " @private forcePrivate: " + f.docs.forcePrivate +
 		var trimFields = new Array<FieldCtx>();
 		for(fa in a) {
 			for(f in fa) {
-if(f.name == "markedWithPrivateTag") {
-	trace(ctx.name+".markedWithPrivateTag isPrivate: " + getIsPrivate(ctx, f.name) );
-}
 				if(f.isMethod && !ChxDocMain.config.showPrivateMethods && getIsPrivate(ctx, f.name))
 					trimFields.push (f);
 				if (!f.isMethod && !ChxDocMain.config.showPrivateVars && getIsPrivate(ctx, f.name))
@@ -207,8 +203,6 @@ if(f.name == "markedWithPrivateTag") {
 	static function getIsPrivate(ctx : ClassCtx, name :String) : Bool {
 		while(ctx != null) {
 			var f : FieldCtx = getField(ctx, name);
-if(f == null && name == "markedWithPrivateTag")
-	trace(name + " is not a member of " + ctx.name);
 			if(f != null && f.isPrivate)
 				return true;
 			// check interfaces
