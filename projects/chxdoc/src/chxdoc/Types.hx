@@ -85,7 +85,9 @@ typedef ClassCtx = {
 	var scPathParams		: PathParams;		// null if no super, not for html output
 	var superClassHtml		: Html;				// null if no super
 	var superClasses		: Array<ClassCtx>;
+	var interfacesPaths		: Array<PathParams>;// paths to interfaces
 	var interfacesHtml		: Array<Html>;		// Html list of interface links
+	var interfaces			: Array<ClassCtx>;
 	var isDynamic			: Bool; 			// true if class implements Dynamic
 	var constructor			: FieldCtx;			// null if no constructor
 	var vars				: Array<FieldCtx>;

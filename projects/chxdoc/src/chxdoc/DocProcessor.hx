@@ -60,6 +60,7 @@ class DocProcessor {
 			todos			: new Array(),
 			typeParams		: new Array(),
 			version			: new Array(),
+			forcePrivate	: false,
 		};
 		this.doc = doc.split("\r\n").join("\n").split("\r").join("\n");
 	}
@@ -192,6 +193,8 @@ class DocProcessor {
 					uri : pkg.rootRelative + (StringTools.replace(e,".","/")) + ChxDocMain.config.htmlFileExtension,
 					desc : doEmbeddedTags(p.join(" ")),
 				});
+			case "private":
+				docCtx.forcePrivate = true;
 			case "todo":
 				var msg = doEmbeddedTags(packAccum(tagEreg.matched(2)));
 				ChxDocMain.registerTodo(pkg, ctx, msg);

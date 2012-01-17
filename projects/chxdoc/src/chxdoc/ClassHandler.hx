@@ -37,14 +37,7 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 	}
 
 	public function pass1(c : Classdef) : ClassCtx {
-// 		#if BUILD_DEBUG
-// 		var rv = newClassCtx(c);
-// 		if(rv.path == "flash9.display.MovieClip")
-// 			trace(rv);
-// 		return rv;
-// 		#else
 		return newClassCtx(c);
-// 		#end
 	}
 
 
@@ -54,16 +47,36 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 		if(ctx.constructor != null)
 			ctx.constructor.docs = DocProcessor.process(pkg, ctx.constructor, ctx.constructor.originalDoc);
 		var me = this;
+
 		forAllFields(ctx,
 			function(f:FieldCtx) {
 				f.docs = DocProcessor.process(pkg, f, f.originalDoc);
+				if(f.docs != null) {
+					if (f.docs.forcePrivate) {
+						if(f.isMethod && ChxDocMain.config.showPrivateMethods)
+							f.docs.forcePrivate = false;
+						else if (!f.isMethod && ChxDocMain.config.showPrivateVars)
+							f.docs.forcePrivate = false;
+						if (f.docs.forcePrivate)
+							f.isPrivate = true;
+trace(ctx.name+"." + f.name + " @private forcePrivate: " + f.docs.forcePrivate + " isPrivate: " + f.isPrivate );
+					}
+
+				}
 			}
 		);
 	}
 
 	//Types	-> Resolve all super classes, inheritance, subclasses
 	public function pass3(pkg : PackageContext, ctx : ClassCtx) {
-		var sc = ctx.scPathParams;
+		var allInterfaces : Hash<Bool> = new Hash();
+		// resolve interfaces
+		for(ipp in ctx.interfacesPaths) {
+			allInterfaces.set(ipp.path, true);
+		}
+
+		// resolve superClass
+		var sc : PathParams = ctx.scPathParams;
 		var first = true;
 		while(sc != null) {
 			var s : Ctx = ChxDocMain.findType(sc.path);
@@ -83,10 +96,24 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 			// add all methods in current superclass to class ctx
 			for(i in source.methods)
 				makeInheritedMethod(ctx, source, i);
+			// add all interfaces in current superclass to class ctx
+			for(i in source.interfacesPaths)
+				allInterfaces.set(i.path, true);
 			// walk up to next superclass
 			sc = source.scPathParams;
 		}
 
+		for(path in allInterfaces.keys()) {
+			var s : Ctx = ChxDocMain.findType(path);
+			var source : ClassCtx = cast s;
+			#if debug
+			if(source == null)
+				throw "CHXDOC Assert error";
+			#end
+			ctx.interfaces.push(source);
+		}
+
+		// check each field for inheritance
 		for(f in ctx.methods) {
 			if(f.isOverride) {
 				var ctx2 = getMethodOriginator(ctx, f.name);
@@ -98,23 +125,103 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 			}
 		}
 
-		// private vars and methods do not need to be removed
-		// here, since they are ignored in pass 1
-		var a = [ctx.vars, ctx.staticVars, ctx.methods, ctx.staticMethods];
-		for(e in a)
-			e.sort(TypeHandler.ctxFieldSorter);
-
+		// mark all @private inheritors
+		var a : Array<Array<FieldCtx>> = [ctx.vars, ctx.staticVars, ctx.methods, ctx.staticMethods];
+		// private vars and methods need to be removed
+		var trimFields = new Array<FieldCtx>();
+		for(fa in a) {
+			for(f in fa) {
+				if(f.isMethod && !ChxDocMain.config.showPrivateMethods && getIsPrivate(ctx, f.name)) {
+					f.isPrivate = true;
+				}
+				if (!f.isMethod && !ChxDocMain.config.showPrivateVars && getIsPrivate(ctx, f.name)) {
+					f.isPrivate = true;
+				}
+			}
+		}
 	}
 
+	/**
+	 * Remove all private methods before output
+	 **/
+	public function pass4(pkg : PackageContext, ctx : ClassCtx) {
+		var a : Array<Array<FieldCtx>> = [ctx.vars, ctx.staticVars, ctx.methods, ctx.staticMethods];
+		// private vars and methods need to be removed
+		var trimFields = new Array<FieldCtx>();
+		for(fa in a) {
+			for(f in fa) {
+if(f.name == "markedWithPrivateTag") {
+	trace(ctx.name+".markedWithPrivateTag isPrivate: " + getIsPrivate(ctx, f.name) );
+}
+				if(f.isMethod && !ChxDocMain.config.showPrivateMethods && getIsPrivate(ctx, f.name))
+					trimFields.push (f);
+				if (!f.isMethod && !ChxDocMain.config.showPrivateVars && getIsPrivate(ctx, f.name))
+					trimFields.push (f);
+			}
+		}
+		for (field in trimFields) {
+			if(field.isMethod) {
+				ctx.methods.remove (field);
+				ctx.staticMethods.remove (field);
+			} else {
+				ctx.vars.remove (field);
+				ctx.staticVars.remove (field);
+			}
+		}
+
+		// and all sorted
+		for(fa in a)
+			fa.sort(TypeHandler.ctxFieldSorter);
+	}
 
 	/**
-		@return FieldCtx or null
-	**/
+	 * Return the named method from a ClassCtx. This function checks only the
+	 * non-static methods.
+	 * @return FieldCtx or null
+	 **/
 	static function getMethod(ctx: ClassCtx, name : String) : FieldCtx {
 		for(i in ctx.methods)
 			if(i.name == name)
 				return i;
 		return null;
+	}
+
+	/**
+	 * Returns the named field from the class, regardless of what type the field is
+	 * @return FieldCtx or null
+	 **/
+	static function getField(ctx : ClassCtx, name : String) : FieldCtx {
+		var atypes : Array<Array<FieldCtx>> = [ctx.methods, ctx.vars, ctx.staticMethods, ctx.staticVars];
+		for(a in atypes) {
+			for(i in a) 
+				if(i.name == name)
+					return i;
+		}
+		return null;
+	}
+
+	/**
+	 * Crawls up the inheritance tree to find if a field is private. Any superclass that
+	 * has flagged the field as private will cause this to return 'true'.
+	 **/
+	static function getIsPrivate(ctx : ClassCtx, name :String) : Bool {
+		while(ctx != null) {
+			var f : FieldCtx = getField(ctx, name);
+if(f == null && name == "markedWithPrivateTag")
+	trace(name + " is not a member of " + ctx.name);
+			if(f != null && f.isPrivate)
+				return true;
+			// check interfaces
+			for(i in ctx.interfaces)
+				if(getIsPrivate(i, name))
+					return true;
+			// go to superClass
+			var sc = ctx.scPathParams;
+			if(sc == null)
+				break;
+			ctx = cast ChxDocMain.findType(sc.path);
+		}
+		return false;
 	}
 
 	/**
@@ -265,7 +372,9 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 		Reflect.setField(ctx, "scPathParams", c.superClass);
 		Reflect.setField(ctx, "superClassHtml", null);
 		Reflect.setField(ctx, "superClasses", new Array<ClassCtx>());
+		Reflect.setField(ctx, "interfacesPaths", new Array<PathParams>());
 		Reflect.setField(ctx, "interfacesHtml", new Array<Html>());
+		Reflect.setField(ctx, "interfaces", new Array<ClassCtx>());
 		Reflect.setField(ctx, "isDynamic", (c.tdynamic != null));
 		Reflect.setField(ctx, "constructor", null);
 		Reflect.setField(ctx, "vars", new Array<FieldCtx>());
@@ -283,8 +392,8 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 		}
 
 		if(!c.interfaces.isEmpty()) {
-			ctx.interfacesHtml = new Array();
 			for(i in c.interfaces) {
+				ctx.interfacesPaths.push(i);
 				ctx.interfacesHtml.push(
 					doStringBlock(
 						function() {
@@ -399,12 +508,14 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 			);
 		}
 
+		/*
 		if( !f.isPublic ) {
 			if(ctx.isMethod && !ChxDocMain.config.showPrivateMethods)
 				return null;
 			if(!ctx.isMethod && !ChxDocMain.config.showPrivateVars)
 				return null;
 		}
+		*/
 
 		if( f.params != null )
 			TypeHandler.typeParams = oldParams;

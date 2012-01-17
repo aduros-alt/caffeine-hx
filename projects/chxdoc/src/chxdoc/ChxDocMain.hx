@@ -39,8 +39,8 @@ class ChxDocMain {
 	public static var config : Config =
 	{
 		versionMajor		: 1,
-		versionMinor		: 0,
-		versionRevision		: 2,
+		versionMinor		: 1,
+		versionRevision		: 0,
 		buildNumber			: 633,
 		verbose				: false,
 		rootTypesPackage	: null,
@@ -370,7 +370,7 @@ class ChxDocMain {
 
 		proginfo = "ChxDoc Generator "+
 			makeVersion() +
-			" - (c) 2009 Russell Weir";
+			" - (c) 2008-2012 Russell Weir";
 
 		buildData = {
 			date: config.dateShort,

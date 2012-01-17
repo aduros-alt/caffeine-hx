@@ -166,6 +166,21 @@ class PackageHandler extends TypeHandler<PackageContext> {
 			return;
 		}
 
+		for(ctx in pkg.types) {
+			//if(Utils.isFiltered(ctx.path, false))
+			//	continue;
+			switch(ctx.type) {
+			case "class", "interface":
+				classHandler.pass4(pkg, cast ctx);
+			case "typedef", "alias":
+				//typedefHandler.pass4(pkg, cast ctx);
+			case "enum":
+				//enumHandler.pass4(pkg, cast ctx);
+			default:
+				throw "Bad type " + ctx.type + " " + ctx.path;
+			}
+		}
+
 		Utils.createOutputDirectory(pkg.resolvedTypeDir);
 		Utils.createOutputDirectory(pkg.resolvedPackageDir);
 

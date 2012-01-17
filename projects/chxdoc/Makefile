@@ -17,7 +17,7 @@ test-developer: chxdoc
 
 test-user: chxdoc
 	cd test && haxe chx.hxml
-	cd test && ../chxdoc -o doc_user --template=../src/templates/default --developer=false flash9.xml,flash,flash9 flash.xml,flash neko.xml,neko js.xml,js
+	cd test && ../chxdoc -o doc_user --template=../src/templates/default --developer=false flash9.xml,flash,flash9 neko.xml,neko js.xml,js
 	cd test && $(RM) *.swf *.n *.js
 	cd test && $(RM) -R __chxdoctmp
 

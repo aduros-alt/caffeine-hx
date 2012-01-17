@@ -142,6 +142,8 @@ typedef DocsContext = {
 	var todos				: Array<Html>;
 	var typeParams			: Array<{ arg : Html, desc : Html }>;
 	var version				: Array<Html>;
+	/** @private tag */
+	var forcePrivate		: Bool;
 };
 
 typedef PackageContext = {

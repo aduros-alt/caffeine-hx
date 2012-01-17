@@ -26,7 +26,22 @@ private class D {
 	}
 }
 
-class Base {
+interface BaseInterface1 {
+	/**
+	 * I am a public function declared in BaseInterface1
+	 **/
+	function iAmPublic1() : Void;
+}
+
+interface BaseInterface2 {
+	/**
+	 * I am a @private function declared in BaseInterface2
+	 * @private used internally only
+	 **/
+	function iAmPrivate2() : Void;
+}
+
+class Base implements BaseInterface1, implements BaseInterface2 {
 	public var baseVar : Int;
 	public function baseFunc() : Void {
 	}
@@ -41,6 +56,16 @@ never ever, this is just an
 	public function baseOver1() : Void {}
 
 	public function baseOver2() : Void {}
+
+	/**
+	 * Example internal method, since haxe has no 'protected' access modifier
+	 * @private Do not use! Internal use only
+	 **/
+	public function markedWithPrivateTag() : Void {}
+
+	public function iAmPublic1() : Void {}
+
+	public function iAmPrivate2() : Void {}
 }
 
 class Layer1 extends Base {
@@ -56,6 +81,12 @@ class Layer1 extends Base {
 	private function layer1OverPrivate() : Void {}
 
 	public override function baseOver1() : Void {}
+
+	/**
+	 * This comment should not be visible in user mode doc generation, since the
+	 * super is marked with @ private
+	 **/
+	override public function markedWithPrivateTag() : Void {}
 
 	private function privateMethod() : Void {}
 	private static function privateFunction() : Void {}
