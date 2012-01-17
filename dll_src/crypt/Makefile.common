@@ -1,5 +1,7 @@
 PROJECT:=ncrypt
 NDLL:=ndll/$(ARCH)/$(PROJECT).ndll
+HXCPPDLL:=ndll/$(ARCH)/$(PROJECT).dso
+
 HXTEST:=crypttest.n
 
 # for ndll
@@ -11,14 +13,19 @@ HEADERS:=$(foreach PATH,$(SRC_PATHS), $(wildcard $(PATH)/*.h)) $(SRC_ARCH)
 HX_PATHS:=neko/net test
 HX_SRCS:=$(foreach PATH,$(HX_PATHS), $(wildcard $(PATH)/*.hx))
 
+all: $(NDLL) $(HXCPPDLL)
+
 $(NDLL): $(SRCS) $(HEADERS)
 	@echo path: $(SRC_PATHS)
 	@echo srcs: $(SRCS), headers: $(HEADERS)
 	$(CC) -DNEKO $(NEKO_FLAGS) $(LOCAL_FLAGS) -o $@ $(SRCS)
 	$(STRIP) --strip-unneeded $@
 
+$(HXCPPDLL): $(SRCS) $(HEADERS)
+	haxelib run hxcpp build.xml
+
 $(LUADLL): $(SRCS) $(HEADERS)
-	$(CC) -DLUA $(LUA_FLAGS) $(LOCAL_FLAGS) -o $@ $(SRCS)
+	$(CC) -x c -DLUA $(LUA_FLAGS) $(LOCAL_FLAGS) -o $@ $(SRCS)
 
 tests: $(HXTEST)
 
@@ -27,8 +34,10 @@ $(HXTEST): $(HX_SRCS)
 
 clean:
 	$(RM) $(NDLL)
+	$(RM) $(HXCPPDLL)
 	$(RM) $(HXTEST)
-	$(RM) obj/*
+	$(RM) -rf obj
+	$(RM) all_objs
 	$(RM) core.*
 
 luatests:
@@ -36,6 +45,7 @@ luatests:
 
 install:
 	cp $(NDLL) ../../ext3/NDLL/$(ARCH)/
+	cp $(HXCPPDLL) ../../ext3/NDLL/$(ARCH)/
 
 install-dev: $(NDLL)
 	cp $(NDLL) $(CAFFEINE_NDLL_DIR)

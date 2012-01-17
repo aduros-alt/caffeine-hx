@@ -41,7 +41,10 @@
 #	endif
 #endif
 
-#ifdef NEKO
+#ifdef TARGET_HXCPP
+//#	define IMPLEMENT_API
+#	include <hx/CFFI.h>
+#elif defined(NEKO)
 #	include <neko/neko.h>
 #elif defined(LUA)
 #	include "lua.h"
@@ -187,7 +190,9 @@ static void destroy_key(value nekoKey) {
 	key = val_aeskey(nekoKey);
 	memset(key, 0, sizeof(keyInstance));
 	free(key);
-	val_kind(nekoKey) = NULL;
+	#ifndef TARGET_HXCPP
+		val_kind(nekoKey) = NULL;
+	#endif
 }
 
 static value aes_create_key(value forEncrypt, value keyLen, value keyMaterial) {
@@ -242,7 +247,7 @@ static value aes_encrypt_block(value nekoKey, value sBlock) {
 	if(key->direction != DIR_ENCRYPT)
 		THROW("not an encryption key");
 	rijndaelEncrypt(key->rk, key->Nr, (BYTE *)val_string(sBlock), outBuffer);
-	return copy_string(outBuffer, AES_BLOCK_SIZE);
+	return copy_string((const char *)outBuffer, AES_BLOCK_SIZE);
 }
 DEFINE_PRIM(aes_encrypt_block, 2);
 
@@ -259,7 +264,7 @@ static value aes_decrypt_block(value nekoKey, value sBlock) {
 	if(key->direction != DIR_DECRYPT)
 		THROW("not a decryption key");
 	rijndaelDecrypt(key->rk, key->Nr, (BYTE *)val_string(sBlock), outBuffer);
-	return copy_string(outBuffer, AES_BLOCK_SIZE);
+	return copy_string((const char *)outBuffer, AES_BLOCK_SIZE);
 }
 DEFINE_PRIM(aes_decrypt_block, 2);
 

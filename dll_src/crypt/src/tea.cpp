@@ -38,9 +38,17 @@
 
 #include "tea.h"
 
+#ifdef TARGET_HXCPP
+#	define IMPLEMENT_API
+#	include <hx/CFFI.h>
+#elif defined(NEKO)
+#	include <neko/neko.h>
+#elif defined(LUA)
+#	include "lua.h"
+#	include "lauxlib.h"
+#endif
 
 #ifdef NEKO
-#       include <neko/neko.h>
 
 #define E_NO_MEM() val_throw(alloc_string("out of memory"))
 #define THROW(x) val_throw(alloc_string(x))
@@ -56,7 +64,9 @@ static void destroy_key(value nekoKey) {
 	key = val_xxteakey(nekoKey);
 	memset(key, 0, 4 * sizeof(u_int32_t));
 	free(key);
-	val_kind(nekoKey) = NULL;
+	#ifndef TARGET_HXCPP
+		val_kind(nekoKey) = NULL;
+	#endif
 }
 
 static value xxtea_create_key(value Int32Array) {
@@ -69,10 +79,17 @@ static value xxtea_create_key(value Int32Array) {
 		THROW("key must be 16 bytes");
 	k = (u_int32_t*)malloc(val_array_size(Int32Array) * sizeof(u_int32_t));
 	for(x = 0; x<val_array_size(Int32Array); x++) {
-		value i = val_array_ptr(Int32Array)[x];
-		if( !val_is_int32(i) )
-			THROW("not int32");
-		k[x] = val_int32(i);
+		#ifdef TARGET_HXCPP
+			value i = val_array_i(Int32Array, x);
+			if( !val_is_int(i) )
+				THROW("not int32");
+			k[x] = (u_int32_t)val_int(i);
+		#else
+			value i = val_array_ptr(Int32Array)[x];
+			if( !val_is_int32(i) )
+				THROW("not int32");
+			k[x] = val_int32(i);
+		#endif
 	}
 	value v = alloc_abstract(k_xxteakey, k);
 	val_gc(v, destroy_key);
@@ -104,12 +121,21 @@ static int xxtea_make_array(value Words, value Count, u_int32_t** v) {
 	if(mem == NULL)
 		return W_NO_MEM;
 	for(x=0; x<n; x++) {
-		value i = val_array_ptr(Words)[x];
-		if( !val_is_int32(i) ) {
-			free(mem);
-			return W_NOT_INT32;
-		}
-		mem[x] = val_int32(i);
+		#ifdef TARGET_HXCPP
+			value i = val_array_i(Words, x);
+			if( !val_is_int(i) ) {
+				free(mem);
+				return W_NOT_INT32;
+			}
+			mem[x] = (u_int32_t)val_int(i);
+		#else
+			value i = val_array_ptr(Words)[x];
+			if( !val_is_int32(i) ) {
+				free(mem);
+				return W_NOT_INT32;
+			}
+			mem[x] = val_int32(i);
+		#endif
 	}
 	*v = mem;
 	return 0;
