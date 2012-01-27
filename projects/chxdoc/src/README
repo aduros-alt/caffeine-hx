@@ -107,6 +107,7 @@ The current available tags, all of which except for @deprecated can be used mult
 @author
 @deprecated
 @param
+@private
 @requires
 @return (or @returns)
 @see
@@ -124,6 +125,10 @@ The current available tags, all of which except for @deprecated can be used mult
 
 @param name Description
 	Adds a notation about a method argument.
+
+@private
+	Marks a field as private, even if the access is public. This is often used to
+	hide methods that are internal use only, as Haxe has no 'protected' modifier.
 
 @requires Description
 	Adds a description for requirements, like a required neko ndll file

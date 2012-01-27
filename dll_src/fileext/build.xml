@@ -1,0 +1,45 @@
+<xml>
+<!-- Install hxcpp and run with 'haxelib run hxcpp build.xml' -->
+<!-- To build 64bit 'haxelib run hxcpp build.xml' -DHXCPP_M64 -->
+
+<include name="${HXCPP}/build-tool/BuildCommon.xml"/>
+
+<set name="LIB_DIR" value="-Llib" unless="windows"/>
+<set name="LIB_DIR" value="-libpath:lib" if="windows"/>
+<set name="DEBUG" value="d" if="debug"/>
+
+<files id="files">
+	<compilerflag value = "-DNEKO" />
+	<compilerflag value = "-DTARGET_OSX" if="macos"/>
+	<compilerflag value = "-DTARGET_LINUX" if="linux"/>
+	<compilerflag value = "-DLINUX" if="linux"/>
+	<compilerflag value = "-DTARGET_WIN32" if="windows"/>
+	<compilerflag value = "-DNEKO_COMPATIBLE" />
+
+	<compilerflag value = "-I../include"/>
+
+	<!-- Special flags for compiling on MacOSX 64 bit. May need for linux 64bit too?  -->
+	<compilerflag value = "-D_FILE_OFFSET_BITS=64" if="macos"/>
+	<compilerflag value = "-D_LARGE_FILES=64" if="macos"/>
+
+	<file name="src/interface.cpp"/>
+	<file name="src/fileext.cpp"/>
+
+</files>
+
+
+<!-- define compiler build & linking target -->
+<target id="NDLL" tool="linker" toolid="dll" output="fileext">
+	<ext value=".ndll"/>
+
+	<outdir name="ndll/${BINDIR}"/>
+	<files id="files"/>
+
+</target>
+
+<!-- specifies default hxcpp build tool target -->
+<target id="default">
+	<target id="NDLL"/>
+</target>
+
+</xml>

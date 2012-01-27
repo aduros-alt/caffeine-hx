@@ -203,10 +203,45 @@ class Lib {
 			return Unserializer.run(s);
 		#end
 	}
-	
 
-	
+	/**
+	 * For platforms that require initialization of loaded libraries. This is required when
+	 * using ndlls generated with hxcpp for neko
+	 */
+	public static function initDll(libName:String, entryFun : String = null) : Void {
+		#if neko
+		var init =  chx.Lib.load(libName, "neko_init", 5);
+		if (init != null)
+		{
+			//neko_init(neko_value inNewString,neko_value inNewArray,neko_value inNull, neko_value inTrue, neko_value inFalse)
+			init(function(s) return new String(s),
+					function(len:Int) { var r = []; if (len > 0) r[len - 1] = null; return r; },
+					null, true, false);
+		}
+		else
+		throw("Could not find NekoAPI interface.");
+		#end
+	}
+
 #if (neko || cpp)
+	public static inline function nekoStringToHaxe( v : String ) : String {
+		return
+		#if cpp
+			v;
+		#elseif neko
+			new String(v);
+		#end
+	}
+
+	public static inline function haxeStringToNeko( v : String ) : String {
+		return
+		#if cpp
+			v;
+		#elseif neko
+			untyped v.__s;
+		#end
+	}
+
 	/**
 	 * Converts a Neko value to its haXe equivalent. Used for wrapping String and Arrays raw values into haXe Objects.
 	 * @param	v

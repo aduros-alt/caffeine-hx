@@ -27,7 +27,7 @@ import chx.io.File;
 import chx.lang.EofException;
 import chx.lang.Exception;
 
-#if php
+#if (neko || php || cpp)
 /**
 	Use [php.io.File.write] to create a [FileOutput]
 **/
@@ -39,100 +39,80 @@ class FileOutput extends chx.io.Output {
 	}
 
 	public override function writeByte( c : Int ) : Output {
-		var r = untyped __call__('fwrite', __f, __call__('chr', c));
-		if(untyped __physeq__(r, false)) return throw new Exception("error");
+		#if php
+			var r = untyped __call__('fwrite', __f, __call__('chr', c));
+			if(untyped __physeq__(r, false)) return throw new Exception("error");
+		#else
+			try file_write_char(__f, c) catch ( e : Dynamic ) throw new Exception("error", e);
+		#end
 		return this;
 	}
 
 	public override function writeBytes( b : Bytes, p : Int, l : Int ) : Int {
-		var s = b.readString(p, l);
-		if(untyped __call__('feof', __f)) return throw new EofException();
-		var r = untyped __call__('fwrite', __f, s, l);
-		if(untyped __physeq__(r, false)) return throw new Exception("error");
-		return r;
+		#if php
+			var s = b.readString(p, l);
+			if(untyped __call__('feof', __f)) return throw new EofException();
+			var r = untyped __call__('fwrite', __f, s, l);
+			if(untyped __physeq__(r, false)) return throw new Exception("error");
+			return r;
+		#else
+			return try file_write(__f,b.getData(),p,l) catch( e : Dynamic ) throw new Exception("error", e);
+		#end
 	}
 
 	public override function flush() : Output {
-		var r = untyped __call__('fflush', __f);
-		if (untyped __physeq__(r, false)) throw new Exception("error");
+		#if php
+			var r = untyped __call__('fflush', __f);
+			if (untyped __physeq__(r, false)) throw new Exception("error");
+		#else
+			file_flush(__f);
+		#end
 		return this;
 	}
 
 	public override function close() {
 		super.close();
-		if(__f != null)	untyped __call__('fclose', __f);
+		#if php
+			if(__f != null)	untyped __call__('fclose', __f);
+		#else
+			file_close(__f);
+		#end
 	}
 
 	public function seek( p : Int, pos : FileSeek ) {
-		var w;
-		switch( pos ) { 
-			case SeekBegin: w = untyped __php__('SEEK_SET');
-			case SeekCur  : w = untyped __php__('SEEK_CUR');
-			case SeekEnd  : w = untyped __php__('SEEK_END');
-		}
-		var r = untyped __call__('fseek', __f, p, w);
-		if(untyped __physeq__(r, false)) throw new Exception("error");
+		#if php
+			var w;
+			switch( pos ) {
+				case SeekBegin: w = untyped __php__('SEEK_SET');
+				case SeekCur  : w = untyped __php__('SEEK_CUR');
+				case SeekEnd  : w = untyped __php__('SEEK_END');
+			}
+			var r = untyped __call__('fseek', __f, p, w);
+			if(untyped __physeq__(r, false)) throw new Exception("error");
+		#else
+			file_seek(__f,p,switch( pos ) { case SeekBegin: 0; case SeekCur: 1; case SeekEnd: 2; });
+		#end
 	}
 
 	public function tell() : Int {
-		var r = untyped __call__('ftell', __f);
-		if(untyped __physeq__(r, false)) return throw new Exception("error");
-		return cast r;
+		#if php
+			var r = untyped __call__('ftell', __f);
+			if(untyped __physeq__(r, false)) return throw new Exception("error");
+			return cast r;
+		#else
+			return file_tell(__f);
+		#end
 	}
 
-	public function eof() : Bool {
-		return untyped __call__('feof', __f);
-	}
-}
+	#if (neko || cpp)
+	private static var file_close = chx.Lib.load("fileext","fileext_close",1);
+	private static var file_seek = chx.Lib.load("fileext","fileext_seek",3);
+	private static var file_tell = chx.Lib.load("fileext","fileext_tell",1);
 
-#elseif neko
-
-/**
-	Use [chx.io.File.write] to create a [FileOutput]
-**/
-class FileOutput extends chx.io.Output {
-
-	private var __f : FileHandle;
-
-	public function new(f) {
-		__f = f;
-	}
-
-	public override function writeByte( c : Int ) : Output {
-		try file_write_char(__f, c) catch ( e : Dynamic ) throw new Exception("error", e);
-		return this;
-	}
-
-	public override function writeBytes( s : Bytes, p : Int, l : Int ) : Int {
-		return try file_write(__f,s.getData(),p,l) catch( e : Dynamic ) throw new Exception("error", e);
-	}
-
-	public override function flush() : Output {
-		file_flush(__f);
-		return this;
-	}
-
-	public override function close() {
-		super.close();
-		file_close(__f);
-	}
-
-	public function seek( p : Int, pos : FileSeek ) {
-		file_seek(__f,p,switch( pos ) { case SeekBegin: 0; case SeekCur: 1; case SeekEnd: 2; });
-	}
-
-	public function tell() : Int {
-		return file_tell(__f);
-	}
-
-	private static var file_close = chx.Lib.load("std","file_close",1);
-	private static var file_seek = chx.Lib.load("std","file_seek",3);
-	private static var file_tell = chx.Lib.load("std","file_tell",1);
-
-	private static var file_flush = chx.Lib.load("std","file_flush",1);
-	private static var file_write = chx.Lib.load("std","file_write",4);
-	private static var file_write_char = chx.Lib.load("std","file_write_char",2);
-
+	private static var file_flush = chx.Lib.load("fileext","fileext_flush",1);
+	private static var file_write = chx.Lib.load("fileext","fileext_write",4);
+	private static var file_write_char = chx.Lib.load("fileext","fileext_write_char",2);
+	#end
 }
 
 #else

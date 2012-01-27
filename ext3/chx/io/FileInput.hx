@@ -26,7 +26,7 @@ package chx.io;
 import chx.io.File;
 import chx.lang.EofException;
 
-#if php
+#if (neko || cpp || php)
 /**
 	Use [chx.io.File.read] to create a [FileInput]
 **/
@@ -39,113 +39,115 @@ class FileInput extends chx.io.Input {
 	}
 
 	public override function readByte() : Int {
-		if(untyped __call__('feof', __f)) return throw new chx.lang.EofException();
-		var r = untyped __call__('fread', __f, 1);
-		if(untyped __physeq__(r, false)) return throw new chx.lang.Exception('error');
-		return untyped __call__('ord', r);
+		#if php
+			if(untyped __call__('feof', __f)) return throw new chx.lang.EofException();
+			var r = untyped __call__('fread', __f, 1);
+			if(untyped __physeq__(r, false)) return throw new chx.lang.Exception('error');
+			return untyped __call__('ord', r);
+		#else
+			return try {
+				file_read_char(__f);
+			} catch( e : Dynamic ) {
+				#if neko
+				if( untyped __dollar__typeof(e) == __dollar__tarray )
+				#elseif cpp
+				if( untyped e.__IsArray() )
+				#end
+					throw new chx.lang.EofException();
+				else
+					throw new chx.lang.Exception("error",e);
+			}
+
+		#end
 	}
 
 	public override function readBytes( s : Bytes, p : Int, l : Int ) : Int {
-		if(untyped __call__('feof', __f)) return throw new chx.lang.EofException();
-		var r : String = untyped __call__('fread', __f, l);
-		if(untyped __physeq__(r, false)) return throw new chx.lang.Exception('error');
-		var b = Bytes.ofString(r);
-		s.blit(p, b, 0, r.length);
-		return r.length;
+		#if php
+			if(untyped __call__('feof', __f)) return throw new chx.lang.EofException();
+			var r : String = untyped __call__('fread', __f, l);
+			if(untyped __physeq__(r, false)) return throw new chx.lang.Exception('error');
+			var b = Bytes.ofString(r);
+			s.blit(p, b, 0, r.length);
+			return r.length;
+		#else
+			return try {
+				file_read(__f,s.getData(),p,l);
+			} catch( e : Dynamic ) {
+				#if neko
+				if( untyped __dollar__typeof(e) == __dollar__tarray )
+				#elseif cpp
+				if( untyped e.__IsArray() )
+				#end
+					throw new chx.lang.EofException();
+				else
+					throw new chx.lang.Exception("error",e);
+			}
+		#end
 	}
 
 	public override function close() {
 		super.close();
-		if(__f != null)	untyped __call__('fclose', __f);
+		#if php
+			if(__f != null)	untyped __call__('fclose', __f);
+		#else
+			file_close(__f);
+		#end
 	}
 
 	public function seek( p : Int, pos : FileSeek ) {
-		var w;
-		switch( pos ) {
-			case SeekBegin: w = untyped __php__('SEEK_SET');
-			case SeekCur  : w = untyped __php__('SEEK_CUR');
-			case SeekEnd  : w = untyped __php__('SEEK_END');
-		}
-		var r = untyped __call__('fseek', __f, p, w);
-		if(untyped __physeq__(r, false)) throw new chx.lang.Exception('error');
+		#if php
+			var w;
+			switch( pos ) {
+				case SeekBegin: w = untyped __php__('SEEK_SET');
+				case SeekCur  : w = untyped __php__('SEEK_CUR');
+				case SeekEnd  : w = untyped __php__('SEEK_END');
+			}
+			var r = untyped __call__('fseek', __f, p, w);
+			if(untyped __physeq__(r, false)) throw new chx.lang.Exception('error');
+		#else
+			file_seek(__f,p,switch( pos ) { case SeekBegin: 0; case SeekCur: 1; case SeekEnd: 2; });
+		#end
 	}
 
 	public function tell() : Int {
-		var r = untyped __call__('ftell', __f);
-		if(untyped __physeq__(r, false)) return throw new chx.lang.Exception('error');
-		return cast r;
+		#if php
+			var r = untyped __call__('ftell', __f);
+			if(untyped __physeq__(r, false)) return throw new chx.lang.Exception('error');
+			return cast r;
+		#else
+			return file_tell(__f);
+		#end
 	}
 
+#if php
 	override function readLine() : String {
 		var r : String = untyped __call__('fgets', __f);
 		if (untyped __physeq__(false, r))
 			throw new EofException();
 		return untyped __call__("rtrim", r, "\r\n");
 	}
-}
-
-#elseif neko
-/**
-	Use [neko.io.File.read] to create a [FileInput]
-**/
-class FileInput extends chx.io.Input {
-
-	private var __f : FileHandle;
-
-	public function new(f) {
-		__f = f;
-	}
-
-	public override function readByte() : Int {
-		return try {
-			file_read_char(__f);
-		} catch( e : Dynamic ) {
-			if( untyped __dollar__typeof(e) == __dollar__tarray )
-				throw new chx.lang.EofException();
-			else
-				throw new chx.lang.Exception("error",e);
-		}
-	}
-
-	public override function readBytes( s : Bytes, p : Int, l : Int ) : Int {
-		return try {
-			file_read(__f,s.getData(),p,l);
-		} catch( e : Dynamic ) {
-			if( untyped __dollar__typeof(e) == __dollar__tarray )
-				throw new chx.lang.EofException();
-			else
-				throw new chx.lang.Exception("error",e);
-		}
-	}
-
-	public override function close() {
-		super.close();
-		file_close(__f);
-	}
-
-	public function seek( p : Int, pos : FileSeek ) {
-		file_seek(__f,p,switch( pos ) { case SeekBegin: 0; case SeekCur: 1; case SeekEnd: 2; });
-	}
-
-	public function tell() : Int {
-		return file_tell(__f);
-	}
-
+#end
 
 	public function eof() : Bool {
-		return file_eof(__f);
+		#if php
+			return untyped __call__('feof', __f);
+		#else
+			return file_eof(__f);
+		#end
 	}
 
-	private static var file_eof = chx.Lib.load("std","file_eof",1);
+	#if (neko || cpp)
+	private static var file_eof = chx.Lib.load("fileext","fileext_feof",1);
 
-	private static var file_read = chx.Lib.load("std","file_read",4);
-	private static var file_read_char = chx.Lib.load("std","file_read_char",1);
+	private static var file_read = chx.Lib.load("fileext","fileext_read",4);
+	private static var file_read_char = chx.Lib.load("fileext","fileext_read_char",1);
 
-	private static var file_close = chx.Lib.load("std","file_close",1);
-	private static var file_seek = chx.Lib.load("std","file_seek",3);
-	private static var file_tell = chx.Lib.load("std","file_tell",1);
-
+	private static var file_close = chx.Lib.load("fileext","fileext_close",1);
+	private static var file_seek = chx.Lib.load("fileext","fileext_seek",3);
+	private static var file_tell = chx.Lib.load("fileext","fileext_tell",1);
+	#end
 }
+
 #else
 #error
 #end

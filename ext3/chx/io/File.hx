@@ -24,8 +24,12 @@
  */
 package chx.io;
 
+#if neko
 enum FileHandle {
 }
+#elseif cpp
+typedef FileHandle = Dynamic;
+#end
 
 enum FileSeek {
 	SeekBegin;
@@ -34,69 +38,7 @@ enum FileSeek {
 }
 
 
-#if neko
-
-/**
-	API for reading and writing to files.
-**/
-class File {
-
-	public static function getContent( path : String ) {
-		return new String(file_contents(untyped path.__s));
-	}
-
-	public static function getBytes( path : String ) {
-		return chx.Lib.bytesReference(getContent(path));
-	}
-
-	public static function read( path : String, binary : Bool ) {
-		return new FileInput(untyped file_open(path.__s,(if( binary ) "rb" else "r").__s));
-	}
-
-	public static function write( path : String, binary : Bool ) : FileOutput {
-		return new FileOutput(untyped file_open(path.__s,(if( binary ) "wb" else "w").__s));
-	}
-
-	public static function append( path : String, binary : Bool ) : FileOutput {
-		return new FileOutput(untyped file_open(path.__s,(if( binary ) "ab" else "a").__s));
-	}
-
-	public static function copy( src : String, dst : String ) : Void {
-		var s = read(src,true);
-		var d = write(dst,true);
-		d.writeInput(s);
-		s.close();
-		d.close();
-	}
-
-	public static function stdin() {
-		return new FileInput(file_stdin());
-	}
-
-	public static function stdout() : FileOutput {
-		return new FileOutput(file_stdout());
-	}
-
-	public static function stderr() : FileOutput {
-		return new FileOutput(file_stderr());
-	}
-
-	public static function getChar( echo : Bool ) : Int {
-		return getch(echo);
-	}
-
-	private static var file_stdin = chx.Lib.load("std","file_stdin",0);
-	private static var file_stdout = chx.Lib.load("std","file_stdout",0);
-	private static var file_stderr = chx.Lib.load("std","file_stderr",0);
-
-	private static var file_contents = chx.Lib.load("std","file_contents",1);
-	private static var file_open = chx.Lib.load("std","file_open",2);
-
-	private static var getch = chx.Lib.load("std","sys_getch",1);
-
-}
-
-#elseif php
+#if (neko || cpp)
 
 /**
 	API for reading and writing to files.
@@ -104,115 +46,113 @@ class File {
 class File {
 
 	public static function getContent( path : String ) : String {
-		return untyped __call__("file_get_contents", path);
-	}
-	
-	public static function getBytes( path : String ) {
-		return Bytes.ofString(getContent(path));
-	}
-	
-	public static function putContent( path : String, content : String) : Int {
-		return untyped __call__("file_put_contents", path, content);
-	}
-	
-	public static function read( path : String, binary : Bool ) {
-		return new FileInput(untyped __call__('fopen', path, binary ? "rb" : "r"));
-	}
-
-	public static function write( path : String, binary : Bool ) : FileOutput {
-		return new FileOutput(untyped __call__('fopen', path, binary ? "wb" : "w"));
-	}
-
-	public static function append( path : String, binary : Bool ) : FileOutput {
-		return new FileOutput(untyped __call__('fopen', path, binary ? "ab" : "a"));
-	}
-	
-	public static function copy( src : String, dst : String ) {
-		return untyped __call__("copy", src, dst);
-	}
-
-	public static function stdin() {
-		return new FileInput(untyped __call__('fopen', 'php://stdin', "r"));
-	}
-
-	public static function stdout() : FileOutput {
-		return new FileOutput(untyped __call__('fopen', 'php://stdout', "w"));
-	}
-
-	public static function stderr() : FileOutput {
-		return new FileOutput(untyped __call__('fopen', 'php://stderr', "w"));
-	}
-	
-	public static function getChar( echo : Bool ) : Int {
-		var v : Int = untyped __call__("fgetc", __php__("STDIN"));
-		if(echo)
-			untyped __call__('echo', v);
-		return v;
-	}
-}
-
-#elseif cpp
-
-/**
-	API for reading and writing to files.
-**/
-class File {
-
-	public static function getContent( path : String ) {
-		var b = getBytes(path);
-		return b.toString();
+		#if (neko || cpp)
+			return Lib.nekoStringToHaxe(file_contents(Lib.haxeStringToNeko(path)));
+		#elseif php
+			return untyped __call__("file_get_contents", path);
+		#end
 	}
 
 	public static function getBytes( path : String ) : Bytes {
-		var data:BytesData = file_contents(path);
-		return Bytes.ofData(data);
+		return Bytes.ofStringData(getContent(path));
 	}
 
-	public static function read( path : String, binary : Bool ) {
-		return new FileInput(untyped file_open(path,(if( binary ) "rb" else "r")));
+	/*
+	public static function putContent( path : String, content : String) : Int {
+		return untyped __call__("file_put_contents", path, content);
+	}
+	*/
+
+	public static function read( path : String, binary : Bool ) : FileInput {
+		#if neko
+			return new FileInput(untyped file_open(path.__s,(if( binary ) "rb" else "r").__s));
+		#elseif cpp
+			return new FileInput(untyped file_open(path,(if( binary ) "rb" else "r")));
+		#elseif php
+			return new FileInput(untyped __call__('fopen', path, binary ? "rb" : "r"));
+		#end
 	}
 
-	public static function write( path : String, binary : Bool ) {
-		return new FileOutput(untyped file_open(path.__s,(if( binary ) "wb" else "w")));
+	public static function write( path : String, binary : Bool ) : FileOutput {
+		#if neko
+			return new FileOutput(untyped file_open(path.__s,(if( binary ) "wb" else "w").__s));
+		#elseif cpp
+			return new FileOutput(untyped file_open(path,(if( binary ) "wb" else "w")));
+		#elseif php
+			return new FileOutput(untyped __call__('fopen', path, binary ? "wb" : "w"));
+		#end
 	}
 
-	public static function append( path : String, binary : Bool ) {
-		return new FileOutput(untyped file_open(path.__s,(if( binary ) "ab" else "a")));
+	public static function append( path : String, binary : Bool ) : FileOutput {
+		#if neko
+			return new FileOutput(untyped file_open(path.__s,(if( binary ) "ab" else "a").__s));
+		#elseif cpp
+			return new FileOutput(untyped file_open(path,(if( binary ) "ab" else "a")));
+		#elseif php
+			return new FileOutput(untyped __call__('fopen', path, binary ? "ab" : "a"));
+		#end
 	}
 
-	public static function copy( src : String, dst : String ) {
-		var s = read(src,true);
-		var d = write(dst,true);
-		d.writeInput(s);
-		s.close();
-		d.close();
+	public static function copy( src : String, dst : String ) : Void {
+		#if php
+			return untyped __call__("copy", src, dst);
+		#else
+			var s = read(src,true);
+			var d = write(dst,true);
+			d.writeInput(s);
+			s.close();
+			d.close();
+		#end
 	}
 
 	public static function stdin() {
-		return new FileInput(file_stdin());
+		#if php
+			return new FileInput(untyped __call__('fopen', 'php://stdin', "r"));
+		#else
+			return new FileInput(file_stdin());
+		#end
 	}
 
-	public static function stdout() {
-		return new FileOutput(file_stdout());
+	public static function stdout() : FileOutput {
+		#if php
+			return new FileOutput(untyped __call__('fopen', 'php://stdout', "w"));
+		#else
+			return new FileOutput(file_stdout());
+		#end
 	}
 
-	public static function stderr() {
-		return new FileOutput(file_stderr());
+	public static function stderr() : FileOutput {
+		#if php
+			return new FileOutput(untyped __call__('fopen', 'php://stderr', "w"));
+		#else
+			return new FileOutput(file_stderr());
+		#end
 	}
 
 	public static function getChar( echo : Bool ) : Int {
-		return getch(echo);
+		#if php
+			var v : Int = untyped __call__("fgetc", __php__("STDIN"));
+			if(echo)
+				untyped __call__('echo', v);
+			return v;
+		#else
+			return getch(echo);
+		#end
 	}
 
-	private static var file_stdin = cpp.Lib.load("std","file_stdin",0);
-	private static var file_stdout = cpp.Lib.load("std","file_stdout",0);
-	private static var file_stderr = cpp.Lib.load("std","file_stderr",0);
+	public static function __init__()
+	{
+		chx.Lib.initDll("fileext");
+	}
 
-	private static var file_contents = cpp.Lib.load("std","file_contents",1);
-	private static var file_open = cpp.Lib.load("std","file_open",2);
-
-	private static var getch = cpp.Lib.load("std","sys_getch",1);
-
+	#if !php
+	private static var file_contents = chx.Lib.load("fileext","fileext_contents",1);
+	private static var file_open = chx.Lib.load("fileext","fileext_open",2);
+	private static var file_stdin = chx.Lib.load("fileext","fileext_stdin",0);
+	private static var file_stdout = chx.Lib.load("fileext","fileext_stdout",0);
+	private static var file_stderr = chx.Lib.load("fileext","fileext_stderr",0);
+	private static var getch = chx.Lib.load("std","sys_getch",1);
+	#end
 }
 
 #else
