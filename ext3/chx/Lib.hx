@@ -204,23 +204,37 @@ class Lib {
 		#end
 	}
 
+	static var dll_init : Hash<Bool>;
 	/**
 	 * For platforms that require initialization of loaded libraries. This is required when
 	 * using ndlls generated with hxcpp for neko
+	 * @param libName Short name for lib, without .ndll extension
+	 * @param entryFunc Library init function. If not provided, will be libName_init
 	 */
-	public static function initDll(libName:String, entryFun : String = null) : Void {
+	public static function initDll(libName:String, entryFunc : String = null) : Void {
+		if(dll_init == null)
+			dll_init = new Hash();
+		if(dll_init.exists(libName))
+			return;
+		var init : Dynamic = null;
+
 		#if neko
-		var init =  chx.Lib.load(libName, "neko_init", 5);
-		if (init != null)
-		{
-			//neko_init(neko_value inNewString,neko_value inNewArray,neko_value inNull, neko_value inTrue, neko_value inFalse)
+			init = chx.Lib.load(libName, "neko_init", 5);
+			if(init == null)
+				throw("Could not find NekoAPI interface.");
+
+			//neko_init(inNewString,inNewArray,inNull,inTrue,inFalse)
 			init(function(s) return new String(s),
 					function(len:Int) { var r = []; if (len > 0) r[len - 1] = null; return r; },
 					null, true, false);
-		}
-		else
-		throw("Could not find NekoAPI interface.");
+
 		#end
+		if(entryFunc == null)
+			entryFunc = libName + "_init";
+		init = chx.Lib.load(libName, entryFunc, 0);
+		if(init != null)
+			init();
+		dll_init.set(libName, true);
 	}
 
 #if (neko || cpp)
