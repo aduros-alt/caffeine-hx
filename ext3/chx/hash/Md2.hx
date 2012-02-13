@@ -32,6 +32,14 @@ class Md2 implements IHash {
 	public function new() {
 	}
 
+	public function dispose() : Void {
+		for(i in 0...16) {
+			data[i] = 0;
+			checksum[i] = 0;
+			state[i] = 0;
+		}
+	}
+
 	public function toString() : String {
 		return "md2";
 	}

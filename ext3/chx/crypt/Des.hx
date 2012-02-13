@@ -39,12 +39,12 @@ package chx.crypt;
 import I32;
 
 /**
-* DES Key. In neko and cpp, requires the openssl ndll.
+* DES Key. In neko requires the openssl ndll.
 **/
 class Des implements IBlockCipher
 {
 	public var blockSize(__getBlockSize,null) : Int;
-	#if (neko || cpp)
+	#if (neko || useOpenSSL)
 	var key:Dynamic;
 	#else
 	/*
@@ -153,7 +153,7 @@ class Des implements IBlockCipher
 	public function new(key:Bytes) {
 		if(key.length < 8)
 			throw new chx.lang.OutsideBoundsException("Must be 8 bytes of key data");
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			this.key = des_create_key(key.sub(0,8).getData());
 		#else
 			this.key = key;
@@ -173,7 +173,7 @@ class Des implements IBlockCipher
 
 	public function decryptBlock(block:Bytes):Bytes
 	{
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			return Bytes.ofData(des_decrypt_block(key, block.getData()));
 		#else
 			var outBlock = Bytes.alloc(block.length);
@@ -184,7 +184,7 @@ class Des implements IBlockCipher
 
 	public function dispose():Void
 	{
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			des_destroy_key(key);
 		#else
 			for (i in 0...encKey.length) { encKey[i]=0; }
@@ -198,7 +198,7 @@ class Des implements IBlockCipher
 
 	public function encryptBlock(block:Bytes):Bytes
 	{
-		#if (neko || cpp)
+		#if (neko || useOpenSSL)
 			return Bytes.ofData(des_encrypt_block(key, block.getData()));
 		#else
 			var outBlock = Bytes.alloc(block.length);
@@ -207,7 +207,7 @@ class Des implements IBlockCipher
 		#end
 	}
 
-	#if !(neko || cpp)
+	#if !(neko || useOpenSSL)
 	/**
 	* generate an integer based working key based on our secret key and what we
 	* processing we are planning to do.
@@ -410,7 +410,12 @@ class Des implements IBlockCipher
 	}
 
 
-#if (neko || cpp)
+#if (neko || useOpenSSL)
+	public static function __init__()
+	{
+		chx.Lib.initDll("openssl");
+	}
+
 	private static var des_create_key = chx.Lib.load("openssl","des_create_key",1);
 	private static var des_destroy_key = chx.Lib.load("openssl","des_create_key",1);
 	private static var des_encrypt_block = chx.Lib.load("openssl","des_encrypt_block",2);

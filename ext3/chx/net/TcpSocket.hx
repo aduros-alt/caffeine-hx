@@ -107,22 +107,30 @@ class TcpSocket implements chx.net.Socket {
 				#end
 			}
 			else s;
-		input = new TcpSocketInput(__handle);
-		output = new TcpSocketOutput(__handle);
+		createIO();
 		bigEndian = true;
 
+		initListeners();
+		#if !neko
+			remote_host = {
+				host : new Host("localhost"),
+				port : 0
+			};
+		#end
+	}
+
+	function createIO() {
+		input = new TcpSocketInput(__handle);
+		output = new TcpSocketOutput(__handle);
+	}
+
+	function initListeners() {
 		#if flash9
 			__handle.addEventListener(Event.CONNECT, onSocketConnect,false,0,true);
 			__handle.addEventListener(SecurityErrorEvent.SECURITY_ERROR, onSocketConnectFail,false,0,true);
 			__handle.addEventListener(Event.CLOSE, onSocketClose,false,0,true);
 			__handle.addEventListener(ProgressEvent.SOCKET_DATA, onSocketData,false,0,true);
 			__handle.addEventListener(IOErrorEvent.IO_ERROR, onSocketError,false,0,true);
-		#end
-		#if !neko
-			remote_host = {
-				host : new Host("localhost"),
-				port : 0
-			};
 		#end
 	}
 
@@ -246,7 +254,7 @@ class TcpSocket implements chx.net.Socket {
 		#end
 	}
 
-	public function listen(connections : Int) {
+	public function listen(connections : Int) : Void {
 		#if (neko || cpp)
 			socket_listen(__handle, connections);
 		#elseif flash9
@@ -374,7 +382,16 @@ class TcpSocket implements chx.net.Socket {
 
 	// STATICS
 	public static function select(read : Array<TcpSocket>, write : Array<TcpSocket>, others : Array<TcpSocket>, timeout : Float) : {read: Array<TcpSocket>,write: Array<TcpSocket>,others: Array<TcpSocket>} {
-		#if (neko || cpp)
+		#if cpp
+			var neko_array = socket_select(read,write,others, timeout);
+			if (neko_array==null)
+				throw "Select error";
+			return {
+				read: neko_array[0],
+				write: neko_array[1],
+				others: neko_array[2]
+			};
+		#elseif neko
 			var c = untyped __dollar__hnew( 1 );
 			var f = function( a : Array<TcpSocket> ){
 				if( a == null ) return null;

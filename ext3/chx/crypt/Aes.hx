@@ -27,7 +27,7 @@
 
 package chx.crypt;
 
-#if (neko || useOpenSSL)
+#if (neko || useNCrypt)
 private typedef Keycontext = Dynamic;
 #else
 private typedef Keycontext = {
@@ -73,7 +73,7 @@ class Aes implements IBlockCipher {
 	public function encryptBlock( block : Bytes ) : Bytes {
 		if(block.length != blockSize)
 			throw("bad block size");
-		#if (neko || useOpenSSL)
+		#if (neko || useNCrypt)
 			var rv = Bytes.ofData(aes_encrypt_block( encKey, block.getData()));
 			if(blockSize != rv.length)
 				throw("returned buffer is " + rv.length + " bytes");
@@ -84,7 +84,7 @@ class Aes implements IBlockCipher {
 	}
 
 	public function decryptBlock( block : Bytes ) : Bytes {
-		#if (neko || useOpenSSL)
+		#if (neko || useNCrypt)
 			var rv = Bytes.ofData(aes_decrypt_block( decKey, block.getData()));
 			if(blockSize != rv.length)
 				throw("returned buffer is " + rv.length + " bytes");
@@ -106,7 +106,7 @@ class Aes implements IBlockCipher {
 	**/
 	static function makeKey(  encrypt : Bool, keylen : Int, buf : Bytes, ?context : Keycontext ) : Keycontext
 	{
-#if (neko || useOpenSSL)
+#if (neko || useNCrypt)
 		return aes_create_key(encrypt, keylen, buf.getData());
 #else
 		if(encrypt)
@@ -119,7 +119,7 @@ class Aes implements IBlockCipher {
 	override public function encrypt(msg : String) {
 		var rv;
 		switch(mode) {
-#if (neko || useOpenSSL)
+#if (neko || useNCrypt)
 		case ECB:
 			rv = new String(naes_ecb_encrypt(untyped passphrase.__s, untyped msg.__s, keylen));
 		case CBC:
@@ -141,7 +141,7 @@ class Aes implements IBlockCipher {
 	override public function decrypt(msg : String) {
 		var rv;
 		switch(mode) {
-#if (neko || useOpenSSL)
+#if (neko || useNCrypt)
 		case ECB:
 			rv = new String(naes_ecb_decrypt(untyped passphrase.__s, untyped msg.__s, keylen));
 		case CBC:
@@ -177,7 +177,7 @@ class Aes implements IBlockCipher {
 		return buf;
 	}
 
-#if !(neko || useOpenSSL)
+#if !(neko || useNCrypt)
 
 	static var maxkc : Int = 8;
 	static var maxrk : Int = 14;
@@ -1360,7 +1360,7 @@ class Aes implements IBlockCipher {
 
 #end
 
-#if (neko || useOpenSSL)
+#if (neko || useNCrypt)
 /*
 	//value pass, value msg, value key_len
 	private static var naes_ecb_encrypt = chx.Lib.load("ncrypt","naes_ecb_encrypt",3);

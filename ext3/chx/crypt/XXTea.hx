@@ -30,7 +30,7 @@ package chx.crypt;
 import I32;
 
 class XXTea implements IBlockCipher {
-#if neko
+#if (neko || useNCrypt)
 	var k : Void;
 #else
 	var k : Array<Int>; // 16 bytes of key material
@@ -44,7 +44,7 @@ class XXTea implements IBlockCipher {
 		var m = BytesUtil.bytesToInt32LE(
 				BytesUtil.nullPad(key.sub(0,l), 16)
 		);
-#if neko
+#if (neko || useNCrypt)
 		k = xxtea_create_key(I32.mkNekoArray(m));
 #else
 		k = I32.toNativeArray(m);
@@ -69,7 +69,7 @@ class XXTea implements IBlockCipher {
 
 	public function encryptBlock(plaintext : Bytes) : Bytes {
 		if (plaintext.length == 0) return BytesUtil.EMPTY;
-#if neko
+#if (neko || useNCrypt)
 		var v : Array<Int32> = BytesUtil.bytesToInt32LE(plaintext);
 		var n = v.length;
 		if (n == 1)
@@ -114,7 +114,7 @@ class XXTea implements IBlockCipher {
 	public function decryptBlock(ciphertext : Bytes) : Bytes
 	{
 		if (ciphertext.length == 0) return BytesUtil.EMPTY;
-#if neko
+#if (neko || useNCrypt)
 		var v = BytesUtil.bytesToInt32LE(ciphertext);
 		var n = v.length;
 		var rv = xxtea_decrypt_block(
@@ -153,7 +153,7 @@ class XXTea implements IBlockCipher {
 	}
 
 
-#if neko
+#if (neko || useNCrypt)
 	private static var xxtea_create_key = chx.Lib.load("ncrypt","xxtea_create_key",1);
 	private static var xxtea_encrypt_block = chx.Lib.load("ncrypt","xxtea_encrypt_block",3);
 	private static var xxtea_decrypt_block = chx.Lib.load("ncrypt","xxtea_decrypt_block",3);

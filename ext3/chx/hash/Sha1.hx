@@ -93,7 +93,7 @@ class Sha1 implements IHash {
 	}
 
 #if (neko || useOpenSSL)
-	var _ctx : Void;
+	var _ctx : Dynamic;
 	public var value(default, null) : String;
 
 	/**
@@ -108,7 +108,7 @@ class Sha1 implements IHash {
 		Add data to the sha calculation
 	**/
 	public function update(s : String) {
-		sha_update(_ctx, untyped s.__s);
+		sha_update(_ctx, #if neko untyped s.__s #else s #end);
 	}
 
 	/**
@@ -127,7 +127,7 @@ class Sha1 implements IHash {
 	public static function objEncode( o : Dynamic, ?binary : Bool ) : String {
 		var m : String;
 		if(Std.is(o, String))
-			m = Bytes.ofData(nsha1(untyped o.__s)).toString();
+			m = Bytes.ofData(nsha1(#if neko untyped o.__s #else o #end)).toString();
 		else
 			m = Bytes.ofData(nsha1(o)).toString();
 		if(!binary)
