@@ -342,7 +342,6 @@ class DER {
 			d.writeByte(len);
 		}
 		d.writeBytes(data,0,data.length);
-		//d.position=0;
 		return d.getBytes();
 	}
 }

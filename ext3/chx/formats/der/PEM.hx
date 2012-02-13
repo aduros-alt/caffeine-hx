@@ -30,6 +30,7 @@
  */
 /**
  * PEM
+ * @see http://etutorials.org/Programming/secure+programming/Chapter+7.+Public+Key+Cryptography/7.17+Representing+Keys+and+Certificates+in+Plaintext+PEM+Encoding/
  */
 package chx.formats.der;
 import chx.crypt.RSA;

@@ -125,4 +125,24 @@ class Sequence extends AssociativeArray<IAsn1Type>, implements IAsn1Type
 		}
 		return null;
 	}
+
+	public function findAttributeValues(oid:String):Array<IAsn1Type> {
+		var rv : Array<IAsn1Type> = new Array();
+		for(set in this) {
+			if ( Std.is(set, Set) ) {
+				var child:IAsn1Type = cast(set, Set).get(0);
+				if ( Std.is(child, Sequence)) {
+					var sc:Sequence = cast child;
+					var tmp:IAsn1Type = sc.get(0);
+					if ( Std.is(tmp, ObjectIdentifier)) {
+						var id:ObjectIdentifier = cast tmp;
+						if (id.toString()==oid) {
+							rv.push(sc.get(1));
+						}
+					}
+				}
+			}
+		}
+		return rv;
+	}
 }

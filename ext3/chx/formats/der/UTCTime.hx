@@ -41,8 +41,9 @@ class UTCTime implements IAsn1Type
 	public static inline var TYPE : Int = 0x17;
 	public var date:Date;
 
-	public function new()
+	public function new(d:Date = null)
 	{
+		this.date = d;
 	}
 
 	public function getType():Int
@@ -54,6 +55,9 @@ class UTCTime implements IAsn1Type
 		return date;
 	}
 
+	/**
+	 * @param str YYMMDDHHmmss
+	 **/
 	public function setUTCTime(str:String):Void {
 		var year:Int = Std.parseInt(str.substr(0, 2));
 		if (year<50) {
@@ -65,13 +69,14 @@ class UTCTime implements IAsn1Type
 		var day:Int = Std.parseInt(str.substr(4,2));
 		var hour:Int = Std.parseInt(str.substr(6,2));
 		var minute:Int = Std.parseInt(str.substr(8,2));
-		// TODO: this could be off by up to a day. parse the rest. someday.
-		date = new Date(year, month-1, day, hour, minute, 0);
+		var second:Int = (str.length >= 12) ? Std.parseInt(str.substr(10,2)) : 0;
+		// TODO: this could be off by up to a day compared to wall time.
+		date = new Date(year, month-1, day, hour, minute, second);
 	}
 
 
 	public function toString():String {
-		return "UTCTime["+date+"]";
+		return date != null ? date.toString() : "unknown";
 	}
 
 	/**

@@ -62,7 +62,7 @@ class ExtractedBytes implements IAsn1Type
 	}
 
 	public function toString():String {
-		return buf.toHex(" ").toUpperCase();
+		return buf.toHex(" ");
 	}
 
 	public function toDER():Bytes {

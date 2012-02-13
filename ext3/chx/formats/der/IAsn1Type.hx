@@ -40,4 +40,5 @@ interface IAsn1Type
 	function getType():Int;
 	//function getLength():Int;
 	function toDER() : Bytes;
+	function toString() : String;
 }

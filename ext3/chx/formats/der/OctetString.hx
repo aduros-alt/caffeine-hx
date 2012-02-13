@@ -52,7 +52,7 @@ class OctetString extends Bytes, implements IAsn1Type {
 	}
 
 	override public function toString() : String {
-		return "OctetString["+toHex().toUpperCase()+"]";
+		return toHex().toUpperCase();
 	}
 
 }
