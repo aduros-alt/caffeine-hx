@@ -31,6 +31,7 @@
 
 package chx.crypt.cert;
 
+import chx.Lib;
 import chx.collections.AssociativeArray;
 import chx.hash.IHash;
 import chx.hash.Md2;
@@ -53,13 +54,28 @@ import chx.formats.der.UTCTime;
 
 /**
  * X509Certificate
- *
+ * Some openssl functions to work with cert files
+ * <code>
+ * //read PEM encoded
+ * openssl x509 -in cert.pem -text -noout
+ * //read DER encoded
+ * openssl x509 -in certificate.der -inform der -text -noout
+ * // PEM to DER
+ * openssl x509 -in cert.crt -outform der -out cert.der
+ * // DER to PEM
+ * openssl x509 -in cert.crt -inform der -outform pem -out cert.pem
+ * // connect to a webserver and dump its cert
+ * openssl s_client -connect localhost:4443 -showcerts
+ * </code>
  **/
 class X509Certificate {
 
 	private var _loaded:Bool;
 	private var _param:Dynamic;
 	private var _obj:chx.collections.AssociativeArray<IAsn1Type>;
+	#if (neko || useOpenSSL)
+		private var handle : Dynamic;
+	#end
 
 	public function new(p:Dynamic) {
 		_loaded = false;
@@ -141,9 +157,7 @@ class X509Certificate {
 		}
 		var data:Bytes = cast(_obj.get("signedCertificate_bin"), ExtractedBytes).toDER();
 		var bs : Bytes = cast _obj.get("encrypted");
-		var rv = key.verify(bs);//.toHex());
-		var buf:Bytes = rv;// = Byte.ofString(rv);
-		//buf.position=0;
+		var buf:Bytes = key.verify(bs);
 		data = fHash.calculate(data);
 		var obj:AssociativeArray<IAsn1Type> = cast DER.read(buf, Types.RSA_SIGNATURE);
 		if (untyped obj.get("algorithm").get("algorithmId").toString() != oid) {
@@ -216,8 +230,12 @@ class X509Certificate {
 	*/
 	public function getSubjectPrincipal():String {
 		load();
+		#if useOpenSSL
+		return Base64.encode(Lib.nekoStringToHaxe(x509_get_subject_hash(handle)));
+		#else
 		var eb:ExtractedBytes = cast untyped _obj.get("signedCertificate").get("subject_bin");
 		return Base64.encode(eb.toDER());
+		#end
 	}
 
 	/**
@@ -230,35 +248,136 @@ class X509Certificate {
 	*/
 	public function getIssuerPrincipal():String {
 		load();
+		#if useOpenSSL
+		return Base64.encode(Lib.nekoStringToHaxe(x509_get_issuer_hash(handle)));
+		#else
 		var eb:ExtractedBytes = cast untyped _obj.get("signedCertificate").get("issuer_bin");
 		return Base64.encode(eb.toDER());
+		#end
 	}
 
 	public function getAlgorithmIdentifier():String {
 		load();
+		#if useOpenSSL
+		var o : Dynamic = x509_get_signature_algorithm(handle);
+		if(o.der != null) {
+			o.der = DER.read(Bytes.ofData(o.der));
+			var oid : chx.formats.der.ObjectIdentifier = cast o.der;
+			return oid.toString();
+		}
+		return throw "unknown";
+		#else
 		return untyped _obj.get("algorithmIdentifier").get("algorithmId").toString();
+		#end
 	}
 
 	/**
-		Returns the starting date for a cert.
-	**/
+	 * Return the fingerprint
+	 * @param hash Either md5 or sha1
+	 **/
+	public function getFingerprint(hash:String):Bytes {
+		load();
+		#if useOpenSSL
+		return Bytes.ofData(x509_get_fingerprint(handle,hash));
+		#else
+		var b : Bytes = (Std.is(_param, String)) ? PEM.readCertIntoBytes(cast _param) :_param;
+		if(hash == "md5") {
+			return chx.hash.Md5.encode(b);
+		} 
+		return(chx.hash.Sha1.encode(b));
+		#end
+	}
+
+	/**
+	 * Get the subject email addresses associated with the cert. Normally
+	 * there is only one.
+	 * @return Array<String> email addresses
+	 **/
+	public function getEmails():Array<String> {
+		load();
+		#if useOpenSSL
+		var a : Array<String> = x509_get_emails(handle);
+		if(a == null)
+			return [];
+		for(x in 0...a.length)
+			a[x] = Lib.nekoStringToHaxe(a[x]);
+		return a;
+		#else
+		var seq :Sequence = cast untyped _obj.get("signedCertificate").get("subject");
+		var s = seq.findAttributeValues(OID.EMAIL_ADDRESS);
+		var em : Array<String> = new Array();
+		for(i in 0...s.length) {
+			em.push(s[i].toString());
+		}
+		return em;
+		#end
+	}
+
+	/**
+	 * Returns the starting date for a cert.
+	 * @TODO Dates are not exact, since haxe will not parse full timezone dates
+	 **/
 	public function getNotBefore():Date {
 		load();
-		var d : UTCTime = cast untyped _obj.get("signedCertificate").get("validity").get("notBefore").get("date");
+		#if useOpenSSL
+		var dstr : String = Lib.nekoStringToHaxe(x509_get_not_before(handle));
+		return sslDateToHaxe(dstr);
+		#else
+		var d : UTCTime = cast untyped _obj.get("signedCertificate").get("validity").get("notBefore");
 		return d.getDate();
+		#end
 	}
 
 	/**
-		Returns the expiry date of a cert.
-	**/
+	 * Returns the expiry date of a cert.
+	 * @todo see getNotBefore()
+	 **/
 	public function getNotAfter():Date {
 		load();
-		var d : UTCTime = cast untyped _obj.get("signedCertificate").get("validity").get("notAfter").get("date");
+		#if useOpenSSL
+		var dstr = Lib.nekoStringToHaxe(x509_get_not_after(handle));
+		return sslDateToHaxe(dstr);
+		#else
+		var d : UTCTime = cast untyped _obj.get("signedCertificate").get("validity").get("notAfter");
 		return d.getDate();
+		#end
 	}
+
+	#if useOpenSSL
+	private function sslDateToHaxe(s:String) : Date {
+		//trace(s); // Mar  5 09:32:14 2013 GMT
+		var r = ~/([A-Z]{3,})[ ]+([0-9]+)[ ]+([0-9]{2}:[0-9]{2}:[0-9]{2})[ ]+([0-9]{4})[ ]+([A-Z]{3,})$/i;
+		if(r.match(s)) {
+			var months = DateTools.MONTHS_ABBREV;
+			var m = r.matched(1);
+			var d = r.matched(2);
+			if(d.length == 1) d = "0" + d;
+			var t = r.matched(3);
+			var y = r.matched(4);
+
+			var p = Lambda.indexOf(months, m);
+			if(p < 0)
+				throw "Bad month " + m;
+			p++;
+			var ms = Std.string(p);
+			if(ms.length == 1)
+				ms = "0" + ms;
+			s = y + "-" + ms + "-" + d + " " + t;
+			
+		}
+		//YYYY-MM-DD hh:mm:ss
+		return Date.fromString(s);
+	}
+	#end
 
 	public function getCommonName():String {
 		load();
+		#if useOpenSSL
+		var rv = Lib.nekoStringToHaxe(x509_get_subject(handle));
+		trace(rv);
+		// xxx
+		return "FIXME";
+		#else
 		var subject:Sequence = cast untyped _obj.get("signedCertificate").get("subject");
 		if(subject == null) throw "No subject";
 		var ps : PrintableString = null;
@@ -268,6 +387,7 @@ class X509Certificate {
 		if(ps == null)
 			return null;
 		return ps.getString();
+		#end
 	}
 
 	////////////////////////////////////////////////////////
@@ -275,6 +395,16 @@ class X509Certificate {
 	////////////////////////////////////////////////////////
 	private function load():Void {
 		if (_loaded) return;
+		#if useOpenSSL
+		handle = x509_from_bytes(_param);
+		Assert.isNotNull(handle);
+		/*
+		var o = x509_parse(handle,true);
+		//Assert.isNotNull(o);
+		trace(Std.string(o));
+		throw "Ok?";
+		*/
+		#else
 		var b:Bytes = null;
 		if (Std.is(_param, String))
 			b = PEM.readCertIntoBytes(cast _param);
@@ -291,5 +421,24 @@ class X509Certificate {
 		else {
 			throw "Invalid x509 Certificate parameter: "+_param;
 		}
+		#end
 	}
+
+	static function __init__() {
+		#if useOpenSSL
+		Lib.initDll("openssl");
+		#end
+	}
+
+	#if (neko || useOpenSSL)
+	private static var x509_from_bytes=Lib.load("openssl","x509_from_bytes",1);
+	private static var x509_parse=Lib.load("openssl","x509_parse",2);
+
+	private static var x509_get_emails=Lib.load("openssl","x509_get_emails",1);
+	private static var x509_get_fingerprint=Lib.load("openssl","x509_get_fingerprint",2);
+	private static var x509_get_not_before=Lib.load("openssl","x509_get_not_before",1);
+	private static var x509_get_not_after=Lib.load("openssl","x509_get_not_after",1);
+	private static var x509_get_subject=Lib.load("openssl","x509_get_subject",1);
+	private static var x509_get_signature_algorithm=Lib.load("openssl","x509_get_signature_algorithm",1);
+	#end
 }
