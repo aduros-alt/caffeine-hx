@@ -29,7 +29,7 @@ package chx.crypt.mode;
 
 class ECB extends ModeBase, implements chx.crypt.IMode {
 
-	public function toString() {
+	override public function toString() {
 		return "ecb";
 	}
 

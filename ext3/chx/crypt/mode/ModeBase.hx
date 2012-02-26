@@ -48,6 +48,10 @@ class ModeBase implements IMode {
 		padding = new PadPkcs5();
 	}
 
+	public function toString() {
+		return "??";
+	}
+
 	public function updateEncrypt( b : Bytes, out : Output) : Int {
 		throw new chx.lang.FatalException("not implemented");
 		return 0;

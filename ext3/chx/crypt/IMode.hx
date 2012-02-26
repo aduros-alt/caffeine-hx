@@ -48,4 +48,6 @@ interface IMode {
 	 **/
 	function updateDecrypt( b : Bytes, out : Output) : Int;
 	function finalDecrypt( b : Bytes, out : Output) : Int;
+
+	function toString() : String;
 }

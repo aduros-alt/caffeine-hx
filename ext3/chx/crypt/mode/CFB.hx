@@ -31,102 +31,75 @@ import chx.io.BytesOutput;
 import chx.io.Output;
 
 /**
- * Counter mode - a 1 byte block streaming mode. This version updates the
- * counter on every byte (8 bits)
+ * Cipher Feedback block mode
  **/
-class CTR8 extends IVBase, implements chx.crypt.IMode {
-	/** Bytes encrypted counter **/
-	var num : Int;
-	/** Point at which to increment counter, in number of bytes **/
-	var ctr_inc : Int;
-
-	public function new() {
-		super();
-		num = 0;
-		ctr_inc = 1;
-	}
+class CFB extends IVBase, implements chx.crypt.IMode {
 
 	override public function toString() {
-		return "ctr";
-	}
-
-	override function getBlockSize() : Int {
-		return 1;
+		return "cfb" + (cipher == null ? "??" : Std.string(cipher.blockSize * 8));
 	}
 
 	override public function updateEncrypt( b : Bytes, out : Output) : Int {
 		#if CAFFEINE_DEBUG
 			trace("updateEncrypt: ");
-			var orig_b = b.sub(0);
+			var pt : String = b.toHex();
 			var orig = out;
 			out = new BytesOutput();
 		#end
 
-		common(b, out);
+		var n = cipher.blockSize;
+		if(b.length != n)
+			return 0;
 
 		#if CAFFEINE_DEBUG
-			var db : Bytes = untyped out.getBytes();
-			out = orig;
-			trace("Plaintext: " + orig_b.toHex());
-			trace("Ciphertext: " + db.toHex());
-			trace("");
-			out.writeBytes(db,0,db.length);
+			trace("Input Block: " + currentIV.toHex());
 		#end
-
-		return b.length;
+		currentIV = cipher.encryptBlock(currentIV);
+		
+		var tmp = Bytes.alloc(n);
+		for(i in 0...n)
+			tmp.set(i, currentIV.get(i) ^ b.get(i));
+		
+		#if CAFFEINE_DEBUG
+			trace("Output Block: " + currentIV.toHex());
+			trace("Plaintext: " + pt);
+			trace("Ciphertext: " + tmp.toHex());
+			out = orig;
+		#end
+		out.writeBytes(tmp,0,n);
+		currentIV.blit(0, tmp, 0, n);
+		return n;
 	}
 
 	override public function updateDecrypt( b : Bytes, out : Output ) : Int {
 		#if CAFFEINE_DEBUG
-			trace("updateDecrypt: ");
-			var orig_b = b.sub(0);
+			trace("updateEncrypt: ");
+			var pt : String = b.toHex();
 			var orig = out;
 			out = new BytesOutput();
 		#end
 
-		common(b, out);
-
-		#if CAFFEINE_DEBUG
-			var db : Bytes = untyped out.getBytes();
-			out = orig;
-			trace("Plaintext: " + orig_b.toHex());
-			trace("Ciphertext: " + db.toHex());
-			trace("");
-			out.writeBytes(db,0,db.length);
-		#end
-
-		return b.length;
-	}
-
-	private function common(b:Bytes, out:Output) : Int {
-		var n = b.length;
+		var n = cipher.blockSize;
 		if(b.length != n)
 			return 0;
 
-		var e : Bytes = cipher.encryptBlock(currentIV);
 		#if CAFFEINE_DEBUG
 			trace("Input Block: " + currentIV.toHex());
-			trace("Output Block: " + e.toHex());
 		#end
-		for(i in 0...n) {
-			b.set(i, b.get(i) ^ e.get(i));
-			num++;
-			if(num == ctr_inc) {
-				trace(ctr_inc);
-				num = 0;
-				// increment 'counter'
-				var x = currentIV.length-1;
-				while(x>=0) {
-					currentIV.set(x, currentIV.get(x) + 1);
-					if(currentIV.get(x) != 0)
-						break;
-					x--;
-				}
-				e = cipher.encryptBlock(currentIV);
-			}
-		}
+		currentIV = cipher.encryptBlock(currentIV);
+		var tmp : Bytes = b.sub(0,n);
+		
+		for(i in 0...n)
+			b.set(i, currentIV.get(i) ^ b.get(i));
 
-		out.writeBytes(b, 0, n);
+		#if CAFFEINE_DEBUG
+			trace("Output Block: " + currentIV.toHex());
+			trace("Ciphertext: " + pt);
+			trace("Plaintext: " + b.toHex());
+			out = orig;
+		#end
+		currentIV.blit(0, tmp, 0, n);
+		out.writeBytes(b,0,n);
 		return n;
 	}
 

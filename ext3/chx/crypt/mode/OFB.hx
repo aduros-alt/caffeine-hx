@@ -35,7 +35,7 @@ import chx.io.Output;
  **/
 class OFB extends IVBase, implements chx.crypt.IMode {
 
-	public function toString() {
+	override public function toString() {
 		return "ofb";
 	}
 
