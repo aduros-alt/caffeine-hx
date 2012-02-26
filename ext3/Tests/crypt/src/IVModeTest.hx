@@ -14,9 +14,8 @@ import haxe.unit.TestCase;
 
 /**
  * Hawt NIST Vectors: http://csrc.nist.gov/publications/nistpubs/800-38a/sp800-38a.pdf
- * Section F.2.1 and below.
  **/
-class ModeCBCTest extends TestCase
+class IVModeTest extends TestCase
 {
 
 	public static function main() {
@@ -24,7 +23,7 @@ class ModeCBCTest extends TestCase
 			haxe.Firebug.redirectTraces();
 		}
 		var r = new haxe.unit.TestRunner();
-		r.add(new ModeCBCTest());
+		r.add(new IVModeTest());
 
 		r.run();
 	}
