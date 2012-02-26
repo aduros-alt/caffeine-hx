@@ -31,7 +31,15 @@ import chx.crypt.CipherDirection;
 import math.prng.IPrng;
 
 /**
-* IV is an abstract base class.
+* IV is an abstract base class for modes requiring initialization vectors.
+* According to NIST: 
+* There are two recommended methods for generating unpredictable IVs. The first
+* method is to apply the forward cipher function, under the same key that is used
+* for the encryption of the plaintext, to a nonce. The nonce must be a data block
+* that is unique to each execution of the encryption operation. For example,
+* the nonce may be a counter, as described in Appendix B, or a message number.
+* The second method is to generate a random data block using a FIPSapproved
+* random number generator.
 **/
 class IVBase extends ModeBase {
 	/**
@@ -54,20 +62,34 @@ class IVBase extends ModeBase {
 				sb.addByte(params.prng.next());
 			params.iv = sb.getBytes();
 		}
-		currentIV = params.iv.sub(0);
+		if(params.iv.length < cipher.blockSize)
+			params.iv = BytesUtil.leftPad(params.iv, cipher.blockSize);
+		currentIV = params.iv.sub(0, cipher.blockSize);
 	}
 
 	public function getIV() : Bytes {
 		return currentIV;
 	}
 
+	override function setCipher(v:IBlockCipher) {
+		super.setCipher(v);
+		if(v != null && currentIV != null && currentIV.length > v.blockSize)
+			currentIV = currentIV.sub(0, v.blockSize);
+		return v;
+	}
+
+	/**
+	 * Set the initialization vector.
+	 **/
 	public function setIV( s : Bytes ) : Bytes {
 		// here we use cipher.blockSize, as it may be different
 		// than out mode blockSize
-		if(s.length % cipher.blockSize != 0 || s.length == 0)
-			throw("crypt.iv: invalid length. Expected "+cipher.blockSize+ " bytes.");
-		for(i in 0...cipher.blockSize)
-			currentIV.set(i, s.get(i));
+		if(s.length == 0 || (cipher != null && s.length != cipher.blockSize))
+			throw("crypt.iv: invalid length. Expected "+cipher.blockSize+" bytes.");
+		var len = s.length;
+		if(cipher != null && cipher.blockSize < len)
+			len = cipher.blockSize;
+		currentIV = s.sub(0,len);
 		return s;
 	}
 

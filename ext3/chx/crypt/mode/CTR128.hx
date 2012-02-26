@@ -25,31 +25,28 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package chx.crypt;
+package chx.crypt.mode;
 
-class CipherParams {
-	/**
-	 * The starting vector for IV modes. Can be null for encryption and will be randomly
-	 * generated, but must be set before decryption. See notes in chx.crypt.mode.IVBase
-	 * on proper IV creation.
-	 * @see chx.crypt.mode.IVBase
-	 **/
-	public var iv : Bytes;
-	/** random generator used to generate IVs. Can be null and will create a default **/
-	public var prng : math.prng.Random;
-	/** Does not have to be set manually, is set by Cipher **/
-	public var direction : CipherDirection;
+import chx.io.BytesOutput;
+import chx.io.Output;
 
+/**
+ * Counter mode - a 1 byte block streaming mode. This version
+ * increments the counter every 16 bytes (128 bits), regardless
+ * of cipher block size.
+ **/
+class CTR128 extends CTR8, implements chx.crypt.IMode {
 	public function new() {
-		prng = new math.prng.Random();
+		super();
+		ctr_inc = 16;
 	}
 
-	public function clone() : CipherParams {
-		var o = new CipherParams();
-		if(iv != null)
-			o.iv = iv.sub(0,iv.length);
-		o.prng = this.prng;
-		o.direction = this.direction;
-		return o;
+	#if CAFFEINE_DEBUG
+	/**
+	 * Only for testing purposes to make sure that NIST vectors match
+	 **/
+	override function getBlockSize() : Int {
+		return 16;
 	}
+	#end
 }

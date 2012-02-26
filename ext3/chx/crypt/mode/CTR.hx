@@ -31,93 +31,34 @@ import chx.io.BytesOutput;
 import chx.io.Output;
 
 /**
- * CTR mode
+ * Counter mode - a 1 byte block streaming mode. This version updates the
+ * counter each time the number of bytes crypted matches the cipher block size
  **/
-class CTR extends IVBase, implements chx.crypt.IMode {
-	var acc : Bytes;
-	
-	public function toString() {
+class CTR extends CTR8, implements chx.crypt.IMode {
+
+	public function new() {
+		super();
+		num = 0;
+		ctr_inc = 1;
+	}
+
+	override public function toString() {
 		return "ctr";
 	}
 
-	override public function init(params : CipherParams) : Void {
-		super.init(params);
-		acc = iv.sub(0, blockSize);
-	}
-	
-	override public function updateEncrypt( b : Bytes, out : Output) : Int {
-		#if CAFFEINE_DEBUG
-			trace("updateEncrypt: ");
-			trace("IV " + iv.toHex());
-			trace("Plaintext: " + b.toHex());
-			var orig = out;
-			out = new BytesOutput();
-		#end
-
-		var n = blockSize;
-		if(b.length != n)
-			return 0;
-		common(b, out);
-
-		#if CAFFEINE_DEBUG
-			var db : Bytes = untyped out.getBytes();
-			out = orig;
-			trace("Output Block: " + db.toHex());
-			trace("Ciphertext: " + db.toHex());
-			trace("");
-			out.writeBytes(db,0,db.length);
-		#end
-
-		return n;
+	override function setCipher(v:IBlockCipher) {
+		super.setCipher(v);
+		if(v != null)
+			ctr_inc = v.blockSize;
+		return v;
 	}
 
-	override public function updateDecrypt( b : Bytes, out : Output ) : Int {
-		#if CAFFEINE_DEBUG
-			trace("updateDecrypt: ");
-			trace("IV " + iv.toHex());
-			trace("Plaintext: " + b.toHex());
-			var orig = out;
-			out = new BytesOutput();
-		#end
-
-		var n = blockSize;
-		if(b.length != n)
-			return 0;
-		common(b, out);
-
-		#if CAFFEINE_DEBUG
-			var db : Bytes = untyped out.getBytes();
-			out = orig;
-			trace("Output Block: " + db.toHex());
-			trace("Ciphertext: " + db.toHex());
-			trace("");
-			out.writeBytes(db,0,db.length);
-		#end
-
-		return n;
+	#if CAFFEINE_DEBUG
+	/**
+	 * Only for testing purposes to make sure that NIST vectors match
+	 **/
+	override function getBlockSize() : Int {
+		return ctr_inc;
 	}
-
-	private function common(b:Bytes, out:Output) : Int {
-		var n = blockSize;
-		if(b.length != n)
-			return 0;
-		
-		var e : Bytes = cipher.encryptBlock(acc.sub(0, blockSize));
-
-		for(i in 0...n)
-			b.set(i, b.get(i) ^ e.get(i));
-		#if CAFFEINE_DEBUG
-			trace("Input Block: " + b.toHex());
-		#end
-		var i = n-1;
-		while(i>=0) {
-			acc.set(i, acc.get(i) + 1);
-			if(acc.get(i) != 0)
-				break;
-			i--;
-		}
-		return n;
-	}
-
-
+	#end
 }

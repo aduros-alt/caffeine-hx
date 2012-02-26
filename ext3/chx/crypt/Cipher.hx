@@ -26,6 +26,7 @@
  */
 
 package chx.crypt;
+import chx.crypt.mode.IVBase;
 import chx.crypt.padding.PadPkcs5;
 import chx.io.Output;
 
@@ -149,4 +150,20 @@ class Cipher {
 		return rv;
 	}
 
+	/**
+	 * Return the initial IV set for this crypt
+	 **/
+	public function getIV() : Bytes {
+		return params.iv;
+	}
+
+	/**
+	 * As the IV changes during crypt, this will return its current value
+	 **/
+	public function getCurrentIV() : Bytes {
+		if(!Std.is(mode, IVBase))
+			return params.iv;
+		var ivm : IVBase = cast mode;
+		return ivm.iv;
+	}
 }
