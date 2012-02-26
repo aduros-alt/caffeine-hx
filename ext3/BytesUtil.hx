@@ -211,7 +211,7 @@ class BytesUtil {
 	}
 
 	/**
-	* Pad with NULLs to the specified chunk length. Note
+	* Right pad with NULLs to the specified chunk length. Note
 	* that 0 length buffer passed to this will not be padded. See also
 	* nullBytes()
 	*
@@ -225,6 +225,25 @@ class BytesUtil {
 		sb.add(s);
 		for(x in 0...r)
 			sb.addByte(0);
+		return sb.getBytes();
+	}
+
+	/**
+	 * Left pad with 'b' to the specified chunk length.
+	 *
+	 * @param s Bytes to pad
+	 * @param chunkLen number of bytes to pad to
+	 * @param b Byte to add on left
+	 * @return Original buffer if no padding required, or new buffer padded.
+	 **/
+	public static function leftPad(s : Bytes, chunkLen: Int, b:Null<Int>=0) : Bytes {
+		var r = chunkLen - (s.length % chunkLen);
+		if(s.length != 0 && r == chunkLen)
+			return s;
+		var sb = new BytesBuffer();
+		for(x in 0...r)
+			sb.addByte(b);
+		sb.add(s);
 		return sb.getBytes();
 	}
 
