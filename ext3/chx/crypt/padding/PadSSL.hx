@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, The Caffeine-hx project contributors
+ * Copyright (c) 2011, The Caffeine-hx project contributors
  * Original author : Russell Weir
  * Contributors:
  * All rights reserved.
@@ -25,23 +25,17 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package chx.crypt;
+package chx.crypt.padding;
 
 /**
- * Perform no padding. 
+ * SSL padding. Just like TLS padding, but bytes other than last one
+ * are arbitrary.
+ * @todo pad could insert random data, other than last byte
  **/
-class PadNone extends PadBase, implements IPad {
-
-	override public function pad( s : Bytes ) : Bytes {
-		return s;
-	}
-
+class PadSSL extends PadTLS, implements IPad {
 	override public function unpad( s : Bytes ) : Bytes {
-		return s;
+		if( s.length % blockSize != 0)
+			throw new chx.lang.Exception("PadTLS unpad: buffer length "+s.length+" not multiple of block size " + blockSize);
+		return s.sub(0, s.length - s.get(s.length-1) - 1);
 	}
-
-	override public function calcNumBlocks(len : Int) : Int {
-		return Math.ceil(len/blockSize);
-	}
-
 }

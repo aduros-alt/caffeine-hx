@@ -25,27 +25,25 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package chx.crypt;
+package chx.crypt.rsa;
 
 /**
  * Pads that work on blocks, and not on the full buffer.
  **/
-class PadBlockBase extends PadBase {
+class PadBlockBase extends chx.crypt.PadBase, implements IBlockPad {
 	/** the number of bytes that can fit in each block **/
 	public var textSize(default,null) : Int;
 
-	override public function isBlockPad() : Bool { return true; }
-
 	override public function calcNumBlocks(len : Int) : Int {
-		var ch : Int = blockSize - blockOverhead();
+		var ch : Int = getBytesReadPerBlock();
 		var n : Int = Math.ceil(len/ch);
-		if(len % blockSize == 0)
-			n++;
+		//if(len % blockSize == 0)
+		//	n++;
 		return n;
 	}
 
 	override public function getBytesReadPerBlock() : Int {
-		return blockSize - blockOverhead;
+		return blockSize - blockOverhead();
 	}
 
 	/**

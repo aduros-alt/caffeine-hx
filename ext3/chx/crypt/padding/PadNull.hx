@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Caffeine-hx project contributors
+ * Copyright (c) 2008, The Caffeine-hx project contributors
  * Original author : Russell Weir
  * Contributors:
  * All rights reserved.
@@ -25,11 +25,14 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package chx.crypt;
+package chx.crypt.padding;
 
-class PadBase implements IPad {
-
+/**
+ * Pads with NULL (0) bytes
+ **/
+class PadNull implements IPad {
 	public var blockSize(default,setBlockSize) : Int;
+	public var textSize(default,null) : Int;
 
 	public function new( blockSize : Null<Int> = null ) {
 		if(blockSize != null)
@@ -37,26 +40,33 @@ class PadBase implements IPad {
 	}
 
 	public function pad( s : Bytes ) : Bytes {
-		return throw new chx.lang.FatalException("not implemented");
-	}
-	
-	public function unpad( s : Bytes ) : Bytes {
-		return throw new chx.lang.FatalException("not implemented");
+		var r = blockSize - (s.length % blockSize);
+		if(r == blockSize)
+			return s;
+		var sb = new BytesBuffer();
+		sb.add(s);
+		for(x in 0...r) {
+			sb.addByte(0);
+		}
+		return sb.getBytes();
 	}
 
-	function setBlockSize(len : Int) : Int {
-		blockSize = len;
-		return len;
+	/**
+	 * Null padded strings can't be reliably unpadded, since the
+	 * source may contain nulls. It is up to the implementation to
+	 * keep track of how many bytes in the packet are used.
+	 **/
+	public function unpad( s : Bytes ) : Bytes {
+		return s;
 	}
 
 	public function calcNumBlocks(len : Int) : Int {
-		if(len == 0) return 0;
-		var n : Int = Math.ceil(len/blockSize);
-		// most pads will require an extra block if the input length
-		// is an exact multiple of the block size
- 		if(len % blockSize == 0)
- 			n++;
-		return n;
+		return Math.ceil(len/blockSize);
 	}
 
+	private function setBlockSize( x : Int ) : Int {
+		this.blockSize = x;
+		this.textSize = x;
+		return x;
+	}
 }

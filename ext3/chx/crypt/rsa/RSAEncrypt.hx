@@ -25,12 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
- * Derived from javascript implementation Copyright (c) 2005 Tom Wu
- *
- */
-
-package chx.crypt;
+package chx.crypt.rsa;
 
 import math.BigInteger;
 import math.prng.Random;
@@ -42,20 +37,67 @@ import math.prng.Random;
 class RSAEncrypt implements IBlockCipher {
 	// public key
 	/** modulus **/
-	public var n : BigInteger;
+	public var n(get_n,set_n) : BigInteger;
 	/** exponent. <2^31 **/
-	public var e : Int;
+	public var e(get_e,set_e) : Int;
 	public var blockSize(__getBlockSize,null) : Int;
-
-	public function new(nHex:String,eHex:String) {
+	public var blockPad(getBlockPad,setBlockPad) : IBlockPad;
+	#if useOpenSSL
+	var handle:Dynamic;
+	var iBlockPad : Int;
+	#end
+	
+	public function new(nHex:String=null,eHex:String=null) {
 		init();
 		if(nHex != null)
 			setPublic(nHex, eHex);
 	}
 
 	private function init() {
+		#if useOpenSSL
+		if(handle == null)
+			handle = rsa_new();
+		#end
 		this.n = null;
 		this.e = 0;
+	}
+
+	public function getBlockPad() : IBlockPad {
+		return this.blockPad;
+	}
+
+	public function setBlockPad(v:IBlockPad) : IBlockPad {
+		this.blockPad = v;
+		return v;
+	}
+
+	function get_n() : BigInteger {
+		#if useOpenSSL
+		return BigInteger.hndToBigInt(rsa_get_n(handle));
+		#else
+		return this.n;
+		#end
+	}
+	function set_n(v:BigInteger) : BigInteger {
+		#if useOpenSSL
+		rsa_set_n(handle, BigInteger.bigIntToHnd(v));
+		#end
+		this.n = v;
+		return v;
+	}
+	function get_e() : Int {
+		#if useOpenSSL
+		return BigInteger.hndToBigInt(rsa_get_e(handle)).toInt();
+		#else
+		return this.e;
+		#end
+	}	
+	function set_e(v:Int) : Int {
+		#if useOpenSSL
+		rsa_set_e(handle, BigInteger.bigIntToHnd(BigInteger.ofInt(v)));
+		#end
+		this.e = v;
+		return v;
 	}
 
 	/**
@@ -65,7 +107,7 @@ class RSAEncrypt implements IBlockCipher {
 	* @return blockSize buffer with decrypted data.
 	**/
 	public function decryptBlock( enc : Bytes ) : Bytes {
-		throw("Not a private key");
+		throw new chx.lang.UnsupportedException("Not a private key");
 		return null;
 	}
 
@@ -76,7 +118,12 @@ class RSAEncrypt implements IBlockCipher {
 	* TODO: Return Binary string, not text. Use padding etc...
 	**/
 	public function encrypt( buf : Bytes ) : Bytes {
+		#if useOpenSSL
+		var bd = rsa_public_encrypt(handle,RSA_PKCS1_PADDING(),buf,0,buf.length);
+		return Bytes.ofData(bd);
+		#else
 		return doBufferEncrypt(buf, doPublic, new PadPkcs1Type2(blockSize));
+		#end
 	}
 
 	/**
@@ -90,6 +137,10 @@ class RSAEncrypt implements IBlockCipher {
 		if(block.length != bsize)
 			throw("bad block size");
 
+		#if useOpenSSL
+		var bd = rsa_public_encrypt(handle,RSA_NO_PADDING(),untyped block.getData(),0,block.length);
+		return Bytes.ofData(bd);
+		#else
 		var biv:BigInteger = BigInteger.ofBytes(block, true);
 		var biRes = doPublic(biv).toBytesUnsigned();
 
@@ -114,6 +165,7 @@ class RSAEncrypt implements IBlockCipher {
 			biRes = bb.getBytes();
 		}
 		return biRes;
+		#end
 	}
 
 	/**
@@ -132,6 +184,8 @@ class RSAEncrypt implements IBlockCipher {
 	/**
 	* Set the public key fields N (modulus) and E (public exponent)
 	* from hex strings.
+	* @throw chx.lang.NullPointerException null argument
+	* @throw chx.lang.IllegalArgumentError unparsable argument
 	**/
 	public function setPublic(nHex : String, eHex:String) : Void {
 		init();
@@ -139,22 +193,19 @@ class RSAEncrypt implements IBlockCipher {
 			throw new chx.lang.NullPointerException("nHex not set: " + nHex);
 		if(eHex == null || eHex.length == 0)
 			throw new chx.lang.NullPointerException("eHex not set: " + eHex);
-		//try {
-			var s : String = BytesUtil.cleanHexFormat(nHex);
-			n = BigInteger.ofString(s, 16);
-			if(n == null) throw 2;
-			var ie : Null<Int> = Std.parseInt("0x" +  BytesUtil.cleanHexFormat(eHex));
-			if(ie == null || ie == 0) throw 3;
-			e = ie;
-		//}
-		//catch(e:Dynamic)
-		//	throw("Invalid RSA public key: " + e);
+
+		var s : String = BytesUtil.cleanHexFormat(nHex);
+		n = BigInteger.ofString(s, 16);
+		if(n == null)
+			throw new chx.lang.IllegalArgumentException("nHex not a valid big integer: "+nHex);
+		var ie : Null<Int> = Std.parseInt("0x" +  BytesUtil.cleanHexFormat(eHex));
+		if(ie == null || ie == 0)
+			throw new chx.lang.IllegalArgumentException("eHex not a vlaid big integer: "+eHex);
+		e = ie;
 	}
 
 	/**
 	* Verify a signature
-	*
-	* @todo http://www.imc.org/ietf-openpgp/mail-archive/msg14307.html
 	* @todo verify implementation
 	**/
 	public function verify( data : Bytes ) : Bytes {
@@ -174,12 +225,8 @@ class RSAEncrypt implements IBlockCipher {
 	**/
 	private function doBufferEncrypt(src:Bytes, f : BigInteger->BigInteger, pf : IBlockPad) : Bytes
 	{
-		//trace("source: " + src.toHex());
 		var bs = blockSize;
 		var ts : Int = bs - 11;
-		#if CAFFEINE_DEBUG
-		trace(">>>> Encrypting. Blocksize is "+bs + " src length:"+src.length + "["+src.toHex()+"]");
-		#end
 		var idx : Int = 0;
 		var msg = new BytesBuffer();
 		while(idx < src.length) {
@@ -188,21 +235,9 @@ class RSAEncrypt implements IBlockCipher {
 			var m:BigInteger = BigInteger.ofBytes(pf.pad(src.sub(idx,ts)), true);
 			var c:BigInteger = f(m);
 
-			#if CAFFEINE_DEBUG
-			var d = m.toBytesUnsigned();
-			var e = c.toBytesUnsigned();
-			trace("m (padded) len " + d.length + " "+d.toHex(":"));
-			trace("c (crypted) len " + e.length + " "+e.toHex(":"));
-			#end
-
 			var h = c.toBytesUnsigned();
-			//var
 			if((h.length & 1) != 0)
 				msg.addByte( 0 );
-
-			#if CAFFEINE_DEBUG
-			trace(">>>> crypted ("+h.length+"): " + h.toHex());
-			#end
 
 			msg.add(h);
 			idx += ts;
@@ -212,13 +247,8 @@ class RSAEncrypt implements IBlockCipher {
 
 	private function doBufferDecrypt(src: Bytes, f : BigInteger->BigInteger, pf : IBlockPad) : Bytes
 	{
-		//trace("source: " + src.toHex());
 		var bs = blockSize;
-		//bs *= 2; // hex string, 2 bytes per char
 		var ts : Int = bs - 11;
-		#if CAFFEINE_DEBUG
-		trace(">>>> Decrypting. Blocksize is "+ bs + " src length:"+src.length + "["+src.toHex()+"]");
-		#end
 		var idx : Int = 0;
 		var msg = new BytesBuffer();
 		while(idx < src.length) {
@@ -228,14 +258,6 @@ class RSAEncrypt implements IBlockCipher {
 			var m = f(c);
 			if(m == null)
 				return null;
-
-			#if CAFFEINE_DEBUG
-			var d = m.toBytesUnsigned();
-			var e = c.toBytesUnsigned();
-			trace("c (crypted) len " + e.length + " "+e.toHex(":"));
-			trace("m (padded) len " + d.length + " "+d.toHex(":"));
-			#end
-
 			var up : Bytes = pf.unpad(m.toBytesUnsigned());
 			if(up.length > ts)
 				throw "block text length error";
@@ -254,9 +276,13 @@ class RSAEncrypt implements IBlockCipher {
 	//             getters/setters                  //
 	//////////////////////////////////////////////////
 	function __getBlockSize() : Int {
+		#if useOpenSSL
+		return rsa_size(handle);
+		#else
 		if(n == null)
 			return 0;
 		return (n.bitLength()+7)>>3;
+		#end
 	}
 
 	//////////////////////////////////////////////////
@@ -274,5 +300,27 @@ class RSAEncrypt implements IBlockCipher {
 		return sb.toString();
 		*/
 	}
+
+	#if useOpenSSL
+	public static function __init__()
+	{
+		chx.Lib.initDll("openssl");
+	}
+
+	private static var rsa_new = chx.Lib.load("openssl","rsa_new",0);
+	private static var rsa_size = chx.Lib.load("openssl","rsa_size",1);
+	private static var rsa_set_n = chx.Lib.load("openssl","rsa_set_n",2);
+	private static var rsa_set_e = chx.Lib.load("openssl","rsa_set_e",2);
+	private static var rsa_get_n = chx.Lib.load("openssl","rsa_get_n",1);
+	private static var rsa_get_e = chx.Lib.load("openssl","rsa_get_e",1);
+
+	private static var rsa_public_encrypt = chx.Lib.load("openssl","rsa_public_encrypt",5);
+	
+	private static var RSA_PKCS1_PADDING = chx.Lib.load("openssl","_RSA_PKCS1_PADDING",0);
+	private static var RSA_PKCS1_OAEP_PADDING = chx.Lib.load("openssl","_RSA_PKCS1_OAEP_PADDING",0);
+	private static var RSA_SSLV23_PADDING = chx.Lib.load("openssl","_RSA_SSLV23_PADDING",0);
+	private static var RSA_NO_PADDING = chx.Lib.load("openssl","_RSA_NO_PADDING",0);
+
+	#end
 }
 

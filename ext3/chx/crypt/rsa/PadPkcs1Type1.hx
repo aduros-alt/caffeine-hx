@@ -25,14 +25,17 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package chx.crypt;
+package chx.crypt.rsa;
+
+import chx.lang.Exception;
+import chx.lang.IllegalArgumentException;
+
+//http://tools.ietf.org/html/rfc2313 section 8.1
 
 /**
-	Pads string with 0xFF bytes
-**/
-class PadPkcs1Type1 implements IBlockPad {
-	public var blockSize(default,setBlockSize) : Int;
-	public var textSize(default,null) : Int;
+ * Pads with 0xFF bytes
+ **/
+class PadPkcs1Type1 extends PadBlockBase, implements IBlockPad {
 	/** only for Type1, the byte to pad with, default 0xFF **/
 	public var padByte(getPadByte,setPadByte) : Int;
 	var padCount : Int;
@@ -51,7 +54,7 @@ class PadPkcs1Type1 implements IBlockPad {
 
 	public function pad( s : Bytes ) : Bytes {
 		if(s.length > textSize)
-			throw "Unable to pad block: provided buffer is " + s.length + " max is " + textSize;
+			throw new Exception("Unable to pad block: provided buffer is " + s.length + " max is " + textSize);
 		var sb = new BytesBuffer();
 		sb.addByte(0);
 		sb.addByte(typeByte);
@@ -81,10 +84,10 @@ class PadPkcs1Type1 implements IBlockPad {
 		while(i < s.length) {
 			while( i < s.length && s.get(i) == 0) ++i;
 			if(s.length-i-3-padCount < 0) {
-				throw("Unexpected short message");
+				throw new Exception("Unexpected short message");
 			}
 			if(s.get(i) != typeByte)
-				throw("Expected marker "+ typeByte + " at position "+i + " [" + BytesUtil.hexDump(s) + "]");
+				throw new Exception("Expected marker "+ typeByte + " at position "+i + " [" + BytesUtil.hexDump(s) + "]");
 			if(++i >= s.length)
 				return sb.getBytes();
 			while(i < s.length && s.get(i) != 0) ++i;
@@ -100,11 +103,8 @@ class PadPkcs1Type1 implements IBlockPad {
 		return Math.ceil(len/textSize);
 	}
 
-	/** pads by block? **/
-	public function isBlockPad() : Bool { return true; }
-
 	/** number of bytes padding needs per block **/
-	public function blockOverhead() : Int { return 3 + padCount; }
+	override public function blockOverhead() : Int { return 3 + padCount; }
 
 	/**
 		PKCS1 has a 3 + padCount byte overhead per block. For RSA
@@ -113,7 +113,7 @@ class PadPkcs1Type1 implements IBlockPad {
 	**/
 	public function setPadCount(x : Int) : Int {
 		if(x + 3 >= blockSize)
-			throw("Internal padding size exceeds crypt block size");
+			throw new IllegalArgumentException("Internal padding size exceeds crypt block size");
 		padCount = x;
 		textSize = blockSize - 3 - padCount;
 		return x;
@@ -123,7 +123,7 @@ class PadPkcs1Type1 implements IBlockPad {
 		this.blockSize = x;
 		this.textSize = x - 3 - padCount;
 		if(textSize <= 0)
-			throw "Block size " + x + " to small for Pkcs1 with padCount "+padCount;
+			throw new IllegalArgumentException("Block size " + x + " to small for Pkcs1 with padCount "+padCount);
 		return x;
 	}
 

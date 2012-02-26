@@ -35,7 +35,7 @@
  * 
  * See LICENSE.txt for full license information.
  */
-package chx.crypt;
+package chx.crypt.symmetric;
 import I32;
 
 /**

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, The Caffeine-hx project contributors
+ * Copyright (c) 2011, The Caffeine-hx project contributors
  * Original author : Russell Weir
  * Contributors:
  * All rights reserved.
@@ -25,10 +25,38 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package chx.crypt;
+package chx.crypt.padding;
 
-interface IBlockCipher {
-	var blockSize(__getBlockSize,null) : Int;
-	function encryptBlock( plain : Bytes ) : Bytes;
-	function decryptBlock( enc : Bytes ) : Bytes;
+class PadBase implements IPad {
+
+	public var blockSize(default,setBlockSize) : Int;
+
+	public function new( blockSize : Null<Int> = null ) {
+		if(blockSize != null)
+			setBlockSize(blockSize);
+	}
+
+	public function pad( s : Bytes ) : Bytes {
+		return throw new chx.lang.FatalException("not implemented");
+	}
+	
+	public function unpad( s : Bytes ) : Bytes {
+		return throw new chx.lang.FatalException("not implemented");
+	}
+
+	function setBlockSize(len : Int) : Int {
+		blockSize = len;
+		return len;
+	}
+
+	public function calcNumBlocks(len : Int) : Int {
+		if(len == 0) return 0;
+		var n : Int = Math.ceil(len/blockSize);
+		// most pads will require an extra block if the input length
+		// is an exact multiple of the block size
+ 		if(len % blockSize == 0)
+ 			n++;
+		return n;
+	}
+
 }

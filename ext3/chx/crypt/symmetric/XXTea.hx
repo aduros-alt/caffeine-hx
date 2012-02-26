@@ -25,7 +25,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package chx.crypt;
+package chx.crypt.symmetric;
 
 import I32;
 

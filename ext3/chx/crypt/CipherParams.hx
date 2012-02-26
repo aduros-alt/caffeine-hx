@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, The Caffeine-hx project contributors
+ * Copyright (c) 2012, The Caffeine-hx project contributors
  * Original author : Russell Weir
  * Contributors:
  * All rights reserved.
@@ -27,46 +27,24 @@
 
 package chx.crypt;
 
-/**
- * Pads with NULL (0) bytes
- **/
-class PadNull implements IPad {
-	public var blockSize(default,setBlockSize) : Int;
-	public var textSize(default,null) : Int;
+class CipherParams {
+	/** the starting iv **/
+	public var iv : Bytes;
+	/** random generator used to generate IVs **/
+	public var prng : math.prng.Random;
+	/** Does not have to be set manually, is set by Cipher **/
+	public var direction : CipherDirection;
 
-	public function new( blockSize : Null<Int> = null ) {
-		if(blockSize != null)
-			setBlockSize(blockSize);
+	public function new() {
+		prng = new math.prng.Random();
 	}
 
-	public function pad( s : Bytes ) : Bytes {
-		var r = blockSize - (s.length % blockSize);
-		if(r == blockSize)
-			return s;
-		var sb = new BytesBuffer();
-		sb.add(s);
-		for(x in 0...r) {
-			sb.addByte(0);
-		}
-		return sb.getBytes();
-	}
-
-	/**
-	 * Null padded strings can't be reliably unpadded, since the
-	 * source may contain nulls. It is up to the implementation to
-	 * keep track of how many bytes in the packet are used.
-	 **/
-	public function unpad( s : Bytes ) : Bytes {
-		return s;
-	}
-
-	public function calcNumBlocks(len : Int) : Int {
-		return Math.ceil(len/blockSize);
-	}
-
-	private function setBlockSize( x : Int ) : Int {
-		this.blockSize = x;
-		this.textSize = x;
-		return x;
+	public function clone() : CipherParams {
+		var o = new CipherParams();
+		if(iv != null)
+			o.iv = iv.sub(0,iv.length);
+		o.prng = this.prng;
+		o.direction = this.direction;
+		return o;
 	}
 }

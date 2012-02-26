@@ -28,7 +28,7 @@
  * Derived from javascript implementation Copyright (c) 2005 Tom Wu
  */
 
-package chx.crypt;
+package chx.crypt.rsa;
 
 import math.BigInteger;
 
@@ -62,9 +62,9 @@ class RSA extends RSAEncrypt, implements IBlockCipher {
 	}
 
 	/**
-	* Return the PKCS#1 RSA decryption of "ctext", an even-length hex string.
+	* Return the PKCS#1 RSA decryption of buf
 	*
-	* @param ctext Hexadecimal string
+	* @param buf Bytes of any length
 	**/
 	public function decrypt( buf : Bytes ) : Bytes {
 		return doBufferDecrypt(buf, doPrivate, new PadPkcs1Type2(blockSize));

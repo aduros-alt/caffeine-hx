@@ -25,10 +25,44 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package chx.crypt;
+package chx.crypt.padding;
 
-interface IBlockCipher {
-	var blockSize(__getBlockSize,null) : Int;
-	function encryptBlock( plain : Bytes ) : Bytes;
-	function decryptBlock( enc : Bytes ) : Bytes;
+class PadPkcs5 extends PadBase, implements IPad {
+
+	override public function calcNumBlocks(len : Int) : Int {
+		var chr : Int = blockSize - (len % blockSize);
+		Assert.isEqual(0, (len + chr) % blockSize);
+		return Math.floor((len + chr) / blockSize);
+	}
+
+	override public function pad( s : Bytes ) : Bytes {
+		var sb = new BytesBuffer();
+		if(s.length > 0)
+			sb.add ( s );
+		var chr : Int = blockSize - (s.length % blockSize);
+		if(s.length == blockSize)
+			chr = blockSize;
+		for( i in 0...chr) {
+			sb.addByte( chr );
+		}
+		var rv = sb.getBytes();
+		return rv;
+	}
+
+	override public function unpad( s : Bytes ) : Bytes {
+		if( s.length % blockSize != 0)
+			throw "crypt.padpkcs5 unpad: buffer length "+s.length+" not multiple of block size " + blockSize;
+		var c : Int = s.get(s.length-1);
+		var i = c;
+		var pos = s.length - 1;
+		while(i > 0) {
+			var n = s.get(pos);
+			if (c != n)
+				throw "crypt.padpkcs5 unpad: invalid byte";
+			pos--;
+			i--;
+		}
+		return s.sub(0, s.length - c);
+	}
+
 }

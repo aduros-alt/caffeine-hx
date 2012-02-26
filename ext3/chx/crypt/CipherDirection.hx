@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Caffeine-hx project contributors
+ * Copyright (c) 2012, The Caffeine-hx project contributors
  * Original author : Russell Weir
  * Contributors:
  * All rights reserved.
@@ -26,39 +26,8 @@
  */
 
 package chx.crypt;
-/**
- * Very similar to PKCS5 padding, but adds one extra byte of the pad length
- * @todo In TLS, the padding may be any random length up to 255 bytes,
- *       as per RFC 4346 Section 6.2.3.2, to decrease attacks on the protocol.
- *       Should add a method to allow for random pad lengths.
- **/
-class PadTLS extends PadBase, implements IPad {
 
-	override public function pad( s : Bytes ) : Bytes {
-		var c = blockSize - ((s.length+1) % blockSize);
-		if (c <= 0) return s;
-		var bb = new BytesBuffer();
-		bb.add(s);
-		for(i in 0...c+1) {
-			bb.addByte(c);
-		}
-		return bb.getBytes();
-	}
-
-	override public function unpad( s : Bytes ) : Bytes {
-		if( s.length % blockSize != 0)
-			throw new chx.lang.Exception("PadTLS unpad: buffer length "+s.length+" not multiple of block size " + blockSize);
-		var c = s.get(s.length-1);
-		var i:Int = c;
-		var len = s.length;
-		while(i > -1) {
-			var n = s.get(pos);
-			if (c != n)
-				throw new chx.lang.Exception("PadTLS unpad: invalid byte");
-			len--;
-			i--;
-		}
-		return s.sub(0, len);
-	}
-
+enum CipherDirection {
+	ENCRYPT;
+	DECRYPT;
 }

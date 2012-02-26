@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, The Caffeine-hx project contributors
+ * Copyright (c) 2012, The Caffeine-hx project contributors
  * Original author : Russell Weir
  * Contributors:
  * All rights reserved.
@@ -27,17 +27,25 @@
 
 package chx.crypt;
 
+import chx.io.Output;
+
 interface IMode {
-	//var blockSize : Int;
-	var cipher(default, null) : IBlockCipher;
-	var padding : IPad;
+	var cipher(default, setCipher) : IBlockCipher;
+	var padding(default,setPadding) : IPad;
+	var blockSize(getBlockSize,never) : Int;
 
-	function encrypt( s : Bytes ) : Bytes;
+	function init(params : CipherParams) : Void;
+	/**
+	 * This method requires exactly the number of bytes in the
+	 * cipher blockSize, and overwrites b
+	 **/
+	function updateEncrypt( b : Bytes, out : Output) : Int;
+	function finalEncrypt( b : Bytes, out : Output) : Int;
 
-	function decrypt( s : Bytes ) : Bytes;
-
-	function startStreamMode() : Void;
-
-	function endStreamMode() : Void;
-
+	/**
+	 * This method requires exactly the number of bytes in the
+	 * cipher blockSize, and overwrites b
+	 **/
+	function updateDecrypt( b : Bytes, out : Output) : Int;
+	function finalDecrypt( b : Bytes, out : Output) : Int;
 }
