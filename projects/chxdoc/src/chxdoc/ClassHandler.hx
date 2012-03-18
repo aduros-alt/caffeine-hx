@@ -324,6 +324,8 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 				createInheritedField(field.inheritance.owner, field);
 
 		makeInheritedFieldLink(ctx, f);
+		for(v in ctx.vars)
+			if(v.name == f.name) return;
 		ctx.vars.push(f);
 	}
 
