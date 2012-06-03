@@ -30,6 +30,7 @@ package chxdoc;
 import haxe.rtti.CType;
 import chxdoc.Defines;
 import chxdoc.Types;
+import sys.FileSystem;
 
 class Utils {
 	static var filters : List<String> = new List<String>();
@@ -247,13 +248,13 @@ class Utils {
 
 	private static function ensureDirectory(dir : String) {
 		try {
-			if(!neko.FileSystem.exists(dir))
-				neko.FileSystem.createDirectory(dir);
+			if(!FileSystem.exists(dir))
+				FileSystem.createDirectory(dir);
 		} catch( e : Dynamic) {
 			ensureDirectory(neko.io.Path.directory(dir));
-			neko.FileSystem.createDirectory(dir);
+			FileSystem.createDirectory(dir);
 		}
-		if(!neko.FileSystem.isDirectory(dir))
+		if(!FileSystem.isDirectory(dir))
 			throw "Output path " + dir + " is not a directory.";
 	}
 

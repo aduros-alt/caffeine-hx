@@ -1,3 +1,5 @@
+import sys.FileSystem;
+
 class Run {
 
 	static var sys:String = neko.Sys.systemName();
@@ -66,7 +68,7 @@ class Run {
 	static function compile() {
 		neko.Sys.setCwd(builddir);
 
-		if(!neko.FileSystem.exists("chxdoc/Settings.hx")) {
+		if(!FileSystem.exists("chxdoc/Settings.hx")) {
 			print(">> Creating Settings.hx...");
 			var sp = builddir + "chxdoc/Settings.hx";
 			var fp = neko.io.File.write(sp, false);
@@ -110,7 +112,7 @@ class Settings {
 			throw "!! Error while creating " + name + " executable";
 		}
 
-		neko.FileSystem.deleteFile(nekoname);
+		FileSystem.deleteFile(nekoname);
 
 		if( sys != "Windows" )
 			neko.Sys.command("chmod a+x " + installdir + exe);

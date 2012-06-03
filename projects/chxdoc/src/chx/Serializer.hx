@@ -179,7 +179,7 @@ class Serializer {
 				}
 			}
 			else
-				key = "__ENUM__" + Type.enumConstructor(v);
+				key = "__ENUM__" + Type.enumConstructor(cast v);
 		} catch(e : Dynamic) {
 			key = "";
 			var fields = Reflect.fields(v);

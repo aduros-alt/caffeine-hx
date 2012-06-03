@@ -30,6 +30,7 @@ package chxdoc;
 import chxdoc.Defines;
 import chxdoc.Types;
 import haxe.rtti.CType;
+import sys.FileSystem;
 
 class ChxDocMain {
 	static var proginfo : String;
@@ -40,8 +41,8 @@ class ChxDocMain {
 	{
 		versionMajor		: 1,
 		versionMinor		: 1,
-		versionRevision		: 2,
-		buildNumber			: 667,
+		versionRevision		: 3,
+		buildNumber			: 727,
 		verbose				: false,
 		rootTypesPackage	: null,
 		allPackages			: new Array(),
@@ -544,10 +545,10 @@ class ChxDocMain {
 	static function installTemplate() {
 		var targetImgDir = config.baseDirectory + "images";
 		/*
-		if(!neko.FileSystem.exists(targetImgDir)) {
+		if(!FileSystem.exists(targetImgDir)) {
 			var copyImgDir = config.installImagesDir;
 			var srcDir = config.temploBaseDir + "images";
-			if(neko.FileSystem.exists(srcDir)) {
+			if(FileSystem.exists(srcDir)) {
 				if(!copyImgDir && !config.noPrompt) {
 					//copyImgDir = system.Terminal.promptYesNo("Install the images directory from the template?", true);
 				}
@@ -561,16 +562,13 @@ class ChxDocMain {
 		if(config.installImagesDir) {
 			Utils.createOutputDirectory(targetImgDir);
 			var srcDir = config.temploBaseDir + "images";
-			if(neko.FileSystem.exists(srcDir) && neko.FileSystem.isDirectory(srcDir)) {
+			if(FileSystem.exists(srcDir) && FileSystem.isDirectory(srcDir)) {
 				targetImgDir += "/";
-				var entries = neko.FileSystem.readDirectory(srcDir);
+				var entries = FileSystem.readDirectory(srcDir);
 				for(i in entries) {
 					var p = srcDir + "/" + i;
-					switch(neko.FileSystem.kind(p)) {
-					case kfile:
-					default:
+					if(FileSystem.isDirectory(p))
 						continue;
-					}
 					if(config.verbose)
 						println("Installing " + p + " to " + targetImgDir);
 					neko.io.File.copy(p, targetImgDir + i);
@@ -583,7 +581,7 @@ class ChxDocMain {
 
 		if(config.installCssFile) {
 			var srcCssFile = config.temploBaseDir + "stylesheet.css";
-			if(neko.FileSystem.exists(srcCssFile)) {
+			if(FileSystem.exists(srcCssFile)) {
 				var targetCssFile = config.baseDirectory + config.stylesheet;
 				if(config.verbose)
 					println("Installing " + srcCssFile + " to " + targetCssFile);
@@ -594,7 +592,7 @@ class ChxDocMain {
 			}
 
 			var srcJsFile = config.temploBaseDir + "chxdoc.js";
-			if(neko.FileSystem.exists(srcJsFile)) {
+			if(FileSystem.exists(srcJsFile)) {
 				var targetJsFile = config.baseDirectory + "chxdoc.js";
 				if(config.verbose)
 					println("Installing " + srcJsFile + " to " + targetJsFile);
@@ -619,7 +617,7 @@ class ChxDocMain {
 
 		if(! neko.Web.isModNeko && ! writeWebConfig ) {
 			var tmf = config.temploBaseDir + config.temploMacros;
-			if(!neko.FileSystem.exists(tmf))
+			if(!FileSystem.exists(tmf))
 				fatal("The macro file " + tmf + " does not exist.");
 			Utils.createOutputDirectory(config.temploTmpDir);
 		}
