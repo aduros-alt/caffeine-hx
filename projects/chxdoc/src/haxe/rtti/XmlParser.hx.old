@@ -86,6 +86,20 @@ class XmlParser {
 		xroot(new Fast(x));
 	}
 
+	// merge inline and not inline
+	function mergeRights( f1 : ClassField, f2 : ClassField ) {
+		if( f1.get == RInline && f1.set == RNo && f2.get == RNormal && f2.set == RMethod ) {
+			f1.get = RNormal;
+			f1.set = RMethod;
+			return true;
+		}
+		return false;
+	}
+
+	function mergeFields( f : ClassField, f2 : ClassField ) {
+		return TypeApi.fieldEq(f,f2) || (f.name == f2.name && (mergeRights(f,f2) || mergeRights(f2,f)) && TypeApi.fieldEq(f,f2));
+	}
+
 	function mergeClasses( c : Classdef, c2 : Classdef ) {
 		// todo : compare supers & interfaces
 		if( c.isInterface != c2.isInterface )
@@ -98,7 +112,7 @@ class XmlParser {
 		for( f2 in c2.fields ) {
 			var found = null;
 			for( f in c.fields )
-				if( TypeApi.fieldEq(f,f2) ) {
+				if( mergeFields(f,f2) ) {
 					found = f;
 					break;
 				}
@@ -110,7 +124,7 @@ class XmlParser {
 		for( f2 in c2.statics ) {
 			var found = null;
 			for( f in c.statics )
-				if( TypeApi.fieldEq(f,f2) ) {
+				if( mergeFields(f,f2) ) {
 					found = f;
 					break;
 				}
@@ -184,6 +198,7 @@ class XmlParser {
 				continue;
 			// compare params ?
 			if( tinf.path == inf.path ) {
+				var sameType = true;
 				if( tinf.module == inf.module && tinf.doc == inf.doc && tinf.isPrivate == inf.isPrivate )
 					switch( ct ) {
 					case TClassdecl(c):
@@ -192,6 +207,7 @@ class XmlParser {
 							if( mergeClasses(c,c2) )
 								return;
 						default:
+							sameType = false;
 						}
 					case TEnumdecl(e):
 						switch( t ) {
@@ -199,6 +215,7 @@ class XmlParser {
 							if( mergeEnums(e,e2) )
 								return;
 						default:
+							sameType = false;
 						}
 					case TTypedecl(td):
 						switch( t ) {
@@ -208,9 +225,15 @@ class XmlParser {
 						default:
 						}
 					case TPackage(_,_,_):
+						sameType = false;
 					}
 				// we already have a mapping, but which is incompatible
-				throw "Incompatibilities between "+tinf.path+" in "+tinf.platforms.join(",")+" and "+curplatform;
+				var msg = if( tinf.module != inf.module ) "module "+inf.module+" should be "+tinf.module;
+					else if( tinf.doc != inf.doc ) "documentation is different";
+					else if( tinf.isPrivate != inf.isPrivate ) "private flag is different";
+					else if( !sameType ) "type kind is different";
+					else "could not merge definition";
+				throw "Incompatibilities between "+tinf.path+" in "+tinf.platforms.join(",")+" and "+curplatform+" ("+msg+")";
 			}
 		}
 		cur.push(t);

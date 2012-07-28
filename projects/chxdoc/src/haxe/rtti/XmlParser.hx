@@ -96,8 +96,19 @@ class XmlParser {
 		return false;
 	}
 
+	function mergeDoc( f1 : ClassField, f2 : ClassField ) {
+		if( f1.doc == null )
+			f2.doc = f2.doc;
+		else if( f2.doc == null )
+			f2.doc = f1.doc;
+		return true;
+	}
+
 	function mergeFields( f : ClassField, f2 : ClassField ) {
-		return TypeApi.fieldEq(f,f2) || (f.name == f2.name && (mergeRights(f,f2) || mergeRights(f2,f)) && TypeApi.fieldEq(f,f2));
+		return TypeApi.fieldEq(f,f2) || (f.name == f2.name && (mergeRights(f,f2) || mergeRights(f2,f)) && mergeDoc(f,f2) && TypeApi.fieldEq(f,f2));
+	}
+
+	public dynamic function newField( c : Classdef, f : ClassField ) {
 	}
 
 	function mergeClasses( c : Classdef, c2 : Classdef ) {
@@ -116,9 +127,10 @@ class XmlParser {
 					found = f;
 					break;
 				}
-			if( found == null )
+			if( found == null ) {
+				newField(c,f2);
 				c.fields.add(f2);
-			else if( curplatform != null )
+			} else if( curplatform != null )
 				found.platforms.add(curplatform);
 		}
 		for( f2 in c2.statics ) {
@@ -128,9 +140,10 @@ class XmlParser {
 					found = f;
 					break;
 				}
-			if( found == null )
+			if( found == null ) {
+				newField(c,f2);
 				c.statics.add(f2);
-			else if( curplatform != null )
+			} else if( curplatform != null )
 				found.platforms.add(curplatform);
 		}
 		return true;
@@ -199,6 +212,12 @@ class XmlParser {
 			// compare params ?
 			if( tinf.path == inf.path ) {
 				var sameType = true;
+				if( (tinf.doc == null) != (inf.doc == null) ) {
+					if( inf.doc == null )
+						inf.doc = tinf.doc;
+					else
+						tinf.doc = inf.doc;
+				}
 				if( tinf.module == inf.module && tinf.doc == inf.doc && tinf.isPrivate == inf.isPrivate )
 					switch( ct ) {
 					case TClassdecl(c):
@@ -304,6 +323,7 @@ class XmlParser {
 			case "extends": csuper = xpath(c);
 			case "implements": interfaces.add(xpath(c));
 			case "haxe_dynamic": tdynamic = xtype(new Fast(c.x.firstElement()));
+			case "meta":
 			default:
 				if( c.x.exists("static") )
 					statics.add(xclassfield(c));
@@ -335,6 +355,7 @@ class XmlParser {
 		for( c in e )
 			switch( c.name ) {
 			case "haxe_doc": doc = c.innerData;
+			case "meta":
 			default: xerror(c);
 			}
 		return {
@@ -356,6 +377,7 @@ class XmlParser {
 		for( c in x.elements )
 			if( c.name == "haxe_doc" )
 				doc = c.innerData;
+			else if ( c.name == "meta" ) { }
 			else
 				cl.add(xenumfield(c));
 		return {
@@ -405,6 +427,7 @@ class XmlParser {
 		for( c in x.elements )
 			if( c.name == "haxe_doc" )
 				doc = c.innerData;
+			else if ( c.name == "meta" ) { }
 			else
 				t = xtype(c);
 		var types = new Hash();
