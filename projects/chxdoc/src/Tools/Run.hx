@@ -37,7 +37,7 @@ class Run {
 			try {
 				installdir = makePath(installdir);
 				compile();
-				makeExe("chxtemploc");
+				//makeExe("chxtemploc");
 				makeExe("chxdoc");
 			} catch(e:Dynamic) {
 				neko.Sys.setCwd(curdir);

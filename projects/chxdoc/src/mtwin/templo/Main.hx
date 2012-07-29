@@ -34,7 +34,6 @@ class Main {
 
 	static function parseArgs(){
 		files = new List();
-		args = neko.Sys.args();
 		var i = 0;
 		var macros = null;
 		while (i < args.length){
@@ -99,14 +98,30 @@ class Main {
 		return neko.FileSystem.stat(file).mtime.getTime();
 	}
 
-	static function main(){
-		Loader.MACROS = null;
-		parseArgs();
-		for (file in files){
-			file = StringTools.replace(file, Loader.BASE_DIR+"/", "");
-			if (!silence) neko.Lib.print("* "+file+"...");
-			mtwin.templo.Template.fromFile(file);
-			if (!silence) neko.Lib.print(" done\n");
+	public static function main(){
+		if(args == null) {
+			args = neko.Sys.args();
+			Loader.MACROS = null;
 		}
+		try {
+			parseArgs();
+			for (file in files){
+				file = StringTools.replace(file, Loader.BASE_DIR+"/", "");
+				if (!silence) neko.Lib.print("* "+file+"...");
+				mtwin.templo.Template.fromFile(file);
+				if (!silence) neko.Lib.print(" done\n");
+			}
+		} catch(v:Int) {
+			return v;
+		} catch(e :Dynamic) {
+			trace(e);
+			return 1;
+		}
+		return 0;
+	}
+
+	public static function embedded(cmdArgs:Array<String>) {
+		args = cmdArgs;
+		return main();
 	}
 }

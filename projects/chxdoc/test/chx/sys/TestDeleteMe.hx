@@ -160,7 +160,7 @@ but this is an example of
 		@returns Null always
 	**/
 	public function myTemplateMethod<T>(a: TestDeleteMe<M,N>, b : T) : Int {
-		return null;
+		return 1;
 	}
 
 	public function objectMethod(obj : { a: Int, b:Float}) :

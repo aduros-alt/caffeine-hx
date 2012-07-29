@@ -6,6 +6,13 @@ Targets:
 	- Import docs for methods etc. in classes if they implement an interface
 			and have no docs
 
+1.1.4
+	- Haxe 2.10 compatibility
+	- temploc embedded
+
+1.1.2
+	- @private tags supported and fix to inherited vars
+
 1.0.2
 	- Fixed Run.hx overwriting Settings.hx 
 

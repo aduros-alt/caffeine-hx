@@ -41,8 +41,8 @@ class ChxDocMain {
 	{
 		versionMajor		: 1,
 		versionMinor		: 1,
-		versionRevision		: 3,
-		buildNumber			: 727,
+		versionRevision		: 4,
+		buildNumber			: 729,
 		verbose				: false,
 		rootTypesPackage	: null,
 		allPackages			: new Array(),

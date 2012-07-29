@@ -34,7 +34,6 @@ clean:
 	rm -f make_release
 	rm -Rf chxdoc_release
 	rm -f chxdoc.n
-	rm -f chxtemploc.n
 	rm -rf __chxdoctmp
 
 haxelib:
@@ -50,6 +49,7 @@ haxelib:
 
 windows: dependencies dummy
 	wine haxe build.hxml
+	sh wine nekotools boot chxdoc.n
 
 linux: dependencies dummy
 	haxe build.hxml

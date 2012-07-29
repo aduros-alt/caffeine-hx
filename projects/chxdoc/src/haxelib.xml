@@ -1,5 +1,5 @@
 <project name="chxdoc" url="http://code.google.com/p/caffeine-hx/" license="BSD">
     <user name="Madrok"/>
     <description>Haxe documentation generator</description>
-    <version name="1.1.2">@private tags supported and fix to inherited vars</version>
+    <version name="1.1.4">@private tags supported and fix to inherited vars</version>
 </project>

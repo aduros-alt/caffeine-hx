@@ -67,10 +67,14 @@ class Loader {
 
 		var macroArg = if (MACROS == null) "" else "-m \""+BASE_DIR+MACROS+"\"";
 
+		/*
 		if (BASE_DIR == "")
 			result = Sys.command("chxtemploc -s "+macroArg+" -o \""+TMP_DIR+"\" \""+path+"\" 2> \""+TMP_DIR+"temploc.out\"");
 		else
 			result = Sys.command("chxtemploc -s "+macroArg+" -o \""+TMP_DIR+"\" -r \""+BASE_DIR+"\" \""+path+"\" 2> \""+TMP_DIR+"temploc.out\"");
+		*/
+		result = mtwin.templo.Main.embedded(["-s", path]);
+		
 		if( result != 0 )
 			throw "chxtemploc compilation or "+path+" failed : "+neko.io.File.getContent(Loader.TMP_DIR+"temploc.out");
 	}

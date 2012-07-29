@@ -9,7 +9,7 @@ function prompt_continue {
 	echo -n "Continue? [y/n] "
 	read cont
 
-	if [ !"$cont" = "y" ]; then
+	if [ ! "$cont" = "y" ]; then
 		exit 0
 	fi;
 }
@@ -26,11 +26,12 @@ if [ -e chxdoc_release ]; then
 	rm -Rf chxdoc_release
 fi;
 
-
+echo "NOTE: Due to a hang in wine when using nekotools, you must 'make windows' before continuing"
+echo "Make sure src/haxelib.xml and src/chxdoc/ChxDocMain.hx have their version numbers changed"
 prompt_continue "Building release for $DIR"
 
 make linux
-make windows
+#make windows
 
 mkdir -p chxdoc_release/Windows/$DIR
 mkdir -p chxdoc_release/Linux/$DIR
@@ -42,12 +43,6 @@ rm -r chxdoc_release/src/templates/ianxm
 #readme
 sed 's/\n/\r\n/g' src/README > chxdoc_release/Windows/$DIR/README.txt
 cp src/README chxdoc_release/Linux/$DIR/
-
-#temploc
-mv chxtemploc.exe bin/Windows/
-mv chxtemploc bin/Linux/
-cp bin/Windows/chxtemploc.exe chxdoc_release/Windows/$DIR/
-cp bin/Linux/chxtemploc chxdoc_release/Linux/$DIR/
 
 #chxdoc
 mv chxdoc.exe bin/Windows/
@@ -92,7 +87,6 @@ cd ../../
 
 pwd
 rm chxdoc.n
-rm chxtemploc.n
 
 echo "Complete. Files are in chxdoc_release."
 echo ""
