@@ -9,7 +9,7 @@ import flash.xml.XML;
 #end
 
 import chx.sys.TestDeleteMe;
-//import chx.sys.D;
+import chx.sys.D;
 import chx.sys.MyTypedef;
 import chx.sys.MyTypedef2;
 //import StdTypes;
