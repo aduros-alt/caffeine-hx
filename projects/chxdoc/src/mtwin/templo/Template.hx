@@ -121,12 +121,12 @@ class Template {
 		f.close();
 
 		var r = null;
-		if ((neko.Sys.systemName()=="Windows")&&(neko.Sys.getEnv("OS")!="Windows_NT")){
+		if ((Sys.systemName()=="Windows")&&(Sys.getEnv("OS")!="Windows_NT")){
 		    // Neither Windows 95 or Windows 98 support the 2> redirect
-		    r = neko.Sys.command("nekoc -o \""+Loader.TMP_DIR+"\" \""+path+"\" > \""+Loader.TMP_DIR+"nekoc.out\"");
+		    r = Sys.command("nekoc -o \""+Loader.TMP_DIR+"\" \""+path+"\" > \""+Loader.TMP_DIR+"nekoc.out\"");
 		}
 		else {
-		    r = neko.Sys.command("nekoc -o \""+Loader.TMP_DIR+"\" \""+path+"\" 2> \""+Loader.TMP_DIR+"nekoc.out\"");
+		    r = Sys.command("nekoc -o \""+Loader.TMP_DIR+"\" \""+path+"\" 2> \""+Loader.TMP_DIR+"nekoc.out\"");
 		}
 		if (r != 0){
 			if (neko.FileSystem.exists(Loader.TMP_DIR+"nekoc.out")){

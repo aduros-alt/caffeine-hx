@@ -80,7 +80,7 @@ class Macro {
 			while (pos != -1){
 				var end = res.indexOf("::", pos+2);
 				if (end == null){
-					neko.Lib.print(res);
+					Sys.print(res);
 					throw "Unable to find matching ::";
 				}
 				var exp = res.substr(pos+2, end-pos-2);

@@ -74,12 +74,12 @@ class Main {
 		if( macros != null )
 			files.remove(macros);
 		if (args.length == 0){
-			neko.Lib.print("chxtemploc - v"+VERSION+"\n");
-			neko.Lib.print(USAGE);
+			Sys.print("chxtemploc - v"+VERSION+"\n");
+			Sys.print(USAGE);
 		}
 		else if (files.length == 0){
-			neko.Lib.print("chxtemploc - v"+VERSION+"\n");
-			neko.Lib.print(USAGE);
+			Sys.print("chxtemploc - v"+VERSION+"\n");
+			Sys.print(USAGE);
 		}
 		else if (Loader.BASE_DIR == null){
 			var sampleFile = Lambda.array(files)[0];
@@ -87,7 +87,7 @@ class Main {
 			var aslah = sampleFile.lastIndexOf("/",sampleFile.length);
 			var pos = Std.int(Math.max(pslah, aslah));
 			if (pos == -1){
-				neko.Lib.print("missing template BASE_DIR\n");
+				Sys.print("missing template BASE_DIR\n");
 				throw USAGE;
 			}
 			Loader.BASE_DIR = sampleFile.substr(0,pos);
@@ -100,16 +100,16 @@ class Main {
 
 	public static function main(){
 		if(args == null) {
-			args = neko.Sys.args();
+			args = Sys.args();
 			Loader.MACROS = null;
 		}
 		try {
 			parseArgs();
 			for (file in files){
 				file = StringTools.replace(file, Loader.BASE_DIR+"/", "");
-				if (!silence) neko.Lib.print("* "+file+"...");
+				if (!silence) Sys.print("* "+file+"...");
 				mtwin.templo.Template.fromFile(file);
-				if (!silence) neko.Lib.print(" done\n");
+				if (!silence) Sys.print(" done\n");
 			}
 		} catch(v:Int) {
 			return v;

@@ -110,7 +110,7 @@ class Parser {
 			out.add("__out = __out.parent;\n");
 
 			if (StringTools.endsWith(mtUse, ".mtt"))
-				neko.Lib.println("WARNING: templo ::use:: changed the following use may be incorrect : '"+mtUse+"'");
+				Sys.println("WARNING: templo ::use:: changed the following use may be incorrect : '"+mtUse+"'");
 			//throw parseExpression(mtUse);
 			out.add("mcr = macro("+parseExpression(mtUse)+");\n");
 			out.add("__out.add(mcr.template(macro, __ctx));\n");
