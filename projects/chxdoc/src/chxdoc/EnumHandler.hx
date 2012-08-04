@@ -57,14 +57,14 @@ class EnumHandler extends TypeHandler<EnumCtx> {
 	**/
 	public function pass2(pkg : PackageContext, ctx : EnumCtx) {
 		if(ctx.originalDoc != null)
-			ctx.docs = DocProcessor.process(pkg, ctx, ctx.originalDoc);
+			ctx.docs = DocProcessor.process(pkg, ctx, ctx.originalDoc, ctx.originalMeta);
 		else
 			ctx.docs = null;
 		for(f in ctx.constructorInfo) {
 			if(f.originalDoc == null)
 				f.docs = null;
 			else
-				f.docs = DocProcessor.process(pkg, f, f.originalDoc);
+				f.docs = DocProcessor.process(pkg, f, f.originalDoc, f.originalMeta);
 		}
 	}
 
@@ -83,7 +83,7 @@ class EnumHandler extends TypeHandler<EnumCtx> {
 	}
 
 	function newEnumFieldCtx(ctx : EnumCtx, f : EnumField) : FieldCtx {
-		var ctx = createField(ctx, f.name, false, f.platforms, f.doc);
+		var ctx = createField(ctx, f.name, false, f.platforms, f.doc, null);
 		if(f.args != null) {
 			var me = this;
 			ctx.args = doStringBlock( function() {

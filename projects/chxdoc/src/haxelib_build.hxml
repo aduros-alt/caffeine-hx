@@ -1,6 +1,3 @@
 -neko chxdoc.n
 -main chxdoc/ChxDocMain.hx
 
---next
--neko chxtemploc.n
--main mtwin.templo.Main

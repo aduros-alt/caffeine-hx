@@ -317,13 +317,14 @@ class XmlParser {
 		var interfaces = new List();
 		var fields = new List();
 		var statics = new List();
+		var m = null;
 		for( c in x.elements )
 			switch( c.name ) {
 			case "haxe_doc": doc = c.innerData;
 			case "extends": csuper = xpath(c);
 			case "implements": interfaces.add(xpath(c));
 			case "haxe_dynamic": tdynamic = xtype(new Fast(c.x.firstElement()));
-			case "meta":
+			case "meta": m = c.x;
 			default:
 				if( c.x.exists("static") )
 					statics.add(xclassfield(c));
@@ -345,6 +346,7 @@ class XmlParser {
 			statics : statics,
 			tdynamic : tdynamic,
 			platforms : defplat(),
+			meta : m,
 		};
 	}
 
@@ -352,10 +354,11 @@ class XmlParser {
 		var e = x.elements;
 		var t = xtype(e.next());
 		var doc = null;
+		var m = null;
 		for( c in e )
 			switch( c.name ) {
 			case "haxe_doc": doc = c.innerData;
-			case "meta":
+			case "meta": m = c.x;
 			default: xerror(c);
 			}
 		return {
@@ -363,21 +366,25 @@ class XmlParser {
 			type : t,
 			isPublic : x.x.exists("public"),
 			isOverride : x.x.exists("override"),
+			line : if( x.has.line ) Std.parseInt(x.att.line) else null,
 			doc : doc,
 			get : if( x.has.get ) mkRights(x.att.get) else RNormal,
 			set : if( x.has.set ) mkRights(x.att.set) else RNormal,
 			params : if( x.has.params ) mkTypeParams(x.att.params) else null,
 			platforms : defplat(),
+			meta : m,
 		};
 	}
 
 	function xenum( x : Fast ) : Enumdef {
 		var cl = new List();
 		var doc = null;
+		var m = null;
 		for( c in x.elements )
 			if( c.name == "haxe_doc" )
 				doc = c.innerData;
-			else if ( c.name == "meta" ) { }
+			else if ( c.name == "meta" )
+				m = c.x;
 			else
 				cl.add(xenumfield(c));
 		return {
@@ -390,6 +397,7 @@ class XmlParser {
 			params : mkTypeParams(x.att.params),
 			constructors : cl,
 			platforms : defplat(),
+			meta : m,
 		};
 	}
 
@@ -424,10 +432,12 @@ class XmlParser {
 	function xtypedef( x : Fast ) : Typedef {
 		var doc = null;
 		var t = null;
+		var m = null;
 		for( c in x.elements )
 			if( c.name == "haxe_doc" )
 				doc = c.innerData;
-			else if ( c.name == "meta" ) { }
+			else if ( c.name == "meta" )
+				m = c.x;
 			else
 				t = xtype(c);
 		var types = new Hash();
@@ -443,6 +453,7 @@ class XmlParser {
 			type : t,
 			types : types,
 			platforms : defplat(),
+			meta : m,
 		};
 	}
 

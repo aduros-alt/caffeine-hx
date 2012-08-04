@@ -37,7 +37,6 @@ class Run {
 			try {
 				installdir = makePath(installdir);
 				compile();
-				//makeExe("chxtemploc");
 				makeExe("chxdoc");
 			} catch(e:Dynamic) {
 				neko.Sys.setCwd(curdir);
@@ -67,27 +66,6 @@ class Run {
 
 	static function compile() {
 		neko.Sys.setCwd(builddir);
-
-		if(!FileSystem.exists("chxdoc/Settings.hx")) {
-			print(">> Creating Settings.hx...");
-			var sp = builddir + "chxdoc/Settings.hx";
-			var fp = neko.io.File.write(sp, false);
-			var data : String =
-"/**
-	This class is automatically generated when installing with haxelib
-**/
-package chxdoc;
-
-class Settings {
-	public static var defaultTemplate : String = \""+builddir+"templates/default/\";
-}
-";
-			fp.writeString(data);
-			fp.flush();
-			fp.close();
-			println(" complete");
-		}
-
 
 		print(">> Compiling in " + neko.Sys.getCwd() + "...");
 		var p = new neko.io.Process("haxe",["haxelib_build.hxml"]);

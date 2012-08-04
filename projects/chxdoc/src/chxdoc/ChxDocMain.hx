@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2009, The Caffeine-hx project contributors
+ * Copyright (c) 2008-2012, The Caffeine-hx project contributors
  * Original author : Russell Weir
  * Contributors: Niel Drummond
  * All rights reserved.
@@ -29,8 +29,13 @@ package chxdoc;
 
 import chxdoc.Defines;
 import chxdoc.Types;
+import chxdoc.FilterPolicy;
 import haxe.rtti.CType;
 import sys.FileSystem;
+import sys.io.File;
+#if neko
+import neko.Web;
+#end
 
 class ChxDocMain {
 	static var proginfo : String;
@@ -40,9 +45,9 @@ class ChxDocMain {
 	public static var config : Config =
 	{
 		versionMajor		: 1,
-		versionMinor		: 1,
-		versionRevision		: 4,
-		buildNumber			: 729,
+		versionMinor		: 2,
+		versionRevision		: 0,
+		buildNumber			: 730,
 		verbose				: false,
 		rootTypesPackage	: null,
 		allPackages			: new Array(),
@@ -50,28 +55,30 @@ class ChxDocMain {
 		docBuildDate		: Date.now(),
 		dateShort			: DateTools.format(Date.now(), "%Y-%m-%d"),
 		dateLong			: DateTools.format(Date.now(), "%a %b %d %H:%M:%S %Z %Y"),
+		mergeMeta			: true,
 		showAuthorTags		: false,
+		showMeta			: false,
 		showPrivateClasses	: false,
 		showPrivateTypedefs	: false,
 		showPrivateEnums	: false,
 		showPrivateMethods	: false,
 		showPrivateVars		: false,
 		showTodoTags		: false,
-		temploBaseDir		: Settings.defaultTemplate,
-		temploTmpDir		: "./__chxdoctmp/",
-		temploMacros		: "macros.mtt",
+		template			: "default",
+		templatesDir		: "",
+		tmpDir				: "./__chxdoctmp/",
+		macros				: "macros.mtt",
 		htmlFileExtension	: ".html",
 
 		stylesheet			: "stylesheet.css",
 
-		baseDirectory		: "./docs/",
+		output				: "./docs/",
 		packageDirectory	: "./docs/packages/",
 		typeDirectory		: "./docs/types/",
 
 		noPrompt			: false, // not implemented
 		installImagesDir	: true,
 		installCssFile		: true,
-
 
 		title 				: "Haxe Application",
 		subtitle			: "http://www.haxe.org/",
@@ -113,6 +120,7 @@ class ChxDocMain {
 
 	static var webConfigFile			: String	= ".chxdoc.hsd";
 	public static var writeWebConfig	: Bool		= false;
+	static var createConfig				: Bool		= false;
 
 
 	//////////////////////////////////////////////
@@ -264,7 +272,7 @@ class ChxDocMain {
 		for(i in a) {
 			if( config.ignoreRoot ) config.rootTypesPackage = null;
 			Utils.writeFileContents(
-				config.baseDirectory + i + config.htmlFileExtension,
+				config.output + i + config.htmlFileExtension,
 				execBaseTemplate(i)
 			);
 		}
@@ -277,14 +285,14 @@ class ChxDocMain {
 		if(cfg != null)
 			c = cfg;
 		var t = new mtwin.templo.Loader(s+".mtt");
-		var metaData = {
+		var webMetaData = {
 			date : config.dateShort,
 			keywords : new Array<String>(),
 			stylesheet : config.stylesheet,
 		};
-		metaData.keywords.push("");
+		webMetaData.keywords.push("");
 		var context : IndexContext = {
-			meta		: metaData,
+			webmeta		: webMetaData,
 			build 		: buildData,
 			config		: c,
 		};
@@ -364,9 +372,11 @@ class ChxDocMain {
 	public static function main() {
 		chx.Log.redirectTraces(true);
 
-		if( neko.Web.isModNeko )
+		#if neko
+		if( Web.isModNeko )
 			setNullPrinter();
 		else
+		#end
 			setDefaultPrinter();
 
 		proginfo = "ChxDoc Generator "+
@@ -382,23 +392,29 @@ class ChxDocMain {
 		print(proginfo + "\n");
 		initDefaultPaths();
 
+		Setup.setup();
 		parseArgs();
 
 		initTemplo();
 
-		if( neko.Web.isModNeko ) {
+		#if neko
+		if( Web.isModNeko ) {
 			checkAllPaths();
-			neko.Web.cacheModule(webHandler);
+			Web.cacheModule(webHandler);
 			webHandler();
 		}
 		else {
+		#end
 			loadXmlFiles();
 			checkAllPaths();
 			generate();
 			installTemplate();
+		#if neko
 		}
+		#end
 	}
 
+	#if neko
 	static function webHandler() : Void {
 		if(config == null)
 			fatal("Config is not set");
@@ -407,12 +423,12 @@ class ChxDocMain {
 			if(s == null)
 				s = "";
 			if(s.charAt(0) != "/")
-				return neko.Web.getCwd() + s;
+				return Web.getCwd() + s;
 			return s;
 		}
 		var updatePaths = function() {
-			config.temploBaseDir = modPath(config.temploBaseDir);
-			config.temploTmpDir = modPath(config.temploTmpDir);
+			config.template = modPath(config.template);
+			config.tmpDir = modPath(config.tmpDir);
 			initTemplo();
 		}
 		var updateXmlPaths = function() {
@@ -421,7 +437,7 @@ class ChxDocMain {
 				i.name = modPath(i.name);
 		}
 
-		var params = neko.Web.getParams();
+		var params = Web.getParams();
 		if( params.get("showconfig") != null) {
 			setDefaultPrinter();
 			if(config.webPassword != params.get("password")) {
@@ -479,6 +495,7 @@ class ChxDocMain {
 				print("File not found : " + base);
 		}
 	}
+	#end
 
 	static function generate() {
 		packageHandler = new PackageHandler();
@@ -500,68 +517,73 @@ class ChxDocMain {
 		print(".");
 		pass3();
 		print(".");
-		if( !neko.Web.isModNeko && !writeWebConfig)
+		if( #if neko !Web.isModNeko && #end !writeWebConfig)
 			pass4();
+		#if neko
 		if(writeWebConfig) {
 			var p = webConfigFile;
-			if(neko.Web.isModNeko)
-				p = neko.Web.getCwd() + webConfigFile;
-			var f = neko.io.File.write(p,false);
+			if(Web.isModNeko)
+				p = Web.getCwd() + webConfigFile;
+			var f = File.write(p,false);
 			var ser = new chx.Serializer(f);
 			ser.preSerializeObject = function(o) {
 				if(Reflect.hasField(o, "originalDoc")) {
 					untyped o.originalDoc = null;
 				}
+				if(Reflect.hasField(o, "originalMeta")) {
+					untyped o.originalMeta = null;
+				}
 			}
 			ser.serialize(config);
 			f.close();
 		}
+		#end
 		print("\nComplete.\n");
 	}
 
 
 	static function initDefaultPaths() {
-		config.baseDirectory = neko.Sys.getCwd() + "docs/";
-		config.packageDirectory = config.baseDirectory + "packages/";
-		config.typeDirectory = config.baseDirectory + "types/";
+		config.output = Sys.getCwd() + "docs/";
+		config.packageDirectory = config.output + "packages/";
+		config.typeDirectory = config.output + "types/";
 	}
 
 	static function checkAllPaths() {
 		initTemplo();
 
 		// Add trailing slashes to all directory paths
-		config.baseDirectory = Utils.addSubdirTrailingSlash(config.baseDirectory);
-		config.packageDirectory = config.baseDirectory + "packages/";
-		config.typeDirectory = config.baseDirectory + "types/";
+		config.output = Utils.addSubdirTrailingSlash(config.output);
+		config.packageDirectory = config.output + "packages/";
+		config.typeDirectory = config.output + "types/";
 
-		if( neko.Web.isModNeko || writeWebConfig )
+		if( #if neko Web.isModNeko || #end writeWebConfig )
 			return;
 
-		Utils.createOutputDirectory(config.baseDirectory);
+		Utils.createOutputDirectory(config.output);
 		Utils.createOutputDirectory(config.packageDirectory);
 		Utils.createOutputDirectory(config.typeDirectory);
 	}
 
 	static function installTemplate() {
-		var targetImgDir = config.baseDirectory + "images";
+		var targetImgDir = config.output + "images";
 		/*
 		if(!FileSystem.exists(targetImgDir)) {
 			var copyImgDir = config.installImagesDir;
-			var srcDir = config.temploBaseDir + "images";
+			var srcDir = config.template + "images";
 			if(FileSystem.exists(srcDir)) {
 				if(!copyImgDir && !config.noPrompt) {
 					//copyImgDir = system.Terminal.promptYesNo("Install the images directory from the template?", true);
 				}
 			}
 			if(copyImgDir) {
-				// cp -R srcDir config.baseDirectory
+				// cp -R srcDir config.output
 			}
 		}
 		*/
 
 		if(config.installImagesDir) {
 			Utils.createOutputDirectory(targetImgDir);
-			var srcDir = config.temploBaseDir + "images";
+			var srcDir = config.templatesDir + config.template + "/images";
 			if(FileSystem.exists(srcDir) && FileSystem.isDirectory(srcDir)) {
 				targetImgDir += "/";
 				var entries = FileSystem.readDirectory(srcDir);
@@ -571,35 +593,35 @@ class ChxDocMain {
 						continue;
 					if(config.verbose)
 						println("Installing " + p + " to " + targetImgDir);
-					neko.io.File.copy(p, targetImgDir + i);
+					File.copy(p, targetImgDir + i);
 				}
 			} else {
 				if(config.verbose)
-					logWarning("Template " + config.temploBaseDir + " has no 'images' directory");
+					logWarning("Template " + config.templatesDir + config.template + " has no 'images' directory");
 			}
 		}
 
 		if(config.installCssFile) {
-			var srcCssFile = config.temploBaseDir + "stylesheet.css";
+			var srcCssFile = config.templatesDir + config.template + "/stylesheet.css";
 			if(FileSystem.exists(srcCssFile)) {
-				var targetCssFile = config.baseDirectory + config.stylesheet;
+				var targetCssFile = config.output + config.stylesheet;
 				if(config.verbose)
 					println("Installing " + srcCssFile + " to " + targetCssFile);
-				neko.io.File.copy(srcCssFile, targetCssFile);
+				File.copy(srcCssFile, targetCssFile);
 			} else {
 				if(config.verbose)
-					logWarning("Template " + config.temploBaseDir + " has no stylesheet.css");
+					logWarning("Template " + config.templatesDir + config.template + " has no stylesheet.css");
 			}
 
-			var srcJsFile = config.temploBaseDir + "chxdoc.js";
+			var srcJsFile = config.templatesDir + config.template + "/chxdoc.js";
 			if(FileSystem.exists(srcJsFile)) {
-				var targetJsFile = config.baseDirectory + "chxdoc.js";
+				var targetJsFile = config.output + "chxdoc.js";
 				if(config.verbose)
 					println("Installing " + srcJsFile + " to " + targetJsFile);
-				neko.io.File.copy(srcJsFile, targetJsFile);
+				File.copy(srcJsFile, targetJsFile);
 			} else {
 				if(config.verbose)
-					logWarning("Template " + config.temploBaseDir + " has no chxdoc.js");
+					logWarning("Template " + config.templatesDir + config.template + " has no chxdoc.js");
 			}
 		}
 	}
@@ -608,26 +630,25 @@ class ChxDocMain {
 		Initializes Templo, exiting if there is any error.
 	**/
 	static function initTemplo() {
-		config.temploBaseDir = Utils.addSubdirTrailingSlash(config.temploBaseDir);
-		config.temploTmpDir = Utils.addSubdirTrailingSlash(config.temploTmpDir);
 
-		mtwin.templo.Loader.BASE_DIR = config.temploBaseDir;
-		mtwin.templo.Loader.TMP_DIR = config.temploTmpDir;
-		mtwin.templo.Loader.MACROS = config.temploMacros;
+		mtwin.templo.Loader.BASE_DIR =  Utils.addSubdirTrailingSlash(config.templatesDir + config.template);
+		mtwin.templo.Loader.TMP_DIR = Utils.addSubdirTrailingSlash(config.tmpDir);
+		mtwin.templo.Loader.MACROS = config.macros;
 
-		if(! neko.Web.isModNeko && ! writeWebConfig ) {
-			var tmf = config.temploBaseDir + config.temploMacros;
+		if(! Web.isModNeko && ! writeWebConfig ) {
+			var tmf =  Utils.addSubdirTrailingSlash(config.templatesDir + config.template) + config.macros;
 			if(!FileSystem.exists(tmf))
 				fatal("The macro file " + tmf + " does not exist.");
-			Utils.createOutputDirectory(config.temploTmpDir);
+			Utils.createOutputDirectory(config.tmpDir);
 		}
 	}
 
 	static function parseArgs() {
-		if( neko.Web.isModNeko ) {
+		#if neko
+		if( Web.isModNeko ) {
 			var data : String =
 				try
-					neko.io.File.getContent(neko.Web.getCwd()+webConfigFile)
+					File.getContent(Web.getCwd()+webConfigFile)
 				catch(e:Dynamic) {
 					fatal("There is no configuration data. Please create one with --writeWebConfig");
 					null;
@@ -642,110 +663,37 @@ class ChxDocMain {
 			config = cfg;
 			return;
 		}
-		var expectOutputDir = false;
-		var expectFilter = false;
+		#end
 
-		for( x in neko.Sys.args() ) {
-			if( x == "-f" )
-				expectFilter = true;
-			else if( expectFilter ) {
-				Utils.addFilter(x);
-				expectFilter = false;
-			}
-			else if( x == "-o")
-				expectOutputDir = true;
-			else if( expectOutputDir ) {
-				config.baseDirectory = x;
-				config.baseDirectory = StringTools.replace(config.baseDirectory,"\\", "/");
-				if(config.baseDirectory.charAt(0) != "/") {
-					config.baseDirectory = neko.Sys.getCwd() + config.baseDirectory;
-				}
-				expectOutputDir = false;
-			}
-			else if( x == "-v")
-				config.verbose = true;
-			else if( x == "--writeWebConfig")
-				writeWebConfig = true;
-			else if( x.indexOf("=") > 0) {
-				var parts = x.split("=");
-				if(parts.length < 2) {
-					fatal("Error with parameter " + x);
-				}
+		var args : Array<String> = Sys.args().copy();
+		var nextArg = function(errMsg:String):String {
+			if(args.length == 0)
+				throw Std.string(errMsg);
+			return args.shift();
+		};
+
+		while( args.length > 0) {
+			var arg = nextArg("fatal");
+			var r = ~/^\-\-([A-Za-z]+)=/;
+			if(r.match(arg)) {
+				var parts = arg.split("=");
 				if(parts.length > 2) {
 					var zero = parts.shift();
 					var rest = parts.join("=");
 					parts = [zero, rest];
 				}
-				switch(parts[0]) {
-				case "--developer":
-					var show = getBool(parts[1]);
-					config.showAuthorTags = show;
-					config.showPrivateClasses = show;
-					config.showPrivateTypedefs = show;
-					config.showPrivateEnums = show;
-					config.showPrivateMethods = show;
-					config.showPrivateVars = show;
-					config.showTodoTags = show;
-					config.generateTodo = show;
-				case "--exclude":
-					var opts = parts[1].split(",");
-					for(p in opts) {
-						p = StringTools.trim(p);
-						Utils.addFilter(p);
-					}
-				case "--footerText":
-					config.footerText = parts[1];
-				case "--footerTextFile":
-					try {
-						config.footerText = neko.io.File.getContent(parts[1]);
-					} catch(e : Dynamic) {
-						fatal("Unable to load footer file " + parts[1]);
-					}
-				case "--headerText":
-					config.headerText = parts[1];
-				case "--headerTextFile":
-					try {
-						config.headerText = neko.io.File.getContent(parts[1]);
-					} catch(e : Dynamic) {
-						fatal("Unable to load header file " + parts[1]);
-					}
-				case "--generateTodoFile":
-					config.generateTodo = getBool(parts[1]);
-				case "--ignoreRoot":
-					config.ignoreRoot = getBool( parts[1] );
-				case "--includeOnly":
-					var opts = parts[1].split(",");
-					for(p in opts) {
-						p = StringTools.trim(p);
-						Utils.addAllowOnly(p);
-					}
-				case "--installTemplate":
-					var i = getBool(parts[1]);
-					config.installImagesDir = i;
-					config.installCssFile = i;
-				case "--macroFile": config.temploMacros = parts[1];
-				case "--showAuthorTags": config.showAuthorTags = getBool(parts[1]);
-				case "--showPrivateClasses": config.showPrivateClasses = getBool(parts[1]);
-				case "--showPrivateTypedefs": config.showPrivateTypedefs = getBool(parts[1]);
-				case "--showPrivateEnums": config.showPrivateEnums = getBool(parts[1]);
-				case "--showPrivateMethods": config.showPrivateMethods = getBool(parts[1]);
-				case "--showPrivateVars": config.showPrivateVars = getBool(parts[1]);
-				case "--showTodoTags": config.showTodoTags = getBool(parts[1]);
-				case "--stylesheet": config.stylesheet = parts[1];
-				case "--subtitle": config.subtitle = parts[1];
-				case "--templateDir", "--template": config.temploBaseDir = parts[1];
-				case "--title": config.title = parts[1];
-				case "--tmpDir": config.temploTmpDir = parts[1];
-				case "--webPassword": config.webPassword = parts[1];
-				case "--writeWebConfig": writeWebConfig = getBool(parts[1]);
-				case "--xmlBasePath": config.xmlBasePath = parts[1];
+				if(parts[1].charAt(0) == "\"") {
+					parts[1] = parts[1].substr(1);
+					if(parts[1].charAt(parts[1].length-1) == "\"")
+						parts[1] = parts[1].substr(0, parts[1].length-1);
 				}
+				arg = parts[0];
+				args.unshift(parts[1]);
 			}
-			else if( x == "--help" || x == "-help")
-				usage(0);
-			else {
-				var f = x.split(",");
-				config.files.push({name:f[0], platform:f[1], remap:f[2]});
+			try {
+				handleArg(arg, nextArg, false);
+			} catch(e:String) {
+				fatal("Error parsing command line: " +e);
 			}
 		}
 
@@ -759,7 +707,18 @@ class ChxDocMain {
 			}
 		}
 
+		if(createConfig) {
+			Sys.println("Creating chxdocConfig.xml");
+			Setup.writeConfig("chxdocConfig.xml", true);
+			Sys.exit(0);
+		}
+		
+		if(config.htmlFileExtension == "")
+			config.htmlFileExtension = ".html";
+		if(config.htmlFileExtension.charAt(0) != ".")
+			config.htmlFileExtension = "." + config.htmlFileExtension;
 		config.todoFile = "todo" + config.htmlFileExtension;
+
 
 		if(	config.showPrivateClasses ||
 			config.showPrivateTypedefs ||
@@ -767,8 +726,195 @@ class ChxDocMain {
 			config.showPrivateMethods ||
 			config.showPrivateVars)
 				config.developer = true;
+	}
 
-
+	public static function handleArg(arg:String, nextArg:String->String, isXml:Bool) {
+		var boolErr = function(s) { return "Expected true or false for --" + s; };
+		var pathErr = function(s) { return "Expected path for --" +  s; };
+		var fileErr = function(s) { return "Expected file name for --" + s; };
+		var textErr = function(s) { return "Expected text for --" + s; };
+		var dir = function(s) { return Utils.addSubdirTrailingSlash(s); };
+		switch(arg) {
+			case "--allow":
+				var opts = nextArg("Expected list for --allow").split(",");
+				for(p in opts) {
+					p = StringTools.trim(p);
+					Setup.addFilter(p, ALLOW);
+				}
+			case "--config":
+				Setup.loadConfigFile(nextArg(fileErr("config")));
+			case "--createConfig":
+				createConfig = true;
+			case "--dateLong":
+				config.dateLong = nextArg("Expected date format for --dateLong");
+				Setup.writeVal("dateLong", config.dateLong);
+			case "--dateShort":
+				config.dateShort = nextArg("Expected date format for --dateShort");
+				Setup.writeVal("dateShort", config.dateShort);
+			case "--deny":
+				var opts = nextArg("Expected list for --deny").split(",");
+				for(p in opts) {
+					p = StringTools.trim(p);
+					Setup.addFilter(p, DENY);
+				}
+			case "--developer":
+				var show = getBool(nextArg(boolErr("developer")));
+				config.showAuthorTags = show;
+				config.showMeta = show;
+				config.showPrivateClasses = show;
+				config.showPrivateTypedefs = show;
+				config.showPrivateEnums = show;
+				config.showPrivateMethods = show;
+				config.showPrivateVars = show;
+				config.showTodoTags = show;
+				config.generateTodo = show;
+				Setup.writeVal("showAuthorTags", config.showAuthorTags);
+				Setup.writeVal("showMeta", config.showMeta);
+				Setup.writeVal("showPrivateClasses", config.showPrivateClasses);
+				Setup.writeVal("showPrivateTypedefs", config.showPrivateTypedefs);
+				Setup.writeVal("showPrivateEnums", config.showPrivateEnums);
+				Setup.writeVal("showPrivateMethods", config.showPrivateMethods);
+				Setup.writeVal("showPrivateVars", config.showPrivateVars);
+				Setup.writeVal("showTodoTags", config.showTodoTags);
+				Setup.writeVal("generateTodo", config.generateTodo);
+			case "-f", "--file":
+				var f = nextArg("Xml file specification expected").split(",");
+				//config.files.push({name:f[0], platform:f[1], remap:f[2]});
+				Setup.addTarget(f[0], f[1], f[2]);
+			case "--footerText":
+				config.footerText = nextArg(textErr("footerText"));
+				Setup.writeVal("footerText", config.footerText);
+			case "--footerTextFile":
+				var file = nextArg(fileErr("footerTextFile"));
+				try {
+					if(file != "") {
+						Setup.deleteVal("footerText");
+						Setup.writeVal("footerTextFile", file);
+						config.footerText = File.getContent(file);
+					}
+				} catch(e : Dynamic) {
+					fatal("Unable to load footer file " + file);
+				}
+			case "--generateTodo":
+				config.generateTodo = getBool(nextArg(boolErr("generateTodo")));
+				Setup.writeVal("generateTodo", config.generateTodo);
+			case "--headerText":
+				config.headerText = nextArg(textErr("headerText"));
+				Setup.writeVal("headerText", config.headerText);
+			case "--headerTextFile":
+				var file = nextArg(fileErr("headerTextFile"));
+				try {
+					if(file != "") {
+						Setup.deleteVal("headerText");
+						Setup.writeVal("headerTextFile", file);
+						config.headerText = File.getContent(file);
+					}
+				} catch(e : Dynamic) {
+					fatal("Unable to load header file " + file);
+				}
+			case "--help","-help":
+				usage(0);
+			case "--htmlFileExtension":
+				config.htmlFileExtension = nextArg("Expected file extension for html files");
+				Setup.writeVal("htmlFileExtension", config.htmlFileExtension);
+			case "--ignoreRoot":
+				config.ignoreRoot = getBool(nextArg(boolErr("ignoreRoot")));
+				Setup.writeVal("ignoreRoot", config.ignoreRoot);
+			case "--installCssFile":
+				config.installImagesDir = getBool(nextArg(boolErr("installCssFile")));
+				Setup.writeVal("installCssFile", config.installCssFile);
+			case "--installImagesDir":
+				config.installImagesDir = getBool(nextArg(boolErr("installImagesDir")));
+				Setup.writeVal("installImagesDir", config.installImagesDir);
+			case "--installTemplate":
+				var i = getBool(nextArg(boolErr("installTemplate")));
+				config.installImagesDir = i;
+				config.installCssFile = i;
+				Setup.writeVal("installCssFile", config.installCssFile);
+				Setup.writeVal("installImagesDir", config.installImagesDir);
+			case "--macros":
+				config.macros = nextArg(fileErr("macros"));
+				Setup.writeVal("macros", config.macros);
+			case "--mergeMeta":
+				config.mergeMeta = getBool(nextArg(boolErr("mergeMeta")));
+				Setup.writeVal("mergeMeta", config.mergeMeta);
+			case "-o","--output":
+				config.output = nextArg("Expected output directory");
+				config.output = StringTools.replace(config.output,"\\", "/");
+				if(config.output.charAt(0) != "/") {
+					config.output = Sys.getCwd() + config.output;
+				}
+				config.output = dir(config.output);
+				Setup.writeVal("output", config.output);
+			case "--policy":
+				var policy = nextArg("Expected value for --policy");
+				var p = switch(policy.toLowerCase()) {
+					case "allow": ALLOW;
+					case "deny": DENY;
+					default: throw "Invalid default filter policy " + policy;
+				}
+				Setup.setFilterPolicy(p);
+			case "--showAuthorTags":
+				config.showAuthorTags = getBool(nextArg(boolErr("showAuthorTags")));
+				Setup.writeVal("showAuthorTags", config.showAuthorTags);
+			case "--showMeta":
+				config.showMeta = getBool(nextArg(boolErr("showMeta")));
+				Setup.writeVal("showMeta", config.showMeta);
+			case "--showPrivateClasses":
+				config.showPrivateClasses = getBool(nextArg(boolErr("showPrivateClasses")));
+				Setup.writeVal("showPrivateClasses", config.showPrivateClasses);
+			case "--showPrivateTypedefs":
+				config.showPrivateTypedefs = getBool(nextArg(boolErr("showPrivateTypedefs")));
+				Setup.writeVal("showPrivateTypedefs", config.showPrivateTypedefs);
+			case "--showPrivateEnums":
+				config.showPrivateEnums = getBool(nextArg(boolErr("showPrivateEnums")));
+				Setup.writeVal("showPrivateEnums", config.showPrivateEnums);
+			case "--showPrivateMethods":
+				config.showPrivateMethods = getBool(nextArg(boolErr("showPrivateMethods")));
+				Setup.writeVal("showPrivateMethods", config.showPrivateMethods);
+			case "--showPrivateVars":
+				config.showPrivateVars = getBool(nextArg(boolErr("showPrivateVars")));
+				Setup.writeVal("showPrivateVars", config.showPrivateVars);
+			case "--showTodoTags":
+				config.showTodoTags = getBool(nextArg(boolErr("showTodoTags")));
+				Setup.writeVal("showTodoTags", config.showTodoTags);
+			case "--stylesheet":
+				config.stylesheet = nextArg(fileErr("stylesheet"));
+				Setup.writeVal("stylesheet", config.stylesheet);
+			case "--subtitle":
+				config.subtitle = nextArg(textErr("subtitle"));
+				Setup.writeVal("subtitle", config.subtitle);
+			case "--templatesDir":
+				config.templatesDir = dir(nextArg(pathErr("templatesDir")));
+				Setup.writeVal("templatesDir", config.templatesDir);
+			case "--template":
+				config.template = nextArg(pathErr("template"));
+				Setup.writeVal("template", config.template);
+				if(config.template.charAt(config.template.length-1) != "/")
+					config.template = config.template + "/";
+			case "--title":
+				config.title = nextArg(textErr("title"));
+				Setup.writeVal("title", config.title);
+			case "--tmpDir":
+				config.tmpDir = dir(nextArg(pathErr("tmpDir")));
+				Setup.writeVal("tmpDir", config.tmpDir);
+			case "-v":
+				config.verbose = true;
+				Setup.writeVal("verbose", config.verbose);
+			case "--verbose":
+				config.verbose = getBool(nextArg(boolErr("verbose")));
+				Setup.writeVal("verbose", config.verbose);
+			case "--webPassword":
+				config.webPassword = nextArg(textErr("webPassword"));
+				Setup.writeVal("webPassword", config.webPassword);
+			case "--writeWebConfig":
+				writeWebConfig = true;
+			case "--xmlBasePath":
+				config.xmlBasePath = dir(nextArg(pathErr("xmlBasePath")));
+				Setup.writeVal("xmlBasePath", config.xmlBasePath);
+			default:
+				throw "Unknown option '" + arg + "'";
+		}
 	}
 
 	static function getBool(s : String) : Bool {
@@ -780,18 +926,31 @@ class ChxDocMain {
 	static function usage(exitVal : Int) {
 		println(" Usage : chxdoc [options] [xml files]");
 		println(" Options:");
-		println("\t-f filter Add a package or class filter");
-		println("\t-o outputdir Sets the output directory (defaults to ./html)");
+		println("\t--allow=[class[,orPkg[,Paths]]] Allow rule for filter chain");
+		println("\t--config=[xmlfile] Load config file (can be multiple)");
+		println("\t--createConfig Will write a default xml config file named chxdocConfig.xml and exit");
+		println("\t--dateLong=\"[format]\" Format for long dates");
+		println("\t--dateShort=\"[format]\" Format for short dates");
+		println("\t--deny=[class[,orPkg[,Paths]]] Deny rule for filter chain");
 		println("\t--developer=[true|false] Shortcut to showing all privates, if true");
+		println("\t-f, --file=name,platform,remap Input xml files. See below");
 		println("\t--footerText=\"text\" Text that will be added to footer of Type pages");
 		println("\t--footerTextFile=/path/to/file Type pages footer text from file");
+		println("\t--generateTodoFile=[true|false] Generate the todo.html file");
 		println("\t--headerText=\"text\" Text that will be added to header of Type pages");
 		println("\t--headerTextFile=/path/to/file Type pages header text from file");
-		println("\t--generateTodoFile=[true|false] Generate the todo.html file");
+		println("\t--help This usage list");
+		println("\t--htmlFileExtension=html Extension for generated html files");
+		println("\t--ignoreRoot=[true|false] Toggle display of root classes");
+		println("\t--installCssFile=[true|false] Install stylesheet from template");
+		println("\t--installImagesDir=[true|false] Install images from template");
 		println("\t--installTemplate=[true|false] Install stylesheet and images from template");
-		println("\t--includeOnly=[comma delimited packages and classes] Output only for listed classes and packages");
-		println("\t--macroFile=file.mtt Temploc macro file. (default macros.mtt)");
+		println("\t--macros=file.mtt Temploc macro file. (default macros.mtt)");
+		println("\t--mergeMeta=[true|false] Merge metadata tags to @ tags for similar names");
+		println("\t-o, --output=outputdir Sets the output directory (defaults to ./docs)");
+		println("\t--policy=[allow|deny] Sets the default policy for the filter chain");
 		println("\t--showAuthorTags=[true|false] Toggles showing @author contents");
+		println("\t--showMeta=[true|false] Toggle showing metadata");
 		println("\t--showPrivateClasses=[true|false] Toggle private classes display");
 		println("\t--showPrivateTypedefs=[true|false] Toggle private typedef display");
 		println("\t--showPrivateEnums=[true|false] Toggle private enum display");
@@ -800,15 +959,15 @@ class ChxDocMain {
 		println("\t--showTodoTags=[true|false] Toggle showing @todo tags in type documentation");
 		println("\t--stylesheet=file Sets the stylesheet relative to the outputdir");
 		println("\t--subtitle=string Set the package subtitle");
-		println("\t--template=path Path to template (.mtt) directory (default ./templates)");
+		println("\t--template=name Template name relative to --templatesDir (default is 'default')");
+		println("\t--templatesDir=path Set the base directory for templates");
 		println("\t--title=string Set the package title");
-		println("\t--tmpDir=path Path for tempory file generation (default ./tmp)");
-		println("\t-v Turns on verbose mode");
+		println("\t--tmpDir=path Path for tempory file generation (default ./__chxdoctmp)");
+		println("\t-v,--verbose=[true|false] Turns on verbose mode");
 		println("\t--webPassword=[pass] Sets a web password for ?reload and ?showconfig");
 		println("\t--writeWebConfig Parses everything, serializes and outputs "+ webConfigFile);
 		println("\t--xmlBasePath=path Set a default path to xml files");
-		println("\t--exclude=[comma,delimited,pkgnames] Exclude packages from being generated");
-		println("\t--ignoreRoot=[true|false] Toggle display of root classes");
+		
 		println("");
 		println(" XML Files:");
 		println("\tinput.xml[,platform[,remap]");
@@ -816,15 +975,16 @@ class ChxDocMain {
 		println("\tplatform - generate docs for a given platform" );
 		println("\tremap - change all references of 'remap' to 'package'");
 		println("\n Sample usage:");
-		println("\tchxdoc flash9.xml,flash,flash9 php.xml,php");
+		println("\tchxdoc -f flash9.xml,flash,flash9 --file=php.xml,php");
 		println("\t\tWill transform all references to flash.* to flash9.*");
-		println("\tchxdoc -o Doc --includeOnly=mypackage.*,Int --developer=true --generateTodoFile=true --showTodoTags=true neko.xml,neko");
+		println("\tchxdoc -o Doc --includeOnly=mypackage.*,Int --developer=true --generateTodoFile=true --showTodoTags=true -f neko.xml,neko");
 		println("\t\tGenerates developer docs for mypackage.* and the Int class only, generating the TODO file as well as showing @todo\n\t\ttags in user docs. The output is built in the 'Doc' directory.");
 		println("");
-		if(! neko.Web.isModNeko )
-			neko.Sys.exit(exitVal);
-		else
+		#if neko
+		if(Web.isModNeko )
 			throw("");
+		#end
+		Sys.exit(exitVal);
 	}
 
 	static function loadXmlFiles() {
@@ -844,7 +1004,7 @@ class ChxDocMain {
 	static function loadFile(file : String, platform:String, ?remap:String) {
 		var data : String = null;
 		try {
-			data = neko.io.File.getContent(neko.Sys.getCwd()+file);
+			data = File.getContent(Sys.getCwd()+file);
 		} catch(e:Dynamic) {
 			fatal("Unable to load platform xml file " + file);
 		}
@@ -898,6 +1058,7 @@ class ChxDocMain {
 	**/
 	public static function logWarning(msg:String, ?pkg:PackageContext, ?ctx : Ctx, ?pos:haxe.PosInfos) {
 		if( !config.verbose ) return;
+		setDefaultPrinter();
 		if(pkg != null) {
 			msg += " in package " + pkg.full;
 		}
@@ -923,25 +1084,23 @@ class ChxDocMain {
 		if(exitVal == 0)
 			exitVal = 1;
 		println("FATAL: " + msg);
-		if(! neko.Web.isModNeko )
-			neko.Sys.exit(exitVal);
-		else
+		#if neko
+		if(Web.isModNeko )
 			throw "";
+		#end
+		Sys.exit(exitVal);
 	}
 
 	/**
 		Sets default print and println functions by platform
 	**/
 	static function setDefaultPrinter() {
-	#if neko
-		if( neko.Web.isModNeko )
-			println = function(v) { neko.Lib.print(v); neko.Lib.println("<BR />"); }
-		else
-			println = neko.Lib.println;
-		print = neko.Lib.print;
-	#else
-	#error
-	#end
+		println = Sys.println;
+		print = Sys.print;
+		#if neko
+		if( Web.isModNeko )
+			println = function(v) { Sys.print(v); Sys.println("<BR />"); }
+		#end
 	}
 
 	/**
@@ -961,9 +1120,9 @@ class ChxDocMain {
 		rv.push({ name: "Generated", value: config.dateLong});
 		for(i in [
 			"stylesheet",
-			"temploBaseDir",
-			"temploTmpDir",
-			"temploMacros",
+			"template",
+			"tmpDir",
+			"macros",
 			"xmlBasePath"
 			])
 			addCfg(i);

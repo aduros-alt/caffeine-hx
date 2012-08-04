@@ -105,7 +105,7 @@ class TypedefHandler extends TypeHandler<TypedefCtx> {
 		switch(t) {
 		case CAnonymous(fields): // fields == list<{t:CType, name:String}>
 			for( f in fields ) {
-				var field = createField(context, f.name, false, platforms, "");
+				var field = createField(context, f.name, false, platforms, "", null);
 				field.returns =  doStringBlock(
 						function() {
 							me.processType(f.t);
@@ -147,7 +147,7 @@ class TypedefHandler extends TypeHandler<TypedefCtx> {
 	**/
 	public function pass2(pkg : PackageContext, ctx : TypedefCtx) {
 		if(ctx.originalDoc != null)
-			ctx.docs = DocProcessor.process(pkg, ctx, ctx.originalDoc);
+			ctx.docs = DocProcessor.process(pkg, ctx, ctx.originalDoc, ctx.originalMeta);
 		else
 			ctx.docs = null;
 	}

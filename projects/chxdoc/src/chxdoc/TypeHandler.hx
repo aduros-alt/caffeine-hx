@@ -53,7 +53,7 @@ class TypeHandler<T> {
 	}
 
 	public dynamic function output(str) {
-		neko.Lib.print(str);
+		Sys.print(str);
 	}
 
 	public function write(str, ?params : Dynamic ) {
@@ -75,14 +75,14 @@ class TypeHandler<T> {
 	/**
 		Creates a new metaData entry, with one empty entry in keywords
 	**/
-	public static function newMetaData() {
-		var metaData = {
+	public static function newWebMetaData() {
+		var webMetaData = {
 			date : ChxDocMain.config.dateShort,
 			keywords : new Array<String>(),
 			stylesheet : ChxDocMain.baseRelPath + "../" + ChxDocMain.config.stylesheet,
 		};
-		metaData.keywords.push("");
-		return metaData;
+		webMetaData.keywords.push("");
+		return webMetaData;
 	}
 
 	function processType( t : CType ) {
@@ -167,7 +167,7 @@ class TypeHandler<T> {
 	}
 
 	function makePathUrl( path : Path, css ) {
-		if(Utils.isFiltered(path, false))
+		if(Filters.isFiltered(path, false))
 			return path;
 		var p = path.split(".");
 		var name = p.pop();
@@ -247,8 +247,9 @@ class TypeHandler<T> {
 			access			: (t.isPrivate ? "private" : "public"),
 			docs			: null,
 
-			meta			: newMetaData(),
+			webmeta			: newWebMetaData(),
 			originalDoc		: t.doc,
+			originalMeta	: t.meta,
 		}
 
 		if( t.params != null && t.params.length > 0 )
@@ -265,7 +266,7 @@ class TypeHandler<T> {
 		return c;
 	}
 
-	function createField(parentCtx : Ctx, name : String, isPrivate : Bool, platforms : List<String>, originalDoc : String) : FieldCtx {
+	function createField(parentCtx : Ctx, name : String, isPrivate : Bool, platforms : List<String>, originalDoc : String, originalMeta : Xml) : FieldCtx {
 		var c : FieldCtx = {
 			type			: "field",
 
@@ -287,9 +288,10 @@ class TypeHandler<T> {
 			access			: (isPrivate ? "private" : "public"),
 			docs			: null,
 
-			meta			: null,
+			webmeta			: null,
 
 			originalDoc		: originalDoc,
+			originalMeta	: originalMeta,
 
 			args			: "",
 			returns			: "",
@@ -316,7 +318,7 @@ class TypeHandler<T> {
 		Sets the default meta keywords for a context
 	**/
 	function resetMetaKeywords(ctx : Ctx) : Void {
-		ctx.meta.keywords[0] = ctx.nameDots + " " + ctx.type;
+		ctx.webmeta.keywords[0] = ctx.nameDots + " " + ctx.type;
 	}
 
 	/**
@@ -381,7 +383,7 @@ class TypeHandler<T> {
 		default:
 			throw ChxDocMain.fatal("Could not determing template type for " + ctx.type);
 		}
-// 		Reflect.setField(ctx, "meta", TypeHandler.newMetaData());
+// 		Reflect.setField(ctx, "webmeta", TypeHandler.newMetaData());
 		Reflect.setField(ctx, "build", ChxDocMain.buildData );
 		Reflect.setField(ctx, "config", ChxDocMain.config );
 		var t = new mtwin.templo.Loader(type + ".mtt");

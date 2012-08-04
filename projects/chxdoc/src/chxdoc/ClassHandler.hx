@@ -42,15 +42,15 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 
 
 	public function pass2(pkg : PackageContext, ctx : ClassCtx) {
-		ctx.docs = DocProcessor.process(pkg, ctx, ctx.originalDoc);
+		ctx.docs = DocProcessor.process(pkg, ctx, ctx.originalDoc, ctx.originalMeta);
 
 		if(ctx.constructor != null)
-			ctx.constructor.docs = DocProcessor.process(pkg, ctx.constructor, ctx.constructor.originalDoc);
+			ctx.constructor.docs = DocProcessor.process(pkg, ctx.constructor, ctx.constructor.originalDoc, ctx.constructor.originalMeta);
 		var me = this;
 
 		forAllFields(ctx,
 			function(f:FieldCtx) {
-				f.docs = DocProcessor.process(pkg, f, f.originalDoc);
+				f.docs = DocProcessor.process(pkg, f, f.originalDoc, f.originalMeta);
 				if(f.docs != null) {
 					if (f.docs.forcePrivate) {
 						if(f.isMethod && ChxDocMain.config.showPrivateMethods)
@@ -60,7 +60,6 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 						if (f.docs.forcePrivate)
 							f.isPrivate = true;
 					}
-
 				}
 			}
 		);
@@ -263,7 +262,8 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 			field.name,
 			field.isPrivate,
 			field.platforms,
-			field.originalDoc);
+			field.originalDoc,
+			field.originalMeta);
 
 		f.params = field.params;
 		f.docs = field.docs;
@@ -437,7 +437,7 @@ class ClassHandler extends TypeHandler<ClassCtx> {
 	function newClassFieldCtx(c : ClassCtx, f : ClassField, isStatic : Bool) : FieldCtx
 	{
 		var me = this;
-		var ctx : FieldCtx = createField(c, f.name, !f.isPublic, f.platforms, f.doc);
+		var ctx : FieldCtx = createField(c, f.name, !f.isPublic, f.platforms, f.doc, f.meta);
 		ctx.isStatic = isStatic;
 		ctx.isOverride = f.isOverride;
 

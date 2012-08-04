@@ -56,7 +56,7 @@ class PackageHandler extends TypeHandler<PackageContext> {
 			rootRelative		: new String(ChxDocMain.baseRelPath),
 			packageUri			: null,
 			types				: new Array(),
-			meta				: TypeHandler.newMetaData(),
+			webmeta				: TypeHandler.newWebMetaData(),
 		};
 		pkg.packageUri = "packages/" + Utils.makeRelativePackageLink(pkg) + "package" + config.htmlFileExtension;
 
@@ -126,7 +126,7 @@ class PackageHandler extends TypeHandler<PackageContext> {
 
 		var newTypes = new Array<Ctx>();
 		for(ctx in pkg.types) {
-			if(Utils.isFiltered(ctx.path, false))
+			if(Filters.isFiltered(ctx.path, false))
 				continue;
 			print(ctx.nameDots);
 			switch(ctx.type) {
@@ -167,7 +167,7 @@ class PackageHandler extends TypeHandler<PackageContext> {
 		}
 
 		for(ctx in pkg.types) {
-			//if(Utils.isFiltered(ctx.path, false))
+			//if(Filters.isFiltered(ctx.path, false))
 			//	continue;
 			switch(ctx.type) {
 			case "class", "interface":
@@ -197,7 +197,7 @@ class PackageHandler extends TypeHandler<PackageContext> {
 		var writeCtxHtml = function(ctx : Ctx, content: String) {
 			var path = makeCtxPath(ctx);
 			Utils.writeFileContents(path, content);
-			neko.Lib.print(".");
+			Sys.print(".");
 		}
 
 		var newTypes = new Array<Ctx>();
@@ -235,7 +235,7 @@ class PackageHandler extends TypeHandler<PackageContext> {
 
 	/** Returns true if the type is filtered **/
 	function isFilteredCtx(ctx : Ctx) : Bool {
-		if(Utils.isFiltered(ctx.path, false))
+		if(Filters.isFiltered(ctx.path, false))
 			return true;
 		var showFlag = switch(ctx.type) {
 		case "class", "interface": ChxDocMain.config.showPrivateClasses;
@@ -255,7 +255,7 @@ class PackageHandler extends TypeHandler<PackageContext> {
 	}
 
 	function isFilteredPackage(full : String) {
-		return Utils.isFiltered(full, true);
+		return Filters.isFiltered(full, true);
 	}
 
 	/**

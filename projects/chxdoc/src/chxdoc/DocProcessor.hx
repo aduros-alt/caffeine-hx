@@ -29,6 +29,7 @@ package chxdoc;
 
 import chxdoc.Defines;
 import chxdoc.Types;
+import haxe.xml.Fast;
 
 /**
 	<ul>
@@ -42,8 +43,10 @@ class DocProcessor {
 	var docCtx : DocsContext;
 	/** The original doc, unixified in constructor **/
 	var doc		: String;
+	/** The original meta string **/
+	var meta	: Xml;
 
-	private function new(pkg : PackageContext, ctx: Ctx, doc : String) {
+	private function new(pkg : PackageContext, ctx: Ctx, doc : String, meta : Xml) {
 		this.pkg = pkg;
 		this.ctx = ctx;
 		this.docCtx = {
@@ -52,6 +55,7 @@ class DocProcessor {
 			deprecated		: false,
 			deprecatedMsg 	: null,
 			params 			: new Array(),
+			meta			: new Array(),
 			requires		: new Array(),
 			returns 		: new Array(),
 			see				: new Array(),
@@ -62,20 +66,57 @@ class DocProcessor {
 			version			: new Array(),
 			forcePrivate	: false,
 		};
-		this.doc = doc.split("\r\n").join("\n").split("\r").join("\n");
+		if(doc != null)
+			this.doc = doc.split("\r\n").join("\n").split("\r").join("\n");
+		/*
+		<meta>
+			<m n="values">
+				<e>-1</e>
+				<e>100</e>
+			</m>
+		</meta>
+		*/
+		if(meta != null && ChxDocMain.config.showMeta) {
+			var fast = new Fast(Xml.parse(Std.string(meta)).firstElement());
+			for(m in fast.nodes.m) {
+				var res = { name : "", value : "" };
+				if(!m.has.n)
+					continue;
+				res.name = m.att.n;
+				var first = true;
+				for(e in m.nodes.e) {
+					if(first)
+						first = false;
+					else
+						res.value += ",";
+					res.value += e.innerData;
+				}
+				if(ChxDocMain.config.mergeMeta) {
+					
+					switch(res.name) {
+						case "author":
+							this.docCtx.authors.push(res.value);
+							continue;
+					}
+				}
+				docCtx.meta.push(res);
+			}
+		}
 	}
 
-	public static function process(pkg : PackageContext, ctx: Ctx, doc : String) : DocsContext
+	public static function process(pkg : PackageContext, ctx: Ctx, doc : String, meta : Xml) : DocsContext
 	{
-		if( doc == null || doc.length == 0)
+		if( (doc == null || doc.length == 0) && (meta == null || !ChxDocMain.config.showMeta) )
 			return null;
-		var p = new DocProcessor(pkg, ctx, doc);
+		var p = new DocProcessor(pkg, ctx, doc, meta);
 		return p.convert();
 	}
 
 	/**
 	**/
 	function convert() : DocsContext {
+		if(doc == null)
+			return docCtx;
 		// trim stars
 		doc = ~/^([ \t]*)\*+/gm.replace(doc, "$1");
 		doc = ~/\**[ \t]*$/gm.replace(doc, "");
@@ -109,9 +150,6 @@ class DocProcessor {
 		docCtx.typeParams.reverse();
 		return docCtx;
 	}
-
-
-
 
 	function doEmbeddedTags(s : String) : String {
 		//{@revision Date msg}

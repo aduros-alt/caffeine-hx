@@ -35,6 +35,12 @@ typedef Html = String;
 /** a dotted class path **/
 typedef DotPath = String; // a.b.c
 
+/** A value indicating the string value should contain a trailing slash **/
+typedef FILEPATH = String;
+
+/** A file name, without the path **/
+typedef FILENAME = String;
+
 /**
 	Links include the html escaped text and href, as well as the css type.
 **/
@@ -56,22 +62,27 @@ typedef Config = {
 	var docBuildDate		: Date;
 	var dateShort			: String; // YYYY-MM-DD
 	var dateLong			: String; // Web Feb 12 HH:MM:SS GMT 2008
+	var mergeMeta			: Bool; // merge similar metadata tags to regular tags 
 	var showAuthorTags		: Bool;
+	var showMeta			: Bool;
 	var showPrivateClasses	: Bool;
 	var showPrivateTypedefs	: Bool;
 	var showPrivateEnums	: Bool;
 	var showPrivateMethods	: Bool;
 	var showPrivateVars		: Bool;
 	var showTodoTags		: Bool;
-	var temploBaseDir		: String; // path
-	var temploTmpDir		: String; // path
-	var temploMacros		: String; // macros.mtt
+	/** base path to the directory with templates **/
+	var templatesDir		: FILEPATH;
+	/** relative path to template **/
+	var template			: String; // path
+	var tmpDir				: FILEPATH;
+	var macros				: FILENAME; // macros.mtt
 	var htmlFileExtension	: String; // .html
 	/** the stylesheet name, relative to baseDirectory **/
-	var stylesheet			: String; // stylesheet.css
-	var baseDirectory		: String; // /my/path/html/ (index.html, all_classes.html etc)
-	var packageDirectory	: String; // /my/path/packages/ (pkg/path/package.html)
-	var typeDirectory		: String; // /my/path/types/ (pkg/path/Class.html)
+	var stylesheet			: FILENAME; // stylesheet.css
+	var output				: FILEPATH; // /my/path/html/ (index.html, all_classes.html etc)
+	var packageDirectory	: FILEPATH; // /my/path/packages/ (pkg/path/package.html)
+	var typeDirectory		: FILEPATH; // /my/path/types/ (pkg/path/Class.html)
 
 	var noPrompt			: Bool; // turn off prommpting (not implemented)
 	var installImagesDir	: Bool;
@@ -95,7 +106,7 @@ typedef Config = {
 	////////////////////////////////////////
 	//// used primarily for web config /////
 	/** Base path to the xml files in files **/
-	var xmlBasePath			: String;
+	var xmlBasePath			: FILEPATH;
 	/** files to load **/
 	var files				: Array<{name:String, platform:String, remap:String}>;
 // 	var rendered			: Hash<String>; // rendered html by path
@@ -110,7 +121,7 @@ typedef BuildData = {
 	var comment : Html; // raw comment
 };
 
-typedef MetaData = {
+typedef WebMetaData = {
 	/**
 		Short date for <META NAME="date" CONTENT="2009-01-23">
 	**/
@@ -134,6 +145,7 @@ typedef DocsContext = {
 	/** Set to "" or a message if deprecated is true **/
 	var deprecatedMsg		: Html; // deprecation text
 	var params				: Array<{ arg : Html, desc : Html }>;
+	var meta				: Array<{ name : String, value : String }>;
 	var requires			: Array<Html>;
 	var returns				: Array<Html>;
 	var see					: Array<Html>;
@@ -160,7 +172,7 @@ typedef PackageContext = {
 	/** filesystem path to package files **/
 	var resolvedPackageDir	: String;
 
-	var meta				: MetaData;
+	var webmeta				: WebMetaData;
 	/**
 		These 2 exist only at the point the structure is passed to the
 		template generator
@@ -174,7 +186,7 @@ typedef PackageContext = {
 	index, overview, all_packages and all_classes generation.
 **/
 typedef IndexContext = {
-	var meta		: MetaData;
+	var webmeta		: WebMetaData;
 	var config		: Config;
 	var build		: BuildData;
 }

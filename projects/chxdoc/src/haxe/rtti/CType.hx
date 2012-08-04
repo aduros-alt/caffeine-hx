@@ -64,16 +64,19 @@ typedef ClassField = {
 	var set : Rights;
 	var params : TypeParams;
 	var platforms : Platforms;
+	var meta : Xml;
+	var line : Null<Int>;
 }
 
 typedef TypeInfos = {
 	var path : Path;
 	var module : Path;
+	var file : Null<String>;
 	var params : TypeParams;
 	var doc : String;
 	var isPrivate : Bool;
 	var platforms : Platforms;
-	var file : String;
+	var meta : Xml;
 }
 
 typedef Classdef = {> TypeInfos,

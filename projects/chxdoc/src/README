@@ -25,16 +25,10 @@ haxelib run chxdoc install [optional path]
 
 If the optional path parameter is omitted, chxdoc will be installed to the current directory.
 
-CHXDOC uses a modified version of temploc, the template compiler system by Nicolas Cannasse. A compiled
-copy is created when installing from haxelib.
+CHXDOC uses a modified version of temploc, the template compiler system by Nicolas Cannasse.
 
-For source code checkouts, there is a neko compiled chxtemploc.n in the ./utils/
-subdirectory. Simply run 'nekotools boot utils/chxtemploc.n' to generate the binary,
-which will be in the utils/ directory, named either "chxtemploc.exe" or "chxtemploc",
-depending on your platform.
-
-Install both the chxtemploc.exe and the chxdoc.exe file to somewhere on your executable
-path. The templates directory can be placed anywhere.
+Install the chxdoc.exe file to somewhere on your executable path. The templates directory
+can be placed anywhere, but chxdoc will read templates out of haxelib if it is installed there.
 
 
 = Usage =
@@ -49,8 +43,8 @@ parameters. This will generate the file that chxdoc requires.
 The most common usage of chxdoc would be something like:
 
 {{{
-chxdoc -o docs_dev --developer=true myproject.xml
-chxdoc -o docs --templateDir=templates/release myproject.xml
+chxdoc -o docs_dev --developer=true -f myproject.xml
+chxdoc -o docs --templateDir=templates/release -f myproject.xml
 }}}
 
 Two versions of the documentation would be created, one with all the private data
@@ -67,6 +61,14 @@ chxdoc -o docs --tmpDir=_chxdoctmp --templateDir=../chxdoc/templates/default --i
 }}}
 
 = Options =
+
+--config=[[xmlpath]]
+	Loads a chxdoc configuration file. This option can be specified multiple times,
+	allowing configuration overlays processed in the order on the command line. See
+	'createConfig'.
+
+--createConfig
+	This option writes a default chxdoc config file as chxdocConfig.xml.
 
 --developer=[true|false]
 	This tag is a shortcut to setting the following switches:
@@ -147,22 +149,55 @@ The current available tags, all of which except for @deprecated can be used mult
 	For generating TODO files and html notes
 
 @type Description
-	For adding descriptions for types (<T>)
+	For adding descriptions for anonymous types
 
 = Package and Type filtering =
 
-Filtering classes and packages is done using the -f switch, which will prevent
-paths matching the argument from having documentation generated.
+Filtering completely changed in chxdoc 1.2 to a more complete way of describing what
+exactly you need to generate documentation for.
 
-A class, enum or typedef named my.pack.MyClass can be specifically filtered by using
--f my.pack.MyClass
-To filter every class and subpackage in the package 'my.pack' use
--f my.pack
-So, if you apply
--f my
-All of my, including my.pack, and of course then my.pack.MyClass, will not show up in the
-generated documentation.
+Filtering is done with a series of rules that match either package paths or class paths. Each
+filter has a policy, which is either to "allow" or "deny" building of documentation for the path.
 
+In XML, the configuration looks like
+{{{
+<filters policy="allow">
+  <filter policy="deny" path="haxe.rtti.CType"/>
+  <filter policy="allow" path="sys.db.Mysql" />
+  <filter policy="deny" path="sys.db.*" />
+</filters>
+}}}
+
+Filters start with a default policy, which is seen in the top <filters> element. If the class path
+goes through all the <filter> entries without matching, the default policy is applied (which is
+'allow' in this example.)
+
+To create documentation for only a specific package... say chxdoc itself, it might look like this:
+
+{{{
+<filters policy="deny">
+  <filter policy="allow" path="chxdoc.*" />
+  <filter policy="allow" path="/" />
+</filters>
+}}}
+
+A special path "/" matches any package in the root (like Int or Array), so in addition to allowing
+classes in the chxdoc namespace, documentation for any root types used will be created.
+
+The filters are applied in the order they appear in the xml configuration, or on the command line.
+When using the --allow or --deny command line switches, the switch can take a list of values
+seperated by commas, so the above example could be written on the command line as
+
+{{{
+chxdoc --allow=chxdoc.*,/
+}}}
+
+Beware though, the command line args are still parsed left to right, so the first example would
+have to be written as
+
+{{{
+chxdoc --deny=haxe.rtti.CType --allow=sys.db.Mysql --deny=sys.db.*
+}}}
 
 = Planned =
 

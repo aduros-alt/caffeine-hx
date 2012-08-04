@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2009, The Caffeine-hx project contributors
+ * Copyright (c) 2008-2012, The Caffeine-hx project contributors
  * Original author : Russell Weir
  * Contributors:
  * All rights reserved.
@@ -31,10 +31,9 @@ import haxe.rtti.CType;
 import chxdoc.Defines;
 import chxdoc.Types;
 import sys.FileSystem;
+import sys.io.File;
 
 class Utils {
-	static var filters : List<String> = new List<String>();
-	static var allowedOnly : List<String> = new List<String>();
 
 	/**
 		Takes all items in arr and prefixes them with the
@@ -56,7 +55,7 @@ class Utils {
 // and any private types, which are
 // 		created in subdirectories with a leading underscore,, have
 // 		the underscore directory removed.
-	public static function normalizeTypeInfosPath(path : String) : String {
+	public static function normalizeTypeInfosPath(path : Path) : String {
 		if( path.substr(0,7) == "flash9." )
 			return "flash."+path.substr(7);
 		return path;
@@ -144,65 +143,9 @@ class Utils {
 		return "<a href=\"" + ChxDocMain.baseRelPath + url + ChxDocMain.config.htmlFileExtension + "\" class=\""+cssClass+"\">"+text+"</a>";
 	}
 
-	public static function makeTypeBaseRelPath(path : String) {
+	public static function makeTypeBaseRelPath(path : Path) {
 		var parts = path.split(".");
 
-	}
-
-	/////////////////////////////////////
-	//              FILTERS            //
-	/////////////////////////////////////
-	public static function addFilter(s : String) {
-		filters.add(s);
-	}
-
-	/**
-	* Sets a package or class name that may be allowed,
-	* filtering everything else
-	*
-	* @param s Class path (ie. mypackage.* or mypackage.MyClass)
-	*/
-	public static function addAllowOnly(s:String) : Void {
-		if(s==null || s.length == 0) return;
-		if(s.charAt(s.length-1) == "*")
-			s = s.substr(0, s.length-1);
-		if(s.indexOf(".") < 0) // a root type
-		{
-			allowedOnly.remove("root types.");
-			allowedOnly.add("root types.");
-		}
-		allowedOnly.add(s);
-	}
-
-	/**
-	* Checks if a package or class is filtered
-	**/
-	public static function isFiltered( path : Path, isPackage : Bool ) {
-		if( isPackage && path == "Remoting" )
-			return true;
-		if( StringTools.endsWith(path,"__") )
-			return true;
-		for( x in filters )
-			if( StringTools.startsWith(path,x) )
-				return true;
-		var ao = false;
-		if(isPackage)
-			path += ".";
-		for( x in allowedOnly ) {
-			ao = true;
-			if( x.charAt(x.length-1) == "." ) {
-				if( StringTools.startsWith(path,x) )
-					return false;
-			}
-			if( path == x ) {
-				return false;
-			}
-		}
-		// if there were any allowedOnly entries, anything
-		// else is filtered.
-		if(ao) return true;
-
-		return false;
 	}
 
 	public static function writeFileContents(filePath:String, contents: String) {
@@ -258,6 +201,66 @@ class Utils {
 			throw "Output path " + dir + " is not a directory.";
 	}
 
+	/**
+	 * Determines the user's home path
+	 * @return Path with trailing slash, or null if directory does not exist
+	 **/
+	public static function getHomeDir() {
+		var home = "";
+		var env = Sys.environment();
+		if (env.exists ("HOME"))
+			home = env.get("HOME");
+		else if (env.exists("USERPROFILE"))
+			home = env.get("USERPROFILE");
+		else if (env.exists("HOMEDRIVE"))
+			home = Sys.getEnv("HOMEDRIVE") + Sys.getEnv("HOMEPATH");
+		else
+			return null;
+		if(FileSystem.exists(home) && FileSystem.isDirectory(home))
+			return addSubdirTrailingSlash(home);
+		return null;
+	}
+	
+	/**
+	 * Get the base path of haxelib
+	 * @return Path with trailing slash
+	 * @throws Strings when directory can not be determined
+	 **/
+	public static function getHaxelib() {
+		var win = Sys.systemName() == "Windows";
+		var haxepath = Sys.getEnv("HAXEPATH");
+		if( haxepath != null ) {
+			var last = haxepath.charAt(haxepath.length - 1);
+			if( last != "/" && last != "\\" )
+				haxepath += "/";
+		}
+		var config_file;
+		if( win )
+			config_file = Sys.getEnv("HOMEDRIVE") + Sys.getEnv("HOMEPATH");
+		else
+			config_file = Sys.getEnv("HOME");
+		config_file += "/.haxelib";
+		var rep = try
+			File.getContent(config_file)
+		catch( e : Dynamic ) try
+			File.getContent("/etc/.haxelib")
+		catch( e : Dynamic ) {
+			if( win ) {
+				// Windows has a default directory (no need for setup)
+				if( haxepath == null )
+					throw "HAXEPATH environment variable not defined";
+				var rep = haxepath+"lib";
+				if(!FileSystem.isDirectory(rep))
+					throw "The directory '"+rep+"' defined by HAXEPATH does not exist";
+				return rep+"\\";
+			}
+			throw "Haxelib setup must be run first";
+		}
+		rep = StringTools.trim(rep);
+		if( !FileSystem.exists(rep) )
+			throw "haxelib repository "+rep+" does not exist.";
+		return rep+"/";
+	}
 	/**
 	* Translates html special characters for links etc.
 	* <ul>

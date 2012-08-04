@@ -66,7 +66,7 @@ typedef Ctx = {
 	var access				: String;		// 'public' or 'private'
 	var docs				: DocsContext;
 
-	var meta				: MetaData;
+	var webmeta				: WebMetaData;
 	/**
 		These 2 exist only at the point the structure is passed to the
 		template generator
@@ -75,6 +75,7 @@ typedef Ctx = {
 	**/
 
 	var originalDoc			: String;
+	var originalMeta		: Xml;
 }
 
 /**
@@ -118,7 +119,7 @@ typedef FieldCtx = {
 
 
 typedef EnumCtx = {
-	>Ctx,
+	> Ctx,
 	/**	Only uses the [platforms], [name], [args] and [docs] fields of the FieldCtx **/
 	var constructorInfo		: Array<FieldCtx>; // only
 };
@@ -127,7 +128,7 @@ typedef EnumCtx = {
 	A parent TypedefCtx does not contain valid [alias] or [fields] values. Each member of the [contexts] array will either have [alias] or [fields] set
 **/
 typedef TypedefCtx = {
-	>Ctx,
+	> Ctx,
 	/** true if an alias, false if typedef **/
 	var isAlias				: Bool;
 	/** Html content for aliases, or null if child is a typedef **/
