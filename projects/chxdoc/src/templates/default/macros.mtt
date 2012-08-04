@@ -84,7 +84,17 @@
 					<dd>::raw i::</dd>
 					::end::
 				::end::
+				<!-- meta -->
+				::if m.docs.meta.length != 0::
+					<dt>metadata</dt>
+					<dd><dl>
+					::foreach i m.docs.meta::
+					<dt>::i.name::</dt><dd>::i.value::</dd>
+					::end::
+					</dl></dd>
+				::end::
 			::end::
+
 			<!-- platforms -->
 			::if m.platforms != null::
 				::if m.platforms.length != 0 && (platforms == null || platforms.length > m.platforms.length) ::
@@ -117,6 +127,19 @@
 				<dt>platforms</dt>
 				<dd>::foreach p m.platforms::::if !repeat.p.first::, ::end::::p::::end::</dd>
 			::end::
+			</dl>
+		::end::
+		<!-- meta -->
+		::if m.docs != null && m.docs.meta.length != 0::
+			<dl>
+			<dt>metadata</dt>
+			<dd>
+				<dl>
+				::foreach i m.docs.meta::
+				<dt>::i.name::</dt><dd>::i.value::</dd>
+				::end::
+				</dl>
+			</dd>
 			</dl>
 		::end::
 		<!-- Comment block -->

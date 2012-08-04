@@ -3,11 +3,11 @@
 <head>
 	::raw build.comment::
 	<title>::name:: (::config.title::)</title>
-	<meta name="date" content="::meta.date::" />
-	::foreach kw meta.keywords::
+	<meta name="date" content="::webmeta.date::" />
+	::foreach kw webmeta.keywords::
 	<meta name="keywords" content="::kw::" />
 	::end::
-	<link rel="stylesheet" type="text/css" href="::meta.stylesheet::" />
+	<link rel="stylesheet" type="text/css" href="::webmeta.stylesheet::" />
 <script type="text/javascript">
 function windowTitle()
 {
@@ -52,6 +52,14 @@ function windowTitle()
 	::if platforms.length > 0::
 		<dt>available in</dt>
 		<dd>::foreach p platforms::::if !repeat.p.first::, ::end::::p::::end::</dd>
+	::end::
+	::if docs != null && docs.meta.length != 0::
+		<dt>metadata</dt>
+		<dd><dl>
+		::foreach i docs.meta::
+		<dt>::i.name::</dt><dd>::i.value::</dd>
+		::end::
+		</dl></dd>
 	::end::
 	</dl>
 
