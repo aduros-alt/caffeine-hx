@@ -68,14 +68,55 @@ class DocProcessor {
 		};
 		if(doc != null)
 			this.doc = doc.split("\r\n").join("\n").split("\r").join("\n");
-		/*
-		<meta>
-			<m n="values">
-				<e>-1</e>
-				<e>100</e>
-			</m>
-		</meta>
-		*/
+		this.meta = meta;
+	}
+
+	public static function process(pkg : PackageContext, ctx: Ctx, doc : String, meta : Xml) : DocsContext
+	{
+		if( (doc == null || doc.length == 0) && (meta == null || !ChxDocMain.config.showMeta) )
+			return null;
+		var p = new DocProcessor(pkg, ctx, doc, meta);
+		return p.convert();
+	}
+
+	/**
+	**/
+	function convert() : DocsContext {
+		if(doc != null) {
+			// trim stars
+			doc = ~/^([ \t]*)\*+/gm.replace(doc, "$1");
+			doc = ~/\**[ \t]*$/gm.replace(doc, "");
+
+			var parts = doTags(doc.split("\n"));
+
+			var ch = doCodeBlockShortcut(parts.join("\n"));
+
+			// separate into paragraphs
+			parts = ~/\n[ \t]*\n/g.split(ch.parsed);
+			if( parts.length == 1 )
+				doc = parts[0];
+			else
+				doc = Lambda.map(parts,function(x) { return "<p>"+StringTools.trim(x)+"</p>"; }).join("\n");
+
+			// put back code parts
+			var i = 0;
+			for( c in ch.codeBlocks )
+				ch.parsed = ch.parsed.split("##__code__"+(i++)+"##").join(c);
+			docCtx.comments = ch.parsed;
+
+			// since tags are parsed bottom->up, we will reverse all the
+			// arrays just so docs reflect the same order
+			docCtx.authors.reverse();
+			docCtx.params.reverse();
+			docCtx.requires.reverse();
+			docCtx.returns.reverse();
+			docCtx.see.reverse();
+			docCtx.throws.reverse();
+			docCtx.todos.reverse();
+			docCtx.typeParams.reverse();
+		}
+
+		/// <meta><m n="values"><e>-1</e><e>100</e></m></meta>
 		if(meta != null && ChxDocMain.config.showMeta) {
 			var fast = new Fast(Xml.parse(Std.string(meta)).firstElement());
 			for(m in fast.nodes.m) {
@@ -91,63 +132,60 @@ class DocProcessor {
 						res.value += ",";
 					res.value += e.innerData;
 				}
+				var recognized = false;
+				// merge metadata with same names as doc tags
 				if(ChxDocMain.config.mergeMeta) {
-					
+					recognized = true;
 					switch(res.name) {
 						case "author":
-							this.docCtx.authors.push(res.value);
+							docCtx.authors.push(doEmbeddedTags(res.value));
 							continue;
+						case "deprecated":
+							docCtx.deprecated = true;
+							if(docCtx.deprecatedMsg == null)
+								docCtx.deprecatedMsg = doEmbeddedTags(res.value);
+							else if(docCtx.deprecatedMsg != res.value)
+								docCtx.deprecatedMsg += " " + doEmbeddedTags(res.value);
+						//case "param":
+						case "requires":
+							docCtx.requires.push(doEmbeddedTags(res.value));
+						case "return", "returns":
+							docCtx.returns.push(doEmbeddedTags(res.value));
+						case "see":
+							docCtx.see.push(doEmbeddedTags(res.value));
+						case "since":
+							docCtx.since.push(doEmbeddedTags(res.value));
+						case "throw", "throws":
+							var p = res.value.split(" ");
+							var e = p.shift();
+							docCtx.throws.push( {
+								name : e,
+								uri : pkg.rootRelative + (StringTools.replace(e,".","/")) + ChxDocMain.config.htmlFileExtension,
+								desc : doEmbeddedTags(p.join(" ")),
+							});
+						case "private":
+							docCtx.forcePrivate = true;
+						case "todo":
+							var msg = doEmbeddedTags(res.value);
+							ChxDocMain.registerTodo(pkg, ctx, msg);
+							if(ChxDocMain.config.showTodoTags)
+								docCtx.todos.push(msg);
+						case "type":
+							var p = res.value.split(" ");
+							docCtx.typeParams.push({
+								arg : p.shift(),
+								desc : doEmbeddedTags(p.join(" "))
+							});
+						case "version":
+							docCtx.version.push(doEmbeddedTags(res.value));
+						default:
+							recognized = false;
 					}
 				}
-				docCtx.meta.push(res);
+				if(!recognized)
+					docCtx.meta.push(res);
 			}
 		}
-	}
-
-	public static function process(pkg : PackageContext, ctx: Ctx, doc : String, meta : Xml) : DocsContext
-	{
-		if( (doc == null || doc.length == 0) && (meta == null || !ChxDocMain.config.showMeta) )
-			return null;
-		var p = new DocProcessor(pkg, ctx, doc, meta);
-		return p.convert();
-	}
-
-	/**
-	**/
-	function convert() : DocsContext {
-		if(doc == null)
-			return docCtx;
-		// trim stars
-		doc = ~/^([ \t]*)\*+/gm.replace(doc, "$1");
-		doc = ~/\**[ \t]*$/gm.replace(doc, "");
-
-		var parts = doTags(doc.split("\n"));
-
-		var ch = doCodeBlockShortcut(parts.join("\n"));
-
-		// separate into paragraphs
-		parts = ~/\n[ \t]*\n/g.split(ch.parsed);
-		if( parts.length == 1 )
-			doc = parts[0];
-		else
-			doc = Lambda.map(parts,function(x) { return "<p>"+StringTools.trim(x)+"</p>"; }).join("\n");
-
-		// put back code parts
-		var i = 0;
-		for( c in ch.codeBlocks )
-			ch.parsed = ch.parsed.split("##__code__"+(i++)+"##").join(c);
-		docCtx.comments = ch.parsed;
-
-		// since tags are parsed bottom->up, we will reverse all the
-		// arrays just so docs reflect the same order
-		docCtx.authors.reverse();
-		docCtx.params.reverse();
-		docCtx.requires.reverse();
-		docCtx.returns.reverse();
-		docCtx.see.reverse();
-		docCtx.throws.reverse();
-		docCtx.todos.reverse();
-		docCtx.typeParams.reverse();
 		return docCtx;
 	}
 
