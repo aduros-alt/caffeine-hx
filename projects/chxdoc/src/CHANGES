@@ -24,6 +24,7 @@ Targets:
 	- Added --mergeMeta which takes any haxe metadata tag that has a simalr name, and adds it to the
 		the regular tags. Basically this makes @author("Russell Weir") function blah() {} the same
 		as the "/** @author Russell Weir */" style.
+	- --ignoreRoot removed. Use the --deny=/ syntax.
 
 1.1.4
 	- Haxe 2.10 compatibility
