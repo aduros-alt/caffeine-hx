@@ -17,6 +17,7 @@ Targets:
 	- --file added, no longer will command line blindly accept flash.xml,flash,remap syntax
 	- -f which was for 'filter' was redundant syntax for --exclude. Both removed.
 	- -f changed to shortcut for --file
+	- --includeOnly removed for new filtering
 	- New filtering engine created
 	- Added --allow and --deny for filtering
 	- Changed --generateTodoFile to --generateTodo

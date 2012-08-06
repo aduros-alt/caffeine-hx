@@ -122,7 +122,6 @@ class ChxDocMain {
 	public static var writeWebConfig	: Bool		= false;
 	static var createConfig				: Bool		= false;
 
-
 	//////////////////////////////////////////////
 	//               Pass 1                     //
 	//////////////////////////////////////////////
@@ -726,6 +725,9 @@ class ChxDocMain {
 			config.showPrivateMethods ||
 			config.showPrivateVars)
 				config.developer = true;
+
+		if( Filters.isFiltered("/", false) )
+			config.ignoreRoot = true;
 	}
 
 	public static function handleArg(arg:String, nextArg:String->String, isXml:Bool) {
@@ -744,6 +746,8 @@ class ChxDocMain {
 			case "--config":
 				Setup.loadConfigFile(nextArg(fileErr("config")));
 			case "--createConfig":
+				if(isXml)
+					throw "createConfig is not permitted in xml files";
 				createConfig = true;
 			case "--dateLong":
 				config.dateLong = nextArg("Expected date format for --dateLong");
@@ -817,9 +821,6 @@ class ChxDocMain {
 			case "--htmlFileExtension":
 				config.htmlFileExtension = nextArg("Expected file extension for html files");
 				Setup.writeVal("htmlFileExtension", config.htmlFileExtension);
-			case "--ignoreRoot":
-				config.ignoreRoot = getBool(nextArg(boolErr("ignoreRoot")));
-				Setup.writeVal("ignoreRoot", config.ignoreRoot);
 			case "--installCssFile":
 				config.installImagesDir = getBool(nextArg(boolErr("installCssFile")));
 				Setup.writeVal("installCssFile", config.installCssFile);
@@ -941,7 +942,6 @@ class ChxDocMain {
 		println("\t--headerTextFile=/path/to/file Type pages header text from file");
 		println("\t--help This usage list");
 		println("\t--htmlFileExtension=html Extension for generated html files");
-		println("\t--ignoreRoot=[true|false] Toggle display of root classes");
 		println("\t--installCssFile=[true|false] Install stylesheet from template");
 		println("\t--installImagesDir=[true|false] Install images from template");
 		println("\t--installTemplate=[true|false] Install stylesheet and images from template");
@@ -973,7 +973,7 @@ class ChxDocMain {
 		println("\tinput.xml[,platform[,remap]");
 		println("\tXml files are generated using the -xml option when compiling haxe projects. ");
 		println("\tplatform - generate docs for a given platform" );
-		println("\tremap - change all references of 'remap' to 'package'");
+		println("\tremap - change all references of 'remap' to 'platform'");
 		println("\n Sample usage:");
 		println("\tchxdoc -f flash9.xml,flash,flash9 --file=php.xml,php");
 		println("\t\tWill transform all references to flash.* to flash9.*");

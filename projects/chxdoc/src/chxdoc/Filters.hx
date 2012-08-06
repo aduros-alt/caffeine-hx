@@ -93,15 +93,15 @@ class Filters {
 	* @todo What were the paths ending with "__"?
 	**/
 	public static function isFiltered( path : String, isPackage : Bool ) {
-		if(isPackage) {
-			if(path.charAt(path.length-1) != ".")
-				path += ".";
-		}
 		if( isPackage && path == "Remoting" )
 			return true;
 		if( StringTools.endsWith(path,"__") )
 			return true;
 
+		if(isPackage) {
+			if(path.charAt(path.length-1) != ".")
+				path += ".";
+		}
 		for(r in rules) {
 			if(matches(path, r)) {
 				return switch(r.policy) {
@@ -121,7 +121,7 @@ class Filters {
 			return true;
 		// "root types" is set on pass1 in ChxDocMain and tested PackageHandler.pass4
 		// and used in the templates
-		if( rule.path == "/" && (path.indexOf(".") < 0 || StringTools.startsWith(path,"root types"))) {
+		if( rule.path == "/" && (path == "/" || path.indexOf(".") < 0 || StringTools.startsWith(path,"root types")) ) {
 			return true;
 		}
 		if( rule.path.charAt(rule.path.length-1) == "." ) {

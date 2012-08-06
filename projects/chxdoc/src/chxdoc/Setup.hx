@@ -265,7 +265,6 @@ class Setup {
 		setVal("dateShort", "%Y-%m-%d");
 		setVal("dateLong", "%a %b %d %H:%M:%S %Z %Y");
 
-		setVal("ignoreRoot", false);
 		setVal("developer", false);
 		setVal("showAuthorTags", false);
 		setVal("showMeta",true);
@@ -336,7 +335,6 @@ class Setup {
 		setval("footerTextFile", c.footerTextFile, true);
 		setval("dateShort", c.dateShort, true);
 		setval("dateLong", c.dateLong, true);
-		setval("ignoreRoot", c.ignoreRoot, true);
 		setval("showAuthorTags", c.showAuthorTags, true);
 		setval("showPrivateClasses", c.showPrivateClasses, true);
 		setval("showPrivateTypedefs", c.showPrivateTypedefs, true);
@@ -597,8 +595,6 @@ class Setup {
 				mkc("Turns on all show* values, regardless of their value. Should come before any show* entries");
 			case "generateTodo":
 				mkc("Turn on todo generation. and file to output todo list to");
-			case "ignoreRoot":
-				mkc("Ignore classes in the root package");
 			case "htmlFileExtension":
 				mkc("File extension for html documentation files");
 			case "title":
