@@ -27,7 +27,6 @@ class Run {
 		case "compile":
 			compile();
 		case "install":
-			compile();
 			var p = args.shift();
 			if(p != null) {
 				installdir = makePath(p);
