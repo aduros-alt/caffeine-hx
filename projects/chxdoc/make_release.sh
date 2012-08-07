@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 VER=$(echo $1)
 DIR=chxdoc_$(echo $VER | sed 's/\./_/g')
 VERSION=$(echo $VER | sed 's/\./_/g')
@@ -33,33 +35,38 @@ prompt_continue "Building release for $DIR"
 make linux
 #make windows
 
+echo "Creating directories"
 mkdir -p chxdoc_release/Windows/$DIR
 mkdir -p chxdoc_release/Linux/$DIR
 
+echo "Installing src"
 cp -r src chxdoc_release/
-rm chxdoc_release/src/chxdoc/Settings.hx
-rm -r chxdoc_release/src/templates/ianxm
 
 #readme
+echo "Updating READMEs"
 sed 's/\n/\r\n/g' src/README > chxdoc_release/Windows/$DIR/README.txt
 cp src/README chxdoc_release/Linux/$DIR/
 
 #chxdoc
-mv chxdoc.exe bin/Windows/
-mv chxdoc bin/Linux/
-cp bin/Windows/chxdoc.exe chxdoc_release/Windows/$DIR/
-cp bin/Linux/chxdoc chxdoc_release/Linux/$DIR/
+echo "Installing windows binary"
+mv chxdoc.exe chxdoc_release/Windows/$DIR/ || {
+	echo "You did not run 'make windows' before release"
+	exit 1;
+}
+echo "Installing linux binary"
+mv chxdoc chxdoc_release/Linux/$DIR/
 
 
 #templates
+echo "Installing templates to binary distros"
 cp -R src/templates chxdoc_release/Windows/$DIR/
 cp -R src/templates chxdoc_release/Linux/$DIR/
 
 cd chxdoc_release
 
-#remove 'devel' template in chxdoc_release
-rm -Rf Linux/$DIR/templates/devel
-rm -Rf Windows/$DIR/templates/devel
+echo "Cleaning distribution"
+
+set +e
 
 #remove .svn directories in chxdoc_release
 find . -name ".svn" -exec rm -Rf {} \; 2>/dev/null
@@ -67,7 +74,10 @@ find . -name ".svn" -exec rm -Rf {} \; 2>/dev/null
 #remove tmp files in chxdoc_release
 find . -name "*~" -exec rm {} \;
 
+set -e
+
 #make the haxelib version
+echo "Creating haxelib tools"
 cd src/Tools
 haxe build.hxml
 cd ../
@@ -75,10 +85,12 @@ zip -r ../chxdoc_lib-${VERSION} *
 cd ..
 haxelib test chxdoc_lib-${VERSION}.zip
 
+echo "Packaging linux distribution"
 cd Linux
 tar -czf ${DIR}_linux.tgz $DIR
 mv ${DIR}_linux.tgz ../
 
+echo "Packaging windows distribution"
 cd ../Windows
 zip -rq $DIR $DIR
 mv ${DIR}.zip ../${DIR}_win.zip
