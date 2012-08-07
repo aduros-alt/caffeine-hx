@@ -1,6 +1,9 @@
 package chx.sys;
 
-class D {
+@since("2008") class D {
+
+	/** This is the comment for x, which has metadata 'values(-1,100)' **/
+	@values(-1,100) static var x : Int;
 
 	public static function myFunction<T>(parameter : T) : T {
 		return null;
@@ -14,7 +17,8 @@ class D {
 	}
 
 	/**
-	 * @author Russell
+	 * This is the documentation for meta1
+	 * @author Author tag value
 	 **/
 	@author("Russell") @debug public function meta1() {
 	}

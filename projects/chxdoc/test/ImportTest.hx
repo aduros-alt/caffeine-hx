@@ -1,5 +1,6 @@
 #if neko
 import chx.net.TcpSocket;
+import sys.db.Mysql;
 #end
 
 #if flash9
