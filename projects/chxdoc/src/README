@@ -203,7 +203,10 @@ When using switches on the command line, the equals sign is optional, but is sho
 	Template name relative to --templatesDir (default is 'default')
 
 --templatesDir=path
-	Set the base directory for templates
+	Set the base directory for templates. Two special variables are allow in the path.
+	%HAXELIB% is replaced with the base path of the haxelib repository. %HAXELIBVER% is
+	replaced with the chxdoc version directory (ie "1,2,0"). A complete path to chxdoc
+	may look like "%HAXELIB%/chxdoc/%HAXELIBVER%/"
 
 --title=string
 	Set the package title

@@ -291,11 +291,11 @@ class Setup {
 		// if possible.
 		var tpl : String = null;
 		try {
-			tpl = Utils.getHaxelib() + "chxdoc/" + c.versionMajor+","+c.versionMinor+","+c.versionRevision;
-			tpl += "/templates/";
+			var hlv = c.versionMajor+","+c.versionMinor+","+c.versionRevision;
+			tpl = Utils.getHaxelib() + "chxdoc/" + hlv + "/templates/";
 			if(FileSystem.isDirectory(tpl)) {
 				if(FileSystem.isDirectory(tpl + "default")) {
-					setVal("templatesDir", tpl);
+					setVal("templatesDir", "%HAXELIB%/chxdoc/%HAXELIBVER%/templates");
 					setVal("template", "default");
 				}
 			}
@@ -323,41 +323,6 @@ class Setup {
 		//setVal("xmlBasePath",""); // in <files>
 		setVal("webPassword","");
 	}
-
-	/*
-	static function syncFromMain() {
-		var c = ChxDocMain.config;
-		setval("title", c.title, true);
-		setval("subtitle", c.subtitle, true);
-		setval("headerText", c.headerText, true);
-		setval("footerText", c.footerText, true);
-		setval("headerTextFile", c.headerTextFile, true);
-		setval("footerTextFile", c.footerTextFile, true);
-		setval("dateShort", c.dateShort, true);
-		setval("dateLong", c.dateLong, true);
-		setval("showAuthorTags", c.showAuthorTags, true);
-		setval("showPrivateClasses", c.showPrivateClasses, true);
-		setval("showPrivateTypedefs", c.showPrivateTypedefs, true);
-		setval("showPrivateEnums", c.showPrivateEnums, true);
-		setval("showPrivateMethods", c.showPrivateMethods, true);
-		setval("showPrivateVars", c.showPrivateVars, true);
-		setval("showTodoTags", c.showTodoTags, true);
-		setval("developer", c.developer, true);
-		setval("output", c.output, true);
-		setval("packageDirectory", c.packageDirectory, true);
-		setval("typeDirectory", c.typeDirectory, true);
-		setval("template", c.template, true);
-		setval("macros", c.macros, true);
-		setval("htmlFileExtension", c.htmlFileExtension, true);
-		setval("stylesheet", c.stylesheet, true);
-		setval("installImagesDir", c.installImagesDir, true);
-		setval("installCssFile", c.installCssFile, true);
-		setval("generateTodo", c.generateTodo, true);
-		setval("verbose", c.verbose, true);
-		setval("tmpDir", c.tmpDir, true);
-		setval("webPassword", c.webPassword, true);
-	}
-	*/
 
 	static function escape(val:Dynamic) {
 		var s = Std.string(val);

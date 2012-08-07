@@ -25,6 +25,7 @@ Targets:
 		the regular tags. Basically this makes @author("Russell Weir") function blah() {} the same
 		as the "/** @author Russell Weir */" style.
 	- --ignoreRoot removed. Use the --deny=/ syntax.
+	- Added %HAXELIB% and %HAXELIBVER% to template and templatesDir paths
 
 1.1.4
 	- Haxe 2.10 compatibility

@@ -47,7 +47,7 @@ class ChxDocMain {
 		versionMajor		: 1,
 		versionMinor		: 2,
 		versionRevision		: 0,
-		buildNumber			: 730,
+		buildNumber			: 748,
 		verbose				: false,
 		rootTypesPackage	: null,
 		allPackages			: new Array(),
@@ -719,6 +719,16 @@ class ChxDocMain {
 		config.todoFile = "todo" + config.htmlFileExtension;
 
 
+		var hlp = Utils.getHaxelib();
+		if(hlp != null) {
+			hlp = hlp.substr(0, hlp.length-1);
+			config.templatesDir = StringTools.replace(config.templatesDir, "%HAXELIB%", hlp);
+			config.template = StringTools.replace(config.template, "%HAXELIB%", hlp);
+		}
+		var hlv = config.versionMajor+","+config.versionMinor+","+config.versionRevision;
+		config.templatesDir = StringTools.replace(config.templatesDir, "%HAXELIBVER%", hlv);
+		config.template = StringTools.replace(config.template, "%HAXELIBVER%", hlv);
+		
 		if(	config.showPrivateClasses ||
 			config.showPrivateTypedefs ||
 			config.showPrivateEnums ||
@@ -977,7 +987,7 @@ class ChxDocMain {
 		println("\n Sample usage:");
 		println("\tchxdoc -f flash9.xml,flash,flash9 --file=php.xml,php");
 		println("\t\tWill transform all references to flash.* to flash9.*");
-		println("\tchxdoc -o Doc --includeOnly=mypackage.*,Int --developer=true --generateTodoFile=true --showTodoTags=true -f neko.xml,neko");
+		println("\tchxdoc -o Doc --policy=deny --allow=mypackage.*,Int --developer=true --generateTodoFile=true --showTodoTags=true -f neko.xml,neko");
 		println("\t\tGenerates developer docs for mypackage.* and the Int class only, generating the TODO file as well as showing @todo\n\t\ttags in user docs. The output is built in the 'Doc' directory.");
 		println("");
 		#if neko
