@@ -63,7 +63,11 @@ class RsaTest extends haxe.unit.TestCase {
 #end
 		var r = new haxe.unit.TestRunner();
 		r.add(new RsaTest());
-		r.run();
+		//r.run();
+
+		var r = new RSAEncrypt(RSAK1.modulus, RSAK1.publicExponent);
+		var rsa = new ModeECB( r, new PadPkcs5(r.blockSize) );
+		trace(rsa.encrypt(Bytes.ofString("message")).toHex());
 	}
 
 	function test0() {

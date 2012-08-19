@@ -2,7 +2,65 @@ import chx.formats.der.PEM;
 import chx.crypt.RSA;
 import chx.crypt.cert.X509Certificate;
 
-class Global {
+class X509 extends haxe.unit.TestCase {
+	static var cacert1 : X509Certificate = new X509Certificate(Certs.CaCertPem);
+	static var verisign: X509Certificate = new X509Certificate(Certs.Verisign);
+	static var thawte : X509Certificate = new X509Certificate(Certs.Thawte);
+	static function main()
+	{
+#if (FIREBUG && !neko)
+		if(haxe.Firebug.detect()) {
+			haxe.Firebug.redirectTraces();
+		}
+#end
+		//var x = new X509Certificate(Certs.Verisign);
+		//var x = new X509Certificate(Certs.Thawte);
+
+		//trace(cacert1.getCommonName());
+		trace(cacert1.getNotAfter());
+		//trace(cacert1.isSelfSigned());
+		//trace(cacert1.getSubjectPrincipal());
+
+		var r = new haxe.unit.TestRunner();
+		r.add(new X509());
+		r.run();
+	}
+
+	function testFingerprints() {
+		assertEquals("10:d8:62:e0:35:cf:4e:ec:c3:11:67:30:fd:85:fe:5f:ab:b9:e5:69",
+			cacert1.getFingerprint("sha1").toHex(":"));
+		assertEquals("95:08:77:3f:9b:28:03:51:f5:cd:a6:1c:db:92:cb:da",
+			cacert1.getFingerprint("md5").toHex(":"));
+		assertEquals("44:63:c5:31:d7:cc:c1:00:67:94:61:2b:b6:56:d3:bf:82:57:84:6f",
+			verisign.getFingerprint("sha1").toHex(":"));
+		assertEquals("74:7b:82:03:43:f0:00:9e:6b:b3:ec:47:bf:85:a5:93",
+			verisign.getFingerprint("md5").toHex(":"));
+		assertEquals("d2:32:09:ad:23:d3:14:23:21:74:e4:0d:7f:9d:62:13:97:86:63:3a",
+			thawte.getFingerprint("sha1").toHex(":"));
+		assertEquals("67:cb:9d:c0:13:24:8a:82:9b:b2:17:1e:d1:1b:ec:d4",
+			thawte.getFingerprint("md5").toHex(":"));
+	}
+
+	function testSigAlg() {
+		assertEquals("1.2.840.113549.1.1.5",cacert1.getAlgorithmIdentifier());
+		assertEquals("1.2.840.113549.1.1.5",thawte.getAlgorithmIdentifier());
+		assertEquals("1.2.840.113549.1.1.2",verisign.getAlgorithmIdentifier());
+	}
+
+	function testEmails() {
+		var a1 = cacert1.getEmails();
+		assertEquals(1, a1.length);
+		assertEquals("me@no.domain", a1[0]);
+		assertEquals(0, verisign.getEmails().length);
+		assertEquals(0,thawte.getEmails().length);
+	}
+
+	function testNotAfter() {
+		assertEquals("2013-03-05 09:32:14", cacert1.getNotAfter().toString());
+	}
+}
+
+class Certs {
 	static public var CaKeyPem : String =
 "-----BEGIN RSA PRIVATE KEY-----
 MIIBOgIBAAJBAN6RwYF1nImZNwa9Koa7d3liuIeO+HArxmxEN3p4HUg4kbDeob1C
@@ -75,32 +133,4 @@ aHbLc8LZXAQgd5I9CD4lUHTxWrWC/UQg0M7bkShCd7p/j0+Bz09qRoAmXsc=
 			"-----END CERTIFICATE-----";
 
 }
-
-//class TestPEM extends haxe.unit.TestCase {
-//}
-
-
-class X509 {
-	static function main()
-	{
-#if (FIREBUG && !neko)
-		if(haxe.Firebug.detect()) {
-			haxe.Firebug.redirectTraces();
-		}
-#end
-		//var x = new X509Certificate(Global.Verisign);
-		//var x = new X509Certificate(Global.Thawte);
-		var x = new X509Certificate(Global.CaCertPem);
-		trace(x.isSelfSigned());
-		trace(x.getSubjectPrincipal());
-		trace(x.getCommonName());
-/*
-		var r = new haxe.unit.TestRunner();
-		r.add(new TestPEM());
-		r.run();
-*/
-	}
-
-}
-
 

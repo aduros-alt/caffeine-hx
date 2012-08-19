@@ -85,6 +85,36 @@ class IVModeTest extends TestCase
 		aes_common(key, bits, new CFB(), iv, pt, ct);
 	}
 
+	public function testStepped() : Void {
+		trace("\n============== STEPPED CBC AES 128 ==========\n");
+		var key:Bytes = Bytes.ofHex("2b7e151628aed2a6abf7158809cf4f3c");
+		var iv:Bytes = Bytes.ofHex("000102030405060708090a0b0c0d0e0f");
+		var pt:Bytes = Bytes.ofHex("6bc1bee22e409f96e93d7e117393172a"+"ae2d8a571e03ac9c9eb76fac45af8e51");
+		var ct:Bytes = Bytes.ofHex("7649abac8119b246cee98e9b12e9197d"+"5086cb9b507219ee95db113a917678b2");
+
+		var p = new CipherParams();
+		p.iv = iv;
+		var cipher = new Cipher(new Aes(128,key), new CBC(), new PadNone());
+		cipher.init(ENCRYPT, p);
+		var out = new BytesOutput();
+		var num = cipher.update(pt, 0, 3, out);
+		assertEquals(3, num);
+		num = cipher.update(pt,3,2,out);
+		assertEquals(2, num);
+		num = cipher.update(pt,5, 13,out);
+		assertEquals(13, num);
+		num = cipher.final(pt, 18, pt.length-18, out);
+		assertEquals(14, num);
+		var crypted = out.getBytes();
+		assertEquals(ct.toHex(), crypted.toHex());
+
+		cipher.init(DECRYPT, p);
+		out = new BytesOutput();
+		num = cipher.final(crypted,0,crypted.length,out);
+		var decrypted = out.getBytes();
+		assertEquals(pt.toHex(), decrypted.toHex());
+	}
+
 	public function testCBC_AES128():Void {
 		trace("\n============== CBC AES 128 ==========\n");
 		var key:Bytes = Bytes.ofHex("2b7e151628aed2a6abf7158809cf4f3c");
