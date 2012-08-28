@@ -100,7 +100,7 @@ class CTR8 extends IVBase, implements chx.crypt.IMode {
 
 	private function common(b:Bytes, out:Output) : Int {
 		var n = b.length;
-		if(b.length != n)
+		if(n == 0)
 			return 0;
 
 		var e : Bytes = cipher.encryptBlock(currentIV);

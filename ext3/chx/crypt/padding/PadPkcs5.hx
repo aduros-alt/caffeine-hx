@@ -50,7 +50,7 @@ class PadPkcs5 extends PadBase, implements IPad {
 	}
 
 	override public function unpad( s : Bytes ) : Bytes {
-		if( s.length % blockSize != 0)
+		if( s.length % blockSize != 0 || s.length < blockSize)
 			throw "crypt.padpkcs5 unpad: buffer length "+s.length+" not multiple of block size " + blockSize;
 		var c : Int = s.get(s.length-1);
 		var i = c;

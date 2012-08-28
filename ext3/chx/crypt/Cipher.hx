@@ -28,6 +28,8 @@
 package chx.crypt;
 import chx.crypt.mode.IVBase;
 import chx.crypt.padding.PadPkcs5;
+import chx.lang.UnsupportedException;
+import chx.io.BytesOutput;
 import chx.io.Output;
 
 /**
@@ -37,30 +39,40 @@ import chx.io.Output;
  **/
 class Cipher {
 	public var params(default,null) : CipherParams;
-	var direction : CipherDirection;
-	var algo : IBlockCipher;
-	var mode : IMode;
-	var pad : IPad;
+	public var direction(default, null) : CipherDirection;
+	public var algo(default, null) : IBlockCipher;
+	public var mode(default, null) : IMode;
+	public var pad(default, null) : IPad;
+	public var blockSize(default,null) : Int;
+
+	var initialized : Bool;
 	var buf : Bytes;
+	var bufsize : Int;
 	var ptr : Int;
-	var blockSize : Int;
+	
 
 	var modeUpdate : Bytes->Output->Int;
 	var modeFinal : Bytes->Output->Int;
 
 	/**
 	 * Create a cipher from a decryption algorithm, a mode and a padding method.
+	 * @param algo Block cipher
+	 * @param mode Encryption mode (CBC, ECB etc.)
+	 * @param pad Padding for stream. If null, will default to PadPkcs5
+	 * @param initFunc if provided, will be called after construction with this Cipher as a parameter
 	 **/
-	public function new(algo:IBlockCipher, mode:IMode, pad:IPad) {
-		
+	public function new(algo:IBlockCipher, mode:IMode, pad:IPad=null, initFunc : Cipher->Void = null) {
+		if(pad == null)
+			pad = new PadPkcs5();
 		this.algo = algo;
 		this.mode = mode;
 		this.pad = pad;
 
-		if(pad == null)
-			this.pad = new PadPkcs5();
-		else
-			this.pad = pad;
+		mode.cipher = algo;
+		mode.padding = pad;
+		initialized = false;
+		if(initFunc != null)
+			initFunc(this);
 	}
 
 	/**
@@ -69,6 +81,7 @@ class Cipher {
 	 * @param params
 	 **/
 	public function init(direction:CipherDirection, params : CipherParams=null) : Void {
+		initialized = true;
 		this.direction = direction;
 		switch(direction) {
 		case ENCRYPT:
@@ -87,15 +100,16 @@ class Cipher {
 		mode.cipher = algo;
 		mode.padding = pad;
 
+		//algo.init(this.params);
+		mode.init(this.params);
+		//pad.init();
+
 		// streaming modes will have blocksizes less than that of the
 		// underlying crypt
 		this.blockSize = mode.blockSize;
-		buf = Bytes.alloc(this.blockSize);
+		this.bufsize = this.blockSize == 1 ? 1 : this.blockSize;
+		buf = Bytes.alloc(this.bufsize);
 		ptr = 0;
-		
-		//algo.init(params);
-		mode.init(params);
-		//pad.init();
 	}
 
 	/**
@@ -104,27 +118,43 @@ class Cipher {
 	 * @param inputOffset Offset into 'input' to read from
 	 * @param inputLen Number of bytes to read from 'input'
 	 * @param out An Output stream of any kind
+	 * @return The number of bytes consumed from 'input', which may be less than inputLen
 	 **/
 	public function update(input:Bytes, inputOffset:Int, inputLen:Int, out:Output) : Int {
+
 		if(inputLen <= 0)
 			return 0;
-		var rv = 0;
-		while(true) {
-			var num = Std.int(Math.min(blockSize-ptr, inputLen - rv));
-			if(num <= 0) break;
-			for(i in 0...num) {
-				Assert.isTrue(ptr + i < blockSize);
-				buf.set(i+ptr, input.get(i + inputOffset));
+		var rv = inputLen;
+		if(blockSize == 1) {
+			for(i in 0...inputLen) {
+				buf.set(0, input.get(inputOffset + i));
+				modeUpdate(buf, out);
 			}
-			inputOffset += num;
-			ptr += num;
-			Assert.isTrue(ptr <= blockSize);
-			if(ptr == blockSize) {
-				var written = modeUpdate(buf, out);
-				Assert.isTrue(written == blockSize);
-				ptr = 0;
+		} else {
+			// here we always have to reserve at least one block un-crypted when
+			// blocksize != 1, since padding may be in the last block and must
+			// be handled in final()
+			while(inputLen > 0) {
+				// flush out buf if it is full and we have more incoming
+				if(ptr == blockSize) {
+					var written = modeUpdate(buf, out);
+					Assert.isTrue(written == blockSize);
+					ptr = 0;
+				}
+				var num = Std.int(Math.min(bufsize-ptr, inputLen));
+				if(num <= 0) {
+					break;
+				}
+				// fill up the buf again
+				for(i in 0...num) {
+					Assert.isTrue(ptr + i < bufsize);
+					buf.set(i+ptr, input.get(i + inputOffset));
+				}
+				inputLen -= num;
+				inputOffset += num;
+				ptr += num;
+				Assert.isTrue(ptr <= bufsize);
 			}
-			rv += num;
 		}
 		return rv;
 	}
@@ -135,11 +165,12 @@ class Cipher {
 	 * @param inputOffset Offset into 'input' to read from
 	 * @param inputLen Number of bytes to read from 'input'
 	 * @param out An Output stream of any kind
+	 * @return Number of bytes written to 'out' (which may be more or less than read from 'input')
 	 **/
 	public function final(input:Bytes, inputOffset:Int, inputLen:Int, out:Output) : Int {
 		var rv : Int = 0;
 		var read : Int = 1;
-		while(read > 0) {
+		while(inputLen > 0 && read > 0) {
 			read = update(input,inputOffset,inputLen,out);
 			rv += read;
 			inputOffset += read;
@@ -147,6 +178,7 @@ class Cipher {
 		}
 		var rem : Bytes = buf.sub(0,ptr);
 		rv += modeFinal(rem, out);
+		//rv += rem.length;
 		return rv;
 	}
 

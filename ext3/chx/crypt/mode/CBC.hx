@@ -76,7 +76,7 @@ class CBC extends IVBase, implements chx.crypt.IMode {
 		#if CAFFEINE_DEBUG
 			trace("updateDecrypt: ");
 			trace("IV " + iv.toHex());
-			trace("Plaintext: " + b.toHex());
+			trace("Ciphertext: " + b.toHex());
 			var orig = out;
 			out = new BytesOutput();
 		#end
@@ -99,7 +99,7 @@ class CBC extends IVBase, implements chx.crypt.IMode {
 			var db : Bytes = untyped out.getBytes();
 			out = orig;
 			trace("Output Block: " + db.toHex());
-			trace("Ciphertext: " + db.toHex());
+			trace("Plaintext: " + db.toHex());
 			trace("");
 			out.writeBytes(db,0,db.length);
 		#end

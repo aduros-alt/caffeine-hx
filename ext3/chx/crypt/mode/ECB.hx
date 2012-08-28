@@ -27,6 +27,8 @@
 
 package chx.crypt.mode;
 
+import chx.io.Output;
+
 class ECB extends ModeBase, implements chx.crypt.IMode {
 
 	override public function toString() {
@@ -34,7 +36,7 @@ class ECB extends ModeBase, implements chx.crypt.IMode {
 	}
 
 	override public function updateEncrypt( b : Bytes, out : Output) : Int {
-		int n = blockSize;
+		var n = blockSize;
 		if(b.length != n)
 			return 0;
 		var enc = cipher.encryptBlock(b);
